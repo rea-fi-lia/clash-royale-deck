@@ -17,7 +17,7 @@ const SPELL_ZONES = ['ログ圏内', 'ザップ圏内', '矢の雨圏内', 'フ�
 function _t(k, v) { return window.CRI18N ? CRI18N.t(k, v) : k; }
 function _tr(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
 
-let STATS = null, TAGS = null, POT = null, WEIGHTS = null, DECK = null;
+let STATS = null, TAGS = null, POT = null, WEIGHTS = null, DECK = null, META = null, MATCH = null;
 
 function parseDeck() {
   const q = new URLSearchParams(location.search);
@@ -179,6 +179,45 @@ function radarHtml(deck, open) {
     + '<div class="dg-radar-note">' + _tr('β：ウェイト監修中。タグ表の精度が上がるほどチャートも正確になります') + '</div></div>';
 }
 
+// ★相性表（§8.11 D2）：自デッキの代表勝ち筋 vs 環境上位勝ち筋の実戦勝率（matchups.json）
+function selfArchs(deck) {
+  // WINCONS順＝オーナー監修の優先度。デッキ内の勝ち筋を形態サフィックス付きで返す
+  const out = [];
+  WINCONS.forEach(w => { const c = deck.find(x => x.name === w); if (c) out.push(c.name + mark(c)); });
+  return out;
+}
+function matchupHtml(deck) {
+  if (!MATCH || !META || !META.length) return '';
+  const archs = selfArchs(deck);
+  if (!archs.length) return '';
+  const self = archs[0]; // 代表勝ち筋
+  // 全月合算（現状1ヶ月。将来は「直近1ヶ月優先＋薄いペアを全期間ブレンド」に拡張）
+  const pair = {}, months = MATCH.months || {};
+  Object.keys(months).forEach(mk => {
+    const bk = months[mk] || {};
+    Object.keys(bk).forEach(k => { const v = bk[k]; if (!Array.isArray(v)) return; pair[k] = pair[k] || [0, 0]; pair[k][0] += v[0]; pair[k][1] += v[1]; });
+  });
+  const MIN = 40;
+  const rows = [];
+  META.slice(0, 14).forEach(m => {
+    if (!m || m.k === self) return; // 同じ勝ち筋＝ミラー寄りノイズは除外
+    const gw = pair[self + '|' + m.k];
+    if (!gw || gw[0] < MIN) return;
+    rows.push({ opp: m.k, share: m.share, wr: Math.round(gw[1] / gw[0] * 1000) / 10, games: gw[0] });
+  });
+  if (rows.length < 2) return '';
+  rows.sort((a, b) => b.share - a.share); // 環境で多い相手から
+  const rowHtml = rows.map(r => {
+    const cls = r.wr >= 55 ? 'mu-good' : r.wr <= 45 ? 'mu-bad' : 'mu-even';
+    return '<div class="mu-row"><span class="mu-opp">' + r.opp + '<small>' + _tr('環境') + ' ' + r.share + '%</small></span>'
+      + '<span class="mu-bar"><span class="mu-fill ' + cls + '" style="width:' + Math.max(3, Math.min(100, r.wr)) + '%"></span></span>'
+      + '<span class="mu-wr ' + cls + '">' + r.wr + '%<small>' + r.games + _tr('戦') + '</small></span></div>';
+  }).join('');
+  return '<div class="dg-matchup"><div class="mu-head">📊 ' + _tr('環境との相性') + '（β）</div>'
+    + '<div class="mu-sub">' + _tr('あなたの勝ち筋') + '「' + self + '」' + _tr('が、環境で多いデッキと当たったときの実戦勝率') + '</div>'
+    + rowHtml + '<div class="mu-note">' + _tr('※ 勝ち筋単位の概算（世界上位の実戦データ）。40戦未満の相手は非表示。緑＝有利／赤＝不利') + '</div></div>';
+}
+
 const GICON = { good: '◎', ok: '○', warn: '⚠', bad: '❌', info: 'ℹ️' };
 function render() {
   const wrap = document.getElementById('diagResult');
@@ -218,6 +257,8 @@ function render() {
     + '<div class="dg-mini">' + _t('diag.curve', { avg: avg, cyc: cyc, hvy: sorted.slice(4).reduce((s, v) => s + v, 0), t: curve })
     + (open && open.badN >= 4 ? '<br>' + _t('diag.openRisk', { p: open.pct, n: open.badN }) : open ? '<br>' + _t('diag.openOk', { n: open.badN }) : '') + '</div></div>';
 
+  html += matchupHtml(DECK);
+
   if (anti.length) {
     html += anti.map(a =>
       '<div class="dg-row dg-warn"><span class="dg-ico">💥</span><div class="dg-body"><div class="dg-title">' + a.title + '</div>'
@@ -247,16 +288,20 @@ async function init() {
   if (empty) empty.style.display = 'none';
   wrap.innerHTML = '<div class="coming-soon"><div class="big">🔬</div>' + _tr('診断中…') + '</div>';
   try {
-    const [st, tg, pt, wt] = await Promise.all([
+    const [st, tg, pt, wt, dk, mu] = await Promise.all([
       fetch(RAW + 'card-stats.json', { cache: 'no-store' }).then(r => r.json()),
       fetch(RAW + 'card-tags.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
       fetch(RAW + 'card-potential.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(RAW + 'card-weights.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null)
+      fetch(RAW + 'card-weights.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+      fetch(RAW + 'decks.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+      fetch(RAW + 'matchups.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null)
     ]);
     STATS = {}; (st.cards || []).forEach(c => STATS[c.jp] = c);
     TAGS = (tg && tg.cards) || {};
     POT = (pt && pt.cards) || null;
     WEIGHTS = (wt && wt.cards) || null;
+    META = (dk && Array.isArray(dk.meta)) ? dk.meta : null;
+    MATCH = (mu && mu.months) ? mu : null;
     render();
   } catch (e) {
     wrap.innerHTML = '<div class="coming-soon"><div class="big">📡</div>' + _tr('データの取得に失敗しました。時間をおいて再読み込みしてください') + '</div>';

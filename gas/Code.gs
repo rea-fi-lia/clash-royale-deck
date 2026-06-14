@@ -221,7 +221,11 @@ function updateDecks() {
       else if (c.evolutionLevel && c.evolutionLevel > 0) {
         var iu = c.iconUrls || {};
         var hasEvo = !!iu.evolutionMedium, hasHero = !!iu.heroMedium;
-        f = (hasEvo && hasHero) ? 'both' : (hasHero ? 'hero' : 'evo');
+        // ★形態は evolutionLevel の値で per-battle 判別（実データ診断で確認）：
+        //   標準進化＝Lv1（evolutionMedium）／ヒーロー＝Lv2以上（heroMedium）。
+        //   両方持ち（ナイト=L1/2・マスケット銃士=L1/3 等）は同一カードが試合ごとに切替＝Lvで振り分ける。
+        if (hasEvo && hasHero) f = (c.evolutionLevel >= 2) ? 'hero' : 'evo';
+        else f = hasHero ? 'hero' : 'evo';
       }
       fm.push(f);
     });
@@ -326,16 +330,21 @@ function updateDecks() {
     var champName = null, champBest = 0;
     r.cards.forEach(function (n) { var c = (r.votes[n] || {}).champ || 0; if (c > champBest) { champBest = c; champName = n; } });
     var thr = Math.max(1, r.count * 0.25);
-    var scored = r.cards.map(function (n) {
-      var v = r.votes[n] || {};
-      return { n: n, score: (v.evo || 0) + (v.hero || 0) + (v.both || 0), e: (v.evo || 0), h: (v.hero || 0) };
-    }).filter(function (x) { return x.n !== champName && x.score >= thr; });
-    scored.sort(function (a, b) { return b.score - a.score; });
-    var picked = scored.slice(0, 2);
     var cardForm = {};
     r.cards.forEach(function (n) { cardForm[n] = 'norm'; });
     if (champName) cardForm[champName] = 'champ';
-    picked.forEach(function (x) { cardForm[x.n] = (x.e > x.h) ? 'evo' : 'hero'; });
+    // ★旧「特殊形は上位2枚まで(slice(0,2))」を撤廃。実使用どおり表示する。
+    //   進化はゲーム仕様で最大2枠 → 投票上位2枚だけ。ヒーロー/チャンピオンは枚数制限なし。
+    var evoC = [];
+    r.cards.forEach(function (n) {
+      if (n === champName) return;
+      var v = r.votes[n] || {};
+      var ev = (v.evo || 0) + (v.both || 0), he = (v.hero || 0);   // 旧スナップショットのboth票は進化に合算
+      if (ev >= he) { if (ev >= thr) evoC.push({ n: n, s: ev }); }
+      else if (he >= thr) { cardForm[n] = 'hero'; }
+    });
+    evoC.sort(function (a, b) { return b.s - a.s; });
+    evoC.slice(0, 2).forEach(function (x) { cardForm[x.n] = 'evo'; });
     var groups = { evo: [], hero: [], champ: [], norm: [] };
     r.cards.forEach(function (n) { groups[cardForm[n] || 'norm'].push(n); });
     groups.norm.sort(function (a, b) { return (COST[a] || 0) - (COST[b] || 0); });
@@ -365,7 +374,7 @@ function updateDecks() {
     r.cards.forEach(function (n) {
       var v = r.votes[n] || { norm: r.count };
       var both = v.both || 0;
-      var nn = (v.norm || 0) + (v.champ || 0), ev = (v.evo || 0) + both / 2, he = (v.hero || 0) + both / 2;
+      var nn = (v.norm || 0) + (v.champ || 0), ev = (v.evo || 0) + both, he = (v.hero || 0);
       if (nn) useNow[n] = (useNow[n] || 0) + nn;
       if (ev) useNow[n + '|e'] = (useNow[n + '|e'] || 0) + ev;
       if (he) useNow[n + '|h'] = (useNow[n + '|h'] || 0) + he;
@@ -379,8 +388,8 @@ function updateDecks() {
       var v = r.votes[n] || { norm: r.count }, vw = (r.vwins && r.vwins[n]) || {};
       var vb = v.both || 0, wb = vw.both || 0;
       addBat_(n, (v.norm || 0) + (v.champ || 0), (vw.norm || 0) + (vw.champ || 0));
-      addBat_(n + '|e', (v.evo || 0) + vb / 2, (vw.evo || 0) + wb / 2);
-      addBat_(n + '|h', (v.hero || 0) + vb / 2, (vw.hero || 0) + wb / 2);
+      addBat_(n + '|e', (v.evo || 0) + vb, (vw.evo || 0) + wb);
+      addBat_(n + '|h', (v.hero || 0), (vw.hero || 0));
     });
   });
 
