@@ -222,7 +222,11 @@ function matchupHtml(deck) {
     const fill = dev >= 0
       ? '<span class="mu-fill ' + cls + '" style="left:50%;width:' + w + '%"></span>'
       : '<span class="mu-fill ' + cls + '" style="right:50%;width:' + w + '%"></span>';
-    return '<div class="mu-row"><span class="mu-opp">' + r.opp + '<small>' + _tr('環境') + ' ' + r.share + '%</small></span>'
+    const base = String(r.opp).replace(/[⚡👑]+$/, ''), suf = String(r.opp).slice(base.length);
+    const inf = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[base] : null;
+    const src = inf ? ((suf === '⚡' && inf.iv) ? inf.iv : (suf === '👑' && inf.ih) ? inf.ih : inf.i) : '';
+    const ico = '<span class="mu-ico">' + (src ? '<img src="' + src + '" alt="' + base + '" loading="lazy">' : '') + '</span>';
+    return '<div class="mu-row">' + ico + '<span class="mu-opp">' + r.opp + '<small>' + _tr('環境') + ' ' + r.share + '%</small></span>'
       + '<span class="mu-bar">' + fill + '</span>'
       + '<span class="mu-wr ' + cls + '">' + r.wr + '%<small>' + r.games + _tr('戦') + '</small></span></div>';
   }).join('');
@@ -296,6 +300,8 @@ function render() {
 
 async function init() {
   DECK = parseDeck();
+  const backBtn = document.getElementById('backToBuilder');
+  if (backBtn) backBtn.href = 'index.html' + (location.search || ''); // 同じdeck/fを渡して復元
   const empty = document.getElementById('diagEmpty');
   const wrap = document.getElementById('diagResult');
   if (!DECK) { if (empty) empty.style.display = ''; return; }

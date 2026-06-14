@@ -71,6 +71,9 @@
   .dg-beta { font-size:11px; color:#f0c54a; background:rgba(232,160,32,.08); border:1px solid rgba(232,160,32,.3); border-radius:8px; padding:7px 10px; margin:-8px 0 16px; line-height:1.6; }
   .dg-deck { display:grid; grid-template-columns:repeat(8,1fr); gap:5px; margin:6px 0 14px; }
   @media (max-width:600px){ .dg-deck { grid-template-columns:repeat(4,1fr); } }
+  .dg-back { display:inline-flex; align-items:center; gap:6px; margin:0 0 14px; padding:9px 16px; font-size:13px; font-weight:700; font-family:var(--font-head); letter-spacing:.5px; color:var(--accent); background:var(--surface); border:1px solid var(--border-hi); border-radius:8px; text-decoration:none; transition:background .12s; }
+  .dg-back:hover { background:var(--surface2); }
+  .dg-back-ico { font-size:14px; }
   .dg-verdict { font-weight:700; font-size:15px; padding:12px 14px; border-radius:10px; margin-bottom:14px; border:1px solid var(--border-hi); background:var(--surface); }
   .dg-verdict.dg-good { border-color:#2bb673; color:#56d199; }
   .dg-verdict.dg-ok { border-color:var(--accent); color:var(--accent); }
@@ -113,7 +116,9 @@
   .mu-sub { font-size:11px; color:var(--text-muted); margin-bottom:10px; line-height:1.6; }
   .mu-list { max-height:222px; overflow-y:auto; margin:0 -2px; padding:0 2px; }
   .mu-row { display:flex; align-items:center; gap:8px; padding:4px 0; }
-  .mu-opp { flex:0 0 36%; font-size:12px; line-height:1.25; min-width:0; word-break:break-all; }
+  .mu-ico { flex:0 0 auto; width:22px; height:27px; display:flex; align-items:center; }
+  .mu-ico img { width:100%; height:100%; object-fit:contain; }
+  .mu-opp { flex:0 0 30%; font-size:12px; line-height:1.25; min-width:0; word-break:break-all; }
   .mu-opp small { display:block; color:var(--text-dim); font-size:9px; }
   .mu-bar { flex:1; height:14px; background:var(--surface2); border-radius:7px; overflow:hidden; position:relative; }
   .mu-bar::after { content:''; position:absolute; left:50%; top:0; bottom:0; width:1px; background:rgba(255,255,255,.18); }
@@ -146,6 +151,7 @@
       <h1 class="page-title">デッキ診断</h1>
       <p class="page-sub" data-i18n="strat.sub2">あなたのデッキを構成チェック。対空・タンク処理・呪文耐性・コストカーブなどを、Lv16換算の実ステータスと監修タグで診断します。</p>
       <p class="dg-beta" data-i18n="strat.beta">🧪 β版：診断ロジックと評価基準は随時調整されます。判定は今後さらに賢くなっていきます。</p>
+      <a id="backToBuilder" class="dg-back" href="index.html"><span class="dg-back-ico">🛠️</span><span data-i18n="strat.backBuilder">デッキ作成に戻る</span></a>
       <div id="diagEmpty" class="coming-soon" style="display:none"><div class="big">🛠️</div><p data-i18n="strat.empty">デッキ作成ツールで8枚そろえて<br>「デッキ分析へ →」から来ると診断できます。</p>
         <p style="margin-top:14px"><a class="load-btn" style="display:inline-block;width:auto;padding:11px 22px" href="index.html">→ デッキを組みに行く</a></p></div>
       <div id="diagResult"></div>

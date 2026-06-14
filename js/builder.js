@@ -1112,6 +1112,7 @@ function clearPreviewStats() {
 // 下部ボタンの活性状態を更新
 function updateActionButtons() {
   const n = deck.filter(Boolean).length;
+  try { localStorage.setItem('cr_workdeck', deck.map(c => c ? c.name : '').join(',')); } catch (e) {} // デッキ復帰用に常時保存
   const saveBtn = document.getElementById('saveBtn');
   const analyzeBtn = document.getElementById('analyzeBtn');
   if (saveBtn) saveBtn.disabled = false;              // 0枚でも保存OK（空スロットとして保存できる）
@@ -1552,21 +1553,24 @@ window.addEventListener('cr-owned-cards', (e) => applyOwned(e.detail));
 
 // URLパラメータ ?deck=カード名,カード名,... でデッキを読み込む（攻略ページからのワンタップ用）
 function loadDeckFromQuery() {
-  const p = new URLSearchParams(location.search).get('deck');
+  let p = new URLSearchParams(location.search).get('deck');
+  const fromUrl = !!p;
+  if (!p) { try { p = localStorage.getItem('cr_workdeck') || ''; } catch (e) {} } // ?deck=無し（戻る/Safari戻り）→保存済みデッキを復帰
   if (!p) return;
-  const names = p.split(',').map(s => s.trim()).filter(Boolean);
   // 順番＝スロット位置（0=進化, 1=ヒーロー/チャンピオン, 2=ワイルド, 3-7=通常）でそのまま配置。
-  // 攻略ページ側でスロット順に並べてあるので、ズレずに意図どおりの枠に入る。
+  // 空文字＝空スロットとして位置を維持（フォームはスロット位置で決まるので、これで形態ごと復元される）。
+  const names = p.split(',').map(s => s.trim());
   const next = [null,null,null,null,null,null,null,null];
   let placed = 0;
   names.slice(0,8).forEach((n, i) => {
+    if (!n) return;
     const c = CARDS.find(x => x.name === n);
     if (c) { next[i] = c; placed++; }
   });
   if (!placed) return;
   deck = next;
   renderDeck(); render();
-  showToast('デッキを読み込みました');
+  if (fromUrl) showToast('デッキを読み込みました'); // 静かな復帰時はトーストを出さない
 }
 loadDeckFromQuery();
 
