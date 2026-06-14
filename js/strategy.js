@@ -169,7 +169,6 @@ function capabilityHtml(deck) {
     + '<div class="cap-weak">🛠 ' + _tr('伸ばすなら') + '：「' + weak.l + '」' + _tr('は控えめ。') + capAdvice(weak.l) + '</div></div>';
   return '<div class="dg-cap"><div class="cap-head">⚙️ ' + _tr('デッキ能力（カード評価ベース）') + '</div>'
     + bars
-    + '<div class="cap-note">' + _tr('各カードを全カード中で相対評価（1〜10）し、デッキの担い手で集計。タグ精度が上がるほど正確になります') + '</div>'
     + tip + '</div>';
 }
 // ★弱い軸への"こう対処する"アドバイス（欠点指摘ではなく立ち回りでカバー）
@@ -198,31 +197,39 @@ function matchupHtml(deck) {
   const archs = selfArchs(deck);
   if (!archs.length) return '';
   const self = archs[0]; // 代表勝ち筋
-  // 全月合算（現状1ヶ月。将来は「直近1ヶ月優先＋薄いペアを全期間ブレンド」に拡張）
   const pair = {}, months = MATCH.months || {};
   Object.keys(months).forEach(mk => {
     const bk = months[mk] || {};
     Object.keys(bk).forEach(k => { const v = bk[k]; if (!Array.isArray(v)) return; pair[k] = pair[k] || [0, 0]; pair[k][0] += v[0]; pair[k][1] += v[1]; });
   });
-  const MIN = 40;
+  const MIN = 20; // 全勝ち筋を出す。少数サンプルのノイズだけ除外
   const rows = [];
-  META.slice(0, 14).forEach(m => {
-    if (!m || m.k === self) return; // 同じ勝ち筋＝ミラー寄りノイズは除外
+  let sw = 0, sg = 0;
+  META.forEach(m => {
+    if (!m || m.k === self) return; // ミラーは除外
     const gw = pair[self + '|' + m.k];
     if (!gw || gw[0] < MIN) return;
     rows.push({ opp: m.k, share: m.share, wr: Math.round(gw[1] / gw[0] * 1000) / 10, games: gw[0] });
+    sw += gw[1]; sg += gw[0];
   });
   if (rows.length < 2) return '';
-  rows.sort((a, b) => b.share - a.share); // 環境で多い相手から
+  const avg = Math.round(sw / sg * 1000) / 10; // 中心線＝このデッキの平均勝率
+  rows.sort((a, b) => b.wr - a.wr); // 得意→苦手
   const rowHtml = rows.map(r => {
-    const cls = r.wr >= 55 ? 'mu-good' : r.wr <= 45 ? 'mu-bad' : 'mu-even';
+    const dev = r.wr - avg;
+    const cls = dev >= 3 ? 'mu-good' : dev <= -3 ? 'mu-bad' : 'mu-even';
+    const w = Math.min(48, Math.abs(dev) * 4.0); // 平均からの差を拡大（収束しても見える）
+    const fill = dev >= 0
+      ? '<span class="mu-fill ' + cls + '" style="left:50%;width:' + w + '%"></span>'
+      : '<span class="mu-fill ' + cls + '" style="right:50%;width:' + w + '%"></span>';
     return '<div class="mu-row"><span class="mu-opp">' + r.opp + '<small>' + _tr('環境') + ' ' + r.share + '%</small></span>'
-      + '<span class="mu-bar"><span class="mu-fill ' + cls + '" style="width:' + Math.max(3, Math.min(100, r.wr)) + '%"></span></span>'
+      + '<span class="mu-bar">' + fill + '</span>'
       + '<span class="mu-wr ' + cls + '">' + r.wr + '%<small>' + r.games + _tr('戦') + '</small></span></div>';
   }).join('');
   return '<div class="dg-matchup"><div class="mu-head">📊 ' + _tr('環境との相性') + '（β）</div>'
-    + '<div class="mu-sub">' + _tr('あなたの勝ち筋') + '「' + self + '」' + _tr('が、環境で多いデッキと当たったときの実戦勝率') + '</div>'
-    + rowHtml + '<div class="mu-note">' + _tr('※ 勝ち筋単位の概算（世界上位の実戦データ）。40戦未満の相手は非表示。緑＝有利／赤＝不利') + '</div></div>';
+    + '<div class="mu-sub">' + _tr('あなたの勝ち筋') + '「' + self + '」／' + _tr('中心線＝このデッキの平均') + ' ' + avg + '%（' + _tr('右=得意／左=苦手') + '）</div>'
+    + '<div class="mu-list">' + rowHtml + '</div>'
+    + '<div class="mu-note">' + _tr('※ 中心はこのデッキの平均勝率。全勝ち筋を表示（スクロール）。緑＝平均より上／赤＝下。少数戦は参考値') + '</div></div>';
 }
 
 const GICON = { good: '◎', ok: '○', warn: '⚠', bad: '❌', info: 'ℹ️' };
@@ -235,9 +242,9 @@ function render() {
   const open = openingRisk(DECK);
   const bads = checks.filter(c => c.grade === 'bad').length;
   const warns = checks.filter(c => c.grade === 'warn').length + anti.length;
-  const verdict = bads === 0 && warns <= 1 ? ['good', _tr('合格ライン！バランスの良い構成です')]
-    : bads === 0 ? ['ok', _tr('おおむね良好。⚠の項目を意識して立ち回ろう')]
-    : ['warn', _tr('課題あり。❌の項目を見直すと安定します')];
+  const verdict = bads === 0 && warns <= 1 ? ['good', _tr('強みが噛み合ったバランスの良い構成です'), '✅']
+    : bads === 0 ? ['ok', _tr('おおむね好バランス。弱めの軸は立ち回りでカバーしよう'), '👍']
+    : ['warn', _tr('伸びしろのある構成。下の弱い軸を立ち回りで補うと安定します'), '🛠'];
 
   // 総評（だからどうなのか）
   const costs = DECK.map(c => c.info.c);
@@ -259,7 +266,7 @@ function render() {
 
   html += capabilityHtml(DECK);
 
-  html += '<div class="dg-verdict dg-' + verdict[0] + '">' + GICON[verdict[0] === 'good' ? 'good' : verdict[0] === 'ok' ? 'ok' : 'warn'] + ' ' + verdict[1]
+  html += '<div class="dg-verdict dg-' + verdict[0] + '">' + verdict[2] + ' ' + verdict[1]
     + '<div class="dg-sum">' + summary + '</div>'
     + '<div class="dg-mini">' + _t('diag.curve', { avg: avg, cyc: cyc, hvy: sorted.slice(4).reduce((s, v) => s + v, 0), t: curve })
     + (open && open.badN >= 4 ? '<br>' + _t('diag.openRisk', { p: open.pct, n: open.badN }) : open ? '<br>' + _t('diag.openOk', { n: open.badN }) : '') + '</div></div>';

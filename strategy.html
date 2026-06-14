@@ -111,12 +111,13 @@
   .dg-matchup { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:12px 14px; margin-bottom:14px; }
   .mu-head { font-weight:700; font-size:14px; margin-bottom:2px; }
   .mu-sub { font-size:11px; color:var(--text-muted); margin-bottom:10px; line-height:1.6; }
+  .mu-list { max-height:222px; overflow-y:auto; margin:0 -2px; padding:0 2px; }
   .mu-row { display:flex; align-items:center; gap:8px; padding:4px 0; }
   .mu-opp { flex:0 0 36%; font-size:12px; line-height:1.25; min-width:0; word-break:break-all; }
   .mu-opp small { display:block; color:var(--text-dim); font-size:9px; }
   .mu-bar { flex:1; height:14px; background:var(--surface2); border-radius:7px; overflow:hidden; position:relative; }
   .mu-bar::after { content:''; position:absolute; left:50%; top:0; bottom:0; width:1px; background:rgba(255,255,255,.18); }
-  .mu-fill { display:block; height:100%; border-radius:7px; }
+  .mu-fill { position:absolute; top:0; height:100%; border-radius:7px; }
   .mu-wr { flex:0 0 68px; text-align:right; font-weight:700; font-size:13px; }
   .mu-wr small { display:block; color:var(--text-dim); font-size:9px; font-weight:400; }
   .mu-good { color:#56d199; } .mu-fill.mu-good { background:linear-gradient(90deg,#2bb673,#56d199); }
