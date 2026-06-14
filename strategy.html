@@ -91,9 +91,22 @@
   .dg-details summary { cursor:pointer; font-size:13px; font-weight:700; color:var(--text-muted); padding:10px 4px; user-select:none; }
   .dg-details summary:hover { color:var(--text); }
   .dg-details[open] summary { color:var(--accent); }
-  .dg-radar { max-width:360px; margin:0 auto 10px; }
-  .dg-radar svg { width:100%; height:auto; display:block; }
-  .dg-radar-note { font-size:10px; color:var(--text-dim); text-align:center; margin-top:2px; line-height:1.5; }
+  /* ★デッキ能力（card-evalベース） */
+  .dg-cap { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:12px 14px; margin-bottom:14px; }
+  .cap-head { font-weight:700; font-size:14px; margin-bottom:10px; }
+  .cap-row { display:flex; align-items:center; gap:8px; padding:3px 0; }
+  .cap-l { flex:0 0 56px; font-size:12px; color:var(--text-muted); }
+  .cap-bar { flex:1; height:14px; background:var(--surface2); border-radius:7px; overflow:hidden; }
+  .cap-fill { display:block; height:100%; border-radius:7px; }
+  .cap-fill.cap-hi { background:linear-gradient(90deg,#2bb673,#56d199); }
+  .cap-fill.cap-mid { background:linear-gradient(90deg,#caa23a,#e8c45a); }
+  .cap-fill.cap-lo { background:linear-gradient(90deg,#5a6070,#8a90a0); }
+  .cap-v { flex:0 0 26px; text-align:right; font-weight:700; font-size:12px; color:var(--text); }
+  .cap-carry { flex:0 0 auto; font-size:10px; color:var(--text-dim); max-width:84px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cap-note { font-size:10px; color:var(--text-dim); margin-top:8px; line-height:1.5; }
+  .cap-tip { margin-top:10px; font-size:12px; line-height:1.7; }
+  .cap-strong { color:#56d199; }
+  .cap-weak { color:var(--text-muted); margin-top:4px; }
   /* ★相性表（環境との相性） */
   .dg-matchup { border:1px solid var(--border); border-radius:10px; background:var(--surface); padding:12px 14px; margin-bottom:14px; }
   .mu-head { font-weight:700; font-size:14px; margin-bottom:2px; }
@@ -149,6 +162,6 @@
 <script type="module" src="auth.js?v=260627"></script>
 <script defer src="i18n.js?v=260627"></script>
 <script src="js/cards-data.js?v=260627"></script>
-<script defer src="js/strategy.js?v=260628"></script>
+<script defer src="js/strategy.js?v=260629"></script>
 </body>
 </html>

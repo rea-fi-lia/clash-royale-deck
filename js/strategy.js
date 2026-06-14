@@ -17,7 +17,7 @@ const SPELL_ZONES = ['ログ圏内', 'ザップ圏内', '矢の雨圏内', 'フ�
 function _t(k, v) { return window.CRI18N ? CRI18N.t(k, v) : k; }
 function _tr(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
 
-let STATS = null, TAGS = null, POT = null, WEIGHTS = null, DECK = null, META = null, MATCH = null;
+let STATS = null, TAGS = null, POT = null, EVAL = null, DECK = null, META = null, MATCH = null;
 
 function parseDeck() {
   const q = new URLSearchParams(location.search);
@@ -129,54 +129,61 @@ function openingRisk(deck) {
   return { badN: bad.length, pct: Math.round(p * 1000) / 10, cards: bad };
 }
 
-// ★レーダーチャート（card-weights.json＝軸別1〜5の監修値から6軸を算出）
-//   基準値REFは「強いデッキでだいたい100になる」チューニング定数。β運用で随時調整。
-function radarHtml(deck, open) {
-  if (!WEIGHTS) return '';
-  const sums = { atk: 0, defG: 0, defA: 0, swarm: 0, ctrl: 0 };
-  let hit = 0;
-  deck.forEach(c => {
-    const w = WEIGHTS[c.name + mark(c)] || WEIGHTS[c.name];
-    if (!w) return;
-    hit++;
-    sums.atk += w.atk || 0; sums.defG += w.defG || 0; sums.defA += w.defA || 0;
-    sums.swarm += w.swarm || 0; sums.ctrl += w.ctrl || 0;
-  });
-  if (hit < 6) return '';
-  const avg = deck.reduce((s, c) => s + c.info.c, 0) / 8;
-  let cyc = Math.max(5, Math.min(100, (4.6 - avg) / 2.0 * 100));
-  if (open && open.pct >= 5) cyc = Math.max(5, cyc - 20); // 初手事故率が高いと安定性減点
-  const REF = { atk: 16, defA: 12, defG: 18, swarm: 12, ctrl: 8 }; // β調整中（2.6ホグ=攻撃88が目安になるよう16に）
-  const pct = k => Math.max(4, Math.min(100, Math.round(sums[k] / REF[k] * 100)));
-  const axes = [
-    { l: _tr('攻撃圧'), v: pct('atk') },
-    { l: _tr('対空'), v: pct('defA') },
-    { l: _tr('地上防衛'), v: pct('defG') },
-    { l: _tr('小物処理'), v: pct('swarm') },
-    { l: _tr('妨害'), v: pct('ctrl') },
-    { l: _tr('回転・安定'), v: Math.round(cyc) }
+// ★デッキ能力（card-eval.json＝全カード相対評価1〜10から集計）。"下から持ち上げる"構成的診断。
+//   各軸＝関連項目をカードごとに最大化→デッキは「担い手1位＋0.35×2位」。耐性/エリ得は全体平均。
+function capabilityHtml(deck) {
+  if (!EVAL) return '';
+  const E = deck.map(c => ({ c: c, e: EVAL[c.name + mark(c)] || EVAL[c.name] }));
+  if (E.filter(x => x.e).length < 6) return '';
+  const AX = [
+    { l: _tr('対空'), it: ['対空単体処理', '対空群れ処理'], avg: false },
+    { l: _tr('タンク処理'), it: ['タンク処理', '中型タンク処理'], avg: false },
+    { l: _tr('小物処理'), it: ['地上群れ処理', '対空群れ処理'], avg: false },
+    { l: _tr('タワー圧'), it: ['タワーダメージ力', 'タワーダメージ決定力'], avg: false },
+    { l: _tr('施設攻略'), it: ['施設破壊力', '施設突破力'], avg: false },
+    { l: _tr('呪文耐性'), it: ['呪文耐性'], avg: true },
+    { l: _tr('エリ得'), it: ['エリクサーアドバンテージ'], avg: true }
   ];
-  const CX = 150, CY = 122, R = 84, N = 6;
-  const pt2 = (i, r) => { const a = -Math.PI / 2 + i * 2 * Math.PI / N; return [(CX + r * Math.cos(a)).toFixed(1), (CY + r * Math.sin(a)).toFixed(1)]; };
-  let grid = '';
-  [25, 50, 75, 100].forEach(g => {
-    const ps = []; for (let i = 0; i < N; i++) ps.push(pt2(i, R * g / 100).join(','));
-    grid += '<polygon points="' + ps.join(' ') + '" fill="none" stroke="rgba(255,255,255,.08)"/>';
+  const axData = AX.map(ax => {
+    const contrib = E.map(x => {
+      const v = x.e ? Math.max.apply(null, ax.it.map(it => x.e[it] || 0)) : 0;
+      return { c: x.c, v: v };
+    }).sort((a, b) => b.v - a.v);
+    let score = ax.avg
+      ? contrib.reduce((s, x) => s + x.v, 0) / E.length
+      : 0.65 * contrib[0].v + 0.35 * (contrib[1] ? contrib[1].v : 0);
+    score = Math.max(0, Math.min(10, Math.round(score * 10) / 10));
+    return { l: ax.l, score: score, carry: (!ax.avg && contrib[0].v >= 4) ? contrib[0].c : null };
   });
-  let spokes = '';
-  for (let i = 0; i < N; i++) { const p = pt2(i, R); spokes += '<line x1="' + CX + '" y1="' + CY + '" x2="' + p[0] + '" y2="' + p[1] + '" stroke="rgba(255,255,255,.08)"/>'; }
-  const poly = axes.map((a, i) => pt2(i, R * a.v / 100).join(',')).join(' ');
-  let labels = '';
-  axes.forEach((a, i) => {
-    const p = pt2(i, R + 22);
-    labels += '<text x="' + p[0] + '" y="' + p[1] + '" text-anchor="middle" font-size="10" fill="#8a90a0">' + a.l + '</text>'
-      + '<text x="' + p[0] + '" y="' + (parseFloat(p[1]) + 12) + '" text-anchor="middle" font-size="10" font-weight="700" fill="#e8eaf0">' + a.v + '</text>';
-  });
-  return '<div class="dg-radar"><svg viewBox="0 0 300 258" xmlns="http://www.w3.org/2000/svg">'
-    + grid + spokes
-    + '<polygon points="' + poly + '" fill="rgba(58,142,240,.30)" stroke="#3a8ef0" stroke-width="2"/>'
-    + labels + '</svg>'
-    + '<div class="dg-radar-note">' + _tr('β：ウェイト監修中。タグ表の精度が上がるほどチャートも正確になります') + '</div></div>';
+  const bars = axData.map(a => {
+    const pct = Math.max(4, Math.round(a.score / 10 * 100));
+    const cls = a.score >= 6.5 ? 'cap-hi' : a.score >= 3.5 ? 'cap-mid' : 'cap-lo';
+    const carry = a.carry ? '<span class="cap-carry">' + a.carry.name + mark(a.carry) + '</span>' : '';
+    return '<div class="cap-row"><span class="cap-l">' + a.l + '</span>'
+      + '<span class="cap-bar"><span class="cap-fill ' + cls + '" style="width:' + pct + '%"></span></span>'
+      + '<span class="cap-v">' + a.score.toFixed(1) + '</span>' + carry + '</div>';
+  }).join('');
+  const strong = axData.slice().sort((a, b) => b.score - a.score)[0];
+  const weak = axData.slice().sort((a, b) => a.score - b.score)[0];
+  const tip = '<div class="cap-tip"><div class="cap-strong">💪 ' + _tr('強み') + '：「' + strong.l + '」' + _tr('が高い。ここを主軸に組み立てよう') + '</div>'
+    + '<div class="cap-weak">🛠 ' + _tr('伸ばすなら') + '：「' + weak.l + '」' + _tr('は控えめ。') + capAdvice(weak.l) + '</div></div>';
+  return '<div class="dg-cap"><div class="cap-head">⚙️ ' + _tr('デッキ能力（カード評価ベース）') + '</div>'
+    + bars
+    + '<div class="cap-note">' + _tr('各カードを全カード中で相対評価（1〜10）し、デッキの担い手で集計。タグ精度が上がるほど正確になります') + '</div>'
+    + tip + '</div>';
+}
+// ★弱い軸への"こう対処する"アドバイス（欠点指摘ではなく立ち回りでカバー）
+function capAdvice(l) {
+  const M = {
+    '対空': '空主体の相手は、地上の手数で押し返すかタワー射程に引きつけて削る',
+    'タンク処理': '大型タンクは建物や複数体で受けを重ね、時間を稼いで処理',
+    '小物処理': '数で来る相手は呪文を温存し、引きつけてからまとめて',
+    'タワー圧': 'カウンター主体で、守ってから少数で確実に削る展開に',
+    '施設攻略': '正面が硬いので左右に振り、的を絞らせず横圧をかける',
+    '呪文耐性': '主力を固めず散らして置き、呪文の一掃を避ける',
+    'エリ得': '無駄打ちを減らし、受けてから攻める"後出し"を意識'
+  };
+  return _tr(M[l] || '立ち回りでカバーしよう');
 }
 
 // ★相性表（§8.11 D2）：自デッキの代表勝ち筋 vs 環境上位勝ち筋の実戦勝率（matchups.json）
@@ -250,7 +257,7 @@ function render() {
     return '<div class="mini-card' + (c.f === 'e' ? ' is-evo' : c.f === 'h' ? ' is-hero' : '') + '"><span class="pip">' + c.info.c + '</span>' + badge + '<img src="' + img + '" alt="' + c.name + '"></div>';
   }).join('') + '</div>';
 
-  html += radarHtml(DECK, open);
+  html += capabilityHtml(DECK);
 
   html += '<div class="dg-verdict dg-' + verdict[0] + '">' + GICON[verdict[0] === 'good' ? 'good' : verdict[0] === 'ok' ? 'ok' : 'warn'] + ' ' + verdict[1]
     + '<div class="dg-sum">' + summary + '</div>'
@@ -292,14 +299,14 @@ async function init() {
       fetch(RAW + 'card-stats.json', { cache: 'no-store' }).then(r => r.json()),
       fetch(RAW + 'card-tags.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
       fetch(RAW + 'card-potential.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(RAW + 'card-weights.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+      fetch(RAW + 'card-eval.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
       fetch(RAW + 'decks.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
       fetch(RAW + 'matchups.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null)
     ]);
     STATS = {}; (st.cards || []).forEach(c => STATS[c.jp] = c);
     TAGS = (tg && tg.cards) || {};
     POT = (pt && pt.cards) || null;
-    WEIGHTS = (wt && wt.cards) || null;
+    EVAL = (wt && wt.cards) || null;
     META = (dk && Array.isArray(dk.meta)) ? dk.meta : null;
     MATCH = (mu && mu.months) ? mu : null;
     render();

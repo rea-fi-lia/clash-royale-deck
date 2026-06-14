@@ -1177,3 +1177,158 @@ function exportCardEvalV1() {
   ghWriteJson_('card-eval.json', out);
   Logger.log('card-eval.json exported: ' + out.count + ' cards');
 }
+
+// ===== タグ表v2「攻撃対象」列を自動記入（card-statsのn.air/n.bld由来＝地上/両方/建物）=====
+// ヘッダー名で列を探すので位置非依存。空欄を埋め、オーナーは例外だけ赤入れ可。
+function fillAttackTarget() {
+  var stats = ghReadJson_('card-stats.json');
+  if (!stats || !stats.cards) throw new Error('card-stats.json が読めない');
+  var tgt = {};
+  stats.cards.forEach(function (c) { var n = c.n || {}; tgt[c.jp] = n.bld ? '建物' : (n.air ? '両方' : '地上'); });
+  var sid = prop('TAG_SHEET_ID', '1cjX3ptT0g0qjfwhoTBKbzRfXGZUNGLy_jspMSRCDPyU');
+  var sh = SpreadsheetApp.openById(sid).getSheetByName('タグ表v2');
+  if (!sh) throw new Error('タグ表v2 が無い');
+  var vals = sh.getDataRange().getValues(), header = vals[0], jCol = -1;
+  for (var c = 0; c < header.length; c++) { if (String(header[c] || '').trim() === '攻撃対象') { jCol = c; break; } }
+  if (jCol < 0) throw new Error('「攻撃対象」列が見つからない');
+  var colData = [], wrote = 0;
+  for (var r = 1; r < vals.length; r++) {
+    var existing = String(vals[r][jCol] || '').trim();
+    if (existing) { colData.push([vals[r][jCol]]); continue; } // 既存(赤入れ)は保持＝空欄だけ埋める
+    var name = String(vals[r][0] || '').trim(), base = name.replace(/[⚡👑]+$/, '');
+    var v = name ? (tgt[name] || tgt[base] || '') : '';
+    colData.push([v]); if (v) wrote++;
+  }
+  sh.getRange(2, jCol + 1, colData.length, 1).setValues(colData);
+  Logger.log('fillAttackTarget: ' + wrote + '件記入 / 列' + (jCol + 1));
+}
+
+// ===== カード評価 v1（相対評価・自動導出）：ソース3種 → card-eval.json =====
+// card-stats(実数値)＋card-tags(役割タグ)＋card-potential(係数)から17項目を
+// 全カード相対(パーセンタイル)で1-10算出。人の赤入れはソース側だけ＝完全自動導出。
+function buildCardEvalV1() {
+  try { fillAttackTarget(); } catch (e) { Logger.log('attackTarget skip: ' + e); } // 攻撃対象(空欄)を先に自動記入
+  var stats = ghReadJson_('card-stats.json');
+  var tagsJ = ghReadJson_('card-tags.json') || { cards: {} };
+  var potJ  = ghReadJson_('card-potential.json') || { cards: {} };
+  if (!stats || !stats.cards) throw new Error('card-stats.json が読めない');
+  var TC = tagsJ.cards || {}, PC = potJ.cards || {};
+  var SIEGE = { '迫撃砲': 1, '巨大クロスボウ': 1 };
+  function mp(s){ return s==='◎'?9 : s==='○'?6 : s==='△'?3 : 0; }
+  function spd(s){ return typeof s==='number'? s : (parseFloat(s)||60); }
+  var cards = stats.cards.map(function (c) {
+    var n = c.n || {}, arr = ((TC[c.jp]||{}).tags)||[], tset = {};
+    for (var i=0;i<arr.length;i++) tset[arr[i]] = 1;
+    var p = PC[c.jp] || {}, ph = p.phase || [];
+    return { name:c.jp, type:n.type, cnt:n.count||1, cost:n.cost||1, speed:spd(n.speed), air:!!n.air, splash:!!n.splash,
+      bld:n.type==='Building', siege:!!SIEGE[c.jp], hp:c.hp16||0, dps:c.dps16||0, t:tset,
+      hpEff:p.hpEff||0, dpsEff:p.dpsEff||0, spellEff:p.spellEff||0, towerEff:p.towerEff||0,
+      solo:p.solo, ph1:mp(ph[0]), ph2:mp(ph[1]), ph3:mp(ph[2]) };
+  });
+  function H(c,k){ return !!c.t[k]; }
+  function SP(c){ return c.type==='Spell'; }
+  function cap(c,m){ return Math.min(c.dps,m); }
+  function offGate(c){ return SP(c)?true : (c.bld&&!c.siege)?false : true; } // 攻撃系：防衛建物を除外（攻城は可）
+  var RAWF = {
+    'タンク処理': function(c){ return SP(c)? c.towerEff*0.4 : c.dps*(H(c,'tankKiller')?1.6:1)*(H(c,'ramp')?1.3:1)*((c.splash&&!H(c,'tankKiller'))?0.55:1); },
+    '中型タンク処理': function(c){ return SP(c)? c.spellEff*0.5 : c.dps*(H(c,'tankKiller')?1.2:1)+c.hp*0.012; },
+    '対空単体処理': function(c){ return (!SP(c)&&c.air)? c.dps*(H(c,'tankKiller')?1.4:1) : 0; },
+    '地上群れ処理': function(c){ return SP(c)? c.spellEff*0.8 : (c.splash? cap(c,450)*Math.min(c.cnt,3) : 0); },
+    '対空群れ処理': function(c){ return (!SP(c)&&c.air&&c.splash)? cap(c,450)*Math.min(c.cnt,3) : ((SP(c)&&H(c,'air'))? c.spellEff*0.8 : 0); },
+    'エリクサーアドバンテージ': function(c){ return c.hpEff/150 + c.dpsEff/45 + (H(c,'collector')?6:0) + (H(c,'spawner')?4:0) + (H(c,'shield')?1:0); },
+    '壁性能': function(c){ return SP(c)?0 : c.hp*(H(c,'tank')?1.4:(H(c,'minitank')?1.1:1))*(H(c,'shield')?1.2:1); },
+    'タワーダメージ力': function(c){ return !offGate(c)?0 : (SP(c)? c.towerEff : c.dps*(H(c,'bridgeSpam')?1.4:1)*((H(c,'charge')||H(c,'dash'))?1.25:1)); },
+    'タワーダメージ決定力': function(c){ return !offGate(c)?0 : (SP(c)? c.towerEff*1.6 : c.dps*((H(c,'invisible')||H(c,'dash'))?1.4:1)); },
+    '施設破壊力': function(c){ return c.bld?0 : (SP(c)? c.towerEff*0.9 : c.dps*(H(c,'tgBuilding')?1.8:0.6)); },
+    '施設突破力': function(c){ return (H(c,'charge')?3:0)+(H(c,'dash')?3:0)+(H(c,'bridgeSpam')?2:0)+(H(c,'tgBuilding')?2:0); },
+    '呪文枯渇': function(c){ return (H(c,'spellBait')?5:0)+(H(c,'spawner')?3:0)+(H(c,'swarm')?2:0)+(H(c,'collector')?1:0); }
+  };
+  function pctMap(arr){ var a=arr.filter(function(x){return x.r>0;}).sort(function(x,y){return x.r-y.r;}); var nn=a.length, m={}; for(var i=0;i<nn;i++) m[a[i].n]= nn>1? i/(nn-1):1; return m; }
+  var norm = {};
+  Object.keys(RAWF).forEach(function(it){
+    var useBlend = (it !== 'エリクサーアドバンテージ'); // 効率は生スコアと÷コストを半々で。エリクサーアドバンテージは既に効率なので二重回避
+    var pr = pctMap(cards.map(function(c){ return { n:c.name, r:RAWF[it](c) }; }));
+    var pe = useBlend ? pctMap(cards.map(function(c){ return { n:c.name, r:RAWF[it](c)/(c.cost||1) }; })) : null;
+    norm[it] = function(c){ var r=RAWF[it](c); if(r<=0) return 0; var p = useBlend ? (0.5*(pr[c.name]||0)+0.5*(pe[c.name]||0)) : (pr[c.name]||0); return Math.round((1+9*p)*10)/10; };
+  });
+  var SPB=[306,426,588,1100,1690,2372];
+  function spellRes(c){ if(SP(c))return 0; var s=0; for(var i=0;i<SPB.length;i++) if(c.hp>SPB[i])s++; return Math.round((1+9*s/SPB.length)*10)/10; }
+  function direct(v){ return v? Math.round((1+9*v/9)*10)/10 : 0; }
+  function soloPts(c){ var s=c.solo; if(typeof s==='number')return s; if(s==='◎')return 5; if(s==='○')return 3; if(s==='△')return 1; var f=parseFloat(s); return isFinite(f)?f:0; }
+  // 素出し適正＝評価(1-5,◎○△は5/3/1)×2 ＋ 遅いほど＋(120-速度) ＋ 安いほど＋(7-コスト) を全カード相対化
+  var soloPctM = pctMap(cards.map(function(c){ return { n:c.name, r: soloPts(c)*2 + (120-c.speed)/120*3 + (7-(c.cost||1))/6*3 }; }));
+  function soloScore(c){ var p=soloPctM[c.name]; return p==null?0 : Math.round((1+9*p)*10)/10; }
+  var ITEMS = Object.keys(RAWF).concat(['呪文耐性','素出し適正','序盤適性(エリクサー1倍)','中盤適性(エリクサー2倍)','中盤適性(エリクサー3倍)']);
+  var out = {};
+  cards.forEach(function(c){
+    var row = {};
+    Object.keys(RAWF).forEach(function(it){ row[it]=norm[it](c); });
+    row['呪文耐性']=spellRes(c);
+    row['素出し適正']=soloScore(c);
+    row['序盤適性(エリクサー1倍)']=direct(c.ph1);
+    row['中盤適性(エリクサー2倍)']=direct(c.ph2);
+    row['中盤適性(エリクサー3倍)']=direct(c.ph3);
+    out[c.name]=row;
+  });
+  // 項目名の解決：セル1行目が項目名で始まれば一致（説明文の追記・改行・行移動・空白行に強い）
+  function resolveItem(raw){ var label=String(raw||'').split('\n')[0].trim(); if(!label) return null; for(var i=0;i<ITEMS.length;i++){ if(label.indexOf(ITEMS[i])===0) return ITEMS[i]; } return null; }
+  // --- ① カード評価シートへ記入（行は名前で照合＝位置非依存／空白行・無関係行はスキップ）---
+  var sid = prop('TAG_SHEET_ID', '1cjX3ptT0g0qjfwhoTBKbzRfXGZUNGLy_jspMSRCDPyU');
+  var sh = SpreadsheetApp.openById(sid).getSheetByName('カード評価');
+  if (!sh) {
+    ghWriteJson_('card-eval.json', { updated: new Date().toISOString(), scale: '1-10', method: 'relative-percentile', items: ITEMS, count: Object.keys(out).length, cards: out });
+    Logger.log('buildCardEvalV1: カード評価シート無し→outから直接JSON ' + Object.keys(out).length); return;
+  }
+  var FORMULA = {
+    'タンク処理': 'card-stats:DPS16 ×(タグ:tankKiller→1.6/ramp→1.3/範囲のみ→0.55) →[生0.5＋÷コスト効率0.5]で全カード相対(1-10)',
+    '中型タンク処理': 'card-stats:DPS16 ×(tankKiller→1.2) ＋ HP16×0.012 →[生0.5＋÷コスト効率0.5]相対',
+    '対空単体処理': '攻撃対象=空/両方のみ: DPS16 ×(tankKiller→1.4) →[生0.5＋÷コスト効率0.5]相対',
+    '地上群れ処理': '範囲攻撃なら DPS16(上限450)×体数(最大3)＋ダメージ呪文 →[生0.5＋÷コスト効率0.5]相対',
+    '対空群れ処理': '対空＋範囲: DPS16(上限450)×体数 ＋空に効く呪文 →[生0.5＋÷コスト効率0.5]相対',
+    'エリクサーアドバンテージ': 'ポテンシャル:HP効率/150＋DPS効率/45 ＋(エリクサー生成6/ユニット生成4/盾1) →相対(既に効率なのでブレンド無し)',
+    '壁性能': 'card-stats:HP16 ×(タグ:タンク1.4/中型1.1)×(盾1.2) →[生0.5＋÷コスト効率0.5]相対',
+    'タワーダメージ力': '防衛建物除外。呪文=呪文タワーダメ / ユニット=DPS16×(橋前1.4)(突進1.25) →[生0.5＋÷コスト効率0.5]相対',
+    'タワーダメージ決定力': '呪文=呪文タワーダメ×1.6 / ユニット=DPS16×(透明・ダッシュ1.4) →[生0.5＋÷コスト効率0.5]相対',
+    '施設破壊力': 'ユニット=DPS16×(建物狙い1.8/他0.6)、呪文=呪文タワーダメ×0.9、建物カードは0 →[生0.5＋÷コスト効率0.5]相対',
+    '施設突破力': 'タグ:突進3＋ダッシュ3＋橋前2＋建物狙い2 →[生0.5＋÷コスト効率0.5]相対',
+    '呪文耐性': 'card-stats:HP16が各呪文威力(ログ426/ザップ306/矢588/ファイボ1100/ライト1690/ロケ2372)を超える本数→1-10',
+    '呪文枯渇': 'タグ:呪文釣り5＋ユニット生成3＋群れ2＋エリクサー生成1 →[生0.5＋÷コスト効率0.5]相対',
+    '素出し適正': 'ポテンシャル:素出し適性(1-5,◎○△は5/3/1)×2 ＋遅いほど＋(120-移動速度) ＋安いほど＋(7-コスト) →全カード相対(1-10)',
+    '序盤適性(エリクサー1倍)': 'ポテンシャル:1倍適性 ◎9/○6/△3 →1-10',
+    '中盤適性(エリクサー2倍)': 'ポテンシャル:2倍適性 ◎9/○6/△3 →1-10',
+    '中盤適性(エリクサー3倍)': 'ポテンシャル:3倍適性 ◎9/○6/△3 →1-10'
+  };
+  var vals = sh.getDataRange().getValues(), header = vals[0];
+  // 列を分類：カード列(ヘッダーがカード名)と計算式列。位置非依存＝列を挿入しても壊れない。
+  var cardCols = [], formulaCol = -1;
+  for (var ci = 0; ci < header.length; ci++) {
+    var h = String(header[ci] || '').trim();
+    if (h === '計算式') { formulaCol = ci; continue; }
+    var hb = h.replace(/[⚡👑]+$/, '');
+    if (h && (out[h] || out[hb])) cardCols.push(ci);
+  }
+  var firstCard = cardCols.length ? cardCols[0] : -1, lastCard = cardCols.length ? cardCols[cardCols.length - 1] : -1, wrote = 0;
+  for (var r = 1; r < vals.length; r++) {
+    var key = resolveItem(vals[r][0]); if (!key) continue;
+    if (formulaCol >= 0 && FORMULA[key]) sh.getRange(r + 1, formulaCol + 1).setValue(FORMULA[key]);
+    if (firstCard >= 0) {
+      var rowVals = [];
+      for (var ci = firstCard; ci <= lastCard; ci++) {
+        var cn = String(header[ci] || '').trim(), base = cn.replace(/[⚡👑]+$/, ''), sc = out[cn] || out[base];
+        rowVals.push((cn && sc && sc[key] != null) ? sc[key] : '');
+      }
+      sh.getRange(r + 1, firstCard + 1, 1, rowVals.length).setValues([rowVals]);
+    }
+    wrote++;
+  }
+  SpreadsheetApp.flush();
+  // --- ② シートを読み戻して card-eval.json 化（カード列のみ＝計算式列は除外）---
+  var v2 = sh.getDataRange().getValues(), h2 = v2[0], jcards = {};
+  for (var ci2 = 0; ci2 < h2.length; ci2++) { var cn2 = String(h2[ci2] || '').trim(), b2 = cn2.replace(/[⚡👑]+$/, ''); if (cn2 && cn2 !== '計算式' && (out[cn2] || out[b2])) jcards[cn2] = {}; }
+  for (var r2 = 1; r2 < v2.length; r2++) {
+    var key2 = resolveItem(v2[r2][0]); if (!key2) continue;
+    for (var ci3 = 0; ci3 < h2.length; ci3++) { var cn3 = String(h2[ci3] || '').trim(); if (!jcards[cn3]) continue; var num = parseFloat(v2[r2][ci3]); jcards[cn3][key2] = isFinite(num) ? num : null; }
+  }
+  ghWriteJson_('card-eval.json', { updated: new Date().toISOString(), scale: '1-10', method: 'relative-percentile(sheet経由)', items: ITEMS, count: Object.keys(jcards).length, cards: jcards });
+  Logger.log('buildCardEvalV1: カード列' + cardCols.length + ' / 記入' + wrote + '行 / JSON ' + Object.keys(jcards).length + '枚 / 計算式列' + (formulaCol + 1));
+}
