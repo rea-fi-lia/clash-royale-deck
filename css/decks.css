@@ -220,6 +220,7 @@
 .meta-share { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin:0 0 14px; }
 .ms-title { font-family:var(--font-head); font-size:14px; font-weight:700; letter-spacing:.5px; margin-bottom:8px; color:var(--text); }
 .ms-note { font-size:10.5px; color:var(--text-dim); margin:-4px 0 8px; line-height:1.5; }
+.ms-list { max-height:320px; overflow-y:auto; margin:0 -2px; padding:0 2px; }
 .ms-row { display:flex; align-items:center; gap:8px; padding:3px 0; }
 .ms-ico { width:24px; height:29px; flex:0 0 auto; display:flex; align-items:center; }
 .ms-ico img { width:100%; height:100%; object-fit:contain; }

@@ -814,12 +814,12 @@ function renderMetaShare() {
   const el = document.getElementById('metaShare');
   if (!el) return;
   if (!META || META.length < 2) { el.style.display = 'none'; return; }
-  const top = META.slice(0, 10);
+  const top = META; // 全勝ち筋をスクロール表示
   const maxS = Math.max(1, ...top.map(m => m.share || 0));
   el.style.display = '';
   el.innerHTML = '<div class="ms-title">' + _tr('🧭 環境シェア（勝ち筋別・過去3日）') + '</div>'
     + '<div class="ms-note">' + _tr('％＝この勝ち筋カードを含むデッキを使った人の割合（複数の勝ち筋を持つデッキは各勝ち筋にカウント）／ 勝率＝そのデッキ全体の勝率') + '</div>'
-    + top.map(m => {
+    + '<div class="ms-list">' + top.map(m => {
       const base = String(m.k).replace(/[⚡👑]+$/, '');
       const suf = String(m.k).slice(base.length);
       const info = CARD_INFO[base];
@@ -832,7 +832,7 @@ function renderMetaShare() {
         + '<span class="ms-share">' + (m.share || 0) + '%</span>'
         + '<span class="ms-win">' + (m.win != null ? _t('decks.winPct', { p: m.win }) : '') + '</span>'
         + '</div>';
-    }).join('');
+    }).join('') + '</div>';
 }
 
 const DECKS_DATA_URL = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/decks.json';
