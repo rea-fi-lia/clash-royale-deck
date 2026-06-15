@@ -1,0 +1,7 @@
+# robots.txt — crdeckbuilders.com
+# 全クローラーに全ページを許可（言語別ページ /en/ 等も含む）
+User-agent: *
+Allow: /
+
+# サイトマップの場所（言語別URL＋hreflangを記載）
+Sitemap: https://crdeckbuilders.com/sitemap.xml
