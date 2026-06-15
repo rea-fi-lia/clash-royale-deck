@@ -1,33 +1,255 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://crdeckbuilders.com/</loc>
-    <lastmod>2026-06-07</lastmod>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/en/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/es/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/pt-br/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/fr/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/de/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/"/>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://crdeckbuilders.com/decks.html</loc>
-    <lastmod>2026-06-07</lastmod>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/decks.html"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/en/decks.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/decks.html"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/es/decks.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/decks.html"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/pt-br/decks.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/decks.html"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/fr/decks.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/decks.html"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/de/decks.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/decks.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/decks.html"/>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://crdeckbuilders.com/strategy.html</loc>
-    <lastmod>2026-06-07</lastmod>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/strategy.html"/>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/en/strategy.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/strategy.html"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/es/strategy.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/strategy.html"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/pt-br/strategy.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/strategy.html"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/fr/strategy.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/strategy.html"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/de/strategy.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/strategy.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/strategy.html"/>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://crdeckbuilders.com/support.html</loc>
-    <lastmod>2026-06-07</lastmod>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.4</priority>
   </url>
   <url>
     <loc>https://crdeckbuilders.com/contact.html</loc>
-    <lastmod>2026-06-07</lastmod>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://crdeckbuilders.com/privacy.html</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
   </url>
 </urlset>

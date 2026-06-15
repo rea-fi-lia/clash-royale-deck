@@ -580,7 +580,9 @@
   if (DICT.en) Object.assign(DICT.en, CARD_EN);
 
   function pickLang() {
-    // URLの ?lang= を最優先（共有リンクで言語指定できる）→ 保存済み → ブラウザ言語
+    // /en/ /pt-br/ 等のパス接頭辞を最優先（言語別静的ページ＝海外SEO用。URL自体が言語を表す）
+    try { const seg = (location.pathname.split('/')[1] || '').toLowerCase(); if (LANGS.includes(seg)) return seg; } catch (e) {}
+    // 次に ?lang=（共有リンクで言語指定）→ 保存済み → ブラウザ言語
     try { const u = (new URLSearchParams(location.search).get('lang') || '').toLowerCase(); if (u && LANGS.includes(u)) return u; } catch (e) {}
     try { const s = localStorage.getItem('cr_lang'); if (s && LANGS.includes(s)) return s; } catch (e) {}
     const n = (navigator.language || 'ja').toLowerCase(); // 例: 'es-mx','pt-br','ja-jp'

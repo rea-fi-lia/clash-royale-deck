@@ -1,0 +1,163 @@
+/* donation-machine.css — Elixir Tank (¥100,000 MAX) */
+.machine-wrap {
+  --elixir: #9c27b0;
+  --elixir-glow: #e040fb;
+  --tank-glass: rgba(255, 255, 255, 0.08);
+  --tank-border: rgba(255, 255, 255, 0.25);
+  --bg: #0a0a18;
+  position: relative;
+  width: min(520px, 92vw);
+  margin: 28px auto 0;
+  font-family: -apple-system, "Hiragino Kaku Gothic ProN", sans-serif;
+  color: #fff;
+  user-select: none;
+}
+.machine-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1200px 600px at 50% 110%, rgba(156, 39, 176, 0.25), transparent 60%),
+    radial-gradient(600px 300px at 50% -10%, rgba(62, 27, 133, 0.35), transparent 60%);
+  border-radius: 24px;
+  z-index: 0;
+}
+.machine {
+  position: relative;
+  z-index: 1;
+  padding: 28px 24px 22px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #1e1e2e 0%, #16161f 100%);
+  border: 1px solid #37344a;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+.elixir-tank {
+  position: relative;
+  width: 260px;
+  height: 340px;
+  margin: 0 auto 18px;
+  background: var(--tank-glass);
+  border: 3px solid var(--tank-border);
+  border-radius: 18px 18px 14px 14px;
+  overflow: hidden;
+  box-shadow: inset 0 0 28px rgba(156, 39, 176, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.35), 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+.elixir-tank::before {
+  content: "";
+  position: absolute;
+  top: -18px; left: 50%; transform: translateX(-50%);
+  width: 50px; height: 24px;
+  background: linear-gradient(180deg, #6b6b7b, #3a3a4a);
+  border-radius: 6px 6px 0 0;
+  border: 3px solid #222;
+}
+.elixir-tank::after {
+  content: "";
+  position: absolute;
+  top: -28px; left: 50%; transform: translateX(-50%);
+  width: 80px; height: 18px;
+  background: #222; border-radius: 6px; border: 2px solid #555;
+}
+.tank-rail {
+  position: absolute;
+  right: 14px; top: 28px; bottom: 28px;
+  width: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 99px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.tank-rail-fill {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: linear-gradient(0deg, #ffd700, #ffab00, #ff6d00);
+  box-shadow: 0 0 10px #ffab00;
+  transition: height 0.8s cubic-bezier(0.2, 0.8, 0.2, 1.2);
+}
+.tank-rail-knob {
+  position: absolute; left: -6px;
+  width: 20px; height: 10px;
+  background: #ffd700; border-radius: 4px;
+  box-shadow: 0 0 8px #ffab00;
+  transform: translateY(-50%);
+  transition: bottom 0.8s cubic-bezier(0.2, 0.8, 0.2, 1.2);
+}
+.elixir-liquid {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, #ce93d8 0%, #9c27b0 45%, #6a1b9a 100%);
+  box-shadow: inset 0 10px 30px rgba(224, 64, 251, 0.45), 0 0 40px rgba(156, 39, 176, 0.35);
+  transition: height 1s cubic-bezier(0.2, 0.8, 0.2, 1.1);
+}
+.elixir-liquid::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 22px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0.02));
+  animation: wave 3.6s ease-in-out infinite;
+}
+.bubble {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+  animation: rise 2.6s linear infinite;
+}
+.bubble:nth-child(1) { left: 25%; width: 10px; height: 10px; animation-duration: 2.2s; animation-delay: 0s; }
+.bubble:nth-child(2) { left: 55%; width: 14px; height: 14px; animation-duration: 2.8s; animation-delay: 0.4s; }
+.bubble:nth-child(3) { left: 38%; width: 8px;  height: 8px;  animation-duration: 2.4s; animation-delay: 0.8s; }
+@keyframes rise {
+  0%   { bottom: 0; opacity: 0.9; transform: translateX(0); }
+  50%  { opacity: 0.6; transform: translateX(8px); }
+  100% { bottom: 100%; opacity: 0; transform: translateX(-6px); }
+}
+.machine-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #ffd6f6;
+  text-shadow: 0 0 18px rgba(224, 64, 251, 0.6);
+}
+.machine-sub {
+  text-align: center;
+  font-size: 12px;
+  color: #bca3cc;
+  margin-top: 2px;
+}
+.machine-amount {
+  text-align: center;
+  font-size: 44px;
+  font-weight: 800;
+  color: #ffe082;
+  text-shadow: 0 0 20px rgba(255, 171, 0, 0.5);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+.machine-max {
+  text-align: center;
+  font-size: 12px;
+  color: #bca3cc;
+  margin-bottom: 4px;
+}
+.gears {
+  position: absolute;
+  right: -28px; top: 50%; transform: translateY(-50%);
+  width: 90px; height: 180px;
+}
+.gear {
+  position: absolute;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, #3e3e50, #6b6b80, #3e3e50, #6b6b80, #3e3e50);
+  box-shadow: inset 0 0 0 4px #222, 0 6px 18px rgba(0,0,0,0.5);
+}
+.gear-a { width: 72px; height: 72px; top: 0; left: 14px; animation: spin 6s linear infinite; }
+.gear-b { width: 52px; height: 52px; top: 88px; left: 28px; animation: spin 3.8s linear infinite reverse; }
+.gear-c { width: 38px; height: 38px; top: 144px; left: 46px; animation: spin 3s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes wave { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+.elixir-liquid.overflowing {
+  animation: overflowPulse 0.6s ease-in-out infinite alternate;
+}
+@keyframes overflowPulse {
+  from { filter: drop-shadow(0 0 10px rgba(224, 64, 251, 0.6)); }
+  to   { filter: drop-shadow(0 0 26px rgba(224, 64, 251, 1)); }
+}
