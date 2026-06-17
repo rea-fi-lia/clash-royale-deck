@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>リクエスト・お問い合わせ | クラロワ デッキ作成</title>
+<meta name="description" content="クラロワ デッキ作成ツールへの機能リクエスト・お問い合わせ・カード追加のご要望はこちらから。">
+<link rel="canonical" href="https://crdeckbuilders.com/zh-tw/contact.html">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+  :root {
+    --bg: #0d0f14; --surface: #161920; --surface2: #1e2230;
+    --border: rgba(255,255,255,0.07); --border-hi: rgba(255,255,255,0.15);
+    --text: #e8eaf0; --text-muted: #6b7080; --text-dim: #3a3f50;
+    --accent: #e8a020; --accent2: #c0781a; --red: #e05050;
+    --font-head: 'Rajdhani', sans-serif; --font-body: 'Noto Sans JP', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+  html, body { touch-action: manipulation; } /* ダブルタップ拡大無効（ピンチは可） */
+  * { touch-action: manipulation; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 12px 20px; display: flex; align-items: center; gap: 16px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: var(--font-head); font-size: 20px; font-weight: 700; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; }
+  .logo span { color: var(--text-muted); font-size: 11px; font-family: var(--font-body); font-weight: 400; letter-spacing: 0; display: block; margin-top: -3px; }
+  header { flex-wrap: wrap; align-items: flex-start; row-gap: 6px; }
+  .nav-icons { display: flex; gap: 4px; order: 2; flex-basis: 100%; justify-content: flex-end; margin-left: 0; }
+  .nav-icon { width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; border-radius: 8px; text-decoration: none; border: 1px solid var(--border); background: var(--surface2); transition: all 0.12s; }
+  .nav-icon .nav-emoji { font-size: 17px; line-height: 1; }
+  .nav-icon:hover { border-color: var(--border-hi); background: var(--surface); transform: translateY(-1px); }
+  .nav-icon.active { border-color: var(--accent); background: rgba(232,160,32,0.12); }
+
+  .container { max-width: 680px; margin: 0 auto; padding: 32px 20px 60px; }
+  .page-title { font-family: var(--font-head); font-size: 28px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
+  .page-sub { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; line-height: 1.7; }
+
+  .contact-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px; margin-bottom: 16px;
+  }
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+  .field input, .field textarea, .field select {
+    width: 100%; padding: 11px 14px; font-size: 16px;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: var(--font-body); outline: none; transition: border-color 0.15s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+  .field textarea { resize: vertical; min-height: 120px; }
+  .submit-btn {
+    width: 100%; padding: 14px; font-size: 15px; font-weight: 700;
+    background: var(--accent); color: #000; border: none; border-radius: 8px;
+    cursor: pointer; transition: all 0.12s; font-family: var(--font-body);
+  }
+  .submit-btn:hover { background: #f0aa28; transform: translateY(-1px); }
+
+  .alt-contact { margin-top: 24px; padding: 18px; background: var(--surface); border-radius: 10px; }
+  .alt-contact h3 { font-size: 14px; margin-bottom: 8px; }
+  .alt-contact p { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
+  .alt-contact a { color: var(--accent); text-decoration: none; }
+  .alt-contact a:hover { text-decoration: underline; }
+
+  .footer-signature { text-align: center; padding: 24px 0; font-family: 'Courier New', Courier, monospace; color: #888; letter-spacing: 1px; border-top: 1px solid var(--border); margin-top: 40px; }
+  .footer-signature .by-text { font-size: 11px; opacity: 0.6; margin-right: 4px; }
+  .footer-signature .creator-name { font-size: 13px; font-weight: bold; color: #eaeaea; letter-spacing: 3px; text-shadow: 0 0 8px rgba(255,255,255,0.4); }
+
+  @media (max-width: 720px) {
+    .logo { font-size: 16px; }
+    .nav-icon { width: 30px; height: 30px; }
+    .nav-icon .nav-emoji { font-size: 15px; }
+    .page-title { font-size: 22px; }
+    .container { padding: 24px 16px 40px; }
+  }
+
+  /* ロゴ左のアイコン（縦幅をEN+JPの2行に合わせる。大きさは .logo-icon の height/width で微調整） */
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-icon{height:2.2em;width:2.2em;flex:0 0 auto;border-radius:50%;display:block;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  .logo-text{display:flex;flex-direction:column;justify-content:center;line-height:1.18}
+  @media (max-width:600px){.logo-icon{height:1.9em;width:1.9em}}
+  /* 4アイコンをボディ先頭のバーへ（ヘッダーはロゴ＋下線だけ＝Index統一） */
+  .topbar { padding:10px 20px; border-bottom:1px solid var(--border); background:var(--surface); justify-content:flex-end; }
+  /* ヘッダー＋アイコンバーをまとめて画面上部に固定 */
+  .sitebar { position: sticky; top: 0; z-index: 100; }
+  .sitebar header { position: static; }
+</style>
+<!--HREFLANG-->
+<link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/contact.html">
+<link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/contact.html">
+<link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/contact.html">
+<link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/contact.html">
+<link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/contact.html">
+<link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/contact.html">
+<link rel="alternate" hreflang="ru" href="https://crdeckbuilders.com/ru/contact.html">
+<link rel="alternate" hreflang="ko" href="https://crdeckbuilders.com/ko/contact.html">
+<link rel="alternate" hreflang="zh-CN" href="https://crdeckbuilders.com/zh-cn/contact.html">
+<link rel="alternate" hreflang="ar" href="https://crdeckbuilders.com/ar/contact.html">
+<link rel="alternate" hreflang="tr" href="https://crdeckbuilders.com/tr/contact.html">
+<link rel="alternate" hreflang="it" href="https://crdeckbuilders.com/it/contact.html">
+<link rel="alternate" hreflang="id" href="https://crdeckbuilders.com/id/contact.html">
+<link rel="alternate" hreflang="th" href="https://crdeckbuilders.com/th/contact.html">
+<link rel="alternate" hreflang="vi" href="https://crdeckbuilders.com/vi/contact.html">
+<link rel="alternate" hreflang="zh-TW" href="https://crdeckbuilders.com/zh-tw/contact.html">
+<link rel="alternate" hreflang="fa" href="https://crdeckbuilders.com/fa/contact.html">
+<link rel="alternate" hreflang="nl" href="https://crdeckbuilders.com/nl/contact.html">
+<link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/contact.html">
+<!--/HREFLANG-->
+</head>
+<body>
+
+<div class="sitebar">
+<header>
+  <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>クラロワデッキ作成・診断ツール</span></div></a>
+</header>
+<nav class="nav-icons topbar">
+    <a class="nav-icon" href="index.html" title="デッキ作成"><span class="nav-emoji">🛠️</span></a>
+    <a class="nav-icon" href="decks.html" title="人気デッキ・デッキ探求"><span class="nav-emoji">🏆</span></a>
+    <a class="nav-icon" href="support.html" title="支援・寄付"><span class="nav-emoji">💛</span></a>
+    <a class="nav-icon active" href="contact.html" title="リクエスト・お問い合わせ"><span class="nav-emoji">✉️</span></a>
+</nav>
+</div>
+
+<div class="container">
+  <h1 class="page-title">リクエスト・お問い合わせ</h1>
+  <p class="page-sub" data-i18n="con.intro">
+    「この機能が欲しい」「このカードが抜けてる」「ここが使いにくい」など、なんでもお気軽にお寄せください。<br>
+    いただいたご意見を元に、このツールを少しずつ良くしていきます。
+  </p>
+
+  <div class="contact-card">
+    <div class="field">
+      <label for="type">種類</label>
+      <select id="type">
+        <option>機能リクエスト</option>
+        <option>カード追加・修正の要望</option>
+        <option>不具合の報告</option>
+        <option>その他・ご感想</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="name">お名前（任意）</label>
+      <input type="text" id="name" placeholder="ニックネームでOK">
+    </div>
+    <div class="field">
+      <label for="message">内容</label>
+      <textarea id="message" placeholder="ご要望・ご意見をご記入ください"></textarea>
+    </div>
+    <button class="submit-btn" id="submitBtn">送信する</button>
+  </div>
+
+  <div class="alt-contact">
+    <h3>SNSでも受け付けています</h3>
+    <p>
+      X（旧Twitter）の DM やメンションでもお気軽にどうぞ。<br>
+      <a href="https://x.com/rea_fi_lia" target="_blank" rel="noopener">@rea_fi_lia</a>
+    </p>
+  </div>
+</div>
+
+<div class="footer-signature">
+  <span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span>
+</div>
+
+<script>
+  // デプロイした「問い合わせ受付GAS」のウェブアプリ /exec URL
+  const CONTACT_API = "https://script.google.com/macros/s/AKfycbxU_zgbQW7cep4lZXgYGCtnjug3HUTNCm07epnogHL5GJmXpL48U9-vw-dXjMt4xUC1/exec";
+
+  const btn = document.getElementById('submitBtn');
+  btn.onclick = async () => {
+    const type = document.getElementById('type').value;
+    const name = document.getElementById('name').value.trim();
+    const message = document.getElementById('message').value.trim();
+    if (!message) { alert('内容をご記入ください'); return; }
+    if (!CONTACT_API) { alert('送信先が未設定です。少し待ってから、またはXからお願いします。'); return; }
+    const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = '送信中…';
+    try {
+      // GAS(Apps Script)はクロスオリジンのレスポンスを読めない(CORS)ので no-cors で送る。
+      // application/x-www-form-urlencoded（プリフライト不要）= doPostのe.parameterに入る。
+      const body = new URLSearchParams({ type, name, message, page: 'contact.html' });
+      await fetch(CONTACT_API, { method: 'POST', mode: 'no-cors', body });
+      // no-corsは応答が読めない(opaque)。送信できたら成功扱い（実際の受領はSlack通知で確認）
+      btn.textContent = '✓ 送信しました';
+      document.getElementById('message').value = '';
+      document.getElementById('name').value = '';
+      setTimeout(() => { btn.disabled = false; btn.textContent = orig; }, 4000);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = orig;
+      alert('送信に失敗しました。お手数ですが X（@rea_fi_lia）からもお気軽にどうぞ。');
+    }
+  };
+</script>
+
+<!-- ログイン（Firebase）。ヘッダーにログインボタンが自動で付きます -->
+<script type="module" src="/auth.js?v=260627"></script>
+<script defer src="/i18n.js?v=260630"></script>
+</body>
+</html>

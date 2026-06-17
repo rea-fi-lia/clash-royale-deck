@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>支援・寄付 | クラロワ デッキ作成</title>
+<meta name="description" content="クラロワ デッキ作成ツールへの支援・寄付のページ。応援していただくと支援者グレードがアップします。">
+<link rel="canonical" href="https://crdeckbuilders.com/ar/support.html">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
+  :root {
+    --bg: #0d0f14; --surface: #161920; --surface2: #1e2230;
+    --border: rgba(255,255,255,0.07); --border-hi: rgba(255,255,255,0.15);
+    --text: #e8eaf0; --text-muted: #6b7080; --text-dim: #3a3f50;
+    --accent: #e8a020; --accent2: #c0781a; --red: #e05050;
+    --font-head: 'Rajdhani', sans-serif; --font-body: 'Noto Sans JP', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+  html, body { touch-action: manipulation; } /* ダブルタップ拡大無効（ピンチは可） */
+  * { touch-action: manipulation; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; }
+
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 12px 20px; display: flex; align-items: center; gap: 16px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-family: var(--font-head); font-size: 20px; font-weight: 700;
+    letter-spacing: 2px; color: var(--accent); text-transform: uppercase;
+  }
+  .logo span { color: var(--text-muted); font-size: 11px; font-family: var(--font-body); font-weight: 400; letter-spacing: 0; display: block; margin-top: -3px; }
+  header { flex-wrap: wrap; align-items: flex-start; row-gap: 6px; }
+  .nav-icons { display: flex; gap: 4px; order: 2; flex-basis: 100%; justify-content: flex-end; margin-left: 0; }
+  .nav-icon {
+    width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; text-decoration: none; border: 1px solid var(--border);
+    background: var(--surface2); transition: all 0.12s;
+  }
+  .nav-icon .nav-emoji { font-size: 17px; line-height: 1; }
+  .nav-icon:hover { border-color: var(--border-hi); background: var(--surface); transform: translateY(-1px); }
+  .nav-icon.active { border-color: var(--accent); background: rgba(232,160,32,0.12); }
+
+  .container { max-width: 760px; margin: 0 auto; padding: 32px 20px 60px; }
+  .page-title { font-family: var(--font-head); font-size: 28px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
+  .page-sub { color: var(--text-muted); font-size: 14px; margin-bottom: 18px; line-height: 1.7; }
+
+  .donate-buttons { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+  .donate-btn {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 20px; border-radius: 10px; text-decoration: none;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); transition: all 0.12s; font-weight: 500;
+  }
+  .donate-btn:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-1px); }
+  .donate-btn .emoji { font-size: 24px; }
+  .donate-btn .label { flex: 1; }
+  .donate-btn .label small { display: block; font-size: 11px; color: var(--text-muted); font-weight: 400; margin-top: 2px; }
+
+  .grade-section { margin-top: 20px; }
+  .section-title { font-family: var(--font-head); font-size: 20px; font-weight: 700; letter-spacing: 1px; margin-bottom: 16px; }
+  /* ランク枠：デッキスロット風の光る宝石フレーム。上位ほどグロー強め＝格上感 */
+  /* 横スクロール：ゴールドまで見えて、スクロールでレジェンド＆隠しが現れる */
+  .grade-list { display: flex; flex-wrap: nowrap; gap: 10px; overflow-x: auto; padding: 4px 0 10px;
+    scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+  .grade-list::-webkit-scrollbar { height: 6px; }
+  .grade-list::-webkit-scrollbar-thumb { background: var(--border-hi, rgba(255,255,255,.15)); border-radius: 3px; }
+  .grade-card {
+    flex: 0 0 31%; min-width: 108px; max-width: 150px; scroll-snap-align: start;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    padding: 20px 12px 14px; border-radius: 14px; position: relative; overflow: hidden;
+    background: linear-gradient(160deg, #1b1e2b 0%, #11131b 100%); border: 2px solid var(--border);
+  }
+  .grade-gem {
+    width: 46px; height: 46px; border-radius: 13px; transform: rotate(45deg); margin: 4px 0 18px;
+    box-shadow: inset 0 2px 7px rgba(255,255,255,.5), inset 0 -3px 7px rgba(0,0,0,.4), 0 3px 10px rgba(0,0,0,.45);
+  }
+  .grade-name { font-family: var(--font-head); font-weight: 700; font-size: 17px; letter-spacing: .5px; }
+  .grade-cond { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
+  .grade-badge { position: absolute; top: 8px; right: 8px; font-size: 9px; font-weight: 700;
+    padding: 2px 7px; border-radius: 999px; background: #e8a020; color: #1a1208; letter-spacing: .5px; }
+  /* クリックできるカード（リンク付き）＝¥500/¥2,000 */
+  a.grade-card { text-decoration: none; color: inherit; cursor: pointer; transition: transform .12s, box-shadow .12s; }
+  a.grade-card:hover { transform: translateY(-3px); }
+  /* 金額が上がるほどグロー強め＝供給量が大きいほど豪華に（9段＋隠し）。色は差が出ればOK・カッコよさ優先 */
+  .g-1 { border-color: #2bb673; box-shadow: 0 0 13px rgba(43,182,115,.32); }
+  .g-1 .grade-gem { background: linear-gradient(135deg, #6fe0ac, #1c8a55); }
+  .g-1 .grade-name { color: #56d199; }
+  .g-2 { border-color: #1fc7c7; box-shadow: 0 0 15px rgba(31,199,199,.38); }
+  .g-2 .grade-gem { background: linear-gradient(135deg, #7fe9e9, #159a9a); }
+  .g-2 .grade-name { color: #4fd6d6; }
+  .g-3 { border-color: #2e8fe0; box-shadow: 0 0 17px rgba(46,143,224,.42); }
+  .g-3 .grade-gem { background: linear-gradient(135deg, #74bdf5, #1f66ad); }
+  .g-3 .grade-name { color: #5db0e8; }
+  .g-4 { border-color: #5a6cf0; box-shadow: 0 0 19px rgba(90,108,240,.46); }
+  .g-4 .grade-gem { background: linear-gradient(135deg, #9aa6ff, #3340c8); }
+  .g-4 .grade-name { color: #8f9bf7; }
+  .g-5 { border-color: #8b5cf6; box-shadow: 0 0 21px rgba(139,92,246,.5); }
+  .g-5 .grade-gem { background: linear-gradient(135deg, #c4b0ff, #6d34d6); }
+  .g-5 .grade-name { color: #b39bf9; }
+  .g-6 { border-color: #c054d4; box-shadow: 0 0 24px rgba(192,84,212,.52); }
+  .g-6 .grade-gem { background: linear-gradient(135deg, #eaa0f2, #9a2db0); }
+  .g-6 .grade-name { color: #df87ee; }
+  .g-7 { border-color: #d4537e; box-shadow: 0 0 27px rgba(212,83,126,.55); }
+  .g-7 .grade-gem { background: linear-gradient(135deg, #f59ab8, #b03360); }
+  .g-7 .grade-name { color: #ee87aa; }
+  .g-8 { border-color: #e8a020; box-shadow: 0 0 30px rgba(232,160,32,.6); }
+  .g-8 .grade-gem { background: linear-gradient(135deg, #ffd76a, #c8851a); }
+  .g-8 .grade-name { color: #f0c54a; }
+  .g-9 { border-color: #ff7a2f; box-shadow: 0 0 36px rgba(255,122,47,.68); }
+  .g-9 .grade-gem { background: linear-gradient(135deg, #ffd06a, #ff5a1f); }
+  .g-9 .grade-name { color: #ff9b54; }
+  .g-hidden { border-color: rgba(255,255,255,.15); opacity: .55; }
+  .g-hidden .grade-gem { background: linear-gradient(135deg, #3a3f50, #20232c); }
+  .g-hidden .grade-name { color: var(--text-dim); }
+  /* メインの大ボタン（¥300・最も目立たせる） */
+  .donate-btn.primary { background: linear-gradient(135deg, #8b5cf6, #d4537e); border-color: transparent; color: #fff; font-weight: 700; box-shadow: 0 4px 18px rgba(139,92,246,.35); }
+  .donate-btn.primary .label small { color: rgba(255,255,255,.85); }
+  .donate-btn.primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  /* 特典内容を見る情報アイコン（カード左上） */
+  .grade-info { position: absolute; top: 6px; left: 6px; width: 19px; height: 19px; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.4); color: #fff; font-size: 11px; font-weight: 700; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; z-index: 3; font-family: var(--font-head); }
+  .grade-info:hover { background: rgba(0,0,0,.65); }
+  /* 購入タップ時：すぐ飛ばず、ジェム◇が少し回って弾けてから決済へ */
+  .grade-card.purchasing { box-shadow: 0 0 0 2px rgba(255,255,255,.22), 0 0 24px rgba(255,255,255,.22); }
+  .grade-card.purchasing .grade-gem { animation: gemTap .78s cubic-bezier(.4,.1,.25,1) forwards; }
+  /* 立体的に一回転(rotateY)してから、最後に少し上へ浮く */
+  @keyframes gemTap {
+    0%   { transform: perspective(320px) rotate(45deg) rotateY(0deg) translateY(0); }
+    60%  { transform: perspective(320px) rotate(45deg) rotateY(360deg) translateY(0); }
+    100% { transform: perspective(320px) rotate(45deg) rotateY(360deg) translateY(-12px) scale(1.08); }
+  }
+  /* 特典ポップアップ */
+  .perk-pop { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .perk-pop-box { background: var(--surface2); border: 1px solid var(--border-hi); border-radius: 14px; padding: 20px; max-width: 360px; width: 100%; }
+  .perk-pop-box h3 { font-family: var(--font-head); font-size: 18px; margin-bottom: 10px; }
+  .perk-pop-box ul { list-style: none; padding: 0; margin: 0; }
+  .perk-pop-box li { font-size: 13px; color: var(--text); padding: 5px 0 5px 18px; position: relative; line-height: 1.5; }
+  .perk-pop-box li::before { content: '✦'; position: absolute; left: 0; color: var(--accent); }
+  .perk-pop-note { font-size: 11px; color: var(--text-muted); margin-top: 10px; }
+  .perk-pop-close { margin-top: 12px; width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-hi); background: var(--surface); color: var(--text); cursor: pointer; }
+
+  .prep-banner { margin: 4px 0 16px; padding: 12px 16px; border-radius: 10px; font-size: 13px; text-align: center;
+    background: rgba(232,160,32,.12); border: 1px solid rgba(232,160,32,.4); color: #f0c54a; }
+  .donate-btn.is-disabled { opacity: .5; cursor: not-allowed; filter: grayscale(.3); pointer-events: none; }
+
+  .note { margin-top: 32px; padding: 16px; background: var(--surface); border-radius: 8px; font-size: 12px; color: var(--text-muted); line-height: 1.7; }
+
+  .footer-signature {
+    text-align: center; padding: 24px 0;
+    font-family: 'Courier New', Courier, monospace; color: #888; letter-spacing: 1px;
+    border-top: 1px solid var(--border); margin-top: 40px;
+  }
+  .footer-signature .by-text { font-size: 11px; opacity: 0.6; margin-right: 4px; }
+  .footer-signature .creator-name { font-size: 13px; font-weight: bold; color: #eaeaea; letter-spacing: 3px; text-shadow: 0 0 8px rgba(255,255,255,0.4); }
+
+  @media (max-width: 720px) {
+    .logo { font-size: 16px; }
+    .nav-icon { width: 30px; height: 30px; }
+    .nav-icon .nav-emoji { font-size: 15px; }
+    .page-title { font-size: 22px; }
+    .container { padding: 24px 16px 40px; }
+  }
+
+  /* ロゴ左のアイコン（縦幅をEN+JPの2行に合わせる。大きさは .logo-icon の height/width で微調整） */
+  .logo{display:flex;align-items:center;gap:10px}
+  .logo-icon{height:2.2em;width:2.2em;flex:0 0 auto;border-radius:50%;display:block;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  .logo-text{display:flex;flex-direction:column;justify-content:center;line-height:1.18}
+  @media (max-width:600px){.logo-icon{height:1.9em;width:1.9em}}
+  /* 4アイコンをボディ先頭のバーへ（ヘッダーはロゴ＋下線だけ＝Index統一） */
+  .topbar { padding:10px 20px; border-bottom:1px solid var(--border); background:var(--surface); justify-content:flex-end; }
+  /* ヘッダー＋アイコンバーをまとめて画面上部に固定 */
+  .sitebar { position: sticky; top: 0; z-index: 100; }
+  .sitebar header { position: static; }
+</style>
+<!--HREFLANG-->
+<link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/support.html">
+<link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/support.html">
+<link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/support.html">
+<link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/support.html">
+<link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/support.html">
+<link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/support.html">
+<link rel="alternate" hreflang="ru" href="https://crdeckbuilders.com/ru/support.html">
+<link rel="alternate" hreflang="ko" href="https://crdeckbuilders.com/ko/support.html">
+<link rel="alternate" hreflang="zh-CN" href="https://crdeckbuilders.com/zh-cn/support.html">
+<link rel="alternate" hreflang="ar" href="https://crdeckbuilders.com/ar/support.html">
+<link rel="alternate" hreflang="tr" href="https://crdeckbuilders.com/tr/support.html">
+<link rel="alternate" hreflang="it" href="https://crdeckbuilders.com/it/support.html">
+<link rel="alternate" hreflang="id" href="https://crdeckbuilders.com/id/support.html">
+<link rel="alternate" hreflang="th" href="https://crdeckbuilders.com/th/support.html">
+<link rel="alternate" hreflang="vi" href="https://crdeckbuilders.com/vi/support.html">
+<link rel="alternate" hreflang="zh-TW" href="https://crdeckbuilders.com/zh-tw/support.html">
+<link rel="alternate" hreflang="fa" href="https://crdeckbuilders.com/fa/support.html">
+<link rel="alternate" hreflang="nl" href="https://crdeckbuilders.com/nl/support.html">
+<link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/support.html">
+<!--/HREFLANG-->
+</head>
+<body>
+
+<div class="sitebar">
+<header>
+  <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>クラロワデッキ作成・診断ツール</span></div></a>
+</header>
+<nav class="nav-icons topbar">
+    <a class="nav-icon" href="index.html" title="デッキ作成"><span class="nav-emoji">🛠️</span></a>
+    <a class="nav-icon" href="decks.html" title="人気デッキ・デッキ探求"><span class="nav-emoji">🏆</span></a>
+    <a class="nav-icon active" href="support.html" title="支援・寄付"><span class="nav-emoji">💛</span></a>
+    <a class="nav-icon" href="contact.html" title="リクエスト・お問い合わせ"><span class="nav-emoji">✉️</span></a>
+</nav>
+</div>
+
+<div class="container">
+  <h1 class="page-title">支援・寄付</h1>
+  <p class="page-sub" data-i18n="sup.intro">
+    このツールは無料で運営しています。もし気に入ってもらえたら、開発者に<b>エリクサーを供給</b>してもらえると嬉しいです 💧<br>
+    いただいた支援は、<b>サーバーの防衛（維持費）</b>・カードデータの更新・新機能の開発に使わせていただきます。
+  </p>
+
+  <!-- ▼ メイン寄付ボタン（¥300）＋OFUSE。ログイン中はJSで ?client_reference_id=<uid> を付与し、誰の供給かを記録する。
+       Stripe ¥300  : https://donate.stripe.com/5kQ8wQ6Or9iE8QZc0TgYU02
+       Stripe ¥500  : https://donate.stripe.com/eVq6oI5Kn66sd7fgh9gYU00（下のメニューのカード）
+       Stripe ¥2,000: https://donate.stripe.com/4gM6oI1u78eAd7f2qjgYU01（下のメニューのカード）
+       OFUSE        : https://ofuse.me/o?uid=186138 -->
+  <div class="donate-buttons">
+    <a class="donate-btn primary stripe-donate" data-link="https://donate.stripe.com/5kQ8wQ6Or9iE8QZc0TgYU02"
+       href="https://donate.stripe.com/5kQ8wQ6Or9iE8QZc0TgYU02" target="_blank" rel="noopener">
+      <span class="emoji">💧</span>
+      <span class="label">開発者にエリクサーを供給する<small>クレジットカード / Google Pay 対応</small></span>
+    </a>
+    <a class="donate-btn" href="https://ofuse.me/o?uid=186138" target="_blank" rel="noopener">
+      <span class="emoji">🛡️</span>
+      <span class="label">OFUSEで応援する<small>ひとことメッセージを添えて応援できる</small></span>
+    </a>
+  </div>
+
+  <div class="grade-section">
+    <h2 class="section-title">エリクサー供給メニュー</h2>
+    <div class="grade-list">
+      <!-- リンクがあるのは ¥500 / ¥2,000 のみ（aタグ＝クリックで決済・ログイン中はuid付与）。
+           他はStripeのPayment Link未作成のため、リンク無しのアイコン表示のまま。 -->
+      <a class="grade-card g-1 stripe-donate" data-link="https://donate.stripe.com/eVq6oI5Kn66sd7fgh9gYU00"
+         href="https://donate.stripe.com/eVq6oI5Kn66sd7fgh9gYU00" target="_blank" rel="noopener">
+        <button class="grade-info" type="button" data-perk="drop" aria-label="開発者からのメッセージ">i</button>
+        <span class="grade-gem"></span>
+        <div class="grade-name">¥500</div>
+        <div class="grade-cond">ひとしずく 💧</div>
+      </a>
+      <a class="grade-card g-2 stripe-donate" data-link="https://donate.stripe.com/4gM6oI1u78eAd7f2qjgYU01"
+         href="https://donate.stripe.com/4gM6oI1u78eAd7f2qjgYU01" target="_blank" rel="noopener">
+        <button class="grade-info" type="button" data-perk="bottle" aria-label="開発者からのメッセージ">i</button>
+        <span class="grade-gem"></span>
+        <div class="grade-name">¥2,000</div>
+        <div class="grade-cond">ボトル</div>
+      </a>
+      <a class="grade-card g-3 stripe-donate" data-link="https://donate.stripe.com/dRm3cw8WzfH22sBaWPgYU04"
+         href="https://donate.stripe.com/dRm3cw8WzfH22sBaWPgYU04" target="_blank" rel="noopener">
+        <span class="grade-gem"></span>
+        <div class="grade-name">¥5,000</div>
+        <div class="grade-cond">ポンプ</div>
+      </a>
+      <a class="grade-card g-4 stripe-donate" data-link="https://donate.stripe.com/00w14oa0D1QcaZ74yrgYU05"
+         href="https://donate.stripe.com/00w14oa0D1QcaZ74yrgYU05" target="_blank" rel="noopener">
+        <span class="grade-gem"></span>
+        <div class="grade-name">¥7,500</div>
+        <div class="grade-cond">ドラム缶</div>
+      </a>
+      <a class="grade-card g-5 stripe-donate" data-link="https://donate.stripe.com/3cI28s5KncuQgjrd4XgYU06"
+         href="https://donate.stripe.com/3cI28s5KncuQgjrd4XgYU06" target="_blank" rel="noopener">
+        <span class="grade-gem"></span>
+        <div class="grade-name">¥10,000</div>
+        <div class="grade-cond">タンク</div>
+      </a>
+      <a class="grade-card g-6 stripe-donate" data-link="https://donate.stripe.com/bJe00k7SvcuQffnd4XgYU07"
+         href="https://donate.stripe.com/bJe00k7SvcuQffnd4XgYU07" target="_blank" rel="noopener">
+        <span class="grade-gem"></span>
+        <div class="grade-name">¥15,000</div>
+        <div class="grade-cond">プール</div>
+      </a>
+      <a class="grade-card g-7 stripe-donate" data-link="https://donate.stripe.com/aFaaEYa0DamIebjd4XgYU08"
+         href="https://donate.stripe.com/aFaaEYa0DamIebjd4XgYU08" target="_blank" rel="noopener">
+        <span class="grade-gem"></span>
+        <div class="grade-name">¥30,000</div>
+        <div class="grade-cond">製造所</div>
+      </a>
+      <a class="grade-card g-8 stripe-donate" data-link="https://donate.stripe.com/14A4gA7Sv9iE0kt2qjgYU09"
+         href="https://donate.stripe.com/14A4gA7Sv9iE0kt2qjgYU09" target="_blank" rel="noopener">
+        <span class="grade-gem"></span>
+        <div class="grade-name">¥40,000</div>
+        <div class="grade-cond">ダム</div>
+      </a>
+      <a class="grade-card g-9 stripe-donate" data-link="https://donate.stripe.com/9B65kEc8L52offne91gYU0a"
+         href="https://donate.stripe.com/9B65kEc8L52offne91gYU0a" target="_blank" rel="noopener">
+        <span class="grade-gem"></span>
+        <div class="grade-name">¥50,000</div>
+        <div class="grade-cond">エリクサーの泉</div>
+      </a>
+      <div class="grade-card g-hidden">
+        <span class="grade-gem"></span>
+        <div class="grade-name">？？？</div>
+        <div class="grade-cond">隠し</div>
+      </div>
+    </div>
+    <p class="page-sub" style="margin:14px 0 0;" data-i18n="sup.menuNote">
+      いつも応援ありがとうございます。いただいた供給は、サーバーの維持・カードデータの更新・新機能の開発に大切に使わせていただきます。供給は純粋な応援で、ゲームの機能はすべて誰でも無料で使えます。
+    </p>
+  </div>
+
+  <div class="note" data-i18n="sup.notes">
+    ※ <b>ログイン中の場合</b>、いただいた供給は<b>累計</b>で記録しています。いつも本当にありがとうございます。<br>
+    ※ OFUSEでの応援も累計に反映できます。メッセージに<b>このサイトのログインメールアドレス</b>を添えてください。<br>
+    ※ 金額は目安です。支援画面で任意の額を入力できます（月額ではなく1回きり）。<br>
+    ※ 供給は純粋な応援です。デッキ作成・分析など、すべての機能は誰でも無料で使えます。<br>
+    ※ This material is unofficial and is not endorsed by Supercell. For more information see Supercell's <a href='https://supercell.com/en/fan-content-policy/' target='_blank' rel='noopener' style='color:#8a90a0;'>Fan Content Policy</a>.
+  </div>
+</div>
+
+<div class="footer-signature">
+  <span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span>
+  <div style="font-size:10px;color:#6b7080;margin-top:10px;letter-spacing:0;line-height:1.6;font-family:sans-serif;">This material is unofficial and is not endorsed by Supercell.<br>For more information see Supercell's <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noopener" style="color:#8a90a0;">Fan Content Policy</a>.</div>
+</div>
+
+<!-- ログイン（Firebase）。ヘッダーにログインボタンが自動で付きます -->
+<script type="module" src="/auth.js?v=260627"></script>
+<script defer src="/i18n.js?v=260630"></script>
+<script>
+// ログイン中はStripeリンクに ?client_reference_id=<uid> を付与＝webhookが「誰の供給か」を記録できる。
+// 未ログインでも支援は可能（その場合は donationsUnclaimed に退避され、後でメール照合/手動反映）。
+(function () {
+  function apply(user) {
+    var uid = (user && user.uid) ? user.uid : '';
+    document.querySelectorAll('a.stripe-donate').forEach(function (a) {
+      var base = a.getAttribute('data-link');
+      a.href = uid ? (base + '?client_reference_id=' + encodeURIComponent(uid)) : base;
+    });
+  }
+  function init() {
+    if (window.CRAuth && window.CRAuth.onChange) {
+      window.CRAuth.onChange(function (user) { apply(user); }); // 状態変化＋初回即時に発火
+    } else { apply(null); setTimeout(init, 300); } // auth.js読み込み待ち
+  }
+  if (document.readyState !== 'loading') init();
+  else document.addEventListener('DOMContentLoaded', init);
+
+  // 特典内容ポップ（情報アイコン）＋ 購入タップ時のジェム演出
+  var PERKS = {
+    drop:   { title: '¥500 ひとしずく 💧', items: ['ひとしずくが、サーバーを守るエリクサーになります。', '供給されたエリクサーは、維持費・データ更新・新機能の開発に直行します。', 'あなたの一滴で、開発が前に進みます。'] },
+    bottle: { title: '¥2,000 ボトル', items: ['ボトル級の供給。開発が一段加速します。', '大型アップデートの背中を押すのは、いつもこのクラスの供給です。', '心強い援軍に感謝を。'] }
+  };
+  function showPerk(key) {
+    var p = PERKS[key]; if (!p) return;
+    var ov = document.createElement('div'); ov.className = 'perk-pop';
+    ov.innerHTML = '<div class="perk-pop-box"><h3>' + p.title + '</h3><ul>' +
+      p.items.map(function (t) { return '<li>' + t + '</li>'; }).join('') +
+      '</ul><div class="perk-pop-note">※ 供給は見返りのない純粋な応援です。</div>' +
+      '<button class="perk-pop-close" type="button">閉じる</button></div>';
+    ov.addEventListener('click', function (e) { if (e.target === ov || e.target.classList.contains('perk-pop-close')) ov.remove(); });
+    document.body.appendChild(ov);
+  }
+  document.querySelectorAll('.grade-info').forEach(function (b) {
+    b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); showPerk(b.getAttribute('data-perk')); });
+  });
+  document.querySelectorAll('a.grade-card.stripe-donate').forEach(function (a) {
+    a.addEventListener('click', function (e) {
+      if (e.target.closest('.grade-info')) return;       // 情報アイコンは別処理
+      e.preventDefault();
+      if (a.classList.contains('purchasing')) return;    // 二重タップ防止
+      a.classList.add('purchasing');
+      var href = a.href;                                  // client_reference_id付きの最新href
+      setTimeout(function () { a.classList.remove('purchasing'); window.location.href = href; }, 800);
+    });
+  });
+})();
+</script>
+</body>
+</html>
