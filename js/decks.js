@@ -868,7 +868,7 @@ fetch(DECKS_DATA_URL, { cache: 'no-store' })
     META = (j && Array.isArray(j.meta)) ? j.meta : [];
     renderMetaShare();
     PLAYERS_TOTAL = (j && j.players) ? j.players : 0;
-    if (j && j.winMin && j.winMin > 100) WIN_MIN_SHOW = j.winMin; // 既定100でフロア＝古いJSONのwinMin(30等)で下がらない。GASが100超を指定した時だけ追従
+    if (j && j.winMin) WIN_MIN_SHOW = j.winMin; // decks.jsonのwinMin（＝GAS WIN_MIN_GAMES_3D）に追従。既定100はJSON読込前のフォールバック
     _agg.sample = (j && j.players) ? j.players : null;
     _agg.top = (j && j.topPlayers) ? j.topPlayers : null;
     _agg.hrs = (j && j.intervalHours) ? j.intervalHours : 6;
