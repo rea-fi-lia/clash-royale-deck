@@ -234,7 +234,7 @@
       "をお気に入りから外す？": "— remove from favorites?",
       "外す": "Remove", "キャンセル": "Cancel", "閉じる": "Close", "スロット": "Slot",
       "🌗 背景を白くする": "🌗 Light background",
-      "空き": "Empty", "ログインで保存・名前が入れられます": "Log in to save & add your name", "デッキが空です": "Deck is empty", "ログインが必要です": "Login required",
+      "空き": "Empty", "ログインで保存・名前が入れられます": "Log in to save & add your name", "デッキが空です": "Deck is empty", "ログインが必要です": "Login required", "8枚そろえてデッキを共有しよう": "Build a full 8-card deck to share it",
       "まずデッキを8枚そろえてね": "Build a full 8-card deck first", "✅ デッキをコピー（8枚そろうとクラロワで開けます）": "✅ Deck copied (finish all 8 cards to open in Clash Royale)", "コピーできませんでした": "Couldn’t copy",
       "保存するスロットを選んで「保存」": "Pick a slot, then “Save”",
       "呼び出すデッキを選ぶ（横スクロール）": "Pick a deck to load (scroll sideways)",
