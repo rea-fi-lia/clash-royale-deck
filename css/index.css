@@ -596,6 +596,11 @@
   .deck-actions { padding: 10px 12px; border-top: 1px solid var(--border); display: flex; gap: 6px; align-items: stretch; }
   .da-left { flex: 1; display: flex; gap: 6px; }
   .da-left .btn { flex: 1; }
+  .da-right { flex: 2.1; display: flex; gap: 6px; min-width: 0; }
+  .da-right #analyzeBtn { flex: 7 1 0; white-space: nowrap; min-width: max-content; }
+  .da-copy { flex: 3 1 0; min-width: 0; gap: 4px; }
+  .da-copy .da-copy-tx { overflow: hidden; text-overflow: ellipsis; }
+  .nav-emoji svg, .da-copy svg, #slotLoadNum svg { display: block; }
   #analyzeBtn {
     flex: 1; text-decoration: none; align-items: center; justify-content: center;
     background: linear-gradient(135deg, #3a8ef0, #2a6fd0); color: #fff; font-weight: 700;

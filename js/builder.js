@@ -276,6 +276,7 @@ function init() {
     updateCostSortBtn();
     costSortBtn.onclick = () => { costDesc = !costDesc; updateCostSortBtn(); render(); };
   }
+  { const cb = document.getElementById('clearBtn'); if (cb) cb.onclick = () => { deck = [null,null,null,null,null,null,null,null]; renderDeck(); refreshInDeck(); }; }
   document.getElementById('copyDeckBtn').onclick = copyDeckForClash;
   document.getElementById('saveBtn').onclick = openSlotSaveDialog;
   initSlotScrub();
@@ -1377,7 +1378,7 @@ function updateSlotLoadBtn() {
   const el = document.getElementById('slotLoadNum');
   if (!el) return;
   const loggedIn = window.CRAuth && CRAuth.getUser && CRAuth.getUser();
-  el.textContent = loggedIn ? (currentSlot ? currentSlot : '—') : '📤'; // 未ログイン＝SNS共有マーク
+  el.innerHTML = loggedIn ? (currentSlot ? currentSlot : '—') : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 13.4 7.4 4.3M15.7 6.3 8.3 10.6"/></svg>'; // 未ログイン＝SNS共有アイコン
 }
 
 // 空きスロットをタップ＝現デッキをその番号に保存（→保存後の共有へ）
