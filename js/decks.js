@@ -633,6 +633,10 @@ function aggregateMeArch(battles) {
   return Object.keys(m).map(k => ({ k: k, games: m[k].g, share: total ? Math.round(m[k].g / total * 1000) / 10 : 0, win: m[k].g ? Math.round(m[k].w / m[k].g * 100) : null }))
     .sort((a, b) => b.games - a.games);
 }
+// ===== トロフィー帯（500刻み）：個人ログを帯別に集計＝ランカー横断band-metaの素 =====
+function _bandOf(tr) { return (typeof tr === 'number' && tr > 0) ? Math.floor(tr / 500) * 500 : null; }
+function _meBand(battles) { for (const b of (battles || [])) { const x = _bandOf(b.tr); if (x != null) return x; } return null; } // battlesはt降順＝先頭が最新
+let ME_BAND = null;
 function renderMeMeta() {
   const el = document.getElementById('meMeta');
   if (!el) return;
@@ -640,7 +644,8 @@ function renderMeMeta() {
   const top = ME_ARCH.slice(0, 12);
   const maxS = Math.max(1, ...top.map(m => m.share || 0));
   el.style.display = '';
-  el.innerHTML = '<div class="ms-title">' + _t('me.metaTitle', { n: ME_COUNT }) + '</div>'
+  const _bandBadge = (ME_BAND != null) ? '<div class="ms-band" style="font-size:12px;font-weight:700;color:#e8a020;margin:0 0 4px">🏆 ' + ME_BAND + '–' + (ME_BAND + 499) + '</div>' : '';
+  el.innerHTML = _bandBadge + '<div class="ms-title">' + _t('me.metaTitle', { n: ME_COUNT }) + '</div>'
     + '<div class="ms-note">' + _tr('相手デッキの勝ち筋分布＝あなたのランク帯のメタ。使ったデッキに関係なく貯まる正確なサンプルです。勝率は対面3戦未満なら表示しません') + '</div>'
     + top.map(m => {
       const base = m.k;
@@ -673,6 +678,7 @@ async function loadMeCards(force) {
   _saveMeBattles(tag, battles);
   ME_CARDS = aggregateMe(battles); ME_COUNT = battles.length;
   ME_ARCH = aggregateMeArch(battles); // 帯メタ（勝ち筋分布）
+  ME_BAND = _meBand(battles); // 現在のトロフィー帯（直近の対戦のstartingTrophies）
   _syncMeToCloud(battles); // 間引き書込（await しない＝UIを止めない）
   _updateMeMonthly(battles); // ★月次集計（await しない）
   return { ok: true, count: battles.length };
@@ -709,14 +715,25 @@ async function _updateMeMonthly(battles) {
     for (const m of Object.keys(byMonth)) {
       const key = m.slice(0, 4) + '-' + m.slice(4);
       const doc = (await CRAuth.getMeMonthly(key)) || { mark: '', total: [0, 0], arch: {} };
+      if (!doc.band) doc.band = {}; // ★帯別（500刻み）＝ランカー横断集計の素。{ "<band>": { total:[n,w], arch:{a:[n,w]}, sigs:{ "<署名>":[n,w] } } }
       const fresh = byMonth[m].filter(b => b.t && b.t > (doc.mark || '')).sort((a, b) => (a.t < b.t ? -1 : 1));
       if (!fresh.length) continue;
       fresh.forEach(b => {
-        archsOfOpp(b.opp || []).forEach(a => {
+        const arr = archsOfOpp(b.opp || []);
+        arr.forEach(a => {
           const e = doc.arch[a] || (doc.arch[a] = [0, 0]);
           e[0]++; if (b.win) e[1]++;
         });
         doc.total[0]++; if (b.win) doc.total[1]++; // totalは1戦1回（archは重複カウント）
+        // ★帯別に同じ集計＋相手デッキ8枚署名（ランカー側sighistと同粒度を個人でも蓄積）
+        const band = _bandOf(b.tr);
+        if (band != null) {
+          const bb = doc.band[band] || (doc.band[band] = { total: [0, 0], arch: {}, sigs: {} });
+          bb.total[0]++; if (b.win) bb.total[1]++;
+          arr.forEach(a => { const e2 = bb.arch[a] || (bb.arch[a] = [0, 0]); e2[0]++; if (b.win) e2[1]++; });
+          const sig = (b.opp || []).map(n => String(n).replace(/[⚡👑]+$/, '')).sort().join('/');
+          if (sig && (bb.sigs[sig] || Object.keys(bb.sigs).length < 400)) { const e3 = bb.sigs[sig] || (bb.sigs[sig] = [0, 0]); e3[0]++; if (b.win) e3[1]++; }
+        }
         if (b.t > doc.mark) doc.mark = b.t;
       });
       doc.upd = Date.now();

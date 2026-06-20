@@ -597,15 +597,15 @@
   .da-left { flex: 1; display: flex; gap: 6px; }
   .da-left .btn { flex: 1; }
   .da-right { flex: 1; display: flex; gap: 6px; }
-  .da-right #analyzeBtn { flex: 1; white-space: nowrap; font-size: 12px; min-width: 0; overflow: hidden; }
-  .da-copy { flex: 1.45; min-width: 0; gap: 4px; font-size: 12px; }
-  .da-copy svg { width: 14px; height: 14px; }
+  .da-right #analyzeBtn { flex: 1.25; white-space: nowrap; font-size: 11.5px; min-width: 0; overflow: hidden; }
+  .da-copy { position: relative; flex: 1; min-width: 0; gap: 0; font-size: 11.5px; padding: 3px 6px; }
+  .da-copy svg { position: absolute; top: 4px; left: 5px; width: 12px; height: 12px; }
   /* SLOTが共有マークに変わった時のさりげないグロー＋タップで出る共有ボタン */
   @keyframes slotGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(232,160,32,0); } 50% { box-shadow: 0 0 11px 1px rgba(232,160,32,.5); } }
   .slot-load-btn.share-glow { animation: slotGlow 1.7s ease-in-out infinite; border-color: var(--accent); }
   .slot-share-pop { position: fixed; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--accent); background: var(--surface2); color: var(--accent); font-family: var(--font-head); font-weight: 700; font-size: 13px; z-index: 1001; cursor: pointer; white-space: nowrap; animation: slotGlow 1.7s ease-in-out infinite; }
   .slot-share-pop svg { display: block; }
-  .da-copy .da-copy-tx { overflow: hidden; text-overflow: ellipsis; }
+  .da-copy .da-copy-tx { display: block; width: 100%; text-align: center; line-height: 1.12; }
   .nav-emoji svg, .da-copy svg, #slotLoadNum svg { display: block; }
   #analyzeBtn {
     flex: 1; text-decoration: none; align-items: center; justify-content: center;
