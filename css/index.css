@@ -599,6 +599,7 @@
   .da-right { flex: 1; display: flex; gap: 6px; }
   .da-right #analyzeBtn { flex: 7; white-space: nowrap; }
   .da-copy { flex: 3; min-width: 0; gap: 4px; }
+  .da-copy svg { width: 14px; height: 14px; }
   .da-copy .da-copy-tx { overflow: hidden; text-overflow: ellipsis; }
   .nav-emoji svg, .da-copy svg, #slotLoadNum svg { display: block; }
   #analyzeBtn {
