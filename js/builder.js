@@ -1339,13 +1339,13 @@ function openShareDialog(deckArr, deckName, notSaved) {
     <div class="slot-pop-title">${(loggedIn && !notSaved) ? '✅ 保存しました！このデッキを共有する？' : 'このデッキを共有する？'}</div>
     <div class="share-deck" id="shRep"></div>
     <div class="share-btns">
-      ${byName ? `<button class="share-b sns-byname active" id="shByBtn" aria-pressed="true">${T('share.byBtn', { name: byNameEsc })}</button>` : ''}
+      ${byName ? `<button class="share-b sns-byname active" id="shByBtn" aria-pressed="true">${T('share.byBtn', { name: byNameEsc })}${(loggedIn && !hasTag) ? `<span class="byname-idhint">${TR('💡 クラロワID登録でユーザー名を表示')}</span>` : ''}</button>` : ''}
       ${!loggedIn ? `<button class="share-b sns-login" id="shLogin">🔑 ${TR('ログインで保存・名前が入れられます')}</button>` : ''}
       <a class="share-b sns-x" id="shX" target="_blank" rel="noopener">𝕏 でポスト</a>
       <a class="share-b sns-line" id="shLine" target="_blank" rel="noopener">LINEで送る</a>
       <button class="share-b sns-copy" id="shCopy">🔗 リンクをコピー</button>
     </div>
-    <div class="share-hint">${byName ? '名前ボタンが光ってると、画像にあなたの名前が入ります。' : ''}${(loggedIn && !hasTag) ? TR('💡 クラロワID登録でユーザー名を表示') + '。' : ''}閉じるときはこの外側をタップ</div>
+    <div class="share-hint">${byName ? '名前ボタンが光ってると、画像にあなたの名前が入ります。' : ''}閉じるときはこの外側をタップ</div>
   </div>`;
   ov.onclick = (e) => { if (e.target === ov) { ov.remove(); document.body.classList.remove('share-open'); } }; // 外側タップで閉じる
 

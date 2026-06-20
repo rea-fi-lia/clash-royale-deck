@@ -367,7 +367,8 @@
   .sdk-bdg { position: absolute; top: 1px; right: 2px; font-size: 10px; }
   .share-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 6px; line-height: 1.5; }
   /* 「名前を入れて投稿」トグル（光る＝ON） */
-  .share-b.sns-byname { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border-hi); transition: all .15s; }
+  .share-b.sns-byname { position: relative; padding-bottom: 17px; background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border-hi); transition: all .15s; }
+  .byname-idhint { position: absolute; right: 9px; bottom: 3px; font-size: 9px; font-weight: 400; opacity: .8; pointer-events: none; white-space: nowrap; line-height: 1; }
   .share-b.sns-byname.active { background: rgba(232,160,32,0.16); color: var(--accent); border-color: var(--accent);
     box-shadow: 0 0 16px rgba(232,160,32,0.55), inset 0 0 8px rgba(232,160,32,0.25); }
   /* 保存デッキ呼び出しボタン */
