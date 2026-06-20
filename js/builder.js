@@ -1331,11 +1331,13 @@ function openShareDialog(deckArr, deckName) {
 
   const ov = document.createElement('div');
   ov.className = 'slot-pop';
+  const loggedIn = !!(window.CRAuth && CRAuth.getUser && CRAuth.getUser());
   ov.innerHTML = `<div class="slot-pop-box">
-    <div class="slot-pop-title">✅ 保存しました！このデッキを共有する？</div>
+    <div class="slot-pop-title">${loggedIn ? '✅ 保存しました！このデッキを共有する？' : 'このデッキを共有する？'}</div>
     <div class="share-deck" id="shRep"></div>
     <div class="share-btns">
       ${byName ? `<button class="share-b sns-byname active" id="shByBtn" aria-pressed="true">${T('share.byBtn', { name: byNameEsc })}</button>` : ''}
+      ${!loggedIn ? `<button class="share-b sns-login" id="shLogin">🔑 ${TR('ログインで保存・名前が入れられます')}</button>` : ''}
       <a class="share-b sns-x" id="shX" target="_blank" rel="noopener">𝕏 でポスト</a>
       <a class="share-b sns-line" id="shLine" target="_blank" rel="noopener">LINEで送る</a>
       <button class="share-b sns-copy" id="shCopy">🔗 リンクをコピー</button>
@@ -1363,6 +1365,8 @@ function openShareDialog(deckArr, deckName) {
   syncLinks();
   const copyBtn = ov.querySelector('#shCopy');
   copyBtn.onclick = () => { navigator.clipboard.writeText(finalUrl()).then(() => { copyBtn.textContent = TR('✓ コピーしました'); }); };
+  const loginBtn = ov.querySelector('#shLogin');
+  if (loginBtn) loginBtn.onclick = () => { ov.remove(); document.body.classList.remove('share-open'); if (window.CRAuth) CRAuth.signIn(); };
   document.body.appendChild(ov);
   document.body.classList.add('share-open'); // プレビュー中はデッキ側アニメを停止
 }
@@ -1371,7 +1375,21 @@ function openShareDialog(deckArr, deckName) {
 let currentSlot = null;
 function updateSlotLoadBtn() {
   const el = document.getElementById('slotLoadNum');
-  if (el) el.textContent = currentSlot ? currentSlot : '—';
+  if (!el) return;
+  const loggedIn = window.CRAuth && CRAuth.getUser && CRAuth.getUser();
+  el.textContent = loggedIn ? (currentSlot ? currentSlot : '—') : '📤'; // 未ログイン＝SNS共有マーク
+}
+
+// 空きスロットをタップ＝現デッキをその番号に保存（→保存後の共有へ）
+async function saveDeckToSlotNum(slot) {
+  const filled = deck.filter(Boolean);
+  if (!filled.length) { showToast('デッキが空です'); return; }
+  if (!window.CRAuth || !CRAuth.getUser()) { showToast('ログインが必要です'); return; }
+  try {
+    await CRAuth.saveDeckToSlot(slot, 'スロット' + slot, filled);
+    currentSlot = slot; updateSlotLoadBtn();
+    openShareDialog(deck.slice(), 'スロット' + slot);
+  } catch (e) { showToast('保存に失敗しました'); }
 }
 async function openSlotLoadPicker() {
   if (!window.CRAuth) { showToast('ログイン機能の読み込み中です'); return; }
@@ -1427,7 +1445,7 @@ function initSlotScrub() {
   let baseIdx = 0, lastIdx = -1, startX = 0, downX = 0, lastPointerX = 0, stepPx = 38;
 
   function loadSlotByIndex(idx) {
-    const s = segSlots[idx]; if (!s) return;
+    const s = segSlots[idx]; if (!s || s.empty) return; // 空きスロットはロードしない（デッキを消さない）
     const cards = (s.slots || []).map(name => CARDS.find(c => c.name === name) || null);
     if (window.CRDeckBridge) window.CRDeckBridge.setDeck(cards, { silent: true });
     currentSlot = s.slot; updateSlotLoadBtn();
@@ -1444,13 +1462,16 @@ function initSlotScrub() {
   async function openBar() {
     if (!window.CRAuth) { showToast('ログイン機能の読み込み中です'); return; }
     if (!CRAuth.getUser()) {
-    if (CRAuth.hasSession && CRAuth.hasSession()) { showToast('ログイン確認中です。少し待ってからもう一度'); return; }
-    showToast('呼び出しにはログインが必要です'); CRAuth.signIn(); return;
-  }
+      if (CRAuth.hasSession && CRAuth.hasSession()) { showToast('ログイン確認中です。少し待ってからもう一度'); return; }
+      // 未ログイン：8枚そろっていれば共有モーダル、未満は誘導トーストのみ
+      if (deck.filter(Boolean).length >= 8) openShareDialog(deck.slice(), '');
+      else showToast('ログインで保存・名前が入れられます');
+      return;
+    }
     let slots = [];
     try { slots = await CRAuth.getSlots(); } catch (e) { showToast('スロットの取得に失敗しました'); return; }
-    segSlots = slots.slice(); // 保存済みスロット（0枚保存も含めて表示・呼び出し可能＝消えないように）
-    if (!segSlots.length) { showToast('保存済みデッキがありません'); return; }
+    // 5スロット全表示（空きは保存用）。保存ゼロでも出す。
+    segSlots = [1,2,3,4,5].map(i => slots.find(s => s.slot === i) || { slot: i, slots: null, empty: true });
     baseIdx = segSlots.findIndex(s => s.slot === currentSlot);
     if (baseIdx < 0) baseIdx = 0;
     lastIdx = baseIdx; startX = downX;
@@ -1458,11 +1479,15 @@ function initSlotScrub() {
     bar = document.createElement('div');
     bar.className = 'scrub-bar';
     bar.innerHTML = segSlots.map((s, i) =>
-      `<div class="scrub-seg${i === baseIdx ? ' on' : ''}" data-i="${i}"><span class="sn">${s.slot}</span><span class="snm">${T('cards.n', { n: (s.slots||[]).length }, (s.slots||[]).length + '枚')}</span></div>`
+      `<div class="scrub-seg${i === baseIdx ? ' on' : ''}${s.empty ? ' empty' : ''}" data-i="${i}"><span class="sn">${s.slot}</span><span class="snm">${s.empty ? TR('空き') : T('cards.n', { n: (s.slots||[]).length }, (s.slots||[]).length + '枚')}</span></div>`
     ).join('');
-    // 各スロットはタップでも移動できる
+    // 保存済み＝タップでロード／空き＝タップで現デッキを保存
     bar.querySelectorAll('.scrub-seg').forEach(seg => {
-      seg.addEventListener('click', () => { loadSlotByIndex(+seg.dataset.i); closeBar(); });
+      seg.addEventListener('click', () => {
+        const i = +seg.dataset.i; const s = segSlots[i];
+        if (s && s.empty) { closeBar(); saveDeckToSlotNum(s.slot); }
+        else { loadSlotByIndex(i); closeBar(); }
+      });
     });
     hint = document.createElement('div');
     hint.className = 'scrub-hint';
@@ -1558,6 +1583,7 @@ init();
     document.body.classList.toggle('perk-drop', pts >= 500);
     document.body.classList.toggle('perk-bottle', pts >= 2000);
     try { updateDeckGlow(deck.filter(Boolean).length); } catch (e) {} // ログイン状態が変わったらグローを反映
+    try { updateSlotLoadBtn(); } catch (e) {} // SLOTボタンのアイコン（未ログイン=共有マーク）を反映
   });
 })();
 
