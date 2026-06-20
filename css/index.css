@@ -517,6 +517,11 @@
   .swap-remove-btn { background: #e8304a; color: #fff; font-weight: 700; flex: 1; }
   .swap-keep-btn { flex: 1; }
   .swap-opt img { width: 56px; height: 56px; object-fit: contain; display: block; margin: 0 auto 4px; }
+  /* 「クラロワで開く」ポップアップ：ボタンを中央・大きめに */
+  .swap-options.clash-open-row { justify-content: center; }
+  .clash-open-btn { min-width: 220px; padding: 14px 28px; font-size: 15px; text-decoration: none; }
+  /* 📋コピー：押した感（タップで少し縮む） */
+  #copyDeckBtn:active { transform: scale(0.9); }
   .swap-opt-name { font-size: 11px; font-weight: 500; }
   .swap-opt-slot { font-size: 9px; color: var(--text-muted); margin-top: 2px; }
   .swap-cancel { width: 100%; }

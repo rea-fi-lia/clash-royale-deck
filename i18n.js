@@ -43,7 +43,8 @@
       "slot.n": "スロット{n}",
       "cards.n": "{n}枚",
       "fav.removeQ": "{name} をお気に入りから外す？",
-      "copy.copied": "✅ デッキをコピーしました",
+      "copy.copied": "{name}さんが作ったデッキをコピーしました！",
+      "copy.copiedGuest": "デッキをコピーしました！",
       "copy.openCR": "クラロワで開く",
       "swap.withWhich": "{name} をどちらと入れ替える？",
       // ビルダー/デッキ一覧の動的文字列（数値・名前入り）
@@ -111,7 +112,8 @@
       "slot.n": "Slot {n}",
       "cards.n": "{n} cards",
       "fav.removeQ": "Remove {name} from favorites?",
-      "copy.copied": "✅ Deck copied!",
+      "copy.copied": "Copied {name}’s deck!",
+      "copy.copiedGuest": "Deck copied!",
       "copy.openCR": "Open in Clash Royale",
       "swap.withWhich": "Swap {name} with which?",
       // ビルダー/デッキ一覧の動的文字列（数値・名前入り）

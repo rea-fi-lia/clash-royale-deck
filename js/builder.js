@@ -1164,11 +1164,13 @@ async function copyDeckForClash() {
 
 // コピー後のポップアップ：「クラロワで開く」＝リンクへ遷移してクラロワが開く。外タップでキャンセル（既存ダイアログと同作法）。
 function openClashDeckPopup(link) {
+  const name = (window.CRAuth && CRAuth.getDisplayName && CRAuth.getDisplayName()) || '';
+  const title = name ? T('copy.copied', { name }) : T('copy.copiedGuest');
   const ov = document.createElement('div');
   ov.className = 'swap-overlay';
   ov.innerHTML = `<div class="swap-box">
-    <div class="swap-title">${T('copy.copied')}</div>
-    <div class="swap-options">
+    <div class="swap-title">${title}</div>
+    <div class="swap-options clash-open-row">
       <a class="btn btn-primary clash-open-btn" rel="noopener">${T('copy.openCR')}</a>
     </div>
   </div>`;
