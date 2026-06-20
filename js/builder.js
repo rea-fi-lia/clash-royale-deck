@@ -1482,6 +1482,8 @@ function initSlotScrub() {
 
   async function openBar() {
     if (!window.CRAuth) { showToast('ログイン機能の読み込み中です'); return; }
+    // 共有状態（8枚＝共有の意思）＝スロットを出すとスクラブで未保存デッキが消えるので、バーは出さず即SNS共有へ
+    if (_isShareState()) { openShareDialog(deck.slice(), '', true); return; }
     if (!CRAuth.getUser()) {
       if (CRAuth.hasSession && CRAuth.hasSession()) { showToast('ログイン確認中です。少し待ってからもう一度'); return; }
       // 未ログイン：8枚そろっていれば共有モーダル、未満は誘導トーストのみ
@@ -1509,18 +1511,9 @@ function initSlotScrub() {
         loadSlotByIndex(+seg.dataset.i); closeBar();
       });
     });
-    if (_isShareState()) {
-      // 共有状態＝デッキスロット表示に加え、SLOT位置に光る共有ボタンをポップ。タップでSNS共有。
-      hint = document.createElement('button');
-      hint.type = 'button';
-      hint.className = 'slot-share-pop share-glow';
-      hint.innerHTML = SHARE_SVG + '<span>' + TR('SNSで共有') + '</span>';
-      hint.onclick = (ev) => { ev.stopPropagation(); closeBar(); openShareDialog(deck.slice(), '', true); };
-    } else {
-      hint = document.createElement('div');
-      hint.className = 'scrub-hint';
-      hint.textContent = TR('指を離さず左右になぞってデッキ切替');
-    }
+    hint = document.createElement('div');
+    hint.className = 'scrub-hint';
+    hint.textContent = TR('指を離さず左右になぞってデッキ切替');
     document.body.appendChild(bar);
     document.body.appendChild(hint);
     const r = btn.getBoundingClientRect();

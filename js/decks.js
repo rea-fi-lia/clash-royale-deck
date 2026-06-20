@@ -22,7 +22,7 @@ let ownedSet = null;       // 解決済み所持カード名Set（未取得null�
 let onlyOwned = false;     // 絞り込みON/OFF
 let cardFilter = null;     // 「このカードを含むデッキだけ」絞り込み（カード名 or null）
 let PLAYERS_TOTAL = 0;     // 集計した母数（使用率%の計算用）
-let WIN_MIN_SHOW = 30;     // 勝率ランキングの最低試合数（decks.jsonのwinMinに追従）
+let WIN_MIN_SHOW = 100;    // 勝率ランキングの最低試合数（decks.jsonのwinMinに追従。既定もGAS WIN_MIN_GAMES_3D=100に合わせる）
 let UPDATE_HRS = 6;        // 更新間隔（時間）。decks.json の intervalHours から
 function currentList() { return activeTab === 'win' ? WIN_DECKS : activeTab === 'trend' ? TREND_DECKS : ALL_DECKS; }
 
@@ -277,7 +277,7 @@ const _mmSel = new Set();       // 分布図に表示するカード名
 let _mmZoom = null;             // ズーム中の象限（'tl'/'tr'/'bl'/'br' or null＝全体）
 let _ctab = 'use';              // 'use'=使用率 / 'win'=勝率
 function minGames() { return _cardMode === 'me' ? 2 : WIN_MIN_GAMES; } // 対面はサンプル少なので緩める
-const WIN_MIN_GAMES = 50;       // 勝率ランキング・メタマップの最低対戦数（少数試合のブレ除去。減りすぎたら下げる）
+const WIN_MIN_GAMES = 100;      // 勝率ランキング・メタマップの最低対戦数（GAS WIN_MIN_GAMES_3D=100に合わせる。減りすぎたら下げる）
 
 // --- GASが trending / cards を出すまでのサンプル ---
 const TREND_SAMPLE = (function () {

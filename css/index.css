@@ -597,8 +597,8 @@
   .da-left { flex: 1; display: flex; gap: 6px; }
   .da-left .btn { flex: 1; }
   .da-right { flex: 1; display: flex; gap: 6px; }
-  .da-right #analyzeBtn { flex: 7; white-space: nowrap; }
-  .da-copy { flex: 3; min-width: 0; gap: 4px; }
+  .da-right #analyzeBtn { flex: 1; white-space: nowrap; font-size: 12px; min-width: 0; overflow: hidden; }
+  .da-copy { flex: 1.45; min-width: 0; gap: 4px; font-size: 12px; }
   .da-copy svg { width: 14px; height: 14px; }
   /* SLOTが共有マークに変わった時のさりげないグロー＋タップで出る共有ボタン */
   @keyframes slotGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(232,160,32,0); } 50% { box-shadow: 0 0 11px 1px rgba(232,160,32,.5); } }
