@@ -384,7 +384,7 @@ function renderCrank() {
       + '<span class="crank-ico"><span class="pip">' + _cardCost(c.name) + '</span>'
         + (_cardImgF(c) ? '<img src="' + _cardImgF(c) + '" alt="' + c.name + '" loading="lazy">' : '')
         + (_fmark(c) ? '<span class="fbadge">' + _fmark(c) + '</span>' : '') + '</span>'
-      + '<span class="crank-name">' + c.name + (_fmark(c) ? ' <span class="fmark">' + _fmark(c) + '</span>' : '') + '</span>'
+      + '<span class="crank-name">' + _tr(c.name) + (_fmark(c) ? ' <span class="fmark">' + _fmark(c) + '</span>' : '') + '</span>'
       + '<span class="crank-bar"><i style="width:' + barPct + '%;background:' + barCol + '"></i></span>'
       + '<span class="crank-stat ' + statCls + '"><span class="big">' + big + '</span><span class="sub">' + sub + '</span></span>'
       + '<button class="crank-go" type="button" data-go="' + String(c.name).replace(/"/g, '&quot;') + '" title="' + _tr('このカードでデッキ検索') + '" aria-label="' + _tr('このカードでデッキ検索') + '">🔍</button>'
@@ -533,7 +533,7 @@ function renderMetaMap() {
     return '<div class="mm-pt" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%" title="' + c.name + _fmark(c) + ' 使用' + (c.use || 0) + '% / 勝率' + (c.win || 0) + '%">'
       + (_cardImgF(c) ? '<img src="' + _cardImgF(c) + '" alt="' + c.name + '">' : '')
       + (_fmark(c) ? '<span class="fbadge">' + _fmark(c) + '</span>' : '')
-      + (lab ? '<span class="lab">' + c.name + (_fmark(c) ? '<i class="fm">' + _fmark(c) + '</i>' : '') + '</span>' : '') + '</div>';
+      + (lab ? '<span class="lab">' + _tr(c.name) + (_fmark(c) ? '<i class="fm">' + _fmark(c) + '</i>' : '') + '</span>' : '') + '</div>';
   };
 
   // ===== ズーム表示（1象限を拡大。中央線が端に来て、線からの近さが見える） =====
@@ -649,7 +649,7 @@ function renderMeMeta() {
       const winTxt = (m.win != null && m.games >= 3) ? _t('decks.winPct', { p: m.win }) : '';
       return '<div class="ms-row">'
         + '<span class="ms-ico">' + img + '</span>'
-        + '<span class="ms-name"><span>' + (base === 'その他' ? _tr('その他') : base) + '</span></span>'
+        + '<span class="ms-name"><span>' + _tr(base) + '</span></span>'
         + '<span class="ms-bar"><i style="width:' + Math.round((m.share || 0) / maxS * 100) + '%"></i></span>'
         + '<span class="ms-share">' + (m.share || 0) + '%</span>'
         + '<span class="ms-sep">' + _t('decks.nGames', { n: m.games }) + '</span>'
@@ -827,7 +827,7 @@ function renderMetaShare() {
       const img = src ? '<img src="' + src + '" alt="' + base + '" loading="lazy">' : '';
       return '<div class="ms-row">'
         + '<span class="ms-ico">' + img + '</span>'
-        + '<span class="ms-name"><span>' + base + '</span>' + (suf ? '<span class="ms-suf">' + suf + '</span>' : '') + '</span>'
+        + '<span class="ms-name"><span>' + _tr(base) + '</span>' + (suf ? '<span class="ms-suf">' + suf + '</span>' : '') + '</span>'
         + '<span class="ms-bar"><i style="width:' + Math.round((m.share || 0) / maxS * 100) + '%"></i></span>'
         + '<span class="ms-share">' + (m.share || 0) + '%</span>'
         + '<span class="ms-win">' + (m.win != null ? _t('decks.winPct', { p: m.win }) : '') + '</span>'
