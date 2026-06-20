@@ -600,6 +600,11 @@
   .da-right #analyzeBtn { flex: 7; white-space: nowrap; }
   .da-copy { flex: 3; min-width: 0; gap: 4px; }
   .da-copy svg { width: 14px; height: 14px; }
+  /* SLOTが共有マークに変わった時のさりげないグロー＋タップで出る共有ボタン */
+  @keyframes slotGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(232,160,32,0); } 50% { box-shadow: 0 0 11px 1px rgba(232,160,32,.5); } }
+  .slot-load-btn.share-glow { animation: slotGlow 1.7s ease-in-out infinite; border-color: var(--accent); }
+  .slot-share-pop { position: fixed; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--accent); background: var(--surface2); color: var(--accent); font-family: var(--font-head); font-weight: 700; font-size: 13px; z-index: 1001; cursor: pointer; white-space: nowrap; animation: slotGlow 1.7s ease-in-out infinite; }
+  .slot-share-pop svg { display: block; }
   .da-copy .da-copy-tx { overflow: hidden; text-overflow: ellipsis; }
   .nav-emoji svg, .da-copy svg, #slotLoadNum svg { display: block; }
   #analyzeBtn {

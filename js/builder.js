@@ -1196,6 +1196,7 @@ function openClashDeckPopup(link) {
 function updateActionButtons() {
   const n = deck.filter(Boolean).length;
   try { localStorage.setItem('cr_workdeck', deck.map(c => c ? c.name : '').join(',')); } catch (e) {} // デッキ復帰用に常時保存
+  try { updateSlotLoadBtn(); } catch (e) {} // デッキ変更に応じてSLOTの共有マーク/グローを反映
   const saveBtn = document.getElementById('saveBtn');
   const analyzeBtn = document.getElementById('analyzeBtn');
   if (saveBtn) saveBtn.disabled = false;              // 0枚でも保存OK（空スロットとして保存できる）
@@ -1259,7 +1260,7 @@ async function openSlotSaveDialog() {
     ov.remove();
     try {
       await CRAuth.saveDeckToSlot(slot, 'スロット' + slot, filled);
-      currentSlot = slot; updateSlotLoadBtn();
+      currentSlot = slot; _loadedSig = _deckSig(); updateSlotLoadBtn();
       openShareDialog(deck.slice(), 'スロット' + slot);
     } catch (e) { showToast('保存に失敗しました'); }
   };
@@ -1306,7 +1307,7 @@ function buildDeckShareUrl(deckArr) {
   const base = location.origin + location.pathname; // 例: https://crdeckbuilders.com/index.html
   return base + '?deck=' + encodeURIComponent(names.join(','));
 }
-function openShareDialog(deckArr, deckName) {
+function openShareDialog(deckArr, deckName, notSaved) {
   // SNS共有は8枚そろっているときだけ表示（揃ってなければ保存通知のみ）
   if ((deckArr || []).filter(Boolean).length < 8) { showToast('✅ 保存しました'); return; }
   // 共有リンクは Cloudflare Worker の /share（SNSにデッキ画像が展開される）。グレードはログイン中のtier。
@@ -1333,8 +1334,9 @@ function openShareDialog(deckArr, deckName) {
   const ov = document.createElement('div');
   ov.className = 'slot-pop';
   const loggedIn = !!(window.CRAuth && CRAuth.getUser && CRAuth.getUser());
+  const hasTag = !!(window.CRAuth && CRAuth.getCrTag && CRAuth.getCrTag());
   ov.innerHTML = `<div class="slot-pop-box">
-    <div class="slot-pop-title">${loggedIn ? '✅ 保存しました！このデッキを共有する？' : 'このデッキを共有する？'}</div>
+    <div class="slot-pop-title">${(loggedIn && !notSaved) ? '✅ 保存しました！このデッキを共有する？' : 'このデッキを共有する？'}</div>
     <div class="share-deck" id="shRep"></div>
     <div class="share-btns">
       ${byName ? `<button class="share-b sns-byname active" id="shByBtn" aria-pressed="true">${T('share.byBtn', { name: byNameEsc })}</button>` : ''}
@@ -1343,7 +1345,7 @@ function openShareDialog(deckArr, deckName) {
       <a class="share-b sns-line" id="shLine" target="_blank" rel="noopener">LINEで送る</a>
       <button class="share-b sns-copy" id="shCopy">🔗 リンクをコピー</button>
     </div>
-    <div class="share-hint">${byName ? '名前ボタンが光ってると、画像にあなたの名前が入ります。' : ''}閉じるときはこの外側をタップ</div>
+    <div class="share-hint">${byName ? '名前ボタンが光ってると、画像にあなたの名前が入ります。' : ''}${(loggedIn && !hasTag) ? TR('💡 クラロワID登録でユーザー名を表示') + '。' : ''}閉じるときはこの外側をタップ</div>
   </div>`;
   ov.onclick = (e) => { if (e.target === ov) { ov.remove(); document.body.classList.remove('share-open'); } }; // 外側タップで閉じる
 
@@ -1375,11 +1377,24 @@ function openShareDialog(deckArr, deckName) {
 // ===== 保存デッキの呼び出し（横スクロールで 1〜5 を選ぶ） =====
 let currentSlot = null;
 let _pendingLoginShare = false; // 未ログイン共有→ログイン直後に「空きスロット保存＋共有」を一度だけ走らせるフラグ
+const SHARE_SVG = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 13.4 7.4 4.3M15.7 6.3 8.3 10.6"/></svg>';
+let _loadedSig = null; // 最後にスロットから読込/保存したデッキ署名。これと違えば「変更あり」
+function _deckSig() { return deck.map(c => c ? c.name : '').join(','); }
+// 共有マーク＋グロー条件：8枚そろっていて、未ログイン or 読込スロットから変更あり（＝共有したい新デッキ）
+function _isShareState() {
+  if (deck.filter(Boolean).length < 8) return false;
+  const loggedIn = !!(window.CRAuth && CRAuth.getUser && CRAuth.getUser());
+  if (!loggedIn) return true;
+  return _deckSig() !== _loadedSig;
+}
 function updateSlotLoadBtn() {
   const el = document.getElementById('slotLoadNum');
+  const btn = document.getElementById('slotLoadBtn');
   if (!el) return;
   const loggedIn = window.CRAuth && CRAuth.getUser && CRAuth.getUser();
-  el.innerHTML = loggedIn ? (currentSlot ? currentSlot : '—') : '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 13.4 7.4 4.3M15.7 6.3 8.3 10.6"/></svg>'; // 未ログイン＝SNS共有アイコン
+  const share = _isShareState();
+  el.innerHTML = (share || !loggedIn) ? SHARE_SVG : (currentSlot ? currentSlot : '—'); // 共有状態 or 未ログイン＝共有マーク
+  if (btn) btn.classList.toggle('share-glow', !!share); // 8枚＋変更時だけさりげなく光る
 }
 
 // 空きスロットをタップ＝現デッキをその番号に保存（→保存後の共有へ）
@@ -1389,7 +1404,7 @@ async function saveDeckToSlotNum(slot) {
   if (!window.CRAuth || !CRAuth.getUser()) { showToast('ログインが必要です'); return; }
   try {
     await CRAuth.saveDeckToSlot(slot, 'スロット' + slot, filled);
-    currentSlot = slot; updateSlotLoadBtn();
+    currentSlot = slot; _loadedSig = _deckSig(); updateSlotLoadBtn();
     openShareDialog(deck.slice(), 'スロット' + slot);
   } catch (e) { showToast('保存に失敗しました'); }
 }
@@ -1427,6 +1442,7 @@ async function openSlotLoadPicker() {
       const s = slots.find(x => x.slot === slot);
       if (!s) return;
       const cards = (s.slots || []).map(n => CARDS.find(c => c.name === n) || null);
+      _loadedSig = cards.map(c => c ? c.name : '').join(',');
       window.CRDeckBridge ? window.CRDeckBridge.setDeck(cards) : null;
       currentSlot = slot; updateSlotLoadBtn();
       ov.remove();
@@ -1450,6 +1466,7 @@ function initSlotScrub() {
     const s = segSlots[idx]; if (!s) return;
     if (!s.empty) { // 保存済み＝ロード（プレビュー）。空き＝選択だけ動かす（デッキは変えない＝消えない）
       const cards = (s.slots || []).map(name => CARDS.find(c => c.name === name) || null);
+      _loadedSig = cards.map(c => c ? c.name : '').join(','); // 読込デッキ＝この署名の間は「変更なし」
       if (window.CRDeckBridge) window.CRDeckBridge.setDeck(cards, { silent: true });
     }
     currentSlot = s.slot; updateSlotLoadBtn();
@@ -1492,9 +1509,18 @@ function initSlotScrub() {
         loadSlotByIndex(+seg.dataset.i); closeBar();
       });
     });
-    hint = document.createElement('div');
-    hint.className = 'scrub-hint';
-    hint.textContent = TR('指を離さず左右になぞってデッキ切替');
+    if (_isShareState()) {
+      // 共有状態＝デッキスロット表示に加え、SLOT位置に光る共有ボタンをポップ。タップでSNS共有。
+      hint = document.createElement('button');
+      hint.type = 'button';
+      hint.className = 'slot-share-pop share-glow';
+      hint.innerHTML = SHARE_SVG + '<span>' + TR('SNSで共有') + '</span>';
+      hint.onclick = (ev) => { ev.stopPropagation(); closeBar(); openShareDialog(deck.slice(), '', true); };
+    } else {
+      hint = document.createElement('div');
+      hint.className = 'scrub-hint';
+      hint.textContent = TR('指を離さず左右になぞってデッキ切替');
+    }
     document.body.appendChild(bar);
     document.body.appendChild(hint);
     const r = btn.getBoundingClientRect();
