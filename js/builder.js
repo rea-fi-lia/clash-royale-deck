@@ -1158,8 +1158,25 @@ async function copyDeckForClash() {
     ta.remove();
   }
   if (!ok) { showToast('コピーできませんでした'); return; }
-  if (link) showToast('✅ コピーしました！クラロワに戻って貼り付けてください');
-  else showToast('✅ デッキをコピー（8枚そろうとクラロワに直接貼れます）');
+  if (link) openClashDeckPopup(link);
+  else showToast('✅ デッキをコピー（8枚そろうとクラロワで開けます）');
+}
+
+// コピー後のポップアップ：「クラロワで開く」＝リンクへ遷移してクラロワが開く。外タップでキャンセル（既存ダイアログと同作法）。
+function openClashDeckPopup(link) {
+  const ov = document.createElement('div');
+  ov.className = 'swap-overlay';
+  ov.innerHTML = `<div class="swap-box">
+    <div class="swap-title">${T('copy.copied')}</div>
+    <div class="swap-options">
+      <a class="btn btn-primary clash-open-btn" rel="noopener">${T('copy.openCR')}</a>
+    </div>
+  </div>`;
+  const a = ov.querySelector('.clash-open-btn');
+  a.href = link;
+  a.addEventListener('click', () => setTimeout(() => ov.remove(), 60));
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+  document.body.appendChild(ov);
 }
 
 // 下部ボタンの活性状態を更新

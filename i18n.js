@@ -43,6 +43,8 @@
       "slot.n": "スロット{n}",
       "cards.n": "{n}枚",
       "fav.removeQ": "{name} をお気に入りから外す？",
+      "copy.copied": "✅ デッキをコピーしました",
+      "copy.openCR": "クラロワで開く",
       "swap.withWhich": "{name} をどちらと入れ替える？",
       // ビルダー/デッキ一覧の動的文字列（数値・名前入り）
       "avg.n": "（{n}枚）",
@@ -109,6 +111,8 @@
       "slot.n": "Slot {n}",
       "cards.n": "{n} cards",
       "fav.removeQ": "Remove {name} from favorites?",
+      "copy.copied": "✅ Deck copied!",
+      "copy.openCR": "Open in Clash Royale",
       "swap.withWhich": "Swap {name} with which?",
       // ビルダー/デッキ一覧の動的文字列（数値・名前入り）
       "avg.n": "({n} cards)",
@@ -225,6 +229,7 @@
       "をどちらと入れ替える？": "— swap with which?",
       "をお気に入りから外す？": "— remove from favorites?",
       "外す": "Remove", "キャンセル": "Cancel", "閉じる": "Close", "スロット": "Slot",
+      "まずデッキを8枚そろえてね": "Build a full 8-card deck first", "✅ デッキをコピー（8枚そろうとクラロワで開けます）": "✅ Deck copied (finish all 8 cards to open in Clash Royale)", "コピーできませんでした": "Couldn’t copy",
       "保存するスロットを選んで「保存」": "Pick a slot, then “Save”",
       "呼び出すデッキを選ぶ（横スクロール）": "Pick a deck to load (scroll sideways)",
       "✅ 保存しました！このデッキを共有する？": "✅ Saved! Share this deck?",
