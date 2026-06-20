@@ -520,6 +520,7 @@
   /* 「クラロワで開く」ポップアップ：ボタンを中央・大きめに */
   .swap-options.clash-open-row { justify-content: center; }
   .clash-open-btn { min-width: 220px; padding: 14px 28px; font-size: 15px; text-decoration: none; }
+  .clash-open-hint { font-size: 11px; color: var(--text-muted); text-align: center; line-height: 1.6; }
   /* 📋コピー：押した感（タップで少し縮む） */
   #copyDeckBtn:active { transform: scale(0.9); }
   .swap-opt-name { font-size: 11px; font-weight: 500; }

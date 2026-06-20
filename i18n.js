@@ -46,6 +46,7 @@
       "copy.copied": "{name}さんが作ったデッキをコピーしました！",
       "copy.copiedGuest": "デッキをコピーしました！",
       "copy.openCR": "クラロワで開く",
+      "copy.openHint": "開かない時は、クラロワを起動してから もう一度タップしてね",
       "swap.withWhich": "{name} をどちらと入れ替える？",
       // ビルダー/デッキ一覧の動的文字列（数値・名前入り）
       "avg.n": "（{n}枚）",
@@ -115,6 +116,7 @@
       "copy.copied": "Copied {name}’s deck!",
       "copy.copiedGuest": "Deck copied!",
       "copy.openCR": "Open in Clash Royale",
+      "copy.openHint": "If it doesn’t open, launch Clash Royale first, then tap again.",
       "swap.withWhich": "Swap {name} with which?",
       // ビルダー/デッキ一覧の動的文字列（数値・名前入り）
       "avg.n": "({n} cards)",

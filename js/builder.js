@@ -1173,10 +1173,11 @@ function openClashDeckPopup(link) {
     <div class="swap-options clash-open-row">
       <a class="btn btn-primary clash-open-btn" rel="noopener">${T('copy.openCR')}</a>
     </div>
+    <div class="clash-open-hint">${T('copy.openHint')}</div>
   </div>`;
   const a = ov.querySelector('.clash-open-btn');
   a.href = link;
-  a.addEventListener('click', () => setTimeout(() => ov.remove(), 60));
+  // ★押下で閉じない＝クラロワが再ログイン待ち等で開かなかった場合、起動後にもう一度タップできる（外タップで閉じる）。
   ov.onclick = e => { if (e.target === ov) ov.remove(); };
   document.body.appendChild(ov);
 }
