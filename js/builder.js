@@ -276,7 +276,7 @@ function init() {
     updateCostSortBtn();
     costSortBtn.onclick = () => { costDesc = !costDesc; updateCostSortBtn(); render(); };
   }
-  document.getElementById('clearBtn').onclick = () => { deck = [null,null,null,null,null,null,null,null]; renderDeck(); render(); };
+  document.getElementById('copyDeckBtn').onclick = copyDeckForClash;
   document.getElementById('saveBtn').onclick = openSlotSaveDialog;
   initSlotScrub();
   document.getElementById('analyzeBtn').addEventListener('click', (e) => {
@@ -1107,6 +1107,56 @@ function clearPreviewStats() {
   const trend = document.getElementById('avgTrend');
   if (trend) trend.innerHTML = '';
   document.querySelector('.deck-header')?.classList.remove('previewing');
+}
+
+// ── 「📋 コピー」: 公式クラロワのデッキリンク(link.clashroyale.com/deck)をクリップボードへ。
+//    card-ids.json（dataブランチ・slug→公式数値ID。GASの dumpCardIds が出力）を読んで生成する。
+//    まだ card-ids.json が無い／IDが揃わない時はデッキのテキストにフォールバック（壊れない）。
+let CARD_IDS = {};
+fetch('https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/card-ids.json', { cache: 'no-store' })
+  .then(r => r.ok ? r.json() : null)
+  .then(j => { if (j && j.ids) CARD_IDS = j.ids; })
+  .catch(() => {});
+
+// baseカード画像のファイル名 = RoyaleAPIスラッグ（card-ids.json / GASのSLUG2JP と一致）
+function cardSlug(card) {
+  if (!card || !card.img) return '';
+  return card.img.split('/').pop().replace(/\.png.*$/i, '').replace(/-ev1$|-hero$/i, '');
+}
+
+// 8枚そろっていて全IDが揃えば公式デッキリンクを返す（足りなければ null）
+function clashDeckLink() {
+  const cards = deck.filter(Boolean);
+  if (cards.length < 8) return null;
+  const ids = cards.map(c => CARD_IDS[cardSlug(c)]);
+  if (ids.some(id => !id)) return null;
+  const l = (document.documentElement.lang || 'en').toLowerCase().split('-')[0];
+  const CL = { ja:1,en:1,ko:1,fr:1,de:1,es:1,it:1,nl:1,pt:1,ru:1,zh:1,ar:1,tr:1,th:1,vi:1,id:1,fa:1 };
+  const lang = CL[l] ? l : 'en';
+  return 'https://link.clashroyale.com/deck/' + lang + '?deck=' + ids.join(';');
+}
+
+function deckAsText() {
+  return deck.filter(Boolean).map(c => TR(c.name)).join(', ');
+}
+
+async function copyDeckForClash() {
+  const link = clashDeckLink();
+  const text = link || deckAsText();
+  if (!text) { showToast('まずデッキを8枚そろえてね'); return; }
+  let ok = true;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { ok = document.execCommand('copy'); } catch (e2) { ok = false; }
+    ta.remove();
+  }
+  if (!ok) { showToast('コピーできませんでした'); return; }
+  if (link) showToast('✅ コピーしました！クラロワに戻って貼り付けてください');
+  else showToast('✅ デッキをコピー（8枚そろうとクラロワに直接貼れます）');
 }
 
 // 下部ボタンの活性状態を更新

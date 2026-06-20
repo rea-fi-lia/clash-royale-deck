@@ -1332,3 +1332,31 @@ function buildCardEvalV1() {
   ghWriteJson_('card-eval.json', { updated: new Date().toISOString(), scale: '1-10', method: 'relative-percentile(sheet経由)', items: ITEMS, count: Object.keys(jcards).length, cards: jcards });
   Logger.log('buildCardEvalV1: カード列' + cardCols.length + ' / 記入' + wrote + '行 / JSON ' + Object.keys(jcards).length + '枚 / 計算式列' + (formulaCol + 1));
 }
+
+// ── 2026-06-20 追記: 公式カードIDの取得（サイトの「📋 コピー」= link.clashroyale.com/deck 用）。
+//    既存の crGet / normSlug / SLUG2JP / ghWriteJson_ を再利用。読み取り＋card-ids.json書き出しのみ＝updateDecks等には非干渉。
+//    手動で1回実行すればOK（新カード追加時に再実行）。CR_TOKEN は既存のスクリプトプロパティを使用。
+function dumpCardIds() {
+  var token = prop('CR_TOKEN');
+  if (!token) throw new Error('CR_TOKEN 未設定');
+  var data = crGet('/cards', token);              // { items:[{name,id,...}], supportItems:[...] }
+  var items = (data.items || []);
+  var ids = {};            // slug -> 公式数値ID
+  var unmapped = [];       // APIにあるがSLUG2JPに無い（タワー兵/新カード等。要確認）
+  for (var i = 0; i < items.length; i++) {
+    var slug = normSlug(items[i].name);
+    if (ids[slug] === undefined) ids[slug] = items[i].id;
+    if (!SLUG2JP[slug]) unmapped.push(slug + '=' + items[i].id + ' (' + items[i].name + ')');
+  }
+  var missing = Object.keys(SLUG2JP).filter(function (s) { return ids[s] === undefined; });
+  var payload = { updated: new Date().toISOString(), count: Object.keys(ids).length, ids: ids };
+  try { ghWriteJson_('card-ids.json', payload); Logger.log('OK: card-ids.json を data ブランチに書き出しました (' + payload.count + '枚)'); }
+  catch (e) { Logger.log('card-ids.json 書き出しスキップ: ' + e.message); }
+  Logger.log('=== CARD_IDS_JSON (バックアップ用・必要ならコピペでも可) ===');
+  Logger.log(JSON.stringify(payload));
+  Logger.log('=== unmapped (SLUG2JPに無いAPIカード=タワー兵/新カード, 要確認) ===');
+  Logger.log(JSON.stringify(unmapped));
+  Logger.log('=== missing (SLUG2JPにあるがAPIに無いslug, 通常は空) ===');
+  Logger.log(JSON.stringify(missing));
+  return payload;
+}
