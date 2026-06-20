@@ -288,10 +288,18 @@ function updateDecks() {
       tally(win, d, tc > oc, tc, oc);
       if (od) {                                     // ★相性（勝ち筋は複数あれば全組み合わせにカウント）
         var aa = archsForm_(d.jp, d.fm), bb = archsForm_(od.jp, od.fm);
+        // 相手が追跡対象（上位ランカー）なら、逆向きは相手自身のログ側で必ず記録される＝ここで書くと二重計上。相手が追跡外の時だけ逆向きも書く。
+        var oppTag = (b.opponent[0].tag ? String(b.opponent[0].tag).toUpperCase().replace(/[^0-9A-Z]/g, '') : '');
+        var oppTracked = !!(oppTag && TAGSET[oppTag]);
         for (var ai = 0; ai < aa.length; ai++) for (var bi = 0; bi < bb.length; bi++) {
-          var k = aa[ai] + '|' + bb[bi];
+          var k = aa[ai] + '|' + bb[bi];            // 自分視点：自分の勝ち筋 vs 相手の勝ち筋（自分が勝てば1勝）
           var mm = muNow[k] || (muNow[k] = [0, 0]);
           mm[0]++; if (tc > oc) mm[1]++;
+          if (!oppTracked) {                        // ★相手が追跡外の時だけ相手視点も記録＝勝ちは勝ち。ランカー外の型にもデータが貯まり、A対B/B対Aが裏表で揃う（二重計上なし）
+            var k2 = bb[bi] + '|' + aa[ai];
+            var mm2 = muNow[k2] || (muNow[k2] = [0, 0]);
+            mm2[0]++; if (oc > tc) mm2[1]++;
+          }
         }
       }
     }
@@ -313,6 +321,7 @@ function updateDecks() {
     return got;
   }
   var allTags = players.map(function (p) { return p.tag; });
+  var TAGSET = {}; allTags.forEach(function (t) { TAGSET[String(t).toUpperCase().replace(/[^0-9A-Z]/g, '')] = 1; }); // 追跡中タグ集合＝相性の逆向き記録で「相手も追跡対象か」を判定し二重計上を防ぐ
   // 取得に失敗したタグの lastT は引き継ぐ（次回その人の試合を取りこぼさない）
   allTags.forEach(function (t) { if (lastT[t]) newLastT[t] = newLastT[t] || lastT[t]; });
   var got1 = fetchTags(allTags);
