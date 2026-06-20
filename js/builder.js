@@ -1130,10 +1130,13 @@ function clashDeckLink() {
   if (cards.length < 8) return null;
   const ids = cards.map(c => CARD_IDS[cardSlug(c)]);
   if (ids.some(id => !id)) return null;
-  const l = (document.documentElement.lang || 'en').toLowerCase().split('-')[0];
-  const CL = { ja:1,en:1,ko:1,fr:1,de:1,es:1,it:1,nl:1,pt:1,ru:1,zh:1,ar:1,tr:1,th:1,vi:1,id:1,fa:1 };
-  const lang = CL[l] ? l : 'en';
-  return 'https://link.clashroyale.com/deck/' + lang + '?deck=' + ids.join(';');
+  // ★ゲーム内のデッキ共有と同形式（clashroyale://copyDeck）。これでないとクラロワ内「貼り付け」ボタンが反応しない。
+  //   slots=0×8（進化はデッキ順で自動反映）／tt=159000000（デフォルトのタワー兵）。id（共有者タグ）は付けない。
+  const l = (document.documentElement.lang || 'en').toLowerCase();
+  const CRLOC = { ja:'jp', en:'en', ko:'kr', 'zh-cn':'cn', 'zh-tw':'tw', de:'de', es:'es', fr:'fr', it:'it', nl:'nl', 'pt-br':'pt', ru:'ru', tr:'tr', ar:'ar', th:'th', id:'id', vi:'vi', fa:'fa' };
+  const loc = CRLOC[l] || 'en';
+  return 'https://link.clashroyale.com/' + loc + '?clashroyale://copyDeck?deck=' + ids.join(';')
+    + '&slots=0;0;0;0;0;0;0;0&tt=159000000';
 }
 
 function deckAsText() {

@@ -196,7 +196,7 @@
       // privacy.html 段落
       "pp.collect": "When you sign in, we receive basic info from your Google account (display name, email, profile image). If you register your Clash Royale player tag, we fetch your battle history (opponent deck composition, results, etc.) from the public API. If you make a donation, we keep the amount reported by the payment provider (Stripe). We never store your card numbers or payment credentials.",
       "pp.purpose": "Collected data is used to provide features (deck saving, matchup meta view), improve the site, and build <b>statistics that never identify individuals</b> (e.g. deck usage trends per trophy range). Statistics never include names, tags, or email addresses.",
-      "pp.third": "We use Google Firebase (auth & database) for storage, Stripe for payments, and a RoyaleAPI proxy for battle data. Each service is governed by its own privacy policy. We use the browser's localStorage for settings (language, favorites, etc.).",
+      "pp.third": "We use Google Firebase (auth & database) for storage, Stripe for payments, and a RoyaleAPI proxy for battle data. We also use Google Analytics (GA4) to understand site usage (such as page views), which uses cookies to collect anonymous usage data. Each service is governed by its own privacy policy. We use the browser's localStorage for settings (language, favorites, etc.).",
       "pp.delete": "To delete data tied to your account, please reach out via the <a href=\"contact.html\">contact page</a>. We will verify and delete it.",
       "pp.change": "This policy may be updated as needed. Significant changes will be announced on the site.",
       "プライバシーポリシー | CR Deck Builders": "Privacy Policy | CR Deck Builders",
