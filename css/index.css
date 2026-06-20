@@ -180,13 +180,13 @@
     position: absolute; right: -4px; bottom: -4px;
     width: 88px; height: 88px;
     object-fit: contain;
-    opacity: 0.8;
+    opacity: 1;
     pointer-events: none;
     transition: opacity 0.12s;
-    filter: saturate(0.6);
+    filter: saturate(1);
   }
   @media (hover: hover) {
-    .card:hover .card-img { opacity: 0.9; }
+    .card:hover .card-img { opacity: 1; }
     .card:hover { border-color: var(--border-hi); background: var(--surface2); transform: translateY(-1px); }
   }
   .card.in-deck .card-img { opacity: 0.85; filter: saturate(1); }

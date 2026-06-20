@@ -215,7 +215,7 @@ function init() {
     if (dragSrcIdx !== null) {
       deck[dragSrcIdx] = null;
       dragSrcIdx = null;
-      renderDeck(); render();
+      renderDeck(); refreshInDeck();
     }
   });
   const searchEl = document.getElementById('search');
@@ -330,6 +330,7 @@ function render() {
     const faved = isFav(c.name);
     const div = document.createElement('div');
     div.className = 'card' + (inDeck ? ' in-deck' : '');
+    div.dataset.name = c.name;
     const tagClass = c.champion ? 'tag-champion' : c.hero ? 'tag-hero' : 'tag-' + c.type;
     const tagText = c.champion ? 'チャンピオン' : c.hero ? 'ヒーロー' : c.type === 'troop' ? 'ユニット' : c.type === 'spell' ? '呪文' : '建物';
     const heartSvg = `<svg width="20" height="19" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -366,6 +367,14 @@ function render() {
   if (window.CRI18N) CRI18N.apply(); // 再描画後にUI全体を再翻訳（コスト/枚数など監視外の文言が日本語に戻るのを防ぐ）
 }
 
+// ★デッキ変更時の軽量更新：カード一覧を作り直さず .in-deck クラスだけ切替＝連打・スクロール後タップでも軽い（全再構築＋CRI18N.applyを回避）。
+function refreshInDeck() {
+  const inset = new Set(deck.filter(Boolean).map(d => d.name));
+  document.querySelectorAll('#cardList .card').forEach(el => {
+    el.classList.toggle('in-deck', inset.has(el.dataset.name));
+  });
+}
+
 
 // ヒーロー配置ルール：idx1（スロット2）かidx2（スロット3）のみ
 function championCanGoTo(slotIdx) { return slotIdx === 1 || slotIdx === 2; }
@@ -396,7 +405,7 @@ function addToDeck(card) {
     if (existing >= 0) { openImageReplaceDialog(card, [existing], { relocateOld: false }); return; }
     const idx = championTargetSlot();
     if (idx === -1) { openImageReplaceDialog(card, [1, 2], { relocateOld: true }); return; } // 2・3枠どちらと
-    deck[idx] = card; renderDeck(); render();
+    deck[idx] = card; renderDeck(); refreshInDeck();
     return;
   }
   // 進化タブ→進化枠(1枚目)か3枚目 / ヒーロータブ→ヒーロー枠(2枚目)か3枚目
@@ -404,16 +413,16 @@ function addToDeck(card) {
     if (deck[0] === null) deck[0] = card;
     else if (deck[2] === null) deck[2] = card;
     else { openImageReplaceDialog(card, [0, 2], { relocateOld: true, mode: 'evolved' }); return; }
-    renderDeck(); render(); return;
+    renderDeck(); refreshInDeck(); return;
   }
   if (activeTypes.has('hero') && card.hero) {
     if (deck[1] === null) deck[1] = card;
     else if (deck[2] === null) deck[2] = card;
     else { openImageReplaceDialog(card, [1, 2], { relocateOld: true, mode: 'hero' }); return; }
-    renderDeck(); render(); return;
+    renderDeck(); refreshInDeck(); return;
   }
   if (!placeNormal(card)) return;
-  renderDeck(); render();
+  renderDeck(); refreshInDeck();
 }
 
 // 入れ替えダイアログ（チャンピオン/進化/ヒーロー共通・画像で視認性高め）
@@ -427,7 +436,7 @@ function openImageReplaceDialog(card, idxs, opts) {
     const old = deck[i];
     deck[i] = card;
     if (opts.relocateOld && old) placeNormal(old);
-    ov.remove(); renderDeck(); render();
+    ov.remove(); renderDeck(); refreshInDeck();
   };
   const ov = document.createElement('div');
   ov.className = 'swap-overlay';
@@ -501,7 +510,7 @@ function openChampSwapDialog(card) {
         showToast(T('toast.removedFromDeck', { name: TR(displaced.name) }));
       }
       ov.remove();
-      renderDeck(); render();
+      renderDeck(); refreshInDeck();
     };
   });
   document.body.appendChild(ov);
@@ -509,7 +518,7 @@ function openChampSwapDialog(card) {
 
 function removeFromDeck(card) {
   const idx = deck.findIndex(d => d && d.name === card.name);
-  if (idx >= 0) { deck[idx] = null; renderDeck(); render(); }
+  if (idx >= 0) { deck[idx] = null; renderDeck(); refreshInDeck(); }
 }
 
 
@@ -536,7 +545,7 @@ function onDragEnd(e) {
     if (el && el.closest('#cardList')) {
       deck[dragSrcIdx] = null;
       dragSrcIdx = null;
-      renderDeck(); render();
+      renderDeck(); refreshInDeck();
     }
   }
   dragSrcIdx = null;
@@ -585,7 +594,7 @@ function onDrop(e) {
     if (c.champion && deck.some(d => d && d.champion)) { showToast('⚠ チャンピオンは1枚まで'); return; }
     if (c.champion && !championCanGoTo(destIdx)) { showToast('⚠ チャンピオンはスロット2か3のみ'); return; }
     deck[destIdx] = c;
-    renderDeck(); render();
+    renderDeck(); refreshInDeck();
   } else if (dragSrcIdx !== null && dragSrcIdx !== destIdx) {
     const movingCard = deck[dragSrcIdx];
     const targetCard = deck[destIdx];
@@ -596,7 +605,7 @@ function onDrop(e) {
     deck[destIdx] = deck[dragSrcIdx];
     deck[dragSrcIdx] = tmp;
     dragSrcIdx = null;
-    renderDeck(); render();
+    renderDeck(); refreshInDeck();
   }
 }
 
@@ -763,7 +772,7 @@ function initTouchDnD() {
     if (touchSrcIdx !== null && onCardList) {
       // デッキ→カード選択ゾーンへドロップ＝キャンセル（削除）
       deck[touchSrcIdx] = null;
-      renderDeck(); render();
+      renderDeck(); refreshInDeck();
     } else if (target) {
       const destIdx = parseInt(target.dataset.idx);
       if (touchSrcCard) {
@@ -771,7 +780,7 @@ function initTouchDnD() {
         if (deck.some(d => d && d.name === c.name)) { showToast('⚠ すでに追加済み'); }
         else if (c.champion && deck.some(d => d && d.champion)) { showToast('⚠ チャンピオンは1枚まで'); }
         else if (c.champion && !championCanGoTo(destIdx)) { showToast('⚠ チャンピオンはスロット2か3のみ'); }
-        else { deck[destIdx] = c; renderDeck(); render(); }
+        else { deck[destIdx] = c; renderDeck(); refreshInDeck(); }
       } else if (touchSrcIdx !== null && destIdx !== touchSrcIdx) {
         const movingCard = deck[touchSrcIdx];
         const targetCard = deck[destIdx];
@@ -781,7 +790,7 @@ function initTouchDnD() {
           const tmp = deck[destIdx];
           deck[destIdx] = deck[touchSrcIdx];
           deck[touchSrcIdx] = tmp;
-          renderDeck(); render();
+          renderDeck(); refreshInDeck();
         }
       }
     }
@@ -1642,7 +1651,7 @@ function loadDeckFromQuery() {
   });
   if (!placed) return;
   deck = next;
-  renderDeck(); render();
+  renderDeck(); refreshInDeck();
   if (fromUrl) showToast('デッキを読み込みました'); // 静かな復帰時はトーストを出さない
 }
 loadDeckFromQuery();
@@ -1690,7 +1699,7 @@ window.CRDeckBridge = {
   setDeck: (slots, opts) => {
     deck = [null,null,null,null,null,null,null,null];
     (slots || []).slice(0,8).forEach((c, i) => { deck[i] = c || null; });
-    renderDeck(); render();
+    renderDeck(); refreshInDeck();
     if (!(opts && opts.silent)) showToast('デッキを読み込みました');
   },
   cards: CARDS
