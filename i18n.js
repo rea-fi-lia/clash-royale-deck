@@ -233,6 +233,7 @@
       "をどちらと入れ替える？": "— swap with which?",
       "をお気に入りから外す？": "— remove from favorites?",
       "外す": "Remove", "キャンセル": "Cancel", "閉じる": "Close", "スロット": "Slot",
+      "🌗 背景を白くする": "🌗 Light background",
       "まずデッキを8枚そろえてね": "Build a full 8-card deck first", "✅ デッキをコピー（8枚そろうとクラロワで開けます）": "✅ Deck copied (finish all 8 cards to open in Clash Royale)", "コピーできませんでした": "Couldn’t copy",
       "保存するスロットを選んで「保存」": "Pick a slot, then “Save”",
       "呼び出すデッキを選ぶ（横スクロール）": "Pick a deck to load (scroll sideways)",

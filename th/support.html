@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+<script>(function(){try{if(localStorage.getItem('cr_theme')==='light')document.documentElement.classList.add('light');}catch(e){}})();</script>
+<style>html.light{--bg:#f4f5f7;--surface:#ffffff;--surface2:#eef1f5;--border:rgba(0,0,0,.10);--border-hi:rgba(0,0,0,.22);--text:#1a1d24;--text-muted:#5c6270;--text-dim:#aeb4c0;--accent:#d6900f;--accent2:#b67a12;--red:#d83a3a;--evo:#7c4dff;--hero:#d6900f;--dim:#5c6270;--gold:#b67a12}</style>
 <!-- Google Analytics (GA4) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-N19CVY3C3K"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-N19CVY3C3K');</script>
@@ -326,8 +328,8 @@
 </div>
 
 <!-- ログイン（Firebase）。ヘッダーにログインボタンが自動で付きます -->
-<script type="module" src="/auth.js?v=260627"></script>
-<script defer src="/i18n.js?v=260635"></script>
+<script type="module" src="/auth.js?v=260636"></script>
+<script defer src="/i18n.js?v=260636"></script>
 <script>
 // ログイン中はStripeリンクに ?client_reference_id=<uid> を付与＝webhookが「誰の供給か」を記録できる。
 // 未ログインでも支援は可能（その場合は donationsUnclaimed に退避され、後でメール照合/手動反映）。

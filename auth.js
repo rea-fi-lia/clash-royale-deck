@@ -87,6 +87,13 @@ function cachedName(tag) { try { return tag ? (localStorage.getItem("cr_name_" +
 function setCachedName(tag, name) { try { if (tag && name) localStorage.setItem("cr_name_" + tag, name); } catch (e) {} }
 function clearCachedName(tag) { try { if (tag) localStorage.removeItem("cr_name_" + tag); } catch (e) {} }
 
+// ライト/ダークテーマ（localStorageのみ・全ページ共通。既定=ダーク。各HTML<head>のinlineスクリプトが描画前に適用）
+function _isLight() { try { return localStorage.getItem("cr_theme") === "light"; } catch (e) { return false; } }
+function _setTheme(mode) {
+  try { localStorage.setItem("cr_theme", mode); } catch (e) {}
+  document.documentElement.classList.toggle("light", mode === "light");
+}
+
 // ---- まずUIを必ず出す（Firebaseの読み込みを待たない） ---------------
 injectAccountUI();
 // 設定済みなら、前回ログインのヒントがあれば即アバター表示（チラつき防止）。
@@ -614,6 +621,11 @@ function buildMenu(user, profile) {
       <input type="checkbox" id="crFxTrail" ${CRAuth.getFxTrail() ? "checked" : ""}>
     </label>` : ""}
     <div class="cr-divider"></div>
+    <label class="cr-row" style="justify-content:space-between; cursor:pointer">
+      <span style="font-size:12px">🌗 背景を白くする</span>
+      <input type="checkbox" id="crLightTheme" ${_isLight() ? "checked" : ""}>
+    </label>
+    <div class="cr-divider"></div>
     <div class="cr-row"><button class="cr-mini cr-logout" id="crLogout">ログアウト</button></div>
   `;
   // 表示名ピッカー（ID未入力ならアカウント名の一択、取得後にゲーム内名を追加）。✎で開閉
@@ -639,6 +651,8 @@ function buildMenu(user, profile) {
   };
   const fxT = document.getElementById("crFxTrail");
   if (fxT) fxT.onchange = () => CRAuth.setFxTrail(fxT.checked);
+  const lt = document.getElementById("crLightTheme");
+  if (lt) lt.onchange = () => _setTheme(lt.checked ? "light" : "dark");
   document.getElementById("crLogout").onclick = () => CRAuth.signOut();
 }
 
