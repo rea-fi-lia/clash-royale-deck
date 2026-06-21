@@ -54,7 +54,7 @@ function toggleFav(name, e) {
 function T(key, vars, fb) { return window.CRI18N ? CRI18N.t(key, vars) : (fb != null ? fb : key); }
 function TR(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
 // 言語切替時：数値入りの動的表示（平均コストの枚数など）を現在言語で作り直す
-window.addEventListener('crlangchange', () => { try { showDeckStats(deck); } catch (e) {} });
+window.addEventListener('crlangchange', () => { try { showDeckStats(deck); updateActionButtons(); } catch (e) {} });
 
 // お気に入り解除の確認ダイアログ
 function openFavRemoveDialog(name) {
@@ -277,7 +277,7 @@ function init() {
     costSortBtn.onclick = () => { costDesc = !costDesc; updateCostSortBtn(); render(); };
   }
   { const cb = document.getElementById('clearBtn'); if (cb) cb.onclick = () => { deck = [null,null,null,null,null,null,null,null]; renderDeck(); refreshInDeck(); }; }
-  document.getElementById('copyDeckBtn').onclick = copyDeckForClash;
+  document.getElementById('copyDeckBtn').onclick = onCopyOrPaste;
   document.getElementById('saveBtn').onclick = openSlotSaveDialog;
   initSlotScrub();
   document.getElementById('analyzeBtn').addEventListener('click', (e) => {
@@ -1204,6 +1204,32 @@ async function copyDeckForClash() {
   else showToast('✅ デッキをコピー（8枚そろうとクラロワで開けます）');
 }
 
+// ★ゲームからペースト：8枚未満の時のボタン。クリップa/プロンプトのデッキリンクをID逆引きで読み込む
+let _idToCard = null;
+function buildIdToCard() {
+  _idToCard = {};
+  Object.keys(CARD_IDS).forEach(slug => { const card = CARDS.find(c => cardSlug(c) === slug); if (card) _idToCard[String(CARD_IDS[slug])] = card; });
+}
+async function pasteFromGame() {
+  if (!CARD_IDS || !Object.keys(CARD_IDS).length) { showToast('カード情報を読み込み中。少し待ってもう一度'); return; }
+  let text = '';
+  try { text = await navigator.clipboard.readText(); } catch (e) { text = ''; }
+  if (!text) { try { text = window.prompt(TR('ゲームでコピーしたデッキリンクを貼り付け')) || ''; } catch (e) {} }
+  const m = String(text).match(/copyDeck\?deck=([0-9;]+)/);     // ゲーム内コピーの公式形式のみ受理
+  const ids = m ? m[1].split(';').filter(Boolean) : [];
+  if (ids.length !== 8) { showToast(TR('ゲームからデッキをコピーしてください。')); return; }
+  if (!_idToCard) buildIdToCard();
+  const cards = ids.map(id => _idToCard[String(id)]);
+  if (cards.some(c => !c)) { showToast(TR('ゲームからデッキをコピーしてください。')); return; }
+  if (window.CRDeckBridge) window.CRDeckBridge.setDeck(cards);
+  else { deck = cards.slice(0, 8); renderDeck(); refreshInDeck(); }
+}
+// 8枚そろってる→ゲームにコピー／未満→ゲームからペースト
+function onCopyOrPaste() {
+  if (deck.filter(Boolean).length >= 8) copyDeckForClash();
+  else pasteFromGame();
+}
+
 // コピー後のポップアップ：「クラロワで開く」＝リンクへ遷移してクラロワが開く。外タップでキャンセル（既存ダイアログと同作法）。
 function openClashDeckPopup(link) {
   const name = (window.CRAuth && CRAuth.getDisplayName && CRAuth.getDisplayName()) || '';
@@ -1227,6 +1253,10 @@ function openClashDeckPopup(link) {
 // 下部ボタンの活性状態を更新
 function updateActionButtons() {
   const n = deck.filter(Boolean).length;
+  const copyTx = document.querySelector('#copyDeckBtn .da-copy-tx');
+  if (copyTx) copyTx.textContent = (n >= 8) ? TR('ゲームにコピー') : TR('ゲームからペースト'); // 8枚=コピー/未満=ペースト
+  const copyBtnEl = document.getElementById('copyDeckBtn');
+  if (copyBtnEl) copyBtnEl.title = (n >= 8) ? TR('ゲームにコピー') : TR('ゲームからデッキをペースト');
   try { localStorage.setItem('cr_workdeck', deck.map(c => c ? c.name : '').join(',')); } catch (e) {} // デッキ復帰用に常時保存
   try { updateSlotLoadBtn(); } catch (e) {} // デッキ変更に応じてSLOTの共有マーク/グローを反映
   const saveBtn = document.getElementById('saveBtn');

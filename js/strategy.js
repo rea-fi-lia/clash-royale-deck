@@ -407,15 +407,30 @@ function similarRankingHtml(deck) {
     + '</div>';
 }
 // ★ランキングの「入れ替える」＝今のデッキにその差分を適用→再診断＋戻る先にも反映
+// Index準拠のスロット再配置：進化=枠1(0)→枠3(2) / ヒーロー=枠2(1)→枠3(2) / ノーマル=空き枠に順に（並びは自由）
+function reslotDeck(cards) {
+  const slots = [null, null, null, null, null, null, null, null];
+  const overflow = [];
+  cards.filter(c => c.f === 'e').forEach(c => { if (slots[0] === null) slots[0] = c; else if (slots[2] === null) slots[2] = c; else overflow.push(c); });
+  cards.filter(c => c.f === 'h').forEach(c => { if (slots[1] === null) slots[1] = c; else if (slots[2] === null) slots[2] = c; else overflow.push(c); });
+  cards.filter(c => c.f !== 'e' && c.f !== 'h').concat(overflow).forEach(c => { for (let i = 0; i < 8; i++) { if (slots[i] === null) { slots[i] = c; break; } } });
+  return slots;
+}
 function applyDeckSwap(outStr, inStr) {
   if (!DECK) return;
   const parse = s => (s || '').split(',').filter(Boolean).map(x => { const a = x.split(':'); return { name: a[0], form: a[1] || 'n' }; });
   const outList = parse(outStr), inList = parse(inStr);
-  const inCards = inList.map(x => (typeof CARD_INFO !== 'undefined' && CARD_INFO[x.name]) ? { name: x.name, f: x.form, info: CARD_INFO[x.name] } : null);
+  const inCards = inList.map(x => {
+    const info = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[x.name] : null;
+    if (!info) return null;
+    const fm = (x.form === 'e' && info.iv) ? 'e' : (x.form === 'h' && info.ih) ? 'h' : 'n'; // 形を画像有無で正規化
+    return { name: x.name, f: fm, info };
+  });
   if (inCards.indexOf(null) >= 0) return;
   const outKeys = {}; outList.forEach(x => outKeys[x.name + ':' + x.form] = 1);
   let k = 0;
-  DECK = DECK.map(c => outKeys[c.name + ':' + _fnorm(c.f)] ? inCards[k++] : c);
+  const next = DECK.map(c => outKeys[c.name + ':' + _fnorm(c.f)] ? inCards[k++] : c); // 差分適用で新しい8枚
+  DECK = reslotDeck(next); // Index準拠で進化/ヒーローを定位置に
   const names = DECK.map(c => c.name).join(',');
   const fs = DECK.map(c => _fnorm(c.f)).join('');
   const q = '?deck=' + encodeURIComponent(names) + '&f=' + fs;

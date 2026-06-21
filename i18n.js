@@ -250,7 +250,7 @@
       "外す": "Remove", "キャンセル": "Cancel", "閉じる": "Close", "スロット": "Slot",
       "🌗 背景を白くする": "🌗 Light background",
       "空き": "Empty", "ログインで保存・名前が入れられます": "Log in to save & add your name", "デッキが空です": "Deck is empty", "ログインが必要です": "Login required", "8枚そろえてデッキを共有しよう": "Build a full 8-card deck to share it", "💡 クラロワID登録でユーザー名を表示": "💡 Register your Clash Royale ID to show your username", "SNSで共有": "Share on social",
-      "まずデッキを8枚そろえてね": "Build a full 8-card deck first", "✅ デッキをコピー（8枚そろうとクラロワで開けます）": "✅ Deck copied (finish all 8 cards to open in Clash Royale)", "コピーできませんでした": "Couldn’t copy", "copy.toGame": "Copy to<br>game",
+      "まずデッキを8枚そろえてね": "Build a full 8-card deck first", "✅ デッキをコピー（8枚そろうとクラロワで開けます）": "✅ Deck copied (finish all 8 cards to open in Clash Royale)", "コピーできませんでした": "Couldn’t copy", "copy.toGame": "Copy to<br>game", "ゲームにコピー": "Copy to game", "ゲームからペースト": "Paste from game", "ゲームからデッキをペースト": "Paste deck from game", "ゲームからデッキをコピーしてください。": "Copy a deck in-game first.", "ゲームでコピーしたデッキリンクを貼り付け": "Paste the deck link you copied in-game", "カード情報を読み込み中。少し待ってもう一度": "Loading card data — try again in a moment",
       "保存するスロットを選んで「保存」": "Pick a slot, then “Save”",
       "呼び出すデッキを選ぶ（横スクロール）": "Pick a deck to load (scroll sideways)",
       "✅ 保存しました！このデッキを共有する？": "✅ Saved! Share this deck?",
