@@ -366,13 +366,12 @@ function mergeSighist(files) {
 function similarRankingHtml(deck) {
   if (!SIGHIST_DECKS || !SIGHIST_DECKS.length) return '';
   const userBase = {}; deck.forEach(c => userBase[c.name] = 1);
-  const userFull = {}; deck.forEach(c => userFull[c.name + ':' + _fnorm(c.f)] = 1);
   const rows = [];
   SIGHIST_DECKS.forEach(d => {
-    let overlap = 0; d.names.forEach(n => { if (userBase[n]) overlap++; });   // 6枚一致＝名前ベース
+    let overlap = 0; d.names.forEach(n => { if (userBase[n]) overlap++; });   // 6枚一致＝名前ベース（進化/ヒーロー込み8枚のうち6枚）
     if (overlap < 6 || d.g < SIM_MINGAMES) return;
-    const out = deck.filter(c => !d.names.some((n, i) => n === c.name && d.forms[i] === _fnorm(c.f))); // 自分にあって相手に無い（名前＋形態）
-    const inc = []; d.names.forEach((n, i) => { if (!userFull[n + ':' + d.forms[i]]) inc.push({ name: n, form: d.forms[i] }); }); // 相手にあって自分に無い
+    const out = deck.filter(c => d.names.indexOf(c.name) < 0);                 // 自分にあって相手に無い＝名前ベース（最大2枚）
+    const inc = []; d.names.forEach((n, i) => { if (!userBase[n]) inc.push({ name: n, form: d.forms[i] }); }); // 相手にあって自分に無い＝名前＋相手の形態
     rows.push({ wr: Math.round(d.w / d.g * 1000) / 10, g: d.g, self: (!out.length && !inc.length), out: out, inc: inc });
   });
   if (!rows.length) return '';
