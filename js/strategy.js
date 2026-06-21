@@ -372,7 +372,8 @@ function similarRankingHtml(deck) {
     if (overlap < 6 || d.g < SIM_MINGAMES) return;
     const out = deck.filter(c => d.names.indexOf(c.name) < 0);                 // 自分にあって相手に無い＝名前ベース（最大2枚）
     const inc = []; d.names.forEach((n, i) => { if (!userBase[n]) inc.push({ name: n, form: d.forms[i] }); }); // 相手にあって自分に無い＝名前＋相手の形態
-    rows.push({ wr: Math.round(d.w / d.g * 1000) / 10, g: d.g, self: (!out.length && !inc.length), out: out, inc: inc });
+    const eh = d.names.map(function (n, i) { return { name: n, form: d.forms[i] }; }).filter(function (x) { return x.form === 'e' || x.form === 'h'; }); // このランカーが進化/ヒーローさせてるカード
+    rows.push({ wr: Math.round(d.w / d.g * 1000) / 10, g: d.g, self: (!out.length && !inc.length), out: out, inc: inc, eh: eh });
   });
   if (!rows.length) return '';
   const self = rows.find(r => r.self);
@@ -392,7 +393,7 @@ function similarRankingHtml(deck) {
     const inH = r.inc.map(x => cimgF(x.name, x.form)).join('');
     return '<div class="sr-row"><span class="sr-out">' + outH + '</span><span class="sr-arrow">→</span><span class="sr-in">' + inH + '</span>'
       + '<span class="sr-wr ' + cls + '">' + r.wr + '%<small>' + r.g + _tr('戦') + '</small></span>'
-      + '<button class="sr-swap" data-out="' + enc(r.out.map(c => ({ name: c.name, form: _fnorm(c.f) }))) + '" data-in="' + enc(r.inc) + '">' + _tr('入れ替える') + '</button></div>';
+      + '<button class="sr-swap" data-out="' + enc(r.out.map(c => ({ name: c.name, form: _fnorm(c.f) }))) + '" data-in="' + enc(r.inc) + '" data-rf="' + enc(r.eh || []) + '">' + _tr('入れ替える') + '</button></div>';
   };
   const listOrEmpty = arr => arr.length ? arr.map(rowHtml).join('') : ('<div class="sr-note">' + _tr('まだ十分なデータがありません（蓄積中）') + '</div>');
   const selfLine = self ? '<div class="sr-self">' + _tr('あなたのデッキの通算勝率') + '：<b>' + self.wr + '%</b>（' + self.g + _tr('戦') + '）</div>' : '';
@@ -422,10 +423,10 @@ function reslotDeck(cards) {
   cards.filter(c => c.f !== 'e' && c.f !== 'h').concat(overflow).forEach(c => { for (let i = 0; i < 8; i++) { if (slots[i] === null) { slots[i] = c; break; } } });
   return slots;
 }
-function applyDeckSwap(outStr, inStr) {
+function applyDeckSwap(outStr, inStr, rfStr) {
   if (!DECK) return;
   const parse = s => (s || '').split(',').filter(Boolean).map(x => { const a = x.split(':'); return { name: a[0], form: a[1] || 'n' }; });
-  const outList = parse(outStr), inList = parse(inStr);
+  const outList = parse(outStr), inList = parse(inStr), rfList = parse(rfStr);
   const inCards = inList.map(x => {
     const info = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[x.name] : null;
     if (!info) return null;
@@ -435,7 +436,20 @@ function applyDeckSwap(outStr, inStr) {
   if (inCards.indexOf(null) >= 0) return;
   const outKeys = {}; outList.forEach(x => outKeys[x.name + ':' + x.form] = 1);
   let k = 0;
-  const next = DECK.map(c => outKeys[c.name + ':' + _fnorm(c.f)] ? inCards[k++] : c); // 差分適用で新しい8枚
+  let next = DECK.map(c => outKeys[c.name + ':' + _fnorm(c.f)] ? inCards[k++] : { name: c.name, f: _fnorm(c.f), info: c.info }); // 差分適用＋複製
+  // ★進化/ヒーローが「純減」する入れ替えの時だけ、ランカーの割当に合わせて別カードを昇格（枠の無駄遣い防止）。進化→進化やノーマル→進化は触らない
+  ['e', 'h'].forEach(function (t) {
+    const removed = outList.filter(function (x) { return x.form === t; }).length;
+    const added = inList.filter(function (x) { return x.form === t; }).length;
+    if (removed - added <= 0) return;
+    const rankerT = {}; rfList.forEach(function (x) { if (x.form === t) rankerT[x.name] = 1; });
+    next = next.map(function (c) {
+      const cap = (t === 'e') ? !!(c.info && c.info.iv) : !!(c.info && c.info.ih);
+      if (rankerT[c.name] && cap) return { name: c.name, f: t, info: c.info };          // ランカーが進化/ヒーローさせてるカードを昇格
+      if (c.f === t && !rankerT[c.name]) return { name: c.name, f: 'n', info: c.info };  // ランカーに無い同型は解除＝枚数をランカーに合わせる
+      return c;
+    });
+  });
   DECK = reslotDeck(next); // Index準拠で進化/ヒーローを定位置に
   const names = DECK.map(c => c.name).join(',');
   const fs = DECK.map(c => _fnorm(c.f)).join('');
@@ -573,7 +587,7 @@ function render() {
     });
   });
   wrap.querySelectorAll('.sr-swap').forEach(function (b) {
-    b.addEventListener('click', function (e) { e.stopPropagation(); applyDeckSwap(b.dataset.out, b.dataset.in); });
+    b.addEventListener('click', function (e) { e.stopPropagation(); applyDeckSwap(b.dataset.out, b.dataset.in, b.dataset.rf); });
   });
   // 候補をタップ＝入れ替え元(out)を現デッキバー＆上の8枚で発光
   function srHighlight(keys) {
