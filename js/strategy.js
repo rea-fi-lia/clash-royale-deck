@@ -417,21 +417,22 @@ function similarRankingHtml(deck) {
 // Index準拠のスロット再配置：進化=枠1(0)→枠3(2) / ヒーロー=枠2(1)→枠3(2) / ノーマル=空き枠に順に（並びは自由）
 function reslotDeck(cards) {
   const slots = [null, null, null, null, null, null, null, null];
+  const placed = new Set();
   const demoted = [];
-  let evoN = 0, heroN = 0;
-  cards.forEach(c => { if (c.f !== 'e') return; if (evoN < 2) { slots[evoN === 0 ? 0 : 2] = c; evoN++; } else demoted.push({ name: c.name, f: 'n', info: c.info }); }); // 進化は最大2（枠1→枠3）、超過は解除
-  cards.forEach(c => { if (c.f !== 'h') return; if (heroN < 1) { slots[1] = c; heroN++; } else demoted.push({ name: c.name, f: 'n', info: c.info }); }); // ヒーローは最大1（枠2）、超過は解除
-  cards.filter(c => c.f !== 'e' && c.f !== 'h').concat(demoted).forEach(c => { for (let i = 0; i < 8; i++) { if (slots[i] === null) { slots[i] = c; break; } } });
+  const put = (c, i) => { slots[i] = c; placed.add(c); };
+  // 進化：枠1(0)→枠3(2)、最大2、超過は解除
+  let evoN = 0;
+  cards.forEach(c => { if (c.f !== 'e') return; if (evoN === 0 && !slots[0]) { put(c, 0); evoN++; } else if (evoN < 2 && !slots[2]) { put(c, 2); evoN++; } else demoted.push({ name: c.name, f: 'n', info: c.info }); });
+  // チャンピオン(info.ch)：枠2(1)優先→枠3(2)、最大1。形態はnのままだが必ず2/3枠へ
+  let champN = 0;
+  cards.forEach(c => { if (placed.has(c) || c.f === 'e' || !(c.info && c.info.ch)) return; if (champN === 0) { if (!slots[1]) { put(c, 1); champN++; } else if (!slots[2]) { put(c, 2); champN++; } } });
+  // ヒーロー(h)：枠2(1)→枠3(2)、最大1、超過は解除
+  let heroN = 0;
+  cards.forEach(c => { if (c.f !== 'h' || placed.has(c)) return; if (heroN === 0 && !slots[1]) { put(c, 1); heroN++; } else if (heroN === 0 && !slots[2]) { put(c, 2); heroN++; } else demoted.push({ name: c.name, f: 'n', info: c.info }); });
+  // 残り（通常・枠に入れなかったチャンピオン・降格分）：空き枠へ順に
+  cards.forEach(c => { if (placed.has(c) || c.f === 'e' || c.f === 'h') return; for (let i = 0; i < 8; i++) { if (!slots[i]) { put(c, i); break; } } });
+  demoted.forEach(c => { for (let i = 0; i < 8; i++) { if (!slots[i]) { put(c, i); break; } } });
   return slots;
-}
-// 初期デッキ用：並びは変えず、進化3枚目/ヒーロー2枚目だけノーマルに落として上限を守る
-function capForms(cards) {
-  let e = 0, h = 0;
-  return cards.map(c => {
-    if (c.f === 'e') { e++; if (e > 2) return { name: c.name, f: 'n', info: c.info }; }
-    if (c.f === 'h') { h++; if (h > 1) return { name: c.name, f: 'n', info: c.info }; }
-    return c;
-  });
 }
 function applyDeckSwap(outStr, inStr, rfStr) {
   if (!DECK) return;
@@ -469,7 +470,7 @@ function applyDeckSwap(outStr, inStr, rfStr) {
   try { history.replaceState(null, '', 'strategy.html' + q); } catch (e) {}
   document.querySelectorAll('.back-link').forEach(a => { a.href = 'index.html' + q; });
   render();
-  try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
+  // ★入れ替え後はトップへ戻さない＝固定バー(4×2)がその場で更新。リストのスクロール位置を維持
 }
 
 // ===== デッキ強化タブ：現デッキ固定バーの位置（サブタブ直下に常時固定／アニメ無し） =====
@@ -595,7 +596,7 @@ function render() {
 
 async function init() {
   DECK = parseDeck();
-  if (DECK) DECK = capForms(DECK); // 上限超過(進化3枚目/ヒーロー2枚目)を是正してから表示
+  if (DECK) DECK = reslotDeck(DECK); // 初期表示も上限是正＋進化/ヒーロー/チャンピオンを定位置に
   document.querySelectorAll('.back-link').forEach(function (a) { a.href = 'index.html' + (location.search || ''); }); // 同じdeck/fを渡して復元（上下の戻る共通）
   const empty = document.getElementById('diagEmpty');
   const wrap = document.getElementById('diagResult');
