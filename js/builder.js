@@ -362,7 +362,7 @@ function render() {
       e.dataTransfer.effectAllowed = 'move';
     });
     div.addEventListener('dragend', e => { div.style.opacity = ''; dragSrcCard = null; });
-    div.onclick = () => { if (isDragging) return; toggleDeck(c); }; // ドラッグ中のタップは無視
+    div.onclick = () => { if (isDragging || Date.now() < _suppressClickUntil) return; toggleDeck(c); }; // ドラッグ中／タッチタップ直後のclickは無視
     list.appendChild(div);
   });
   if (window.CRI18N) CRI18N.apply(); // 再描画後にUI全体を再翻訳（コスト/枚数など監視外の文言が日本語に戻るのを防ぐ）
@@ -661,10 +661,11 @@ function moveGhost(ghost, x, y) {
 let longPressTimer = null;
 let touchStartX = 0;
 let touchStartY = 0;
-const LONG_PRESS_MS = 70;       // カード選択ゾーンの長押し判定
+const LONG_PRESS_MS = 180;      // 長押し＝ドラッグ開始。短い接触はタップ＝即追加（70だと普通のタップがドラッグになり取りこぼしてた）
 const LONG_PRESS_DECK_MS = 30;  // デッキゾーンは速めの応答
 const DRAG_THRESHOLD = 10;
 let isDragging = false;
+let _touchMoved = false, _suppressClickUntil = 0;
 
 function startDrag(srcCard, srcIdx, imgSrc, name, cost, x, y, srcEl) {
   isDragging = true;
@@ -702,11 +703,24 @@ function initTouchDnD() {
     const srcCard = CARDS.find(c => c.name === cardName);
     if (!srcCard) return;
     const t = e.touches[0];
-    touchStartX = t.clientX; touchStartY = t.clientY;
+    touchStartX = t.clientX; touchStartY = t.clientY; _touchMoved = false;
     longPressTimer = setTimeout(() => {
       startDrag(srcCard, null, srcCard.img, srcCard.name, srcCard.cost, touchStartX, touchStartY, card);
     }, LONG_PRESS_MS);
   }, {passive:true});
+
+  // ★タップ＝即追加：動かさず離した瞬間に入れる（ネイティブclick頼みをやめる＝スクロール後の素早いタップも100%反応）
+  document.getElementById('cardList').addEventListener('touchend', e => {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+    if (isDragging || _touchMoved) return;            // ドラッグ/スクロールはタップにしない
+    if (e.target.closest('.fav-btn')) return;
+    const cardEl = e.target.closest('.card');
+    if (!cardEl || cardEl.classList.contains('in-deck')) return;
+    const c = CARDS.find(x => x.name === cardEl.dataset.name);
+    if (!c) return;
+    _suppressClickUntil = Date.now() + 600;           // 直後のネイティブclick二重発火を抑止
+    toggleDeck(c);
+  }, { passive: true });
 
   // デッキスロット
   document.getElementById('deckSlots').addEventListener('touchstart', e => {
@@ -717,7 +731,7 @@ function initTouchDnD() {
     const c = deck[idx];
     if (!c) return;
     const t = e.touches[0];
-    touchStartX = t.clientX; touchStartY = t.clientY;
+    touchStartX = t.clientX; touchStartY = t.clientY; _touchMoved = false;
     longPressTimer = setTimeout(() => {
       startDrag(null, idx, c.img, c.name, c.cost, touchStartX, touchStartY, slot);
     }, LONG_PRESS_DECK_MS);
@@ -730,6 +744,7 @@ function initTouchDnD() {
       const dx = Math.abs(t.clientX - touchStartX);
       const dy = Math.abs(t.clientY - touchStartY);
       if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
+        _touchMoved = true;
         clearTimeout(longPressTimer);
         longPressTimer = null;
       }
@@ -794,6 +809,10 @@ function initTouchDnD() {
           renderDeck(); refreshInDeck();
         }
       }
+    } else if (touchSrcCard && !_touchMoved) {
+      // 長押しで掴んだが動かさず離した＝タップ＝そのまま追加（遅いタップ救済）
+      _suppressClickUntil = Date.now() + 600;
+      toggleDeck(touchSrcCard);
     }
     isDragging = false;
     touchSrcCard = null;
@@ -881,12 +900,7 @@ function renderDeck() {
       const toggleBtn = showToggle ? `<button class="mode-toggle-btn" onclick="toggleSlot2Mode('${c.name}', event)">
         ${mode === 'evolved' ? '⚡進化' : '👑英雄'}
       </button>` : '';
-      div.innerHTML = `${slotImg}
-        <div class="slot-info">
-          <div class="cost-pip pip-${Math.min(c.cost,9)}">${c.cost}</div>
-          <span class="slot-name">${c.name}${modeBadge}</span>
-        </div>
-        ${toggleBtn}`;
+      div.innerHTML = `${slotImg}${modeBadge}${toggleBtn}`;
       div.onclick = () => removeFromDeck(c);
       div.addEventListener('dragstart', onDragStart);
       div.addEventListener('dragend',   onDragEnd);
