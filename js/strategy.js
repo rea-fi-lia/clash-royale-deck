@@ -417,11 +417,21 @@ function similarRankingHtml(deck) {
 // Index準拠のスロット再配置：進化=枠1(0)→枠3(2) / ヒーロー=枠2(1)→枠3(2) / ノーマル=空き枠に順に（並びは自由）
 function reslotDeck(cards) {
   const slots = [null, null, null, null, null, null, null, null];
-  const overflow = [];
-  cards.filter(c => c.f === 'e').forEach(c => { if (slots[0] === null) slots[0] = c; else if (slots[2] === null) slots[2] = c; else overflow.push(c); });
-  cards.filter(c => c.f === 'h').forEach(c => { if (slots[1] === null) slots[1] = c; else if (slots[2] === null) slots[2] = c; else overflow.push(c); });
-  cards.filter(c => c.f !== 'e' && c.f !== 'h').concat(overflow).forEach(c => { for (let i = 0; i < 8; i++) { if (slots[i] === null) { slots[i] = c; break; } } });
+  const demoted = [];
+  let evoN = 0, heroN = 0;
+  cards.forEach(c => { if (c.f !== 'e') return; if (evoN < 2) { slots[evoN === 0 ? 0 : 2] = c; evoN++; } else demoted.push({ name: c.name, f: 'n', info: c.info }); }); // 進化は最大2（枠1→枠3）、超過は解除
+  cards.forEach(c => { if (c.f !== 'h') return; if (heroN < 1) { slots[1] = c; heroN++; } else demoted.push({ name: c.name, f: 'n', info: c.info }); }); // ヒーローは最大1（枠2）、超過は解除
+  cards.filter(c => c.f !== 'e' && c.f !== 'h').concat(demoted).forEach(c => { for (let i = 0; i < 8; i++) { if (slots[i] === null) { slots[i] = c; break; } } });
   return slots;
+}
+// 初期デッキ用：並びは変えず、進化3枚目/ヒーロー2枚目だけノーマルに落として上限を守る
+function capForms(cards) {
+  let e = 0, h = 0;
+  return cards.map(c => {
+    if (c.f === 'e') { e++; if (e > 2) return { name: c.name, f: 'n', info: c.info }; }
+    if (c.f === 'h') { h++; if (h > 1) return { name: c.name, f: 'n', info: c.info }; }
+    return c;
+  });
 }
 function applyDeckSwap(outStr, inStr, rfStr) {
   if (!DECK) return;
@@ -437,15 +447,17 @@ function applyDeckSwap(outStr, inStr, rfStr) {
   const outKeys = {}; outList.forEach(x => outKeys[x.name + ':' + x.form] = 1);
   let k = 0;
   let next = DECK.map(c => outKeys[c.name + ':' + _fnorm(c.f)] ? inCards[k++] : { name: c.name, f: _fnorm(c.f), info: c.info }); // 差分適用＋複製
-  // ★進化/ヒーローが「純減」する入れ替えの時だけ、ランカーの割当に合わせて別カードを昇格（枠の無駄遣い防止）。進化→進化やノーマル→進化は触らない
+  // ★進化/ヒーローが「純減」or「上限超過」する時、ランカーの割当に合わせて付け替え（枠の無駄遣い・進化3枚目・ヒーロー2枚目を防止）。進化→進化や上限内のノーマル→進化は触らない
   ['e', 'h'].forEach(function (t) {
+    const lim = (t === 'e') ? 2 : 1;
     const removed = outList.filter(function (x) { return x.form === t; }).length;
     const added = inList.filter(function (x) { return x.form === t; }).length;
-    if (removed - added <= 0) return;
+    const count = next.filter(function (c) { return c.f === t; }).length;
+    if (count <= lim && (removed - added) <= 0) return; // 上限内かつ純減なし＝何もしない
     const rankerT = {}; rfList.forEach(function (x) { if (x.form === t) rankerT[x.name] = 1; });
     next = next.map(function (c) {
-      const cap = (t === 'e') ? !!(c.info && c.info.iv) : !!(c.info && c.info.ih);
-      if (rankerT[c.name] && cap) return { name: c.name, f: t, info: c.info };          // ランカーが進化/ヒーローさせてるカードを昇格
+      const can = (t === 'e') ? !!(c.info && c.info.iv) : !!(c.info && c.info.ih);
+      if (rankerT[c.name] && can) return { name: c.name, f: t, info: c.info };          // ランカーが進化/ヒーロー化させてるカードを昇格
       if (c.f === t && !rankerT[c.name]) return { name: c.name, f: 'n', info: c.info };  // ランカーに無い同型は解除＝枚数をランカーに合わせる
       return c;
     });
@@ -460,48 +472,10 @@ function applyDeckSwap(outStr, inStr, rfStr) {
   try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
 }
 
-// ===== デッキ強化タブ：現デッキ固定バー（上の8枚が隠れたらFLIPで集合）＝================
-let _simScrollHandler = null;
-function _cssVarPx(name, fb) { const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)); return isNaN(v) ? fb : v; }
-function flipShowBar(bar, topDeck) {
-  var srt = document.querySelector('.diag-panel[data-panel="sim"] .sr-tabs'); // sim可視時に正しい高さで測る
+// ===== デッキ強化タブ：現デッキ固定バーの位置（サブタブ直下に常時固定／アニメ無し） =====
+function measureSrtabs() {
+  var srt = document.querySelector('.diag-panel[data-panel="sim"] .sr-tabs');
   if (srt && srt.offsetHeight) document.documentElement.style.setProperty('--srtabsH', srt.offsetHeight + 'px');
-  bar.classList.add('show'); // display:flex にしてからレイアウト確定→各カードを上の8枚位置から飛ばす
-  const dcs = bar.querySelectorAll('.sr-dc');
-  const minis = topDeck ? topDeck.querySelectorAll('.mini-card') : [];
-  dcs.forEach(function (dc, i) {
-    const mini = minis[i]; if (!mini) return;
-    const a = mini.getBoundingClientRect(), b = dc.getBoundingClientRect();
-    if (!b.width) return;
-    const dx = a.left - b.left, dy = a.top - b.top, s = a.width / b.width;
-    dc.style.transition = 'none';
-    dc.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')';
-    requestAnimationFrame(function () {
-      dc.style.transition = 'transform .34s cubic-bezier(.2,.75,.3,1)';
-      dc.style.transitionDelay = (i * 0.022) + 's'; // 軽いスタッガでシュルシュル
-      dc.style.transform = '';
-    });
-  });
-}
-function wireSimDeckBar(wrap) {
-  const srt = wrap.querySelector('.sr-tabs');
-  if (srt && srt.offsetHeight) document.documentElement.style.setProperty('--srtabsH', srt.offsetHeight + 'px'); // 隠れてる時(0)は書かない
-  if (_simScrollHandler) { window.removeEventListener('scroll', _simScrollHandler); _simScrollHandler = null; }
-  const bar = wrap.querySelector('#srDeckBar');
-  if (!bar) return;
-  const topDeck = wrap.querySelector('.dg-deck');
-  let shown = false;
-  function evalBar() {
-    const simPanel = wrap.querySelector('.diag-panel[data-panel="sim"]');
-    if (!simPanel || simPanel.hidden || !topDeck) { if (shown) { bar.classList.remove('show'); shown = false; } return; }
-    const threshold = _cssVarPx('--sbH', 96) + _cssVarPx('--tabsH', 48) + 8;
-    const gone = topDeck.getBoundingClientRect().bottom <= threshold; // 上の8枚がタブ裏へ隠れた
-    if (gone && !shown) { shown = true; flipShowBar(bar, topDeck); }
-    else if (!gone && shown) { shown = false; bar.classList.remove('show'); }
-  }
-  _simScrollHandler = evalBar;
-  window.addEventListener('scroll', evalBar, { passive: true });
-  evalBar();
 }
 
 const GICON = { good: '◎', ok: '○', warn: '⚠', bad: '❌', info: 'ℹ️' };
@@ -576,7 +550,8 @@ function render() {
       _diagTab = t.dataset.tab;
       wrap.querySelectorAll('.dtab').forEach(function (x) { x.classList.toggle('active', x === t); });
       wrap.querySelectorAll('.diag-panel').forEach(function (p) { p.hidden = (p.dataset.panel !== _diagTab); });
-      if (_simScrollHandler) _simScrollHandler(); // タブ切替で固定バーの要否を再判定
+      wrap.classList.toggle('tab-sim', _diagTab === 'sim');
+      if (_diagTab === 'sim') { try { measureSrtabs(); selectFirstRow(); } catch (e) {} }
     });
   });
   wrap.querySelectorAll('.srtab').forEach(function (t) {
@@ -584,6 +559,7 @@ function render() {
       _simSub = t.dataset.sub;
       wrap.querySelectorAll('.srtab').forEach(function (x) { x.classList.toggle('active', x === t); });
       wrap.querySelectorAll('.sr-pane').forEach(function (p) { p.hidden = (p.dataset.sub !== _simSub); });
+      try { selectFirstRow(); } catch (e) {}
     });
   });
   wrap.querySelectorAll('.sr-swap').forEach(function (b) {
@@ -591,9 +567,16 @@ function render() {
   });
   // 候補をタップ＝入れ替え元(out)を現デッキバー＆上の8枚で発光
   function srHighlight(keys) {
-    wrap.querySelectorAll('.sr-dc, .dg-deck .mini-card').forEach(function (el) {
+    wrap.querySelectorAll('.sr-dc').forEach(function (el) { // 固定バーのみ発光（上の8枚は強化タブで非表示）
       el.classList.toggle('hot', (keys || []).indexOf(el.dataset.key) >= 0);
     });
+  }
+  function selectFirstRow() { // 一番上の候補をデフォルト選択＝バーで入れ替え元を発光
+    var pane = wrap.querySelector('.sr-pane[data-sub="' + _simSub + '"]');
+    var row = pane ? pane.querySelector('.sr-row') : null;
+    var btn = row ? row.querySelector('.sr-swap') : null;
+    srHighlight(btn ? (btn.dataset.out || '').split(',').filter(Boolean) : []);
+    wrap.querySelectorAll('.sr-row').forEach(function (r) { r.classList.toggle('sr-sel', r === row); });
   }
   wrap.querySelectorAll('.sr-row').forEach(function (row) {
     row.addEventListener('click', function () {
@@ -603,13 +586,16 @@ function render() {
       wrap.querySelectorAll('.sr-row').forEach(function (r) { r.classList.toggle('sr-sel', r === row); });
     });
   });
-  try { wireSimDeckBar(wrap); } catch (e) {}
+  wrap.classList.toggle('tab-sim', _diagTab === 'sim'); // 強化タブでは上の8枚を隠す
+  try { measureSrtabs(); } catch (e) {}
+  try { selectFirstRow(); } catch (e) {}
   var dt = wrap.querySelector('.diag-tabs');
   if (dt) document.documentElement.style.setProperty('--tabsH', dt.offsetHeight + 'px'); // サブタブの固定位置をメインタブ直下に
 }
 
 async function init() {
   DECK = parseDeck();
+  if (DECK) DECK = capForms(DECK); // 上限超過(進化3枚目/ヒーロー2枚目)を是正してから表示
   document.querySelectorAll('.back-link').forEach(function (a) { a.href = 'index.html' + (location.search || ''); }); // 同じdeck/fを渡して復元（上下の戻る共通）
   const empty = document.getElementById('diagEmpty');
   const wrap = document.getElementById('diagResult');
