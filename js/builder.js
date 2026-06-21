@@ -1204,7 +1204,7 @@ async function copyDeckForClash() {
   else showToast('✅ デッキをコピー（8枚そろうとクラロワで開けます）');
 }
 
-// ★ゲームからペースト：8枚未満の時のボタン。クリップa/プロンプトのデッキリンクをID逆引きで読み込む
+// ★ゲームからペースト：8枚未満の時のボタン。クリップボードのデッキリンクをID逆引きで読み込み→保存スロットを聞く
 let _idToCard = null;
 function buildIdToCard() {
   _idToCard = {};
@@ -1213,16 +1213,16 @@ function buildIdToCard() {
 async function pasteFromGame() {
   if (!CARD_IDS || !Object.keys(CARD_IDS).length) { showToast('カード情報を読み込み中。少し待ってもう一度'); return; }
   let text = '';
-  try { text = await navigator.clipboard.readText(); } catch (e) { text = ''; }
-  if (!text) { try { text = window.prompt(TR('ゲームでコピーしたデッキリンクを貼り付け')) || ''; } catch (e) {} }
+  try { text = await navigator.clipboard.readText(); } catch (e) { text = ''; } // クリップボードを自動確認（貼り付け不要）
   const m = String(text).match(/copyDeck\?deck=([0-9;]+)/);     // ゲーム内コピーの公式形式のみ受理
   const ids = m ? m[1].split(';').filter(Boolean) : [];
-  if (ids.length !== 8) { showToast(TR('ゲームからデッキをコピーしてください。')); return; }
+  if (ids.length !== 8) { showToast(TR('ゲームからデッキをコピーしてください。')); return; } // それらしきリンクが無ければ案内のみ
   if (!_idToCard) buildIdToCard();
   const cards = ids.map(id => _idToCard[String(id)]);
   if (cards.some(c => !c)) { showToast(TR('ゲームからデッキをコピーしてください。')); return; }
   if (window.CRDeckBridge) window.CRDeckBridge.setDeck(cards);
   else { deck = cards.slice(0, 8); renderDeck(); refreshInDeck(); }
+  try { openSlotSaveDialog(); } catch (e) {}   // ★読み込んだデッキをどのスロットに保存するか聞く
 }
 // 8枚そろってる→ゲームにコピー／未満→ゲームからペースト
 function onCopyOrPaste() {
@@ -1254,9 +1254,16 @@ function openClashDeckPopup(link) {
 function updateActionButtons() {
   const n = deck.filter(Boolean).length;
   const copyTx = document.querySelector('#copyDeckBtn .da-copy-tx');
-  if (copyTx) copyTx.textContent = (n >= 8) ? TR('ゲームにコピー') : TR('ゲームからペースト'); // 8枚=コピー/未満=ペースト
   const copyBtnEl = document.getElementById('copyDeckBtn');
-  if (copyBtnEl) copyBtnEl.title = (n >= 8) ? TR('ゲームにコピー') : TR('ゲームからデッキをペースト');
+  const _isJa = TR('ゲームにコピー') === 'ゲームにコピー'; // 未翻訳=日本語なら指定位置で改行
+  if (copyTx) {
+    if (n >= 8) copyTx.innerHTML = _isJa ? 'ゲームに<br>コピー' : TR('ゲームにコピー');
+    else        copyTx.innerHTML = _isJa ? 'ゲームから<br>ペースト' : TR('ゲームからペースト'); // 8枚=コピー/未満=ペースト
+  }
+  if (copyBtnEl) {
+    copyBtnEl.title = (n >= 8) ? TR('ゲームにコピー') : TR('ゲームからデッキをペースト');
+    copyBtnEl.classList.toggle('is-paste', n < 8); // ペースト時はコピーマークを避けて右へ
+  }
   try { localStorage.setItem('cr_workdeck', deck.map(c => c ? c.name : '').join(',')); } catch (e) {} // デッキ復帰用に常時保存
   try { updateSlotLoadBtn(); } catch (e) {} // デッキ変更に応じてSLOTの共有マーク/グローを反映
   const saveBtn = document.getElementById('saveBtn');
