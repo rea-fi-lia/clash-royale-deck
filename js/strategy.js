@@ -418,12 +418,13 @@ function render() {
     ? (badTitles.length ? _t('diag.sum', { t: curve, w: winName, b: badTitles.join(' / ') }) : _t('diag.sumGood', { t: curve, w: winName }))
     : _tr('タワーへの明確なダメージ源がありません');
 
-  let html = '<div class="dg-deck">' + DECK.map(c => {
+  const deckHtml = '<div class="dg-deck">' + DECK.map(c => {
     const img = c.f === 'e' ? c.info.iv : c.f === 'h' ? c.info.ih : c.info.i;
     const badge = c.f === 'e' ? '<span class="slot-badge">⚡</span>' : c.f === 'h' ? '<span class="slot-badge">👑</span>' : '';
     return '<div class="mini-card' + (c.f === 'e' ? ' is-evo' : c.f === 'h' ? ' is-hero' : '') + '"><span class="pip">' + c.info.c + '</span>' + badge + '<img src="' + img + '" alt="' + c.name + '"></div>';
   }).join('') + '</div>';
 
+  let html = '';
   html += archetypeHtml(DECK, ctx);
   html += capabilityHtml(DECK);
 
@@ -433,7 +434,6 @@ function render() {
     + (open && open.badN >= 4 ? '<br>' + _t('diag.openRisk', { p: open.pct, n: open.badN }) : open ? '<br>' + _t('diag.openOk', { n: open.badN }) : '') + '</div></div>';
 
   html += matchupHtml(DECK);
-  html += similarRankingHtml(DECK);
 
   if (anti.length) {
     html += anti.map(a =>
@@ -453,7 +453,19 @@ function render() {
     + '</details>';
 
   html += '<p class="note" style="margin-top:14px">' + _tr('※ 診断はLv16換算の理論値とオーナー監修タグに基づく参考情報です') + '</p>';
-  wrap.innerHTML = html;
+  const simHtml = similarRankingHtml(DECK) || ('<div class="sr-note">' + _tr('似たデッキのデータを蓄積中です。時間が経つほど充実します。') + '</div>');
+  const tabs = '<div class="diag-tabs"><button class="dtab active" data-tab="main">' + _tr('診断') + '</button>'
+    + '<button class="dtab" data-tab="sim">📊 ' + _tr('似たデッキ勝率') + '</button></div>';
+  wrap.innerHTML = deckHtml + tabs
+    + '<div class="diag-panel" data-panel="main">' + html + '</div>'
+    + '<div class="diag-panel" data-panel="sim" hidden>' + simHtml + '</div>';
+  wrap.querySelectorAll('.dtab').forEach(function (t) {
+    t.addEventListener('click', function () {
+      wrap.querySelectorAll('.dtab').forEach(function (x) { x.classList.toggle('active', x === t); });
+      var which = t.dataset.tab;
+      wrap.querySelectorAll('.diag-panel').forEach(function (p) { p.hidden = (p.dataset.panel !== which); });
+    });
+  });
 }
 
 async function init() {
@@ -492,3 +504,13 @@ async function init() {
 window.addEventListener('crlangchange', () => { try { render(); } catch (e) {} });
 if (document.readyState !== 'loading') init();
 else document.addEventListener('DOMContentLoaded', init);
+
+// ★sitebar（ロゴ＋ナビ＋戻る）の高さを測ってCSS変数に＝タブのスティッキー位置をその下に合わせる
+(function () {
+  const sb = document.querySelector('.sitebar');
+  if (!sb) return;
+  const setH = () => document.documentElement.style.setProperty('--sbH', sb.offsetHeight + 'px');
+  setH();
+  window.addEventListener('resize', setH);
+  window.addEventListener('load', setH);
+})();
