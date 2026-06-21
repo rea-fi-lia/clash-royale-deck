@@ -399,15 +399,9 @@ function similarRankingHtml(deck) {
   const selfLine = self ? '<div class="sr-self">' + _tr('あなたのデッキの通算勝率') + '：<b>' + self.wr + '%</b>（' + self.g + _tr('戦') + '）</div>' : '';
   const tabs = '<div class="sr-tabs"><button class="srtab' + (_simSub === 'up' ? ' active' : '') + '" data-sub="up">' + _tr('強化案') + '</button>'
     + '<button class="srtab' + (_simSub === 'down' ? ' active' : '') + '" data-sub="down">' + _tr('苦手対策') + '</button></div>';
-  const deckBar = '<div class="sr-deckbar" id="srDeckBar" aria-hidden="true">' + deck.map(function (c) {
-    var f = _fnorm(c.f);
-    var img = f === 'e' ? c.info.iv : f === 'h' ? c.info.ih : c.info.i;
-    var badge = f === 'e' ? '<span class="sr-fb">⚡</span>' : f === 'h' ? '<span class="sr-fb">👑</span>' : '';
-    return '<span class="sr-dc" data-key="' + c.name + ':' + f + '"><img src="' + img + '" alt="' + c.name + '" loading="lazy">' + badge + '</span>';
-  }).join('') + '</div>';
   return '<div class="dg-simrank">' + selfLine
     + '<div class="sr-note">' + _tr('あなたのデッキと6枚以上かぶる構成の通算勝率。左の抜く→右の入れるが差分（⚡限界突破/👑ヒーローも区別）。「入れ替える」で今のデッキに反映。') + '</div>'
-    + tabs + deckBar
+    + tabs
     + '<div class="sr-pane" data-sub="up"' + (_simSub === 'up' ? '' : ' hidden') + '><div class="sr-sub sr-good">' + _tr('勝率の高い構成') + '</div><div class="sr-list">' + listOrEmpty(wins) + '</div></div>'
     + '<div class="sr-pane" data-sub="down"' + (_simSub === 'down' ? '' : ' hidden') + '><div class="sr-sub sr-bad">' + _tr('勝率の低い構成') + '</div><div class="sr-list">' + listOrEmpty(loses) + '</div>'
     + '<div class="sr-note">' + _tr('※ いまは「この変更だと勝率が下がる」例。相手の勝ち筋に効く対策カード提案は今後追加予定。') + '</div></div>'
@@ -448,20 +442,12 @@ function applyDeckSwap(outStr, inStr, rfStr) {
   const outKeys = {}; outList.forEach(x => outKeys[x.name + ':' + x.form] = 1);
   let k = 0;
   let next = DECK.map(c => outKeys[c.name + ':' + _fnorm(c.f)] ? inCards[k++] : { name: c.name, f: _fnorm(c.f), info: c.info }); // 差分適用＋複製
-  // ★進化/ヒーローが「純減」or「上限超過」する時、ランカーの割当に合わせて付け替え（枠の無駄遣い・進化3枚目・ヒーロー2枚目を防止）。進化→進化や上限内のノーマル→進化は触らない
-  ['e', 'h'].forEach(function (t) {
-    const lim = (t === 'e') ? 2 : 1;
-    const removed = outList.filter(function (x) { return x.form === t; }).length;
-    const added = inList.filter(function (x) { return x.form === t; }).length;
-    const count = next.filter(function (c) { return c.f === t; }).length;
-    if (count <= lim && (removed - added) <= 0) return; // 上限内かつ純減なし＝何もしない
-    const rankerT = {}; rfList.forEach(function (x) { if (x.form === t) rankerT[x.name] = 1; });
-    next = next.map(function (c) {
-      const can = (t === 'e') ? !!(c.info && c.info.iv) : !!(c.info && c.info.ih);
-      if (rankerT[c.name] && can) return { name: c.name, f: t, info: c.info };          // ランカーが進化/ヒーロー化させてるカードを昇格
-      if (c.f === t && !rankerT[c.name]) return { name: c.name, f: 'n', info: c.info };  // ランカーに無い同型は解除＝枚数をランカーに合わせる
-      return c;
-    });
+  // ★入れ替え後のデッキ＝そのランカーの実デッキ。ランカーの進化/ヒーロー割当(data-rf)を全面採用し、枠を最大活用した姿で表示
+  const rankerForm = {}; rfList.forEach(function (x) { rankerForm[x.name] = x.form; });
+  next = next.map(function (c) {
+    const want = rankerForm[c.name]; // 'e' | 'h' | undefined（チャンピオンはinfo.chでreslotが枠2/3へ）
+    const can = want === 'e' ? !!(c.info && c.info.iv) : want === 'h' ? !!(c.info && c.info.ih) : false;
+    return { name: c.name, f: (want && can) ? want : 'n', info: c.info };
   });
   DECK = reslotDeck(next); // Index準拠で進化/ヒーローを定位置に
   const names = DECK.map(c => c.name).join(',');
@@ -473,11 +459,6 @@ function applyDeckSwap(outStr, inStr, rfStr) {
   // ★入れ替え後はトップへ戻さない＝固定バー(4×2)がその場で更新。リストのスクロール位置を維持
 }
 
-// ===== デッキ強化タブ：現デッキ固定バーの位置（サブタブ直下に常時固定／アニメ無し） =====
-function measureSrtabs() {
-  var srt = document.querySelector('.diag-panel[data-panel="sim"] .sr-tabs');
-  if (srt && srt.offsetHeight) document.documentElement.style.setProperty('--srtabsH', srt.offsetHeight + 'px');
-}
 
 const GICON = { good: '◎', ok: '○', warn: '⚠', bad: '❌', info: 'ℹ️' };
 function render() {
@@ -551,8 +532,7 @@ function render() {
       _diagTab = t.dataset.tab;
       wrap.querySelectorAll('.dtab').forEach(function (x) { x.classList.toggle('active', x === t); });
       wrap.querySelectorAll('.diag-panel').forEach(function (p) { p.hidden = (p.dataset.panel !== _diagTab); });
-      wrap.classList.toggle('tab-sim', _diagTab === 'sim');
-      if (_diagTab === 'sim') { try { measureSrtabs(); selectFirstRow(); } catch (e) {} }
+      try { selectFirstRow(); } catch (e) {} // タブ切替で発光を更新（強化タブの時のみ点灯）
     });
   });
   wrap.querySelectorAll('.srtab').forEach(function (t) {
@@ -568,11 +548,12 @@ function render() {
   });
   // 候補をタップ＝入れ替え元(out)を現デッキバー＆上の8枚で発光
   function srHighlight(keys) {
-    wrap.querySelectorAll('.sr-dc').forEach(function (el) { // 固定バーのみ発光（上の8枚は強化タブで非表示）
+    wrap.querySelectorAll('.dg-deck .mini-card').forEach(function (el) { // 上のデッキ表示で入れ替え元を発光
       el.classList.toggle('hot', (keys || []).indexOf(el.dataset.key) >= 0);
     });
   }
-  function selectFirstRow() { // 一番上の候補をデフォルト選択＝バーで入れ替え元を発光
+  function selectFirstRow() { // 一番上の候補をデフォルト選択＝上のデッキで入れ替え元を発光（強化タブの時だけ）
+    if (_diagTab !== 'sim') { srHighlight([]); return; }
     var pane = wrap.querySelector('.sr-pane[data-sub="' + _simSub + '"]');
     var row = pane ? pane.querySelector('.sr-row') : null;
     var btn = row ? row.querySelector('.sr-swap') : null;
@@ -587,8 +568,6 @@ function render() {
       wrap.querySelectorAll('.sr-row').forEach(function (r) { r.classList.toggle('sr-sel', r === row); });
     });
   });
-  wrap.classList.toggle('tab-sim', _diagTab === 'sim'); // 強化タブでは上の8枚を隠す
-  try { measureSrtabs(); } catch (e) {}
   try { selectFirstRow(); } catch (e) {}
   var dt = wrap.querySelector('.diag-tabs');
   if (dt) document.documentElement.style.setProperty('--tabsH', dt.offsetHeight + 'px'); // サブタブの固定位置をメインタブ直下に
