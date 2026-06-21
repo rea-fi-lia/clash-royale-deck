@@ -337,6 +337,61 @@ function matchupHtml(deck) {
     + '<div class="mu-note">' + _tr('※ 中心はこのデッキの平均勝率。全勝ち筋を表示（スクロール）。緑＝平均より上／赤＝下。少数戦は参考値') + '</div></div>';
 }
 
+// ★似たデッキ（6枚以上一致）の勝率ランキング：sighist（署名ごとの通算[人数,試合,勝]）を、今のデッキと
+//   6枚以上かぶるデッキだけ集めて勝率順に。勝ち/負けランキング＋"あなたとの差分(抜く→入れる)"を出す。
+let SIGHIST_DECKS = null;     // [{ names:[8], g, w }]（月別sighistをカード名で集約＝全累計）
+const SIM_MINGAMES = 30;      // 勝率の信頼に足る最低試合数（少数戦のブレ除去）
+function ymOffset(off) { const d = new Date(); d.setMonth(d.getMonth() + off); return d.toISOString().slice(0, 7); }
+function mergeSighist(files) {
+  const agg = {};
+  (files || []).forEach(sh => {
+    if (!sh || !Array.isArray(sh.cards) || !sh.sigs) return;
+    Object.keys(sh.sigs).forEach(key => {
+      const names = String(key).split('|')[0].split('.').map(i => sh.cards[+i]).filter(Boolean);
+      if (names.length !== 8) return;
+      const v = sh.sigs[key]; // [users, games, wins]
+      const canon = names.slice().sort().join('|');
+      const e = agg[canon] || (agg[canon] = { names: names, g: 0, w: 0 });
+      e.g += (v[1] || 0); e.w += (v[2] || 0);
+    });
+  });
+  return Object.keys(agg).map(k => agg[k]);
+}
+function similarRankingHtml(deck) {
+  if (!SIGHIST_DECKS || !SIGHIST_DECKS.length) return '';
+  const userNames = deck.map(c => c.name);
+  const uset = {}; userNames.forEach(n => uset[n] = 1);
+  const rows = [];
+  SIGHIST_DECKS.forEach(d => {
+    let overlap = 0; d.names.forEach(n => { if (uset[n]) overlap++; });
+    if (overlap < 6 || d.g < SIM_MINGAMES) return;
+    rows.push({
+      wr: Math.round(d.w / d.g * 1000) / 10, g: d.g, overlap: overlap,
+      out: userNames.filter(n => d.names.indexOf(n) < 0), // あなたにあって相手に無い＝抜く
+      inc: d.names.filter(n => !uset[n])                  // 相手にあってあなたに無い＝入れる
+    });
+  });
+  if (!rows.length) return '';
+  const wins = rows.filter(r => r.wr >= 55).sort((a, b) => b.wr - a.wr).slice(0, 100);
+  const loses = rows.filter(r => r.wr <= 45).sort((a, b) => a.wr - b.wr).slice(0, 100);
+  const evenN = rows.filter(r => r.wr > 45 && r.wr < 55).length;
+  const cimg = n => { const inf = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[n] : null; return '<span class="sr-c">' + (inf ? '<img src="' + inf.i + '" alt="' + n + '" loading="lazy">' : '') + '</span>'; };
+  const rowHtml = r => {
+    const diff = r.overlap >= 8
+      ? '<span class="sr-same">' + _tr('このデッキそのもの') + '</span>'
+      : '<span class="sr-out">' + r.out.map(cimg).join('') + '</span><span class="sr-arrow">→</span><span class="sr-in">' + r.inc.map(cimg).join('') + '</span>';
+    const cls = r.wr >= 55 ? 'sr-good' : r.wr <= 45 ? 'sr-bad' : 'sr-even';
+    return '<div class="sr-row">' + diff + '<span class="sr-wr ' + cls + '">' + r.wr + '%<small>' + r.g + _tr('戦') + '</small></span></div>';
+  };
+  let html = '<div class="dg-simrank"><div class="sr-head">📊 ' + _tr('似たデッキ（6枚一致）の勝率ランキング') + '</div>'
+    + '<div class="sr-note">' + _tr('あなたのデッキと6枚以上かぶる構成の通算勝率。左の抜く→右の入れるカードが差分。') + '（' + SIM_MINGAMES + _tr('戦以上') + '）</div>';
+  if (wins.length) html += '<div class="sr-sub sr-good">🟢 ' + _tr('勝ちやすい構成') + ' ≥55%（' + wins.length + '）</div><div class="sr-list">' + wins.map(rowHtml).join('') + '</div>';
+  if (loses.length) html += '<div class="sr-sub sr-bad">🔴 ' + _tr('負けやすい構成') + ' ≤45%（' + loses.length + '）</div><div class="sr-list">' + loses.map(rowHtml).join('') + '</div>';
+  if (!wins.length && !loses.length) html += '<div class="sr-note">' + _tr('まだ十分なデータがありません（蓄積中）') + '</div>';
+  else html += '<div class="sr-note">' + _tr('五分（46〜54%）') + '：' + evenN + '</div>';
+  return html + '</div>';
+}
+
 const GICON = { good: '◎', ok: '○', warn: '⚠', bad: '❌', info: 'ℹ️' };
 function render() {
   const wrap = document.getElementById('diagResult');
@@ -378,6 +433,7 @@ function render() {
     + (open && open.badN >= 4 ? '<br>' + _t('diag.openRisk', { p: open.pct, n: open.badN }) : open ? '<br>' + _t('diag.openOk', { n: open.badN }) : '') + '</div></div>';
 
   html += matchupHtml(DECK);
+  html += similarRankingHtml(DECK);
 
   if (anti.length) {
     html += anti.map(a =>
@@ -410,13 +466,16 @@ async function init() {
   if (empty) empty.style.display = 'none';
   wrap.innerHTML = '<div class="coming-soon"><div class="big">🔬</div>' + _tr('診断中…') + '</div>';
   try {
-    const [st, tg, pt, wt, dk, mu] = await Promise.all([
+    const [st, tg, pt, wt, dk, mu, sh0, sh1, sh2] = await Promise.all([
       fetch(RAW + 'card-stats.json', { cache: 'no-store' }).then(r => r.json()),
       fetch(RAW + 'card-tags.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
       fetch(RAW + 'card-potential.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
       fetch(RAW + 'card-eval.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
       fetch(RAW + 'decks.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(RAW + 'matchups.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null)
+      fetch(RAW + 'matchups.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+      fetch(RAW + 'sighist-' + ymOffset(0) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(RAW + 'sighist-' + ymOffset(-1) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(RAW + 'sighist-' + ymOffset(-2) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
     ]);
     STATS = {}; (st.cards || []).forEach(c => STATS[c.jp] = c);
     TAGS = (tg && tg.cards) || {};
@@ -424,6 +483,7 @@ async function init() {
     EVAL = (wt && wt.cards) || null;
     META = (dk && Array.isArray(dk.meta)) ? dk.meta : null;
     MATCH = (mu && mu.months) ? mu : null;
+    SIGHIST_DECKS = mergeSighist([sh0, sh1, sh2]);
     render();
   } catch (e) {
     wrap.innerHTML = '<div class="coming-soon"><div class="big">📡</div>' + _tr('データの取得に失敗しました。時間をおいて再読み込みしてください') + '</div>';
