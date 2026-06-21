@@ -105,6 +105,11 @@
   .id-axis { display:flex; align-items:center; gap:8px; margin:10px 0 8px; flex-wrap:wrap; }
   .id-axis .id-lbl { font-size:11px; color:var(--text-muted); }
   .id-plan { font-size:12px; color:var(--text-muted); line-height:1.75; }
+  .id-details summary { list-style:none; cursor:pointer; }
+  .id-details summary::-webkit-details-marker { display:none; }
+  .id-q { font-size:10px; color:var(--accent); font-weight:400; margin-left:8px; white-space:nowrap; }
+  .id-details[open] .id-q { opacity:.55; }
+  .id-explain { font-size:12px; color:var(--text-muted); line-height:1.85; margin:10px 0 2px; padding:11px 13px; background:var(--surface2); border-radius:8px; }
   .mu-reason { display:block; color:var(--text-muted); font-size:10px; line-height:1.5; margin-top:1px; }
   .dg-details { margin-top:6px; }
   .dg-details summary { cursor:pointer; font-size:13px; font-weight:700; color:var(--text-muted); padding:10px 4px; user-select:none; }
@@ -227,6 +232,6 @@
 <script type="module" src="/auth.js?v=260636"></script>
 <script defer src="/i18n.js?v=260651"></script>
 <script src="/js/cards-data.js?v=260627"></script>
-<script defer src="/js/strategy.js?v=260652"></script>
+<script defer src="/js/strategy.js?v=260653"></script>
 </body>
 </html>
