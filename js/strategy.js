@@ -442,12 +442,18 @@ function applyDeckSwap(outStr, inStr, rfStr) {
   const outKeys = {}; outList.forEach(x => outKeys[x.name + ':' + x.form] = 1);
   let k = 0;
   let next = DECK.map(c => outKeys[c.name + ':' + _fnorm(c.f)] ? inCards[k++] : { name: c.name, f: _fnorm(c.f), info: c.info }); // 差分適用＋複製
-  // ★入れ替え後のデッキ＝そのランカーの実デッキ。ランカーの進化/ヒーロー割当(data-rf)を全面採用し、枠を最大活用した姿で表示
+  // ★入れ替え後＝そのランカーの実デッキ。デッキ作成と同じく特殊枠を最大活用：まずランカー記録(data-rf)を反映
   const rankerForm = {}; rfList.forEach(function (x) { rankerForm[x.name] = x.form; });
   next = next.map(function (c) {
     const want = rankerForm[c.name]; // 'e' | 'h' | undefined（チャンピオンはinfo.chでreslotが枠2/3へ）
     const can = want === 'e' ? !!(c.info && c.info.iv) : want === 'h' ? !!(c.info && c.info.ih) : false;
     return { name: c.name, f: (want && can) ? want : 'n', info: c.info };
+  });
+  // 進化は最大2枠。ランカーの形態記録が欠けても、進化可能なカードがあれば埋める（＝枠を遊ばせない／チャンピオンは枠2/3なので除外）
+  let _evoN = next.filter(function (c) { return c.f === 'e'; }).length;
+  if (_evoN < 2) next = next.map(function (c) {
+    if (_evoN >= 2 || c.f !== 'n' || !(c.info && c.info.iv) || (c.info && c.info.ch)) return c;
+    _evoN++; return { name: c.name, f: 'e', info: c.info };
   });
   DECK = reslotDeck(next); // Index準拠で進化/ヒーローを定位置に
   const names = DECK.map(c => c.name).join(',');
@@ -532,6 +538,7 @@ function render() {
       _diagTab = t.dataset.tab;
       wrap.querySelectorAll('.dtab').forEach(function (x) { x.classList.toggle('active', x === t); });
       wrap.querySelectorAll('.diag-panel').forEach(function (p) { p.hidden = (p.dataset.panel !== _diagTab); });
+      wrap.classList.toggle('tab-sim', _diagTab === 'sim'); // 強化タブだけデッキを上部固定
       try { selectFirstRow(); } catch (e) {} // タブ切替で発光を更新（強化タブの時のみ点灯）
     });
   });
@@ -568,6 +575,7 @@ function render() {
       wrap.querySelectorAll('.sr-row').forEach(function (r) { r.classList.toggle('sr-sel', r === row); });
     });
   });
+  wrap.classList.toggle('tab-sim', _diagTab === 'sim'); // 強化タブだけデッキを上部固定
   try { selectFirstRow(); } catch (e) {}
   var dt = wrap.querySelector('.diag-tabs');
   if (dt) document.documentElement.style.setProperty('--tabsH', dt.offsetHeight + 'px'); // サブタブの固定位置をメインタブ直下に
