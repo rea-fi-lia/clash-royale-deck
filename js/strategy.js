@@ -129,6 +129,96 @@ function openingRisk(deck) {
   return { badN: bad.length, pct: Math.round(p * 1000) / 10, cards: bad };
 }
 
+// ★型判定：勝ち筋＋平均コスト＋構成で「このデッキは何か」を当てる＝全評価の基準点
+const ARCH_DEFS = {
+  siege:    { label: '攻城', plan: '建物で守りつつ攻城兵器でタワーを遠距離から削る型。受けの徹底と射線管理が肝。' },
+  beatdown: { label: 'ビートダウン', plan: '重い主軸を後ろから育て、エリクサーで上回ってから攻め切る型。重い展開を捌けるかが鍵。' },
+  cycle:    { label: 'サイクル', plan: '軽量で手数を回し、主軸を小刻みに通してチップを蓄積する型。エリ効率と手の速さが命。' },
+  bait:     { label: 'ベイト', plan: '小型呪文を釣り、呪文を吐かせた隙に主軸を通す型。相手の呪文管理を読む駆け引きが軸。' },
+  bridge:   { label: 'ブリッジスパム', plan: '橋前に圧をかけ続け、相手の対応が遅れた所を突く速攻型。手数とテンポで主導権を握る。' },
+  control:  { label: 'コントロール', plan: '守ってカウンター、少数で確実に削る型。受けの厚みとエリクサーアドバンテージで勝つ。' },
+  midrange: { label: 'ミッドレンジ', plan: '攻守バランス型。状況に応じて受けと攻めを切り替える。' }
+};
+const A_SIEGE = ['迫撃砲', '巨大クロスボウ'];
+const A_HEAVY = ['ゴーレム', 'ラヴァハウンド', 'エレクトロジャイアント', 'エリクサーゴーレム', '巨大スケルトン', 'ゴブジャイアント'];
+const A_BRIDGE = ['アサシン ユーノ', 'ロイヤルゴースト', 'プリンス', 'ダークプリンス', 'エリートバーバリアン', 'ラムライダー', '攻城バーバリアン'];
+const A_RUSH = ['ホグライダー', 'ロイヤルホグ', 'ラムライダー', '攻城バーバリアン', 'エアバルーン', 'ウォールブレイカー', 'ゴブリンドリル', 'ディガー', 'マイティディガー'];
+function classifyArchetype(deck, ctx) {
+  const names = deck.map(c => c.name);
+  const avg = deck.reduce((s, c) => s + c.info.c, 0) / 8;
+  const wins = ctx.wins || [];
+  const has_ = n => names.indexOf(n) >= 0;
+  const baitN = deck.filter(c => has(c, 'spellBait')).length;
+  const bridgeN = deck.filter(c => A_BRIDGE.indexOf(c.name) >= 0).length;
+  const heavy = wins.filter(c => A_HEAVY.indexOf(c.name) >= 0);
+  let key;
+  if (A_SIEGE.some(has_)) key = 'siege';
+  else if (baitN >= 3) key = 'bait';
+  else if (heavy.length && avg >= 3.6) key = 'beatdown';
+  else if (avg <= 3.0 && wins.some(c => A_RUSH.indexOf(c.name) >= 0)) key = 'cycle';
+  else if (bridgeN >= 2 && !heavy.length) key = 'bridge';
+  else if ((ctx.spells || []).length >= 2 && !heavy.length && avg < 3.8) key = 'control';
+  else key = 'midrange';
+  let axis = null;
+  if (key === 'siege') axis = deck.find(c => A_SIEGE.indexOf(c.name) >= 0);
+  else if (key === 'beatdown') axis = heavy.slice().sort((a, b) => b.info.c - a.info.c)[0];
+  else axis = wins.find(c => A_RUSH.indexOf(c.name) >= 0) || wins.slice().sort((a, b) => b.info.c - a.info.c)[0];
+  if (!axis && wins.length) axis = wins[0];
+  return { key: key, label: ARCH_DEFS[key].label, plan: ARCH_DEFS[key].plan, axis: axis, avg: Math.round(avg * 10) / 10 };
+}
+function archetypeHtml(deck, ctx) {
+  const a = classifyArchetype(deck, ctx);
+  const axisHtml = a.axis ? chip(a.axis) : '<span class="dg-detail">' + _tr('明確な主軸なし') + '</span>';
+  return '<div class="dg-identity">'
+    + '<div class="id-head">🎯 ' + _tr('これは') + '「<b>' + _tr(a.label) + '</b>」' + _tr('デッキ') + '<span class="id-avg">' + _tr('平均') + ' ' + a.avg.toFixed(1) + '</span></div>'
+    + '<div class="id-axis"><span class="id-lbl">' + _tr('主軸') + '</span>' + axisHtml + '</div>'
+    + '<div class="id-plan">' + _tr(a.plan) + '</div></div>';
+}
+
+// ★デッキ能力スコア（card-eval集計）をマップで返す＝相性の"答え"判定に使う
+function capScores(deck) {
+  if (!EVAL) return null;
+  const E = deck.map(c => ({ e: EVAL[c.name + mark(c)] || EVAL[c.name] }));
+  if (E.filter(x => x.e).length < 6) return null;
+  const AX = [
+    { k: '対空', it: ['対空単体処理', '対空群れ処理'] },
+    { k: 'タンク処理', it: ['タンク処理', '中型タンク処理'] },
+    { k: '小物処理', it: ['地上群れ処理', '対空群れ処理'] },
+    { k: 'タワー圧', it: ['タワーダメージ力', 'タワーダメージ決定力'] },
+    { k: '施設攻略', it: ['施設破壊力', '施設突破力'] }
+  ];
+  const out = {};
+  AX.forEach(ax => {
+    const c = E.map(x => x.e ? Math.max.apply(null, ax.it.map(it => x.e[it] || 0)) : 0).sort((a, b) => b - a);
+    out[ax.k] = Math.max(0, Math.min(10, Math.round((0.65 * c[0] + 0.35 * (c[1] || 0)) * 10) / 10));
+  });
+  return out;
+}
+
+// ★相手の型→"核の脅威"に、自分が答えを持つか（card-evalの軸で判定）
+const THREAT_AXIS = {
+  'ラヴァハウンド': '対空', 'エアバルーン': '対空', 'スケルトンバレル': '対空',
+  'ゴーレム': 'タンク処理', 'エレクトロジャイアント': 'タンク処理', 'ジャイアント': 'タンク処理',
+  'ロイヤルジャイアント': 'タンク処理', '巨大スケルトン': 'タンク処理', 'ゴブジャイアント': 'タンク処理',
+  'エリクサーゴーレム': 'タンク処理', 'ペッカ': 'タンク処理', 'メガナイト': 'タンク処理',
+  '三銃士': '小物処理', 'ゴブリンバレル': '小物処理', 'スケルトンラッシュ': '小物処理', 'ゴブリンドリル': '小物処理',
+  '迫撃砲': '施設攻略', '巨大クロスボウ': '施設攻略'
+};
+const THREAT_PHRASE = {
+  '対空': { hi: '対空が厚く、空の主軸を止めやすい', lo: '対空が薄く、空の主軸を止めきれない' },
+  'タンク処理': { hi: '大型タンクを処理できる', lo: '大型タンクの突破を許しやすい' },
+  '小物処理': { hi: '群れ・数攻めを捌ける', lo: '数で攻められると捌ききれない' },
+  '施設攻略': { hi: '攻城建物を直接割れる', lo: '攻城を割る手段が薄い' }
+};
+function threatReason(oppBase, caps) {
+  const ax = THREAT_AXIS[oppBase];
+  if (!ax || !caps || caps[ax] == null) return '';
+  const v = caps[ax], p = THREAT_PHRASE[ax];
+  if (v >= 6) return _tr(p.hi);
+  if (v <= 3.5) return _tr(p.lo);
+  return '';
+}
+
 // ★デッキ能力（card-eval.json＝全カード相対評価1〜10から集計）。"下から持ち上げる"構成的診断。
 //   各軸＝関連項目をカードごとに最大化→デッキは「担い手1位＋0.35×2位」。耐性/エリ得は全体平均。
 function capabilityHtml(deck) {
@@ -194,6 +284,7 @@ function selfArchs(deck) {
 }
 function matchupHtml(deck) {
   if (!MATCH || !META || !META.length) return '';
+  const caps = capScores(deck);
   const archs = selfArchs(deck);
   if (!archs.length) return '';
   const self = archs[0]; // 代表勝ち筋
@@ -223,10 +314,11 @@ function matchupHtml(deck) {
       ? '<span class="mu-fill ' + cls + '" style="left:50%;width:' + w + '%"></span>'
       : '<span class="mu-fill ' + cls + '" style="right:50%;width:' + w + '%"></span>';
     const base = String(r.opp).replace(/[⚡👑]+$/, ''), suf = String(r.opp).slice(base.length);
+    const reason = threatReason(base, caps);
     const inf = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[base] : null;
     const src = inf ? ((suf === '⚡' && inf.iv) ? inf.iv : (suf === '👑' && inf.ih) ? inf.ih : inf.i) : '';
     const ico = '<span class="mu-ico">' + (src ? '<img src="' + src + '" alt="' + base + '" loading="lazy">' : '') + '</span>';
-    return '<div class="mu-row">' + ico + '<span class="mu-opp">' + r.opp + '<small>' + _tr('環境') + ' ' + r.share + '%</small></span>'
+    return '<div class="mu-row">' + ico + '<span class="mu-opp">' + r.opp + '<small>' + _tr('環境') + ' ' + r.share + '%</small>' + (reason ? '<small class="mu-reason">' + reason + '</small>' : '') + '</span>'
       + '<span class="mu-bar">' + fill + '</span>'
       + '<span class="mu-wr ' + cls + '">' + r.wr + '%<small>' + r.games + _tr('戦') + '</small></span></div>';
   }).join('');
@@ -268,6 +360,7 @@ function render() {
     return '<div class="mini-card' + (c.f === 'e' ? ' is-evo' : c.f === 'h' ? ' is-hero' : '') + '"><span class="pip">' + c.info.c + '</span>' + badge + '<img src="' + img + '" alt="' + c.name + '"></div>';
   }).join('') + '</div>';
 
+  html += archetypeHtml(DECK, ctx);
   html += capabilityHtml(DECK);
 
   html += '<div class="dg-verdict dg-' + verdict[0] + '">' + verdict[2] + ' ' + verdict[1]
