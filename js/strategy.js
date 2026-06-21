@@ -340,6 +340,7 @@ function matchupHtml(deck) {
 // ★似たデッキ（6枚以上一致）の勝率ランキング：sighist（署名ごとの通算[人数,試合,勝]）を、今のデッキと
 //   6枚以上かぶるデッキだけ集めて勝率順に。勝ち/負けランキング＋"あなたとの差分(抜く→入れる)"を出す。
 let SIGHIST_DECKS = null;     // [{ names:[8], g, w }]（月別sighistをカード名で集約＝全累計）
+let _diagTab = 'main', _simSub = 'up'; // タブ/サブタブ選択を再描画後も保持
 const SIM_MINGAMES = 30;      // 勝率の信頼に足る最低試合数（少数戦のブレ除去）
 function ymOffset(off) { const d = new Date(); d.setMonth(d.getMonth() + off); return d.toISOString().slice(0, 7); }
 function mergeSighist(files) {
@@ -372,24 +373,43 @@ function similarRankingHtml(deck) {
     });
   });
   if (!rows.length) return '';
-  const wins = rows.filter(r => r.wr >= 55).sort((a, b) => b.wr - a.wr).slice(0, 100);
-  const loses = rows.filter(r => r.wr <= 45).sort((a, b) => a.wr - b.wr).slice(0, 100);
-  const evenN = rows.filter(r => r.wr > 45 && r.wr < 55).length;
+  const self = rows.find(r => r.overlap >= 8);
+  const changes = rows.filter(r => r.overlap < 8);
+  const wins = changes.filter(r => r.wr >= 55).sort((a, b) => b.wr - a.wr).slice(0, 100);
+  const loses = changes.filter(r => r.wr <= 45).sort((a, b) => a.wr - b.wr).slice(0, 100);
   const cimg = n => { const inf = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[n] : null; return '<span class="sr-c">' + (inf ? '<img src="' + inf.i + '" alt="' + n + '" loading="lazy">' : '') + '</span>'; };
   const rowHtml = r => {
-    const diff = r.overlap >= 8
-      ? '<span class="sr-same">' + _tr('このデッキそのもの') + '</span>'
-      : '<span class="sr-out">' + r.out.map(cimg).join('') + '</span><span class="sr-arrow">→</span><span class="sr-in">' + r.inc.map(cimg).join('') + '</span>';
     const cls = r.wr >= 55 ? 'sr-good' : r.wr <= 45 ? 'sr-bad' : 'sr-even';
-    return '<div class="sr-row">' + diff + '<span class="sr-wr ' + cls + '">' + r.wr + '%<small>' + r.g + _tr('戦') + '</small></span></div>';
+    return '<div class="sr-row"><span class="sr-out">' + r.out.map(cimg).join('') + '</span><span class="sr-arrow">→</span><span class="sr-in">' + r.inc.map(cimg).join('') + '</span>'
+      + '<span class="sr-wr ' + cls + '">' + r.wr + '%<small>' + r.g + _tr('戦') + '</small></span>'
+      + '<button class="sr-swap" data-out="' + r.out.join(',') + '" data-in="' + r.inc.join(',') + '">' + _tr('入れ替える') + '</button></div>';
   };
-  let html = '<div class="dg-simrank"><div class="sr-head">📊 ' + _tr('似たデッキ（6枚一致）の勝率ランキング') + '</div>'
-    + '<div class="sr-note">' + _tr('あなたのデッキと6枚以上かぶる構成の通算勝率。左の抜く→右の入れるカードが差分。') + '（' + SIM_MINGAMES + _tr('戦以上') + '）</div>';
-  if (wins.length) html += '<div class="sr-sub sr-good">🟢 ' + _tr('勝ちやすい構成') + ' ≥55%（' + wins.length + '）</div><div class="sr-list">' + wins.map(rowHtml).join('') + '</div>';
-  if (loses.length) html += '<div class="sr-sub sr-bad">🔴 ' + _tr('負けやすい構成') + ' ≤45%（' + loses.length + '）</div><div class="sr-list">' + loses.map(rowHtml).join('') + '</div>';
-  if (!wins.length && !loses.length) html += '<div class="sr-note">' + _tr('まだ十分なデータがありません（蓄積中）') + '</div>';
-  else html += '<div class="sr-note">' + _tr('五分（46〜54%）') + '：' + evenN + '</div>';
-  return html + '</div>';
+  const listOrEmpty = arr => arr.length ? arr.map(rowHtml).join('') : ('<div class="sr-note">' + _tr('まだ十分なデータがありません（蓄積中）') + '</div>');
+  const selfLine = self ? '<div class="sr-self">' + _tr('あなたのデッキの通算勝率') + '：<b>' + self.wr + '%</b>（' + self.g + _tr('戦') + '）</div>' : '';
+  const tabs = '<div class="sr-tabs"><button class="srtab' + (_simSub === 'up' ? ' active' : '') + '" data-sub="up">' + _tr('強化案') + '</button>'
+    + '<button class="srtab' + (_simSub === 'down' ? ' active' : '') + '" data-sub="down">' + _tr('苦手対策') + '</button></div>';
+  return '<div class="dg-simrank">' + selfLine
+    + '<div class="sr-note">' + _tr('あなたのデッキと6枚以上かぶる構成の通算勝率。左の抜く→右の入れるが差分。「入れ替える」で今のデッキに反映できる。') + '</div>'
+    + tabs
+    + '<div class="sr-pane" data-sub="up"' + (_simSub === 'up' ? '' : ' hidden') + '><div class="sr-sub sr-good">' + _tr('勝率の高い構成') + '</div><div class="sr-list">' + listOrEmpty(wins) + '</div></div>'
+    + '<div class="sr-pane" data-sub="down"' + (_simSub === 'down' ? '' : ' hidden') + '><div class="sr-sub sr-bad">' + _tr('勝率の低い構成') + '</div><div class="sr-list">' + listOrEmpty(loses) + '</div>'
+    + '<div class="sr-note">' + _tr('※ いまは「この変更だと勝率が下がる」例。相手の勝ち筋に効く対策カード提案は今後追加予定。') + '</div></div>'
+    + '</div>';
+}
+// ★ランキングの「入れ替える」＝今のデッキにその差分を適用→再診断＋戻る先にも反映
+function applyDeckSwap(outNames, inNames) {
+  if (!DECK) return;
+  const inCards = inNames.map(n => (typeof CARD_INFO !== 'undefined' && CARD_INFO[n]) ? { name: n, f: 'n', info: CARD_INFO[n] } : null);
+  if (inCards.indexOf(null) >= 0) return;
+  let k = 0;
+  DECK = DECK.map(c => (outNames.indexOf(c.name) >= 0) ? inCards[k++] : c);
+  const names = DECK.map(c => c.name).join(',');
+  const fs = DECK.map(c => c.f === 'e' ? 'e' : c.f === 'h' ? 'h' : 'n').join('');
+  const q = '?deck=' + encodeURIComponent(names) + '&f=' + fs;
+  try { history.replaceState(null, '', 'strategy.html' + q); } catch (e) {}
+  const bb = document.getElementById('backToBuilder'); if (bb) bb.href = 'index.html' + q;
+  render();
+  try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
 }
 
 const GICON = { good: '◎', ok: '○', warn: '⚠', bad: '❌', info: 'ℹ️' };
@@ -454,17 +474,27 @@ function render() {
 
   html += '<p class="note" style="margin-top:14px">' + _tr('※ 診断はLv16換算の理論値とオーナー監修タグに基づく参考情報です') + '</p>';
   const simHtml = similarRankingHtml(DECK) || ('<div class="sr-note">' + _tr('似たデッキのデータを蓄積中です。時間が経つほど充実します。') + '</div>');
-  const tabs = '<div class="diag-tabs"><button class="dtab active" data-tab="main">' + _tr('診断') + '</button>'
-    + '<button class="dtab" data-tab="sim">📊 ' + _tr('似たデッキ勝率') + '</button></div>';
+  const tabs = '<div class="diag-tabs"><button class="dtab' + (_diagTab === 'main' ? ' active' : '') + '" data-tab="main">' + _tr('診断') + '</button>'
+    + '<button class="dtab' + (_diagTab === 'sim' ? ' active' : '') + '" data-tab="sim">📊 ' + _tr('似たデッキ勝率') + '</button></div>';
   wrap.innerHTML = deckHtml + tabs
-    + '<div class="diag-panel" data-panel="main">' + html + '</div>'
-    + '<div class="diag-panel" data-panel="sim" hidden>' + simHtml + '</div>';
+    + '<div class="diag-panel" data-panel="main"' + (_diagTab === 'main' ? '' : ' hidden') + '>' + html + '</div>'
+    + '<div class="diag-panel" data-panel="sim"' + (_diagTab === 'sim' ? '' : ' hidden') + '>' + simHtml + '</div>';
   wrap.querySelectorAll('.dtab').forEach(function (t) {
     t.addEventListener('click', function () {
+      _diagTab = t.dataset.tab;
       wrap.querySelectorAll('.dtab').forEach(function (x) { x.classList.toggle('active', x === t); });
-      var which = t.dataset.tab;
-      wrap.querySelectorAll('.diag-panel').forEach(function (p) { p.hidden = (p.dataset.panel !== which); });
+      wrap.querySelectorAll('.diag-panel').forEach(function (p) { p.hidden = (p.dataset.panel !== _diagTab); });
     });
+  });
+  wrap.querySelectorAll('.srtab').forEach(function (t) {
+    t.addEventListener('click', function () {
+      _simSub = t.dataset.sub;
+      wrap.querySelectorAll('.srtab').forEach(function (x) { x.classList.toggle('active', x === t); });
+      wrap.querySelectorAll('.sr-pane').forEach(function (p) { p.hidden = (p.dataset.sub !== _simSub); });
+    });
+  });
+  wrap.querySelectorAll('.sr-swap').forEach(function (b) {
+    b.addEventListener('click', function (e) { e.stopPropagation(); applyDeckSwap(b.dataset.out.split(','), b.dataset.in.split(',')); });
   });
 }
 

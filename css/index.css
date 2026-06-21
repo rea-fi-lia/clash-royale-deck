@@ -178,7 +178,7 @@
   }
   .card-img {
     position: absolute; right: -4px; bottom: -4px;
-    width: 88px; height: 88px;
+    width: 104px; height: 104px;
     object-fit: contain;
     opacity: 1;
     pointer-events: none;
@@ -724,7 +724,7 @@
     .cfbtn { width: 24px; height: 24px; font-size: 11px; }
     .card-list { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 5px; padding: 5px 10px 8px; overscroll-behavior-y: auto; -webkit-overflow-scrolling: touch; }
     .card { padding: 9px 8px 11px; min-height: 94px; }
-    .card-img { width: 76px; height: 76px; }
+    .card-img { width: 92px; height: 92px; }
     .card-name { font-size: 10px; }
     .card-role { font-size: 9px; padding-right: 64px; }
     .cost-pip { width: 18px; height: 18px; font-size: 10px; }
