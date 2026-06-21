@@ -343,16 +343,21 @@ let SIGHIST_DECKS = null;     // [{ names:[8], g, w }]（月別sighistをカー�
 let _diagTab = 'main', _simSub = 'up'; // タブ/サブタブ選択を再描画後も保持
 const SIM_MINGAMES = 30;      // 勝率の信頼に足る最低試合数（少数戦のブレ除去）
 function ymOffset(off) { const d = new Date(); d.setMonth(d.getMonth() + off); return d.toISOString().slice(0, 7); }
+function _fnorm(f) { return f === 'e' ? 'e' : f === 'h' ? 'h' : 'n'; } // ⚡限界突破/👑ヒーロー以外はnに寄せる（chは区別しない）
 function mergeSighist(files) {
   const agg = {};
   (files || []).forEach(sh => {
     if (!sh || !Array.isArray(sh.cards) || !sh.sigs) return;
     Object.keys(sh.sigs).forEach(key => {
-      const names = String(key).split('|')[0].split('.').map(i => sh.cards[+i]).filter(Boolean);
-      if (names.length !== 8) return;
+      const parts = String(key).split('|');
+      const idxs = parts[0].split('.');
+      const fstr = parts[1] || '';
+      const names = idxs.map(i => sh.cards[+i]);
+      if (names.length !== 8 || names.indexOf(undefined) >= 0) return;
+      const forms = names.map((n, i) => _fnorm(fstr[i] || 'n')); // 署名は索引昇順＝formsも同順
       const v = sh.sigs[key]; // [users, games, wins]
-      const canon = names.slice().sort().join('|');
-      const e = agg[canon] || (agg[canon] = { names: names, g: 0, w: 0 });
+      const canon = names.map((n, i) => n + ':' + forms[i]).sort().join('|');
+      const e = agg[canon] || (agg[canon] = { names: names, forms: forms, g: 0, w: 0 });
       e.g += (v[1] || 0); e.w += (v[2] || 0);
     });
   });
@@ -360,36 +365,42 @@ function mergeSighist(files) {
 }
 function similarRankingHtml(deck) {
   if (!SIGHIST_DECKS || !SIGHIST_DECKS.length) return '';
-  const userNames = deck.map(c => c.name);
-  const uset = {}; userNames.forEach(n => uset[n] = 1);
+  const userBase = {}; deck.forEach(c => userBase[c.name] = 1);
+  const userFull = {}; deck.forEach(c => userFull[c.name + ':' + _fnorm(c.f)] = 1);
   const rows = [];
   SIGHIST_DECKS.forEach(d => {
-    let overlap = 0; d.names.forEach(n => { if (uset[n]) overlap++; });
+    let overlap = 0; d.names.forEach(n => { if (userBase[n]) overlap++; });   // 6枚一致＝名前ベース
     if (overlap < 6 || d.g < SIM_MINGAMES) return;
-    rows.push({
-      wr: Math.round(d.w / d.g * 1000) / 10, g: d.g, overlap: overlap,
-      out: userNames.filter(n => d.names.indexOf(n) < 0), // あなたにあって相手に無い＝抜く
-      inc: d.names.filter(n => !uset[n])                  // 相手にあってあなたに無い＝入れる
-    });
+    const out = deck.filter(c => !d.names.some((n, i) => n === c.name && d.forms[i] === _fnorm(c.f))); // 自分にあって相手に無い（名前＋形態）
+    const inc = []; d.names.forEach((n, i) => { if (!userFull[n + ':' + d.forms[i]]) inc.push({ name: n, form: d.forms[i] }); }); // 相手にあって自分に無い
+    rows.push({ wr: Math.round(d.w / d.g * 1000) / 10, g: d.g, self: (!out.length && !inc.length), out: out, inc: inc });
   });
   if (!rows.length) return '';
-  const self = rows.find(r => r.overlap >= 8);
-  const changes = rows.filter(r => r.overlap < 8);
+  const self = rows.find(r => r.self);
+  const changes = rows.filter(r => !r.self && r.out.length && r.inc.length);
   const wins = changes.filter(r => r.wr >= 55).sort((a, b) => b.wr - a.wr).slice(0, 100);
   const loses = changes.filter(r => r.wr <= 45).sort((a, b) => a.wr - b.wr).slice(0, 100);
-  const cimg = n => { const inf = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[n] : null; return '<span class="sr-c">' + (inf ? '<img src="' + inf.i + '" alt="' + n + '" loading="lazy">' : '') + '</span>'; };
+  const cimgF = (name, form) => {
+    const inf = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[name] : null;
+    const src = inf ? (form === 'e' && inf.iv ? inf.iv : form === 'h' && inf.ih ? inf.ih : inf.i) : '';
+    const badge = form === 'e' ? '<span class="sr-fb">⚡</span>' : form === 'h' ? '<span class="sr-fb">👑</span>' : '';
+    return '<span class="sr-c">' + (src ? '<img src="' + src + '" alt="' + name + '" loading="lazy">' : '') + badge + '</span>';
+  };
+  const enc = arr => arr.map(x => x.name + ':' + x.form).join(',');
   const rowHtml = r => {
     const cls = r.wr >= 55 ? 'sr-good' : r.wr <= 45 ? 'sr-bad' : 'sr-even';
-    return '<div class="sr-row"><span class="sr-out">' + r.out.map(cimg).join('') + '</span><span class="sr-arrow">→</span><span class="sr-in">' + r.inc.map(cimg).join('') + '</span>'
+    const outH = r.out.map(c => cimgF(c.name, _fnorm(c.f))).join('');
+    const inH = r.inc.map(x => cimgF(x.name, x.form)).join('');
+    return '<div class="sr-row"><span class="sr-out">' + outH + '</span><span class="sr-arrow">→</span><span class="sr-in">' + inH + '</span>'
       + '<span class="sr-wr ' + cls + '">' + r.wr + '%<small>' + r.g + _tr('戦') + '</small></span>'
-      + '<button class="sr-swap" data-out="' + r.out.join(',') + '" data-in="' + r.inc.join(',') + '">' + _tr('入れ替える') + '</button></div>';
+      + '<button class="sr-swap" data-out="' + enc(r.out.map(c => ({ name: c.name, form: _fnorm(c.f) }))) + '" data-in="' + enc(r.inc) + '">' + _tr('入れ替える') + '</button></div>';
   };
   const listOrEmpty = arr => arr.length ? arr.map(rowHtml).join('') : ('<div class="sr-note">' + _tr('まだ十分なデータがありません（蓄積中）') + '</div>');
   const selfLine = self ? '<div class="sr-self">' + _tr('あなたのデッキの通算勝率') + '：<b>' + self.wr + '%</b>（' + self.g + _tr('戦') + '）</div>' : '';
   const tabs = '<div class="sr-tabs"><button class="srtab' + (_simSub === 'up' ? ' active' : '') + '" data-sub="up">' + _tr('強化案') + '</button>'
     + '<button class="srtab' + (_simSub === 'down' ? ' active' : '') + '" data-sub="down">' + _tr('苦手対策') + '</button></div>';
   return '<div class="dg-simrank">' + selfLine
-    + '<div class="sr-note">' + _tr('あなたのデッキと6枚以上かぶる構成の通算勝率。左の抜く→右の入れるが差分。「入れ替える」で今のデッキに反映できる。') + '</div>'
+    + '<div class="sr-note">' + _tr('あなたのデッキと6枚以上かぶる構成の通算勝率。左の抜く→右の入れるが差分（⚡限界突破/👑ヒーローも区別）。「入れ替える」で今のデッキに反映。') + '</div>'
     + tabs
     + '<div class="sr-pane" data-sub="up"' + (_simSub === 'up' ? '' : ' hidden') + '><div class="sr-sub sr-good">' + _tr('勝率の高い構成') + '</div><div class="sr-list">' + listOrEmpty(wins) + '</div></div>'
     + '<div class="sr-pane" data-sub="down"' + (_simSub === 'down' ? '' : ' hidden') + '><div class="sr-sub sr-bad">' + _tr('勝率の低い構成') + '</div><div class="sr-list">' + listOrEmpty(loses) + '</div>'
@@ -397,17 +408,20 @@ function similarRankingHtml(deck) {
     + '</div>';
 }
 // ★ランキングの「入れ替える」＝今のデッキにその差分を適用→再診断＋戻る先にも反映
-function applyDeckSwap(outNames, inNames) {
+function applyDeckSwap(outStr, inStr) {
   if (!DECK) return;
-  const inCards = inNames.map(n => (typeof CARD_INFO !== 'undefined' && CARD_INFO[n]) ? { name: n, f: 'n', info: CARD_INFO[n] } : null);
+  const parse = s => (s || '').split(',').filter(Boolean).map(x => { const a = x.split(':'); return { name: a[0], form: a[1] || 'n' }; });
+  const outList = parse(outStr), inList = parse(inStr);
+  const inCards = inList.map(x => (typeof CARD_INFO !== 'undefined' && CARD_INFO[x.name]) ? { name: x.name, f: x.form, info: CARD_INFO[x.name] } : null);
   if (inCards.indexOf(null) >= 0) return;
+  const outKeys = {}; outList.forEach(x => outKeys[x.name + ':' + x.form] = 1);
   let k = 0;
-  DECK = DECK.map(c => (outNames.indexOf(c.name) >= 0) ? inCards[k++] : c);
+  DECK = DECK.map(c => outKeys[c.name + ':' + _fnorm(c.f)] ? inCards[k++] : c);
   const names = DECK.map(c => c.name).join(',');
-  const fs = DECK.map(c => c.f === 'e' ? 'e' : c.f === 'h' ? 'h' : 'n').join('');
+  const fs = DECK.map(c => _fnorm(c.f)).join('');
   const q = '?deck=' + encodeURIComponent(names) + '&f=' + fs;
   try { history.replaceState(null, '', 'strategy.html' + q); } catch (e) {}
-  const bb = document.getElementById('backToBuilder'); if (bb) bb.href = 'index.html' + q;
+  document.querySelectorAll('.back-link').forEach(a => { a.href = 'index.html' + q; });
   render();
   try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
 }
@@ -494,14 +508,15 @@ function render() {
     });
   });
   wrap.querySelectorAll('.sr-swap').forEach(function (b) {
-    b.addEventListener('click', function (e) { e.stopPropagation(); applyDeckSwap(b.dataset.out.split(','), b.dataset.in.split(',')); });
+    b.addEventListener('click', function (e) { e.stopPropagation(); applyDeckSwap(b.dataset.out, b.dataset.in); });
   });
+  var dt = wrap.querySelector('.diag-tabs');
+  if (dt) document.documentElement.style.setProperty('--tabsH', dt.offsetHeight + 'px'); // サブタブの固定位置をメインタブ直下に
 }
 
 async function init() {
   DECK = parseDeck();
-  const backBtn = document.getElementById('backToBuilder');
-  if (backBtn) backBtn.href = 'index.html' + (location.search || ''); // 同じdeck/fを渡して復元
+  document.querySelectorAll('.back-link').forEach(function (a) { a.href = 'index.html' + (location.search || ''); }); // 同じdeck/fを渡して復元（上下の戻る共通）
   const empty = document.getElementById('diagEmpty');
   const wrap = document.getElementById('diagResult');
   if (!DECK) { if (empty) empty.style.display = ''; return; }
