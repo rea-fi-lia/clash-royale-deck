@@ -398,9 +398,15 @@ function similarRankingHtml(deck) {
   const selfLine = self ? '<div class="sr-self">' + _tr('あなたのデッキの通算勝率') + '：<b>' + self.wr + '%</b>（' + self.g + _tr('戦') + '）</div>' : '';
   const tabs = '<div class="sr-tabs"><button class="srtab' + (_simSub === 'up' ? ' active' : '') + '" data-sub="up">' + _tr('強化案') + '</button>'
     + '<button class="srtab' + (_simSub === 'down' ? ' active' : '') + '" data-sub="down">' + _tr('苦手対策') + '</button></div>';
+  const deckBar = '<div class="sr-deckbar" id="srDeckBar" aria-hidden="true">' + deck.map(function (c) {
+    var f = _fnorm(c.f);
+    var img = f === 'e' ? c.info.iv : f === 'h' ? c.info.ih : c.info.i;
+    var badge = f === 'e' ? '<span class="sr-fb">⚡</span>' : f === 'h' ? '<span class="sr-fb">👑</span>' : '';
+    return '<span class="sr-dc" data-key="' + c.name + ':' + f + '"><img src="' + img + '" alt="' + c.name + '" loading="lazy">' + badge + '</span>';
+  }).join('') + '</div>';
   return '<div class="dg-simrank">' + selfLine
     + '<div class="sr-note">' + _tr('あなたのデッキと6枚以上かぶる構成の通算勝率。左の抜く→右の入れるが差分（⚡限界突破/👑ヒーローも区別）。「入れ替える」で今のデッキに反映。') + '</div>'
-    + tabs
+    + tabs + deckBar
     + '<div class="sr-pane" data-sub="up"' + (_simSub === 'up' ? '' : ' hidden') + '><div class="sr-sub sr-good">' + _tr('勝率の高い構成') + '</div><div class="sr-list">' + listOrEmpty(wins) + '</div></div>'
     + '<div class="sr-pane" data-sub="down"' + (_simSub === 'down' ? '' : ' hidden') + '><div class="sr-sub sr-bad">' + _tr('勝率の低い構成') + '</div><div class="sr-list">' + listOrEmpty(loses) + '</div>'
     + '<div class="sr-note">' + _tr('※ いまは「この変更だと勝率が下がる」例。相手の勝ち筋に効く対策カード提案は今後追加予定。') + '</div></div>'
@@ -440,6 +446,50 @@ function applyDeckSwap(outStr, inStr) {
   try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) {}
 }
 
+// ===== デッキ強化タブ：現デッキ固定バー（上の8枚が隠れたらFLIPで集合）＝================
+let _simScrollHandler = null;
+function _cssVarPx(name, fb) { const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name)); return isNaN(v) ? fb : v; }
+function flipShowBar(bar, topDeck) {
+  var srt = document.querySelector('.diag-panel[data-panel="sim"] .sr-tabs'); // sim可視時に正しい高さで測る
+  if (srt && srt.offsetHeight) document.documentElement.style.setProperty('--srtabsH', srt.offsetHeight + 'px');
+  bar.classList.add('show'); // display:flex にしてからレイアウト確定→各カードを上の8枚位置から飛ばす
+  const dcs = bar.querySelectorAll('.sr-dc');
+  const minis = topDeck ? topDeck.querySelectorAll('.mini-card') : [];
+  dcs.forEach(function (dc, i) {
+    const mini = minis[i]; if (!mini) return;
+    const a = mini.getBoundingClientRect(), b = dc.getBoundingClientRect();
+    if (!b.width) return;
+    const dx = a.left - b.left, dy = a.top - b.top, s = a.width / b.width;
+    dc.style.transition = 'none';
+    dc.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + s + ')';
+    requestAnimationFrame(function () {
+      dc.style.transition = 'transform .34s cubic-bezier(.2,.75,.3,1)';
+      dc.style.transitionDelay = (i * 0.022) + 's'; // 軽いスタッガでシュルシュル
+      dc.style.transform = '';
+    });
+  });
+}
+function wireSimDeckBar(wrap) {
+  const srt = wrap.querySelector('.sr-tabs');
+  if (srt && srt.offsetHeight) document.documentElement.style.setProperty('--srtabsH', srt.offsetHeight + 'px'); // 隠れてる時(0)は書かない
+  if (_simScrollHandler) { window.removeEventListener('scroll', _simScrollHandler); _simScrollHandler = null; }
+  const bar = wrap.querySelector('#srDeckBar');
+  if (!bar) return;
+  const topDeck = wrap.querySelector('.dg-deck');
+  let shown = false;
+  function evalBar() {
+    const simPanel = wrap.querySelector('.diag-panel[data-panel="sim"]');
+    if (!simPanel || simPanel.hidden || !topDeck) { if (shown) { bar.classList.remove('show'); shown = false; } return; }
+    const threshold = _cssVarPx('--sbH', 96) + _cssVarPx('--tabsH', 48) + 8;
+    const gone = topDeck.getBoundingClientRect().bottom <= threshold; // 上の8枚がタブ裏へ隠れた
+    if (gone && !shown) { shown = true; flipShowBar(bar, topDeck); }
+    else if (!gone && shown) { shown = false; bar.classList.remove('show'); }
+  }
+  _simScrollHandler = evalBar;
+  window.addEventListener('scroll', evalBar, { passive: true });
+  evalBar();
+}
+
 const GICON = { good: '◎', ok: '○', warn: '⚠', bad: '❌', info: 'ℹ️' };
 function render() {
   const wrap = document.getElementById('diagResult');
@@ -469,7 +519,7 @@ function render() {
   const deckHtml = '<div class="dg-deck">' + DECK.map(c => {
     const img = c.f === 'e' ? c.info.iv : c.f === 'h' ? c.info.ih : c.info.i;
     const badge = c.f === 'e' ? '<span class="slot-badge">⚡</span>' : c.f === 'h' ? '<span class="slot-badge">👑</span>' : '';
-    return '<div class="mini-card' + (c.f === 'e' ? ' is-evo' : c.f === 'h' ? ' is-hero' : '') + '"><span class="pip">' + c.info.c + '</span>' + badge + '<img src="' + img + '" alt="' + c.name + '"></div>';
+    return '<div class="mini-card' + (c.f === 'e' ? ' is-evo' : c.f === 'h' ? ' is-hero' : '') + '" data-key="' + c.name + ':' + _fnorm(c.f) + '"><span class="pip">' + c.info.c + '</span>' + badge + '<img src="' + img + '" alt="' + c.name + '"></div>';
   }).join('') + '</div>';
 
   let html = '';
@@ -503,7 +553,7 @@ function render() {
   html += '<p class="note" style="margin-top:14px">' + _tr('※ 診断はLv16換算の理論値とオーナー監修タグに基づく参考情報です') + '</p>';
   const simHtml = similarRankingHtml(DECK) || ('<div class="sr-note">' + _tr('似たデッキのデータを蓄積中です。時間が経つほど充実します。') + '</div>');
   const tabs = '<div class="diag-tabs"><button class="dtab' + (_diagTab === 'main' ? ' active' : '') + '" data-tab="main">' + _tr('診断') + '</button>'
-    + '<button class="dtab' + (_diagTab === 'sim' ? ' active' : '') + '" data-tab="sim">📊 ' + _tr('似たデッキ勝率') + '</button></div>';
+    + '<button class="dtab' + (_diagTab === 'sim' ? ' active' : '') + '" data-tab="sim">📊 ' + _tr('デッキ強化') + '</button></div>';
   wrap.innerHTML = deckHtml + tabs
     + '<div class="diag-panel" data-panel="main"' + (_diagTab === 'main' ? '' : ' hidden') + '>' + html + '</div>'
     + '<div class="diag-panel" data-panel="sim"' + (_diagTab === 'sim' ? '' : ' hidden') + '>' + simHtml + '</div>';
@@ -512,6 +562,7 @@ function render() {
       _diagTab = t.dataset.tab;
       wrap.querySelectorAll('.dtab').forEach(function (x) { x.classList.toggle('active', x === t); });
       wrap.querySelectorAll('.diag-panel').forEach(function (p) { p.hidden = (p.dataset.panel !== _diagTab); });
+      if (_simScrollHandler) _simScrollHandler(); // タブ切替で固定バーの要否を再判定
     });
   });
   wrap.querySelectorAll('.srtab').forEach(function (t) {
@@ -524,6 +575,21 @@ function render() {
   wrap.querySelectorAll('.sr-swap').forEach(function (b) {
     b.addEventListener('click', function (e) { e.stopPropagation(); applyDeckSwap(b.dataset.out, b.dataset.in); });
   });
+  // 候補をタップ＝入れ替え元(out)を現デッキバー＆上の8枚で発光
+  function srHighlight(keys) {
+    wrap.querySelectorAll('.sr-dc, .dg-deck .mini-card').forEach(function (el) {
+      el.classList.toggle('hot', (keys || []).indexOf(el.dataset.key) >= 0);
+    });
+  }
+  wrap.querySelectorAll('.sr-row').forEach(function (row) {
+    row.addEventListener('click', function () {
+      var btn = row.querySelector('.sr-swap');
+      var keys = btn ? (btn.dataset.out || '').split(',').filter(Boolean) : [];
+      srHighlight(keys);
+      wrap.querySelectorAll('.sr-row').forEach(function (r) { r.classList.toggle('sr-sel', r === row); });
+    });
+  });
+  try { wireSimDeckBar(wrap); } catch (e) {}
   var dt = wrap.querySelector('.diag-tabs');
   if (dt) document.documentElement.style.setProperty('--tabsH', dt.offsetHeight + 'px'); // サブタブの固定位置をメインタブ直下に
 }

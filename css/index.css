@@ -609,7 +609,8 @@
   .slot-share-pop { position: fixed; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--accent); background: var(--surface2); color: var(--accent); font-family: var(--font-head); font-weight: 700; font-size: 13px; z-index: 1001; cursor: pointer; white-space: nowrap; animation: slotGlow 1.7s ease-in-out infinite; }
   .slot-share-pop svg { display: block; }
   .da-copy .da-copy-tx { display: block; width: 100%; text-align: center; line-height: 1.12; }
-  .da-copy.is-paste .da-copy-tx { padding-left: 18px; box-sizing: border-box; } /* ペースト2行をコピーマークの右へずらす */
+  .da-copy .da-copy-tx .ln { display: block; line-height: 1.12; white-space: nowrap; } /* 各段を確実に1行で2段表示 */
+  .da-copy.is-paste svg { display: none; } /* ペースト時はコピーマークを隠してフル幅で2段に */
   .nav-emoji svg, .da-copy svg, #slotLoadNum svg { display: block; }
   #analyzeBtn {
     flex: 1; text-decoration: none; align-items: center; justify-content: center;

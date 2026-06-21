@@ -124,7 +124,7 @@
   .sr-sub { font-size:12px; font-weight:700; margin:12px 0 6px; }
   .sr-sub.sr-good { color:#56d199; }
   .sr-sub.sr-bad { color:#ff8a6a; }
-  .sr-list { max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:5px; padding-right:2px; }
+  .sr-list { display:flex; flex-direction:column; gap:5px; } /* 内部スクロール廃止＝普通に全件表示 */
   .sr-row { display:flex; align-items:center; flex-wrap:wrap; gap:6px; row-gap:5px; padding:6px 8px; background:var(--surface); border:1px solid var(--border); border-radius:8px; }
   .sr-out, .sr-in { display:inline-flex; gap:3px; }
   .sr-c { display:inline-block; }
@@ -143,6 +143,15 @@
   .sr-swap { margin-left:8px; flex:0 0 auto; padding:5px 9px; font-size:11px; font-weight:700; background:var(--accent); color:#000; border:none; border-radius:6px; cursor:pointer; white-space:nowrap; }
   .sr-c { position:relative; }
   .sr-fb { position:absolute; top:-5px; right:-5px; font-size:12px; line-height:1; filter:drop-shadow(0 0 1px #000); }
+  /* 現デッキ固定バー：上の8枚が隠れる時にFLIPで集まりリスト直上に常駐 */
+  .sr-deckbar { display:none; }
+  .sr-deckbar.show { display:flex; gap:4px; justify-content:center; flex-wrap:nowrap; position:sticky; top:calc(var(--sbH,96px) + var(--tabsH,48px) + var(--srtabsH,40px) + 10px); z-index:60; background:var(--bg); padding:5px 0 7px; margin:0 0 6px; border-bottom:1px solid var(--border); }
+  .sr-dc { position:relative; width:38px; aspect-ratio:3/4; flex:0 0 auto; border-radius:6px; will-change:transform; transform-origin:top left; }
+  .sr-dc img { width:100%; height:100%; object-fit:contain; border-radius:6px; display:block; }
+  .sr-dc.hot, .dg-deck .mini-card.hot { outline:2px solid var(--accent); border-radius:6px; z-index:3; animation:srHot 1s ease-in-out infinite; }
+  @keyframes srHot { 0%,100%{ box-shadow:0 0 6px 1px rgba(232,160,32,.45);} 50%{ box-shadow:0 0 15px 4px rgba(232,160,32,.9);} }
+  .sr-row.sr-sel { outline:1px solid var(--accent); background:rgba(232,160,32,0.06); }
+  .sr-row { cursor:pointer; }
   .dg-details { margin-top:6px; }
   .dg-details summary { cursor:pointer; font-size:13px; font-weight:700; color:var(--text-muted); padding:10px 4px; user-select:none; }
   .dg-details summary:hover { color:var(--text); }
@@ -262,6 +271,6 @@
 <script type="module" src="/auth.js?v=260636"></script>
 <script defer src="/i18n.js?v=260661"></script>
 <script src="/js/cards-data.js?v=260627"></script>
-<script defer src="/js/strategy.js?v=260661"></script>
+<script defer src="/js/strategy.js?v=260665"></script>
 </body>
 </html>

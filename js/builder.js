@@ -1255,10 +1255,10 @@ function updateActionButtons() {
   const n = deck.filter(Boolean).length;
   const copyTx = document.querySelector('#copyDeckBtn .da-copy-tx');
   const copyBtnEl = document.getElementById('copyDeckBtn');
-  const _isJa = TR('ゲームにコピー') === 'ゲームにコピー'; // 未翻訳=日本語なら指定位置で改行
+  const _isJa = TR('ゲームにコピー') === 'ゲームにコピー'; // 未翻訳=日本語なら2段に分割
   if (copyTx) {
-    if (n >= 8) copyTx.innerHTML = _isJa ? 'ゲームに<br>コピー' : TR('ゲームにコピー');
-    else        copyTx.innerHTML = _isJa ? 'ゲームから<br>ペースト' : TR('ゲームからペースト'); // 8枚=コピー/未満=ペースト
+    if (n >= 8) copyTx.innerHTML = _isJa ? '<span class="ln">ゲームに</span><span class="ln">コピー</span>' : TR('ゲームにコピー');
+    else        copyTx.innerHTML = _isJa ? '<span class="ln">ゲームから</span><span class="ln">ペースト</span>' : TR('ゲームからペースト'); // 8枚=コピー/未満=ペースト
   }
   if (copyBtnEl) {
     copyBtnEl.title = (n >= 8) ? TR('ゲームにコピー') : TR('ゲームからデッキをペースト');
@@ -1664,16 +1664,14 @@ function showToast(msg, ms) {
 
 init();
 
-// 【封印中】特典演出の解放は寄付額(donatedTotal)から points（rea-fi-liaポイント・活動で貯まる予定）に変更。
-// Supercellポリシー準拠のため寄付による解放は廃止。ポイント制実装までは points を持つアカウント（オーナー）のみ解放。
-// 演出コード（updateDeckGlow / スパンコール軌跡 / お気に入りグリント等）は消さずに全部保持すること。
+// 【全解放】以前は寄付額→points(オーナーのみ)で限定していた演出を、全ユーザーへ無料解放。
+// 「使ってもらってなんぼ」方針。無料開放＝寄付課金ではないのでSupercellポリシー上も問題なし。演出コードは全保持。
+document.body.classList.add('perk-drop', 'perk-bottle'); // 枠の光/8枚シャキーン/ドラッグ軌跡/お気に入り線・アニメを全員に
 (function hookPerks() {
   if (!window.CRAuth) { setTimeout(hookPerks, 100); return; }
-  CRAuth.onChange((user, profile) => {
-    const pts = (profile && profile.points) || 0;  // 旧: profile.donatedTotal
-    document.body.classList.toggle('perk-drop', pts >= 500);
-    document.body.classList.toggle('perk-bottle', pts >= 2000);
-    try { updateDeckGlow(deck.filter(Boolean).length); } catch (e) {} // ログイン状態が変わったらグローを反映
+  CRAuth.onChange(() => {
+    document.body.classList.add('perk-drop', 'perk-bottle'); // 状態変化後も解放を維持
+    try { updateDeckGlow(deck.filter(Boolean).length); } catch (e) {} // 状態が変わったらグローを反映
     try { updateSlotLoadBtn(); } catch (e) {} // SLOTボタンのアイコン（未ログイン=共有マーク）を反映
   });
 })();
