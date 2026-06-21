@@ -661,8 +661,8 @@ function moveGhost(ghost, x, y) {
 let longPressTimer = null;
 let touchStartX = 0;
 let touchStartY = 0;
-const LONG_PRESS_MS = 180;      // 長押し＝ドラッグ開始。短い接触はタップ＝即追加（70だと普通のタップがドラッグになり取りこぼしてた）
-const LONG_PRESS_DECK_MS = 30;  // デッキゾーンは速めの応答
+const LONG_PRESS_MS = 150;      // 長押し＝ドラッグ開始。短い接触はタップ＝即追加（少し短め＝ドラッグに入りやすく）
+const LONG_PRESS_DECK_MS = 150; // デッキゾーンも同じ（30だと普通のタップがドラッグ扱いでもっさりしてた）
 const DRAG_THRESHOLD = 10;
 let isDragging = false;
 let _touchMoved = false, _suppressClickUntil = 0;
@@ -737,6 +737,20 @@ function initTouchDnD() {
     }, LONG_PRESS_DECK_MS);
   }, {passive:true});
 
+  // ★デッキスロットのタップ＝即外す（カード選択と同じ。clickに頼らないので もっさり しない）
+  document.getElementById('deckSlots').addEventListener('touchend', e => {
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+    if (isDragging || _touchMoved) return;
+    if (e.target.closest('.mode-toggle-btn')) return; // 進化↔英雄の切替ボタンは外さない
+    const slot = e.target.closest('.slot.filled');
+    if (!slot) return;
+    const idx = parseInt(slot.dataset.idx);
+    const c = deck[idx];
+    if (!c) return;
+    _suppressClickUntil = Date.now() + 600;
+    removeFromDeck(c);
+  }, { passive: true });
+
   document.addEventListener('touchmove', e => {
     const t = e.touches[0];
     // 長押し前に大きく動いたらキャンセル（スクロール優先）
@@ -808,6 +822,10 @@ function initTouchDnD() {
           deck[touchSrcIdx] = tmp;
           renderDeck(); refreshInDeck();
         }
+      } else if (touchSrcIdx !== null && destIdx === touchSrcIdx && !_touchMoved) {
+        // 同じスロットで動かさず離した＝タップ＝外す（遅いタップ救済）
+        _suppressClickUntil = Date.now() + 600;
+        removeFromDeck(deck[touchSrcIdx]);
       }
     } else if (touchSrcCard && !_touchMoved) {
       // 長押しで掴んだが動かさず離した＝タップ＝そのまま追加（遅いタップ救済）
@@ -901,7 +919,7 @@ function renderDeck() {
         ${mode === 'evolved' ? '⚡進化' : '👑英雄'}
       </button>` : '';
       div.innerHTML = `${slotImg}${modeBadge}${toggleBtn}`;
-      div.onclick = () => removeFromDeck(c);
+      div.onclick = () => { if (isDragging || Date.now() < _suppressClickUntil) return; removeFromDeck(c); };
       div.addEventListener('dragstart', onDragStart);
       div.addEventListener('dragend',   onDragEnd);
       div.addEventListener('dragover',  onDragOver);
