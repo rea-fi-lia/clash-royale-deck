@@ -696,6 +696,7 @@ function initTouchDnD() {
   // カード選択ゾーン
   document.getElementById('cardList').addEventListener('touchstart', e => {
     if (isDragging || longPressTimer || e.touches.length > 1) return; // ドラッグ中/長押し待ち/2本指は無視（2枚目タップでバグらない）
+    if (document.documentElement.classList.contains('nopin')) return; // ピンOFF=ページスクロール優先＝ドラッグ無効（タップ追加は有効）
     if (e.target.closest('.fav-btn')) return; // ハートタップ時はドラッグしない
     const card = e.target.closest('.card');
     if (!card || card.classList.contains('in-deck')) return;
@@ -725,6 +726,7 @@ function initTouchDnD() {
   // デッキスロット
   document.getElementById('deckSlots').addEventListener('touchstart', e => {
     if (isDragging || longPressTimer || e.touches.length > 1) return; // ドラッグ中/長押し待ち/2本指は無視
+    if (document.documentElement.classList.contains('nopin')) return; // ピンOFF=ページスクロール優先＝ドラッグ無効（タップで外すは有効）
     const slot = e.target.closest('.slot.filled');
     if (!slot) return;
     const idx = parseInt(slot.dataset.idx);
