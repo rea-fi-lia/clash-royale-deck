@@ -417,9 +417,9 @@ function reslotDeck(cards) {
   // 進化：枠1(0)→枠3(2)、最大2、超過は解除
   let evoN = 0;
   cards.forEach(c => { if (c.f !== 'e') return; if (evoN === 0 && !slots[0]) { put(c, 0); evoN++; } else if (evoN < 2 && !slots[2]) { put(c, 2); evoN++; } else demoted.push({ name: c.name, f: 'n', info: c.info }); });
-  // チャンピオン(info.ch)：枠2(1)優先→枠3(2)、最大1。形態はnのままだが必ず2/3枠へ
+  // チャンピオン(info.ch)：枠2(1)優先→枠3(2)、最大2（2024〜2枚編成可）。形態はnのままだが必ず2/3枠へ
   let champN = 0;
-  cards.forEach(c => { if (placed.has(c) || c.f === 'e' || !(c.info && c.info.ch)) return; if (champN === 0) { if (!slots[1]) { put(c, 1); champN++; } else if (!slots[2]) { put(c, 2); champN++; } } });
+  cards.forEach(c => { if (placed.has(c) || c.f === 'e' || !(c.info && c.info.ch)) return; if (champN < 2) { if (!slots[1]) { put(c, 1); champN++; } else if (!slots[2]) { put(c, 2); champN++; } } });
   // ヒーロー(h)：枠2(1)→枠3(2)、最大1、超過は解除
   let heroN = 0;
   cards.forEach(c => { if (c.f !== 'h' || placed.has(c)) return; if (heroN === 0 && !slots[1]) { put(c, 1); heroN++; } else if (heroN === 0 && !slots[2]) { put(c, 2); heroN++; } else demoted.push({ name: c.name, f: 'n', info: c.info }); });

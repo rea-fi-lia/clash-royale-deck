@@ -401,9 +401,9 @@ function placeNormal(card) {
 function addToDeck(card) {
   if (deck.some(d => d && d.name === card.name)) return;
   if (card.champion) {
-    // 既にチャンピオンがいる→そのカードと交換するか聞く
-    const existing = deck.findIndex(d => d && d.champion);
-    if (existing >= 0) { openImageReplaceDialog(card, [existing], { relocateOld: false }); return; }
+    // チャンピオンは最大2枚（スロット2・3）。2枚埋まっていればどちらと交換するか聞く
+    const champIdxs = deck.map((d, i) => (d && d.champion) ? i : -1).filter(i => i >= 0);
+    if (champIdxs.length >= 2) { openImageReplaceDialog(card, champIdxs, { relocateOld: false }); return; }
     const idx = championTargetSlot();
     if (idx === -1) { openImageReplaceDialog(card, [1, 2], { relocateOld: true }); return; } // 2・3枠どちらと
     deck[idx] = card; renderDeck(); refreshInDeck();
@@ -592,7 +592,7 @@ function onDrop(e) {
     const c = dragSrcCard;
     dragSrcCard = null;
     if (deck.some(d => d && d.name === c.name)) { showToast('⚠ すでに追加済み'); return; }
-    if (c.champion && deck.some(d => d && d.champion)) { showToast('⚠ チャンピオンは1枚まで'); return; }
+    if (c.champion && deck.filter(d => d && d.champion).length >= 2) { showToast('⚠ チャンピオンは2枚まで'); return; }
     if (c.champion && !championCanGoTo(destIdx)) { showToast('⚠ チャンピオンはスロット2か3のみ'); return; }
     deck[destIdx] = c;
     renderDeck(); refreshInDeck();
@@ -808,7 +808,7 @@ function initTouchDnD() {
       if (touchSrcCard) {
         const c = touchSrcCard;
         if (deck.some(d => d && d.name === c.name)) { showToast('⚠ すでに追加済み'); }
-        else if (c.champion && deck.some(d => d && d.champion)) { showToast('⚠ チャンピオンは1枚まで'); }
+        else if (c.champion && deck.filter(d => d && d.champion).length >= 2) { showToast('⚠ チャンピオンは2枚まで'); }
         else if (c.champion && !championCanGoTo(destIdx)) { showToast('⚠ チャンピオンはスロット2か3のみ'); }
         else { deck[destIdx] = c; renderDeck(); refreshInDeck(); }
       } else if (touchSrcIdx !== null && destIdx !== touchSrcIdx) {
