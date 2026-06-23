@@ -14,12 +14,14 @@ cd "$(dirname "$0")"
 MSG="${1:-deploy: update site}"
 BUMP_V="${BUMP_V:-0}"
 
-# 1) ?v= キャッシュバスターを当日へ一括更新（任意・BUMP_V=1 で有効）
+# 1) ?v= キャッシュバスターを「現行の最大値+1」へ一括更新（任意・BUMP_V=1 で有効）
+#    ※?v= は日付でなく単調増加カウンタ運用（例 260670→260671）。date 方式だと逆行するため max+1。
 if [ "$BUMP_V" = "1" ]; then
-  TODAY="$(date +%y%m%d)"
-  echo "▶ ?v= を 260$TODAY 形式（$TODAY）へ一括更新"
+  CUR="$(grep -ohE '\?v=[0-9]{6}' *.html | grep -oE '[0-9]{6}' | sort -n | tail -1)"
+  NEXT=$(( ${CUR:-260000} + 1 ))
+  echo "▶ ?v= を $CUR → $NEXT へ一括更新"
   # shellcheck disable=SC2035
-  sed -i '' "s/?v=[0-9]\{6\}/?v=$TODAY/g" *.html
+  sed -i '' "s/?v=[0-9]\{6\}/?v=$NEXT/g" *.html
 fi
 
 # 2) 言語別ページ＋sitemap を再生成（フロント/i18n 編集の反映に必須）

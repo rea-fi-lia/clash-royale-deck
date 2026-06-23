@@ -154,6 +154,29 @@ function injectVT(html) {
   return html.replace(/<\/head>/i, VT_BLOCK + '\n</head>');
 }
 
+// ── バー固定解除トグル（2026-06-24）。全ページの <head> に「localStorage→html.nopin早期適用script（チラつき無し）」
+//    ＋「html.nopin で上部バー(.sitebar / index の header)を static 化するstyle」＋「.nav-icons 行の先頭にピン・トグルを差し込むscript」を冪等注入。
+//    既定=固定（pin）。ユーザーがボタンで解除した時だけ nopin。新規ページ/全言語ページも自動対応。
+const UNPIN_BLOCK = '<!-- CRPIN -->\n'
+  + '<script>(function(){try{if(localStorage.getItem(\'cr_pin\')===\'off\')document.documentElement.classList.add(\'nopin\');}catch(e){}})();</script>\n'
+  + '<style>html.nopin .sitebar{position:static!important}html.nopin header{position:static!important}.bar-pin-btn{cursor:pointer}.bar-pin-btn.off{opacity:.5}</style>\n'
+  + '<script>document.addEventListener(\'DOMContentLoaded\',function(){'
+  + 'var ja=(document.documentElement.lang||\'ja\').slice(0,2)===\'ja\';'
+  + 'var P=\'<span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9A2 2 0 0 1 15 10.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span>\';'
+  + 'var rows=document.querySelectorAll(\'.nav-icons\');'
+  + 'for(var i=0;i<rows.length;i++){(function(row){'
+  + 'if(row.querySelector(\'.bar-pin-btn\'))return;'
+  + 'var b=document.createElement(\'button\');b.type=\'button\';b.className=\'nav-icon bar-pin-btn\';b.innerHTML=P;'
+  + 'function paint(){var off=document.documentElement.classList.contains(\'nopin\');b.classList.toggle(\'off\',off);b.title=off?(ja?\'バーを固定\':\'Pin top bar\'):(ja?\'バーの固定を解除\':\'Unpin top bar\');b.setAttribute(\'aria-pressed\',off?\'false\':\'true\');}'
+  + 'b.addEventListener(\'click\',function(){var off=!document.documentElement.classList.contains(\'nopin\');document.documentElement.classList.toggle(\'nopin\',off);try{localStorage.setItem(\'cr_pin\',off?\'off\':\'on\');}catch(e){}paint();});'
+  + 'paint();row.insertBefore(b,row.firstChild);'
+  + '})(rows[i]);}'
+  + '});</script>';
+function injectUnpin(html) {
+  if (html.indexOf('CRPIN') !== -1) return html;
+  return html.replace(/<\/head>/i, UNPIN_BLOCK + '\n</head>');
+}
+
 function buildLangPage(srcHtml, lang, page) {
   const seo = (SEO[page] && SEO[page][lang]) || null;
   let h = stripHreflang(srcHtml);
@@ -173,7 +196,7 @@ function buildLangPage(srcHtml, lang, page) {
   h = setMeta(h, 'og:url', url);
   h = setCanonical(h, url);
   h = h.replace(/<\/head>/i, hreflangBlock(page) + '\n</head>');
-  h = injectVT(injectTheme(injectGA(injectAdSense(h))));
+  h = injectUnpin(injectVT(injectTheme(injectGA(injectAdSense(h)))));
   return h;
 }
 
@@ -203,7 +226,7 @@ function main() {
     fs.mkdirSync(dir, { recursive: true });
     GEN.forEach(p => { fs.writeFileSync(path.join(dir, p), buildLangPage(src[p], lang, p)); n++; });
   });
-  GEN.forEach(p => { fs.writeFileSync(path.join(ROOT, p), injectVT(injectTheme(injectGA(injectAdSense(injectHreflang(src[p], p)))))); });
+  GEN.forEach(p => { fs.writeFileSync(path.join(ROOT, p), injectUnpin(injectVT(injectTheme(injectGA(injectAdSense(injectHreflang(src[p], p))))))); });
   writeSitemap();
   console.log('generated ' + n + ' lang pages (' + GEN.join(',') + ') for [' + TARGETS.join(', ') + '] + hreflang + sitemap');
 }

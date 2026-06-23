@@ -529,7 +529,8 @@ function render() {
   html += '<p class="note" style="margin-top:14px">' + _tr('※ 診断はLv16換算の理論値とオーナー監修タグに基づく参考情報です') + '</p>';
   const simHtml = similarRankingHtml(DECK) || ('<div class="sr-note">' + _tr('似たデッキのデータを蓄積中です。時間が経つほど充実します。') + '</div>');
   const tabs = '<div class="diag-tabs"><button class="dtab' + (_diagTab === 'main' ? ' active' : '') + '" data-tab="main">' + _tr('診断') + '</button>'
-    + '<button class="dtab' + (_diagTab === 'sim' ? ' active' : '') + '" data-tab="sim">📊 ' + _tr('デッキ強化') + '</button></div>';
+    + '<button class="dtab' + (_diagTab === 'sim' ? ' active' : '') + '" data-tab="sim">📊 ' + _tr('デッキ調整') + '</button></div>';
+  // タブ名は「デッキ強化」→「デッキ調整」に変更（2026-06-24・VISION§4「断定しない/関係性で見せる」に寄せる）
   wrap.innerHTML = deckHtml + tabs
     + '<div class="diag-panel" data-panel="main"' + (_diagTab === 'main' ? '' : ' hidden') + '>' + html + '</div>'
     + '<div class="diag-panel" data-panel="sim"' + (_diagTab === 'sim' ? '' : ' hidden') + '>' + simHtml + '</div>';
