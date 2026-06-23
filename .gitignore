@@ -1,1 +1,22 @@
+# --- build / OS noise ---
+.DS_Store
 nohup.out
+*.zip
+.wrangler/
+
+# --- 統計データ（絶対に main へ commit しない）---
+# これらは `data` ブランチに住み、GAS が書き込む。site は
+# raw.githubusercontent.com/.../data/<file> から読むので main 側は不要。
+# 誤って main に古い統計を push＝事故（PROJECT_HANDOFF §1 の最重要警告）。
+decks.json
+cardhist.json
+card-stats.json
+card-tags.json
+card-potential.json
+card-eval.json
+card-weights.json
+card-ids.json
+matchups.json
+synergy.json
+band-meta.json
+sighist-*.json
