@@ -436,7 +436,15 @@ function openImageReplaceDialog(card, idxs, opts) {
   const doReplace = (i) => {
     const old = deck[i];
     deck[i] = card;
-    if (opts.relocateOld && old) placeNormal(old);
+    if (opts.relocateOld && old) {
+      if (old.champion) {
+        // チャンピオンは必ずスロット2/3。押し出されたら空いている方の枠へ。無ければデッキから出す（通常枠には絶対入れない）
+        const other = [1, 2].find(s => s !== i && deck[s] === null);
+        if (other !== undefined) deck[other] = old;
+      } else {
+        placeNormal(old);
+      }
+    }
     ov.remove(); renderDeck(); refreshInDeck();
   };
   const ov = document.createElement('div');
