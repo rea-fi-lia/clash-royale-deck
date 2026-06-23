@@ -2,6 +2,7 @@
 
 旧ワークフロー（zip 化 → Manus 経由で main へ丸投げ）の置き換え。
 このフォルダは `rea-fi-lia/clash-royale-deck` の `main` を直接指す git リポジトリ。
+**置き場所＝`crdeckbuilders-handoff/clash-royale-deck/`（2026-06-24 に handoff フォルダ配下へ一本化）。** 別PCは handoff フォルダごと持っていけば全部揃う（ZIP不要）。
 
 ## 初回だけ（このPC）
 ```bash
@@ -11,7 +12,7 @@ gh auth login          # GitHub アカウント(rea-fi-lia)でログイン（本
 
 ## ふだんのデプロイ
 ```bash
-cd ~/Downloads/AI_SD/clash-royale-deck
+cd ~/Downloads/AI_SD/crdeckbuilders-handoff/clash-royale-deck
 ./deploy.sh "変更の説明"
 ```
 `deploy.sh` がやること:
