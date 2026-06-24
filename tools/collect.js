@@ -696,7 +696,7 @@ async function updateDecks() {
   }, 'chore: update decks.json');
   await ghWriteJson_(histPath, hist, 'chore: update cardhist.json'); // 履歴
 
-  console.log('✅ done. players3d=' + players3d + ' decks=' + popDecks.length + ' winDecks=' + winDecks.length);
+  console.log('✅ done. players3d=' + players3d + ' decks=' + W3D.decks.length + ' winDecks=' + W3D.winDecks.length);
 }
 
 updateDecks().catch(function (e) {
