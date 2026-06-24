@@ -16,7 +16,9 @@ on:
         required: false
         default: '1000'
   schedule:
-    - cron: '0 */6 * * *'   # Phase 1 は GAS と同じ 6h（検証しやすさ優先）。Phase 2 で 1h 等へ。
+    # ★一時的に 10分ごと（cron自動発火の確認用）。確認できたら '0 */6 * * *' に戻す。
+    - cron: '*/10 * * * *'
+    # - cron: '0 */6 * * *'   # 本来の Phase 1（GAS parity 6h）。Phase 2 で 1h 等へ。
 
 concurrency:
   group: collect-decks      # 多重起動を防ぐ（前の収集が走っていたら待つ）
