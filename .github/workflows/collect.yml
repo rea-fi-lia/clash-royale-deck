@@ -45,6 +45,6 @@ jobs:
           TARGET_BRANCH: ${{ github.event.inputs.target_branch || 'data-test' }}
           TOP_PLAYERS: ${{ github.event.inputs.top_players || '1000' }}
           INTERVAL_HOURS: '6'
-          WIN_MIN_GAMES_3D: '30'
+          WIN_MIN_GAMES_3D: '100'   # ★本番GASのスクリプトプロパティと一致（既定30を上書き運用中）。カットオーバー無風化。
           DECKS_PATH: 'decks.json'   # GITHUB_PATH は Actions 予約名のため使わない
         run: node tools/collect.js
