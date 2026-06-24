@@ -616,7 +616,8 @@ async function updateDecks() {
       .sort(function (a, b) { return b.share - a.share; });
     var allTags = {};
     Object.keys(hist.uniq).forEach(function (sig) { var m = hist.uniq[sig]; Object.keys(m).forEach(function (t) { if (m[t] >= now - ms) allTags[t] = 1; }); });
-    return { players: playersW, uniquePlayers: Object.keys(allTags).length, decks: popDecks, winDecks: winDecks, cards: cards, trending: trending, meta: meta };
+    var gamesTotal = Object.keys(agg).reduce(function (s, sig) { return s + (agg[sig].G || 0); }, 0); // 窓内の総戦数（説明文用）
+    return { players: playersW, uniquePlayers: Object.keys(allTags).length, games: gamesTotal, decks: popDecks, winDecks: winDecks, cards: cards, trending: trending, meta: meta };
   }
 
   var DAY = 864e5, HOUR = 36e5;
@@ -675,6 +676,7 @@ async function updateDecks() {
     players: W3D.players,
     playersPerRun: aggregated,
     uniquePlayers: W3D.uniquePlayers,   // ★3日窓の総ユニーク人数（収集頻度に依存しない）
+    games: W3D.games,                   // ★3日窓の総戦数
     topPlayers: players.length,
     intervalHours: intervalHours,
     windowDays: WINDOW_DAYS,
@@ -689,9 +691,9 @@ async function updateDecks() {
     winMin: WIN_MIN_3D,
     // ★窓別（1h / 1日 / 3日）＝フロントのセレクタで切替。既定は 3d。
     windows: {
-      '1h': { players: W1H.players, uniquePlayers: W1H.uniquePlayers, decks: W1H.decks, winDecks: W1H.winDecks, trending: W1H.trending, cards: W1H.cards, meta: W1H.meta },
-      '1d': { players: W1D.players, uniquePlayers: W1D.uniquePlayers, decks: W1D.decks, winDecks: W1D.winDecks, trending: W1D.trending, cards: W1D.cards, meta: W1D.meta },
-      '3d': { players: W3D.players, uniquePlayers: W3D.uniquePlayers, decks: W3D.decks, winDecks: W3D.winDecks, trending: W3D.trending, cards: W3D.cards, meta: W3D.meta }
+      '1h': { players: W1H.players, uniquePlayers: W1H.uniquePlayers, games: W1H.games, decks: W1H.decks, winDecks: W1H.winDecks, trending: W1H.trending, cards: W1H.cards, meta: W1H.meta },
+      '1d': { players: W1D.players, uniquePlayers: W1D.uniquePlayers, games: W1D.games, decks: W1D.decks, winDecks: W1D.winDecks, trending: W1D.trending, cards: W1D.cards, meta: W1D.meta },
+      '3d': { players: W3D.players, uniquePlayers: W3D.uniquePlayers, games: W3D.games, decks: W3D.decks, winDecks: W3D.winDecks, trending: W3D.trending, cards: W3D.cards, meta: W3D.meta }
     }
   }, 'chore: update decks.json');
   await ghWriteJson_(histPath, hist, 'chore: update cardhist.json'); // 履歴
