@@ -499,17 +499,7 @@ async function updateDecks() {
   hist.snaps.push({ t: now, players: aggregated, use: useNow, bat: batNow, dk: dkNow });
   hist.snaps = hist.snaps.filter(function (s) { return s.t >= now - WINDOW_DAYS * 864e5; });
 
-  // 3日合算
-  var agg = {}, players3d = 0;
-  hist.snaps.forEach(function (s) {
-    players3d += (s.players || 0);
-    var dk = s.dk || {};
-    Object.keys(dk).forEach(function (sig) {
-      var a = agg[sig] || (agg[sig] = { P: 0, G: 0, W: 0, C3: 0, CF: 0, CA: 0 });
-      a.P += dk[sig][0] || 0; a.G += dk[sig][1] || 0; a.W += dk[sig][2] || 0;
-      a.C3 += dk[sig][3] || 0; a.CF += dk[sig][4] || 0; a.CA += dk[sig][5] || 0;
-    });
-  });
+  // （窓ごとの合算は buildWindow 内で行う＝1h/1日/3日を同じ snaps から導出）
 
   // 表示用の絵柄：今回の集計→過去確定(dinfo)
   function renderSig(sig) {
@@ -554,78 +544,87 @@ async function updateDecks() {
     Object.keys(m).forEach(function (tag) { if (m[tag] < now - WINDOW_MS) delete m[tag]; });
     if (!live[sig] || !Object.keys(m).length) delete hist.uniq[sig];
   });
-  function uniqCount(sig) { return hist.uniq[sig] ? Object.keys(hist.uniq[sig]).length : 0; }
-  // 窓内の総ユニーク人数（全sigのタグ和集合）＝「ユニーク◯人のデータ」の◯
-  var _allTags = {};
-  Object.keys(hist.uniq).forEach(function (sig) { Object.keys(hist.uniq[sig]).forEach(function (t) { _allTags[t] = 1; }); });
-  var uniquePlayers = Object.keys(_allTags).length;
-
-  // 使用率ランキング（延べ使用人数P順・100位）
-  var popDecks = Object.keys(agg).sort(function (a, b) { return agg[b].P - agg[a].P; })
-    .map(function (sig) {
-      var d = renderSig(sig); if (!d) return null;
-      var a = agg[sig], cr = crownOut_(a);
-      var o = { name: d.name, slots: d.slots, forms: d.forms, count: a.P, uniq: uniqCount(sig), games: a.G, arch: archOfSig_(sig), archs: archsOfSig_(sig) };
-      var ch = cycHvy_(d.slots); o.cyc = ch.cyc; o.hvy = ch.hvy;
-      if (a.G > 0) o.winRate = Math.round(a.W / a.G * 1000) / 10;
-      if (cr) { o.c3 = cr.c3; o.cd = cr.cd; }
-      return o;
-    })
-    .filter(Boolean).slice(0, DECK_TOP);
-
-  // 勝率ランキング（Wilson下限・WIN_MIN_3D戦以上・100位）
-  var winDecks = Object.keys(agg).filter(function (sig) { return agg[sig].G >= WIN_MIN_3D; })
-    .sort(function (a, b) { return wilson_(agg[b].W, agg[b].G) - wilson_(agg[a].W, agg[a].G) || (agg[b].G - agg[a].G); })
-    .map(function (sig) {
-      var d = renderSig(sig); if (!d) return null;
-      var a = agg[sig], cr = crownOut_(a);
-      var o = { name: d.name, slots: d.slots, forms: d.forms, games: a.G, wins: a.W,
-        winRate: Math.round(a.W / a.G * 1000) / 10, lb: Math.round(wilson_(a.W, a.G) * 1000) / 10,
-        count: a.P, uniq: uniqCount(sig), arch: archOfSig_(sig), archs: archsOfSig_(sig) };
-      var ch = cycHvy_(d.slots); o.cyc = ch.cyc; o.hvy = ch.hvy;
-      if (cr) { o.c3 = cr.c3; o.cd = cr.cd; }
-      return o;
-    })
-    .filter(Boolean).slice(0, DECK_TOP);
-
-  console.log('popDecks ' + popDecks.length + ' / winDecks ' + winDecks.length + ' (winMin3d ' + WIN_MIN_3D + ') / sigs ' + Object.keys(agg).length);
-
-  // カード単体（3日ローリング）
-  var cards = aggregateCards_(hist.snaps);
-
-  // 急上昇：今回 vs 過去3日（dkベース）
-  var trending = [];
-  var prior = hist.snaps.slice(0, -1);
-  if (prior.length >= 1) {
-    var baseCount = {}, basePlayers = 0;
-    prior.forEach(function (s) { basePlayers += (s.players || 0); var dk = s.dk || {}; Object.keys(dk).forEach(function (sig) { baseCount[sig] = (baseCount[sig] || 0) + (dk[sig][0] || 0); }); });
-    var curPlayers = aggregated || 1;
-    Object.keys(pop).forEach(function (sig) {
-      var cur = pop[sig].count;
-      if (cur < 2) return;
-      var rise = (cur / curPlayers) - (basePlayers > 0 ? (baseCount[sig] || 0) / basePlayers : 0);
-      if (rise > 0) { var d = finalizeDeck(pop[sig]); trending.push({ name: d.name, slots: d.slots, forms: d.forms, count: cur, delta: Math.round(rise * 1000) / 10 }); }
-    });
-    trending.sort(function (a, b) { return b.delta - a.delta || b.count - a.count; });
-    trending = trending.slice(0, 15);
+  // 窓内ユニーク人数（最終確認msで窓を切る）。1h/1日/3日 を同じ表から算出。
+  function uniqCountW(sig, ms) {
+    var m = hist.uniq[sig]; if (!m) return 0;
+    var c = 0, thr = now - ms, ks = Object.keys(m);
+    for (var i = 0; i < ks.length; i++) if (m[ks[i]] >= thr) c++;
+    return c;
   }
-  console.log('cards ' + cards.length + ' / trending ' + trending.length + ' / snaps ' + hist.snaps.length);
 
-  // ★メタシェア
-  var metaAgg = {};
-  var sigTotalP = 0;
-  Object.keys(agg).forEach(function (sig) {
-    sigTotalP += agg[sig].P;
-    archsOfSig_(sig).forEach(function (k) {
-      var m = metaAgg[k] || (metaAgg[k] = { P: 0, G: 0, W: 0 });
-      m.P += agg[sig].P; m.G += agg[sig].G; m.W += agg[sig].W;
+  // ★窓ごとのデータセットを構築（decks/winDecks/cards/trending/meta/players/uniquePlayers）。
+  //   表示は uniq(N人分)・games(M戦) が主。count(延べP) は収集頻度で膨らむ参考値として温存。
+  function buildWindow(ms, winMin) {
+    var snaps = hist.snaps.filter(function (s) { return s.t >= now - ms; });
+    if (!snaps.length) snaps = hist.snaps.slice(-1); // 空回避（最新1枚）
+    var agg = {}, playersW = 0;
+    snaps.forEach(function (s) {
+      playersW += (s.players || 0);
+      var dk = s.dk || {};
+      Object.keys(dk).forEach(function (sig) {
+        var a = agg[sig] || (agg[sig] = { P: 0, G: 0, W: 0, C3: 0, CF: 0, CA: 0 });
+        a.P += dk[sig][0] || 0; a.G += dk[sig][1] || 0; a.W += dk[sig][2] || 0;
+        a.C3 += dk[sig][3] || 0; a.CF += dk[sig][4] || 0; a.CA += dk[sig][5] || 0;
+      });
     });
-  });
-  var totalP = sigTotalP || 1;
-  var meta = Object.keys(metaAgg).map(function (k) {
-    var m = metaAgg[k];
-    return { k: k, share: Math.round(m.P / totalP * 1000) / 10, win: m.G ? Math.round(m.W / m.G * 1000) / 10 : null, games: m.G };
-  }).sort(function (a, b) { return b.share - a.share; });
+    var popDecks = Object.keys(agg).sort(function (a, b) { return agg[b].P - agg[a].P; })
+      .map(function (sig) {
+        var d = renderSig(sig); if (!d) return null;
+        var a = agg[sig], cr = crownOut_(a);
+        var o = { name: d.name, slots: d.slots, forms: d.forms, count: a.P, uniq: uniqCountW(sig, ms), games: a.G, arch: archOfSig_(sig), archs: archsOfSig_(sig) };
+        var ch = cycHvy_(d.slots); o.cyc = ch.cyc; o.hvy = ch.hvy;
+        if (a.G > 0) o.winRate = Math.round(a.W / a.G * 1000) / 10;
+        if (cr) { o.c3 = cr.c3; o.cd = cr.cd; }
+        return o;
+      }).filter(Boolean).slice(0, DECK_TOP);
+    var winDecks = Object.keys(agg).filter(function (sig) { return agg[sig].G >= winMin; })
+      .sort(function (a, b) { return wilson_(agg[b].W, agg[b].G) - wilson_(agg[a].W, agg[a].G) || (agg[b].G - agg[a].G); })
+      .map(function (sig) {
+        var d = renderSig(sig); if (!d) return null;
+        var a = agg[sig], cr = crownOut_(a);
+        var o = { name: d.name, slots: d.slots, forms: d.forms, games: a.G, wins: a.W,
+          winRate: Math.round(a.W / a.G * 1000) / 10, lb: Math.round(wilson_(a.W, a.G) * 1000) / 10,
+          count: a.P, uniq: uniqCountW(sig, ms), arch: archOfSig_(sig), archs: archsOfSig_(sig) };
+        var ch = cycHvy_(d.slots); o.cyc = ch.cyc; o.hvy = ch.hvy;
+        if (cr) { o.c3 = cr.c3; o.cd = cr.cd; }
+        return o;
+      }).filter(Boolean).slice(0, DECK_TOP);
+    var cards = aggregateCards_(snaps);
+    // 急上昇：窓内の最新snap vs それ以前
+    var trending = [];
+    var latest = snaps[snaps.length - 1] || { dk: {}, players: 0 };
+    var prior = snaps.slice(0, -1);
+    if (prior.length >= 1) {
+      var baseCount = {}, basePlayers = 0;
+      prior.forEach(function (s) { basePlayers += (s.players || 0); var dk = s.dk || {}; Object.keys(dk).forEach(function (sig) { baseCount[sig] = (baseCount[sig] || 0) + (dk[sig][0] || 0); }); });
+      var curPlayers = latest.players || 1, ldk = latest.dk || {};
+      Object.keys(ldk).forEach(function (sig) {
+        var cur = ldk[sig][0] || 0; if (cur < 2) return;
+        var rise = (cur / curPlayers) - (basePlayers > 0 ? (baseCount[sig] || 0) / basePlayers : 0);
+        if (rise > 0) { var d = renderSig(sig); if (d) trending.push({ name: d.name, slots: d.slots, forms: d.forms, count: cur, delta: Math.round(rise * 1000) / 10 }); }
+      });
+      trending.sort(function (a, b) { return b.delta - a.delta || b.count - a.count; });
+      trending = trending.slice(0, 15);
+    }
+    var metaAgg = {}, sigTotalP = 0;
+    Object.keys(agg).forEach(function (sig) {
+      sigTotalP += agg[sig].P;
+      archsOfSig_(sig).forEach(function (k) { var m = metaAgg[k] || (metaAgg[k] = { P: 0, G: 0, W: 0 }); m.P += agg[sig].P; m.G += agg[sig].G; m.W += agg[sig].W; });
+    });
+    var totalP = sigTotalP || 1;
+    var meta = Object.keys(metaAgg).map(function (k) { var m = metaAgg[k]; return { k: k, share: Math.round(m.P / totalP * 1000) / 10, win: m.G ? Math.round(m.W / m.G * 1000) / 10 : null, games: m.G }; })
+      .sort(function (a, b) { return b.share - a.share; });
+    var allTags = {};
+    Object.keys(hist.uniq).forEach(function (sig) { var m = hist.uniq[sig]; Object.keys(m).forEach(function (t) { if (m[t] >= now - ms) allTags[t] = 1; }); });
+    return { players: playersW, uniquePlayers: Object.keys(allTags).length, decks: popDecks, winDecks: winDecks, cards: cards, trending: trending, meta: meta };
+  }
+
+  var DAY = 864e5, HOUR = 36e5;
+  var W3D = buildWindow(3 * DAY, WIN_MIN_3D);   // 既定（最低試合数100）
+  var W1D = buildWindow(1 * DAY, 40);           // 1日（少サンプルなので閾値を下げる）
+  var W1H = buildWindow(1 * HOUR, 10);          // 1時間（超新鮮・最も少サンプル）
+  var players3d = W3D.players;
+  console.log('windows 3d(decks ' + W3D.decks.length + '/win ' + W3D.winDecks.length + '/uniq ' + W3D.uniquePlayers + ') 1d(' + W1D.decks.length + '/' + W1D.winDecks.length + '/' + W1D.uniquePlayers + ') 1h(' + W1H.decks.length + '/' + W1H.winDecks.length + '/' + W1H.uniquePlayers + ')');
 
   // ★相性（matchups.json に月別累積）
   if (Object.keys(muNow).length) {
@@ -673,19 +672,27 @@ async function updateDecks() {
 
   await ghWriteJson_(ghPath, {
     updated: new Date().toISOString(),
-    players: players3d,
+    players: W3D.players,
     playersPerRun: aggregated,
-    uniquePlayers: uniquePlayers,   // ★窓内の総ユニーク人数（収集頻度に依存しない）
+    uniquePlayers: W3D.uniquePlayers,   // ★3日窓の総ユニーク人数（収集頻度に依存しない）
     topPlayers: players.length,
     intervalHours: intervalHours,
     windowDays: WINDOW_DAYS,
     cardsWindowDays: WINDOW_DAYS,
-    decks: popDecks,
-    winDecks: winDecks,
-    trending: trending,
-    cards: cards,
-    meta: meta,
-    winMin: WIN_MIN_3D
+    defaultWindow: '3d',
+    // 既定(3日)を従来どおりトップレベルにも置く＝後方互換（旧フロントもそのまま動く）
+    decks: W3D.decks,
+    winDecks: W3D.winDecks,
+    trending: W3D.trending,
+    cards: W3D.cards,
+    meta: W3D.meta,
+    winMin: WIN_MIN_3D,
+    // ★窓別（1h / 1日 / 3日）＝フロントのセレクタで切替。既定は 3d。
+    windows: {
+      '1h': { players: W1H.players, uniquePlayers: W1H.uniquePlayers, decks: W1H.decks, winDecks: W1H.winDecks, trending: W1H.trending, cards: W1H.cards, meta: W1H.meta },
+      '1d': { players: W1D.players, uniquePlayers: W1D.uniquePlayers, decks: W1D.decks, winDecks: W1D.winDecks, trending: W1D.trending, cards: W1D.cards, meta: W1D.meta },
+      '3d': { players: W3D.players, uniquePlayers: W3D.uniquePlayers, decks: W3D.decks, winDecks: W3D.winDecks, trending: W3D.trending, cards: W3D.cards, meta: W3D.meta }
+    }
   }, 'chore: update decks.json');
   await ghWriteJson_(histPath, hist, 'chore: update cardhist.json'); // 履歴
 

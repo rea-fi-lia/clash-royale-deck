@@ -16,7 +16,7 @@ on:
         required: false
         default: '1000'
   schedule:
-    - cron: '0 */6 * * *'   # 本番=6h（GAS parity）。Phase 2 でカウント正規化と同時に 1h 化する。
+    - cron: '0 * * * *'   # 1時間ごと（Phase 2＝超新鮮メタ）。uniq/games は頻度非依存・count(延べ)のみ膨らむが表示はuniq/games主。
 
 concurrency:
   group: collect-decks      # 多重起動を防ぐ（前の収集が走っていたら待つ）
