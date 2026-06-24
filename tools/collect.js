@@ -283,6 +283,14 @@ async function updateDecks() {
   var pop = {}, win = {}, unmapped = {}, CHUNK = 40;
   var muNow = {};       // ' 自分arch|相手arch' → [試合数, 勝ち数]（今回ぶん）
   var typeSeen = {};    // 観測した type/gameMode の分布（ランク判定の検証用ログ）
+  var runPlayerSig = {}; // ★今回ぶん：プレイヤータグ → そのプレイヤーの現在デッキ署名（ユニーク人数集計用）
+
+  // 署名キー（tally と同一規則）。ユニーク人数のローリング表のキーに使う。
+  function sigKey(d) {
+    var special = [];
+    d.jp.forEach(function (n, idx) { if (d.fm[idx] !== 'norm') special.push(n); });
+    return d.jp.slice().sort().join('|') + '#' + special.slice().sort().join('|');
+  }
 
   function isRanked_(b) {
     var t = b.type || '', gm = (b.gameMode && b.gameMode.name) || '';
@@ -351,7 +359,7 @@ async function updateDecks() {
       if (evoCnt(cards) > 4) continue;
       var d = classifyDeck(cards);
       if (!d) continue;
-      if (!gotPop) { if (tally(pop, d, null)) gotPop = true; }
+      if (!gotPop) { if (tally(pop, d, null)) { gotPop = true; if (tag) runPlayerSig[tag] = sigKey(d); } }
       var bt = b.battleTime || '';
       if (bt && bt > maxT) maxT = bt;
       if (seenT && bt && bt <= seenT) continue;    // ★前回処理済み＝二重カウントしない
@@ -533,12 +541,31 @@ async function updateDecks() {
   var live = {}; hist.snaps.forEach(function (s) { Object.keys(s.dk || {}).forEach(function (sig) { live[sig] = 1; }); });
   Object.keys(hist.dinfo).forEach(function (sig) { if (!live[sig]) delete hist.dinfo[sig]; });
 
+  // ★ユニーク人数（窓内）：sig→{tag: 最終確認ms}。今回の現在デッキを記録し、窓外タグ/死んだsigを剪定。
+  //   ユニーク人数＝そのsigのタグ数。最終確認msを持つので 1h/1日/3日 のユニーク数も同じ表から算出可（Phase 2b）。
+  hist.uniq = hist.uniq || {};
+  Object.keys(runPlayerSig).forEach(function (tag) {
+    var sig = runPlayerSig[tag];
+    (hist.uniq[sig] || (hist.uniq[sig] = {}))[tag] = now;
+  });
+  var WINDOW_MS = WINDOW_DAYS * 864e5;
+  Object.keys(hist.uniq).forEach(function (sig) {
+    var m = hist.uniq[sig];
+    Object.keys(m).forEach(function (tag) { if (m[tag] < now - WINDOW_MS) delete m[tag]; });
+    if (!live[sig] || !Object.keys(m).length) delete hist.uniq[sig];
+  });
+  function uniqCount(sig) { return hist.uniq[sig] ? Object.keys(hist.uniq[sig]).length : 0; }
+  // 窓内の総ユニーク人数（全sigのタグ和集合）＝「ユニーク◯人のデータ」の◯
+  var _allTags = {};
+  Object.keys(hist.uniq).forEach(function (sig) { Object.keys(hist.uniq[sig]).forEach(function (t) { _allTags[t] = 1; }); });
+  var uniquePlayers = Object.keys(_allTags).length;
+
   // 使用率ランキング（延べ使用人数P順・100位）
   var popDecks = Object.keys(agg).sort(function (a, b) { return agg[b].P - agg[a].P; })
     .map(function (sig) {
       var d = renderSig(sig); if (!d) return null;
       var a = agg[sig], cr = crownOut_(a);
-      var o = { name: d.name, slots: d.slots, forms: d.forms, count: a.P, games: a.G, arch: archOfSig_(sig), archs: archsOfSig_(sig) };
+      var o = { name: d.name, slots: d.slots, forms: d.forms, count: a.P, uniq: uniqCount(sig), games: a.G, arch: archOfSig_(sig), archs: archsOfSig_(sig) };
       var ch = cycHvy_(d.slots); o.cyc = ch.cyc; o.hvy = ch.hvy;
       if (a.G > 0) o.winRate = Math.round(a.W / a.G * 1000) / 10;
       if (cr) { o.c3 = cr.c3; o.cd = cr.cd; }
@@ -554,7 +581,7 @@ async function updateDecks() {
       var a = agg[sig], cr = crownOut_(a);
       var o = { name: d.name, slots: d.slots, forms: d.forms, games: a.G, wins: a.W,
         winRate: Math.round(a.W / a.G * 1000) / 10, lb: Math.round(wilson_(a.W, a.G) * 1000) / 10,
-        count: a.P, arch: archOfSig_(sig), archs: archsOfSig_(sig) };
+        count: a.P, uniq: uniqCount(sig), arch: archOfSig_(sig), archs: archsOfSig_(sig) };
       var ch = cycHvy_(d.slots); o.cyc = ch.cyc; o.hvy = ch.hvy;
       if (cr) { o.c3 = cr.c3; o.cd = cr.cd; }
       return o;
@@ -648,6 +675,7 @@ async function updateDecks() {
     updated: new Date().toISOString(),
     players: players3d,
     playersPerRun: aggregated,
+    uniquePlayers: uniquePlayers,   // ★窓内の総ユニーク人数（収集頻度に依存しない）
     topPlayers: players.length,
     intervalHours: intervalHours,
     windowDays: WINDOW_DAYS,
