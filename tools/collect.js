@@ -284,6 +284,17 @@ async function updateDecks() {
   var muNow = {};       // ' 自分arch|相手arch' → [試合数, 勝ち数]（今回ぶん）
   var typeSeen = {};    // 観測した type/gameMode の分布（ランク判定の検証用ログ）
   var runPlayerSig = {}; // ★今回ぶん：プレイヤータグ → そのプレイヤーの現在デッキ署名（ユニーク人数集計用）
+  var RECON_DONE = false; // ★一時：実バトルログのフィールド構造を1試合だけログに出す（精査後に削除）
+  function reconLog(b) {
+    var t0 = (b.team && b.team[0]) || {}, o0 = (b.opponent && b.opponent[0]) || {};
+    var c0 = (t0.cards && t0.cards[0]) || {};
+    console.log('🔎RECON battle keys: ' + JSON.stringify(Object.keys(b)));
+    console.log('🔎RECON battle: ' + JSON.stringify({ type: b.type, gameMode: b.gameMode, deckSelection: b.deckSelection, battleTime: b.battleTime, isLadderTournament: b.isLadderTournament, arena: b.arena, challengeId: b.challengeId }));
+    console.log('🔎RECON team[0] keys: ' + JSON.stringify(Object.keys(t0)));
+    console.log('🔎RECON team[0]: ' + JSON.stringify({ startingTrophies: t0.startingTrophies, trophyChange: t0.trophyChange, crowns: t0.crowns, kingTowerHitPoints: t0.kingTowerHitPoints, princessTowersHitPoints: t0.princessTowersHitPoints, elixirLeaked: t0.elixirLeaked, globalRank: t0.globalRank, supportCardsLen: (t0.supportCards || []).length, supportCard0: (t0.supportCards || [])[0] }));
+    console.log('🔎RECON opp[0]: ' + JSON.stringify({ startingTrophies: o0.startingTrophies, trophyChange: o0.trophyChange, crowns: o0.crowns, kingTowerHitPoints: o0.kingTowerHitPoints, princessTowersHitPoints: o0.princessTowersHitPoints, tag: o0.tag ? 'present' : null }));
+    console.log('🔎RECON card[0] keys: ' + JSON.stringify(Object.keys(c0)) + ' sample: ' + JSON.stringify(c0));
+  }
 
   // 署名キー（tally と同一規則）。ユニーク人数のローリング表のキーに使う。
   function sigKey(d) {
@@ -352,6 +363,7 @@ async function updateDecks() {
     for (var i = 0; i < battles.length; i++) {
       var b = battles[i];
       if (!isStd(b)) continue;
+      if (!RECON_DONE) { RECON_DONE = true; try { reconLog(b); } catch (e) {} }
       var tk = (b.type || '?') + '/' + ((b.gameMode && b.gameMode.name) || '?');
       typeSeen[tk] = (typeSeen[tk] || 0) + 1;
       if (!isRanked_(b)) continue;                 // ★ランク戦のみ
