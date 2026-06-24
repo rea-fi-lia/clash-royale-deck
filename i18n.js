@@ -19,9 +19,9 @@
     ja: {
       "toast.movedToSlot": "{name} をスロット{n}へ移動",
       "toast.removedFromDeck": "{name} をデッキから外しました",
-      "decks.srcTop": "世界トップ{n}ランカー（過去3日で延べ{p}人分を集計）",
+      "decks.srcTop": "世界トップ{n}ランカー（{p}人分を集計）",
       "decks.srcTopNoSample": "世界トップ{n}ランカー",
-      "decks.srcGenericSample": "世界上位ランカー延べ{p}人",
+      "decks.srcGenericSample": "世界上位ランカー{p}人分",
       "decks.srcGeneric": "世界上位ランカー",
       "decks.subMain": "<b>{hrs}時間ごとに更新されます。</b>{src}の<b>{win}のランク戦（バトル）使用デッキ</b>を集計しています。ログインしてクラロワIDを設定すると<b>自分のカードで組めるデッキだけ</b>に絞り込めます。",
       "decks.noteMain": "{hrs}時間ごとに更新／{src}の{win}のランク戦から集計",
@@ -90,9 +90,9 @@
     en: {
       "toast.movedToSlot": "Moved {name} to slot {n}",
       "toast.removedFromDeck": "Removed {name} from the deck",
-      "decks.srcTop": "the top {n} ranked players ({p} entries)",
+      "decks.srcTop": "the top {n} ranked players ({p} players)",
       "decks.srcTopNoSample": "the top {n} ranked players",
-      "decks.srcGenericSample": "top players ({p} entries)",
+      "decks.srcGenericSample": "top players ({p} players)",
       "decks.srcGeneric": "top players",
       "decks.subMain": "<b>Updated every {hrs} hours.</b> Aggregating <b>Ranked (Path of Legend) decks from {win}</b> by {src}. Sign in and set your Clash Royale ID to filter to <b>only decks you can build</b>.",
       "decks.noteMain": "Updated every {hrs}h · Ranked battles from {src}, {win}",
