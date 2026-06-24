@@ -21,9 +21,15 @@ let activeTab = 'pop';     // 'pop'=使用率 / 'win'=勝率 / 'trend'=急上昇
 let ownedSet = null;       // 解決済み所持カード名Set（未取得null）
 let onlyOwned = false;     // 絞り込みON/OFF
 let cardFilter = null;     // 「このカードを含むデッキだけ」絞り込み（カード名 or null）
-let PLAYERS_TOTAL = 0;     // 集計した母数（使用率%の計算用）
+let PLAYERS_TOTAL = 0;     // 集計した母数（延べ・参考）
+let UNIQUE_TOTAL = 0;      // 窓内の総ユニーク人数（%の分母）
 let WIN_MIN_SHOW = 100;    // 勝率ランキングの最低試合数（decks.jsonのwinMinに追従。既定もGAS WIN_MIN_GAMES_3D=100に合わせる）
 let UPDATE_HRS = 6;        // 更新間隔（時間）。decks.json の intervalHours から
+let DECKS_JSON = null;     // 取得した decks.json 全体（窓切替用に保持）
+let CUR_WINDOW = '3d';     // 表示中の集計窓 '1h' | '1d' | '3d'（既定3日）
+const WIN_KEYS = ['1h', '1d', '3d'];
+const WIN_LABEL_JA = { '1h': '直近1時間', '1d': '直近1日', '3d': '過去3日' }; // _tr で各言語へ
+function winLabel(k) { return _tr(WIN_LABEL_JA[k] || k); }
 function currentList() { return activeTab === 'win' ? WIN_DECKS : activeTab === 'trend' ? TREND_DECKS : ALL_DECKS; }
 
 // APIがカタカナで返した場合の別名保険（index.html と同じ）
@@ -212,7 +218,7 @@ function renderDecks(decks) {
     if (d.delta != null) {
       // 急上昇タブ：3日窓の前半→直近で使用が伸びたデッキ（単発の差分ではなく合算比較）
       headHtml = '<span class="stat-trend"><span class="arrow">▲</span> ' + _tr('急上昇') + '</span>'
-        + (d.count != null ? '<span class="stat-sep">' + _t('decks.nUsed', { n: d.count }) + '</span>' : '')
+        + (d.uniq != null ? '<span class="stat-sep">' + _t('decks.nPeople', { n: d.uniq }) + '</span>' : d.count != null ? '<span class="stat-sep">' + _t('decks.nUsed', { n: d.count }) + '</span>' : '')
         + '<span class="stat-avg">' + avgLbl + ' <b>' + avg + '</b></span>';
     } else if (activeTab === 'win' && d.winRate != null) {
       // 勝率タブ：勝率 ＋ 対戦数（3日合計）＋ 使用人数
@@ -220,18 +226,19 @@ function renderDecks(decks) {
         + '<span class="stat-sep">' + _t('decks.nGames', { n: (d.games || 0) }) + '</span>'
         + (d.c3 != null ? '<span class="stat-sep">' + _t('decks.c3', { p: d.c3 }) + '</span>' : '')
         + (d.cd != null ? '<span class="stat-sep">' + _t('decks.cd', { v: (d.cd > 0 ? '+' + d.cd : d.cd) }) + '</span>' : '')
-        + (d.count != null ? '<span class="stat-sep">' + _t('decks.nUsed', { n: d.count }) + '</span>' : '')
+        + (d.uniq != null ? '<span class="stat-sep">' + _t('decks.nPeople', { n: d.uniq }) + '</span>' : d.count != null ? '<span class="stat-sep">' + _t('decks.nUsed', { n: d.count }) + '</span>' : '')
         + '<span class="stat-avg">' + avgLbl + ' <b>' + avg + '</b></span>';
     } else {
-      // 使用率タブ：使用人数（3日延べ）＋ ％ ＋ 対戦数（何回使われたか）
-      const pct = (d.count != null && PLAYERS_TOTAL) ? (d.count / PLAYERS_TOTAL * 100).toFixed(1) : null;
+      // 使用率タブ：N人分（窓内ユニーク使用者）＋ ％ ＋ M戦
+      const uniq = (d.uniq != null) ? d.uniq : null;
+      const pct = (uniq != null && UNIQUE_TOTAL) ? (uniq / UNIQUE_TOTAL * 100).toFixed(1)
+                : (d.count != null && PLAYERS_TOTAL) ? (d.count / PLAYERS_TOTAL * 100).toFixed(1) : null;
       const gamesTxt = (d.games != null) ? '<span class="stat-sep">' + _t('decks.nGames', { n: d.games }) + '</span>' : '';
       const winTxt = (d.winRate != null) ? '<span class="stat-sep">' + _t('decks.winPct', { p: d.winRate }) + '</span>' : '';
-      const useSep = _tr('が使用');
-      headHtml = (pct != null)
-        ? ('<span class="stat-use">' + _t('decks.nPlayersUse', { n: d.count }) + '</span>'
-           + (useSep ? '<span class="stat-sep">' + useSep + '</span>' : '')
-           + '<span class="stat-pct">' + pct + '%</span>'
+      const head = (uniq != null) ? _t('decks.nPeople', { n: uniq }) : (d.count != null ? _t('decks.nPlayersUse', { n: d.count }) : null);
+      headHtml = (head != null)
+        ? ('<span class="stat-use">' + head + '</span>'
+           + (pct != null ? '<span class="stat-pct">' + pct + '%</span>' : '')
            + gamesTxt + winTxt
            + '<span class="stat-avg">' + avgLbl + ' <b>' + avg + '</b></span>')
         : ('<span class="stat-avg">' + avgLbl + ' <b>' + avg + '</b></span>'
@@ -795,9 +802,10 @@ function srcTextI18n() {
 }
 function renderAggText() {
   const src = srcTextI18n();
+  const win = winLabel(CUR_WINDOW);
   const sub = document.getElementById('pageSub');
-  if (sub) sub.innerHTML = _t('decks.subMain', { hrs: _agg.hrs, src: src });
-  window.__cardsNoteEnv = _agg.cardsReal ? _t('decks.noteMain', { hrs: _agg.hrs, src: src }) : _t('decks.noteSample');
+  if (sub) sub.innerHTML = _t('decks.subMain', { hrs: _agg.hrs, src: src, win: win });
+  window.__cardsNoteEnv = _agg.cardsReal ? _t('decks.noteMain', { hrs: _agg.hrs, src: src, win: win }) : _t('decks.noteSample');
   const cn = document.getElementById('cardsNote');
   if (cn && _cardMode !== 'me') cn.textContent = window.__cardsNoteEnv;
   const note = document.getElementById('aggNote');
@@ -814,6 +822,10 @@ function renderAggText() {
 }
 // 言語切替時：集計テキスト・タブ説明＋動的描画（デッキ一覧/カードランキング/分布図/チップ等）を現在言語で作り直す
 window.addEventListener('crlangchange', () => {
+  try {
+    const sl = document.querySelector('.win-seg-lbl'); if (sl) sl.textContent = _tr('集計期間');
+    document.querySelectorAll('.win-seg [data-win]').forEach(b => b.textContent = winLabel(b.dataset.win));
+  } catch (e) {}
   try { renderAggText(); updateDeckTabDesc(); renderMetaShare(); } catch (e) {}
   try { applyDecks(); } catch (e) {}
   try { renderCrank(); renderMetaMap(); renderMeMeta(); } catch (e) {}
@@ -834,7 +846,7 @@ function renderMetaShare() {
   const top = META; // 全勝ち筋をスクロール表示
   const maxS = Math.max(1, ...top.map(m => m.share || 0));
   el.style.display = '';
-  el.innerHTML = '<div class="ms-title">' + _tr('🧭 環境シェア（勝ち筋別・過去3日）') + '</div>'
+  el.innerHTML = '<div class="ms-title">' + _tr('🧭 環境シェア（勝ち筋別）') + '<span class="ms-win">' + winLabel(CUR_WINDOW) + '</span></div>'
     + '<div class="ms-note">' + _tr('％＝この勝ち筋カードを含むデッキを使った人の割合（複数の勝ち筋を持つデッキは各勝ち筋にカウント）／ 勝率＝そのデッキ全体の勝率') + '</div>'
     + '<div class="ms-list">' + top.map(m => {
       const base = String(m.k).replace(/[⚡👑]+$/, '');
@@ -857,29 +869,57 @@ fetch(DECKS_DATA_URL, { cache: 'no-store' })
   .then(r => { if (!r.ok) throw 0; return r.json(); })
   .catch(() => fetch('decks.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null))
   .then(j => {
-    const hasData = j && Array.isArray(j.decks) && j.decks.length;
-    ALL_DECKS = hasData ? j.decks : DECKS;
-    WIN_DECKS = (j && Array.isArray(j.winDecks)) ? j.winDecks : [];
-    const trendReal = j && Array.isArray(j.trending) && j.trending.length;
-    TREND_DECKS = trendReal ? j.trending : []; // 内蔵サンプルは形(forms)を持たず崩れるので使わない。空なら「集計中」表示
-    const cardsReal = j && Array.isArray(j.cards) && j.cards.length;
-    CARDS_DATA = cardsReal ? j.cards : CARDS_SAMPLE;
-    initCardMeta(!cardsReal);
-    META = (j && Array.isArray(j.meta)) ? j.meta : [];
-    renderMetaShare();
-    PLAYERS_TOTAL = (j && j.players) ? j.players : 0;
-    if (j && j.winMin) WIN_MIN_SHOW = j.winMin; // decks.jsonのwinMin（＝GAS WIN_MIN_GAMES_3D）に追従。既定100はJSON読込前のフォールバック
-    _agg.sample = (j && j.players) ? j.players : null;
+    DECKS_JSON = j || null;
+    // 全窓共通のメタ情報
     _agg.top = (j && j.topPlayers) ? j.topPlayers : null;
     _agg.hrs = (j && j.intervalHours) ? j.intervalHours : 6;
-    _agg.cardsReal = cardsReal;
     _agg.updated = (j && j.updated) ? j.updated : null;
     UPDATE_HRS = _agg.hrs;
-    // 勝率タブが無ければ非表示
-    const winTabBtn = document.querySelector('.deck-tab[data-tab="win"]');
-    if (winTabBtn) winTabBtn.style.display = WIN_DECKS.length ? '' : 'none';
-    renderAggText();
-    updateDeckTabDesc();
-    applyDecks();
+    if (j && j.winMin) WIN_MIN_SHOW = j.winMin;
+    CUR_WINDOW = (j && j.defaultWindow && j.windows && j.windows[j.defaultWindow]) ? j.defaultWindow : '3d';
+    buildWindowSelector();        // 窓セレクタ（windowsがあれば設置）
+    applyWindow(CUR_WINDOW);
   })
   .catch(() => { ALL_DECKS = DECKS; TREND_DECKS = []; CARDS_DATA = CARDS_SAMPLE; initCardMeta(true); updateDeckTabDesc(); applyDecks(); });
+
+// 指定窓(1h/1日/3日)のデータを反映。windows[key] が無ければ top-level(=3日) にフォールバック＝旧データでも動く。
+function applyWindow(key) {
+  const j = DECKS_JSON;
+  CUR_WINDOW = key;
+  const w = (j && j.windows && j.windows[key]) ? j.windows[key] : j;
+  const hasData = w && Array.isArray(w.decks) && w.decks.length;
+  ALL_DECKS = hasData ? w.decks : DECKS;
+  WIN_DECKS = (w && Array.isArray(w.winDecks)) ? w.winDecks : [];
+  const trendReal = w && Array.isArray(w.trending) && w.trending.length;
+  TREND_DECKS = trendReal ? w.trending : [];
+  const cardsReal = w && Array.isArray(w.cards) && w.cards.length;
+  CARDS_DATA = cardsReal ? w.cards : CARDS_SAMPLE;
+  initCardMeta(!cardsReal);
+  META = (w && Array.isArray(w.meta)) ? w.meta : [];
+  PLAYERS_TOTAL = (w && w.players) ? w.players : 0;
+  UNIQUE_TOTAL = (w && w.uniquePlayers) ? w.uniquePlayers : 0;
+  _agg.sample = UNIQUE_TOTAL || PLAYERS_TOTAL || null;
+  _agg.cardsReal = cardsReal;
+  document.querySelectorAll('.win-seg [data-win]').forEach(b => b.classList.toggle('active', b.dataset.win === key));
+  const winTabBtn = document.querySelector('.deck-tab[data-tab="win"]');
+  if (winTabBtn) winTabBtn.style.display = WIN_DECKS.length ? '' : 'none';
+  renderMetaShare();
+  renderAggText();
+  updateDeckTabDesc();
+  applyDecks();
+  try { renderCrank(); } catch (e) {}
+  try { renderMetaMap(); } catch (e) {}
+}
+// 窓セレクタ（1時間/1日/3日）を集計タブの上に設置。windowsが無いデータ（旧JSON）では出さない。
+function buildWindowSelector() {
+  if (!DECKS_JSON || !DECKS_JSON.windows) return;
+  if (document.querySelector('.win-seg')) return;
+  const tabs = document.getElementById('deckTabs');
+  if (!tabs || !tabs.parentNode) return;
+  const seg = document.createElement('div');
+  seg.className = 'win-seg';
+  seg.innerHTML = '<span class="win-seg-lbl">' + _tr('集計期間') + '</span>'
+    + WIN_KEYS.map(k => '<button type="button" data-win="' + k + '"' + (k === CUR_WINDOW ? ' class="active"' : '') + '>' + winLabel(k) + '</button>').join('');
+  tabs.parentNode.insertBefore(seg, tabs);
+  seg.querySelectorAll('[data-win]').forEach(b => b.addEventListener('click', () => applyWindow(b.dataset.win)));
+}
