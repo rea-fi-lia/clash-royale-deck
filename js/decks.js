@@ -797,8 +797,8 @@ function _t(k, v) { return window.CRI18N ? CRI18N.t(k, v) : k; }
 // 固定の日本語文をそのまま辞書で訳す（ja=原文のまま／未訳は英語→原文フォールバック）
 function _tr(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
 function srcTextI18n() {
-  if (_agg.top) return _agg.sample ? _t('decks.srcTop', { n: _agg.top, p: _agg.sample }) : _t('decks.srcTopNoSample', { n: _agg.top });
-  return _agg.sample ? _t('decks.srcGenericSample', { p: _agg.sample }) : _t('decks.srcGeneric');
+  if (_agg.top) return _agg.sample ? _t('decks.srcTop', { n: _agg.top, p: _agg.sample, g: _agg.games || 0 }) : _t('decks.srcTopNoSample', { n: _agg.top });
+  return _agg.sample ? _t('decks.srcGenericSample', { p: _agg.sample, g: _agg.games || 0 }) : _t('decks.srcGeneric');
 }
 function renderAggText() {
   const src = srcTextI18n();
@@ -899,6 +899,7 @@ function applyWindow(key) {
   PLAYERS_TOTAL = (w && w.players) ? w.players : 0;
   UNIQUE_TOTAL = (w && w.uniquePlayers) ? w.uniquePlayers : 0;
   _agg.sample = UNIQUE_TOTAL || PLAYERS_TOTAL || null;
+  _agg.games = (w && w.games) ? w.games : null;
   _agg.cardsReal = cardsReal;
   document.querySelectorAll('.win-seg [data-win]').forEach(b => b.classList.toggle('active', b.dataset.win === key));
   const winTabBtn = document.querySelector('.deck-tab[data-tab="win"]');
