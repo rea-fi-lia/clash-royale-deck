@@ -46,5 +46,5 @@ jobs:
           TOP_PLAYERS: ${{ github.event.inputs.top_players || '1000' }}
           INTERVAL_HOURS: '6'
           WIN_MIN_GAMES_3D: '30'
-          GITHUB_PATH: 'decks.json'
+          DECKS_PATH: 'decks.json'   # GITHUB_PATH は Actions 予約名のため使わない
         run: node tools/collect.js

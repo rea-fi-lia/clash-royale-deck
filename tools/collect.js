@@ -15,7 +15,8 @@
  *   GITHUB_TOKEN        … Actions が自動付与（contents:write 権限が要る・必須）
  *   GITHUB_REPOSITORY   … "owner/repo"（Actions が自動付与）。手動時は GITHUB_REPO でも可
  *   TARGET_BRANCH       … 書き込み先ブランチ（既定 "data-test"。検証OK後に "data" へ）
- *   GITHUB_PATH         … decks.json のパス（既定 "decks.json"＝リポジトリ直下）
+ *   DECKS_PATH          … decks.json のパス（既定 "decks.json"＝リポジトリ直下）
+ *                         ※ GITHUB_PATH は Actions の予約名なので使わない（DECKS_PATH に改名）
  *   TOP_PLAYERS         … 集計するトップランカー数（既定 "1000"）
  *   INTERVAL_HOURS      … 参考値としてdecks.jsonに載せる（既定 "6"）
  *   WIN_MIN_GAMES_3D    … 勝率ランキングの最低試合数（既定 "30"）
@@ -43,7 +44,8 @@ const CR_TOKEN = (prop('CR_TOKEN') || '').replace(/[^A-Za-z0-9._-]/g, '');
 const GH_TOKEN = prop('GITHUB_TOKEN');
 const REPO = prop('GITHUB_REPO') || prop('GITHUB_REPOSITORY'); // "owner/repo"
 const BRANCH = prop('TARGET_BRANCH', 'data-test');
-const GH_PATH = prop('GITHUB_PATH', 'decks.json');
+// ★ DECKS_PATH（GITHUB_PATH は Actions 予約名＝env で渡しても内部値に上書きされるので使わない）
+const GH_PATH = prop('DECKS_PATH', 'decks.json');
 
 var SLUG2JP = {
   "skeletons": "スケルトン", "ice-spirit": "アイススピリット", "fire-spirit": "ファイアスピリット",
