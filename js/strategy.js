@@ -17,7 +17,7 @@ const SPELL_ZONES = ['ログ圏内', 'ザップ圏内', '矢の雨圏内', 'フ�
 function _t(k, v) { return window.CRI18N ? CRI18N.t(k, v) : k; }
 function _tr(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
 
-let STATS = null, TAGS = null, POT = null, EVAL = null, DECK = null, META = null, MATCH = null, POL_INTEL = null;
+let STATS = null, TAGS = null, POT = null, EVAL = null, DECK = null, META = null, MATCH = null, POL_INTEL = null, WINCON = null;
 
 function parseDeck() {
   const q = new URLSearchParams(location.search);
@@ -541,6 +541,48 @@ function applyDeckSwap(outStr, inStr, rfStr) {
 
 
 const GICON = { good: '◎', ok: '○', warn: '⚠', bad: '❌', info: 'ℹ️' };
+// ===== 新・デッキ診断（2026-06-26 全面刷新）=====
+//   旧 archetype/verdict/checks/旧実戦読みカード は不使用。採点でなく「どんなデッキで・実戦でどう勝ってて・どこが強い/苦手か」を平易な言葉で。
+//   ★ユーザー向け文言に内部用語（収集元・外部名など裏側がわかる語）は出さない。
+function winOf(c) { if (!WINCON) return null; return WINCON[c.name + mark(c)] || WINCON[c.name] || null; }
+function polOf(deck) {
+  if (!POL_INTEL || !POL_INTEL.decks) return null;
+  const key = deck.map(function (c) { return c.name; }).slice().sort().join('|');
+  return POL_INTEL.decks[key] || null;
+}
+function diagnoseHtml(deck) {
+  let h = '';
+  // 1) このデッキの特徴（監修済みの勝ち筋スコア）
+  const sc = deck.map(function (c) { return { c: c, w: winOf(c) }; });
+  const mains = sc.filter(function (x) { return x.w && x.w.mainWinconScore >= 7; }).sort(function (a, b) { return b.w.mainWinconScore - a.w.mainWinconScore; });
+  const secs = sc.filter(function (x) { return x.w && x.w.secondaryWinconScore >= 5 && (!mains[0] || x.c.name !== mains[0].c.name); }).sort(function (a, b) { return b.w.secondaryWinconScore - a.w.secondaryWinconScore; });
+  const costs = deck.map(function (c) { return c.info.c; });
+  const avg = costs.reduce(function (s, v) { return s + v; }, 0) / 8;
+  const typ = avg < 3.1 ? _tr('高速で回すタイプ') : avg < 3.8 ? _tr('バランス型') : avg < 4.4 ? _tr('やや重めの構え') : _tr('重量級（序盤の受けに注意）');
+  const mn = mains[0] ? (mains[0].c.name + mark(mains[0].c)) : null;
+  const sn = secs[0] ? (secs[0].c.name + mark(secs[0].c)) : null;
+  let line = mn ? (_tr('主役は') + '<b>' + mn + '</b>') : _tr('タワーを削る明確な主役が見当たりません');
+  if (mn && sn) line += _tr('。詰めや別ルートに') + '<b>' + sn + '</b>' + _tr('も使える形');
+  line += '。' + typ + '（' + _tr('平均コスト') + avg.toFixed(1) + '）。';
+  h += '<div class="dg-cap"><div class="cap-head">🃏 ' + _tr('このデッキの特徴') + '</div><div class="dg-detail">' + line + '</div>'
+    + '<div class="dg-chips">' + sc.filter(function (x) { return x.w && (x.w.mainWinconScore >= 7 || x.w.secondaryWinconScore >= 5); }).slice(0, 3).map(function (x) { return chip(x.c); }).join('') + '</div></div>';
+  // 2) 実戦での傾向（同じ構成の戦績があるときだけ）
+  const p = polOf(deck);
+  if (p && p.games >= 30) {
+    const d = p.dominanceAvg;
+    const dw = d >= 0.12 ? _tr('相手より大きく押し込めています') : d <= -0.12 ? _tr('やや押し込まれ気味で、競り負けやすい傾向') : _tr('互角の競り合いになりやすい');
+    const ww = p.collapseLossRate >= 22 ? _tr('負けるときは大きく崩れがち') : p.fragileWinRate >= 12 ? _tr('勝ち切れるものの、際どい勝ちも多め') : p.cleanWinRate >= 25 ? _tr('勝つときはきれいに押し切れています') : _tr('堅実に勝てています');
+    const lw = p.leakAdvantageAvg >= 0.8 ? _tr('手札は回しやすめ') : p.leakAdvantageAvg <= -0.8 ? _tr('エリクサー管理はシビア') : '';
+    h += '<div class="dg-cap"><div class="cap-head">⚔️ ' + _tr('実戦での傾向') + '<small>（' + _tr('実戦') + p.games + _tr('戦') + '）</small></div>'
+      + '<div class="dg-detail">' + dw + '。' + ww + '。' + (lw ? lw + '。' : '') + '</div></div>';
+  }
+  // 3) 強み・弱み（カード評価ベース） 4) 苦手な相手（相性）＝既存のデータ表示を流用
+  try { h += capabilityHtml(deck); } catch (e) {}
+  try { h += matchupHtml(deck); } catch (e) {}
+  h += '<p class="note" style="margin-top:14px">' + _tr('※ 数値は参考値です。同じ構成の実戦データが貯まるほど精度が上がります。') + '</p>';
+  return h;
+}
+
 function render() {
   const wrap = document.getElementById('diagResult');
   if (!wrap || !DECK) return;
@@ -572,36 +614,7 @@ function render() {
     return '<div class="mini-card' + (c.f === 'e' ? ' is-evo' : c.f === 'h' ? ' is-hero' : '') + '" data-key="' + c.name + ':' + _fnorm(c.f) + '"><span class="pip">' + c.info.c + '</span>' + badge + '<img src="' + img + '" alt="' + c.name + '"></div>';
   }).join('') + '</div></div>';
 
-  let html = '';
-  html += archetypeHtml(DECK, ctx);
-  html += capabilityHtml(DECK);
-
-  html += '<div class="dg-verdict dg-' + verdict[0] + '">' + verdict[2] + ' ' + verdict[1]
-    + '<div class="dg-sum">' + summary + '</div>'
-    + '<div class="dg-mini">' + _t('diag.curve', { avg: avg, cyc: cyc, hvy: sorted.slice(4).reduce((s, v) => s + v, 0), t: curve })
-    + (open && open.badN >= 4 ? '<br>' + _t('diag.openRisk', { p: open.pct, n: open.badN }) : open ? '<br>' + _t('diag.openOk', { n: open.badN }) : '') + '</div></div>';
-
-  html += fuguIntelHtml(DECK, ctx);
-  html += matchupHtml(DECK);
-
-  if (anti.length) {
-    html += anti.map(a =>
-      '<div class="dg-row dg-warn"><span class="dg-ico">💥</span><div class="dg-body"><div class="dg-title">' + a.title + '</div>'
-      + '<div class="dg-detail">' + a.detail + '</div>'
-      + '<div class="dg-chips">' + a.cards.map(chip).join('') + '</div></div></div>').join('');
-  }
-
-  html += '<details class="dg-details"><summary>📋 ' + _tr('詳細チェックを見る') + '（' + checks.length + '）</summary>'
-    + checks.map(ch =>
-      '<div class="dg-row dg-' + ch.grade + '">'
-      + '<span class="dg-ico">' + GICON[ch.grade] + '</span>'
-      + '<div class="dg-body"><div class="dg-title">' + ch.title + '</div>'
-      + '<div class="dg-detail">' + ch.detail + '</div>'
-      + (ch.cards.length ? '<div class="dg-chips">' + ch.cards.map(chip).join('') + '</div>' : '')
-      + '</div></div>').join('')
-    + '</details>';
-
-  html += '<p class="note" style="margin-top:14px">' + _tr('※ 診断はLv16換算の理論値とオーナー監修タグに基づく参考情報です') + '</p>';
+  const html = diagnoseHtml(DECK); // ★新診断（特徴/実戦傾向/強み弱み/苦手相手）。旧 archetype/verdict/実戦読み/checks は廃止
   const simHtml = similarRankingHtml(DECK) || ('<div class="sr-note">' + _tr('似たデッキのデータを蓄積中です。時間が経つほど充実します。') + '</div>');
   const tabs = '<div class="diag-tabs"><button class="dtab' + (_diagTab === 'main' ? ' active' : '') + '" data-tab="main">' + _tr('診断') + '</button>'
     + '<button class="dtab' + (_diagTab === 'sim' ? ' active' : '') + '" data-tab="sim">📊 ' + _tr('デッキ調整') + '</button></div>';
@@ -673,7 +686,7 @@ async function init() {
   if (empty) empty.style.display = 'none';
   wrap.innerHTML = '<div class="coming-soon"><div class="big">🔬</div>' + _tr('診断中…') + '</div>';
   try {
-    const [st, tg, pt, wt, dk, mu, sh0, sh1, sh2, pi] = await Promise.all([
+    const [st, tg, pt, wt, dk, mu, sh0, sh1, sh2, pi, wp] = await Promise.all([
       fetch(RAW + 'card-stats.json', { cache: 'no-store' }).then(r => r.json()),
       fetch(RAW + 'card-tags.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
       fetch(RAW + 'card-potential.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
@@ -683,7 +696,8 @@ async function init() {
       fetch(RAW + 'sighist-' + ymOffset(0) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(RAW + 'sighist-' + ymOffset(-1) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(RAW + 'sighist-' + ymOffset(-2) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(RAW + 'pol-battle-intel-v1.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
+      fetch(RAW + 'pol-battle-intel-v1.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(RAW + 'wincon-policy.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
     ]);
     STATS = {}; (st.cards || []).forEach(c => STATS[c.jp] = c);
     TAGS = (tg && tg.cards) || {};
@@ -692,6 +706,7 @@ async function init() {
     META = (dk && Array.isArray(dk.meta)) ? dk.meta : null;
     MATCH = (mu && mu.months) ? mu : null;
     POL_INTEL = (pi && pi.decks) ? pi : null;
+    WINCON = (wp && wp.cards) || null;
     SIGHIST_DECKS = mergeSighist([sh0, sh1, sh2]);
     render();
   } catch (e) {
