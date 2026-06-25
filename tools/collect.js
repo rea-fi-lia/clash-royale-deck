@@ -253,6 +253,25 @@ function aggregateCards_(snaps) {
   return out;
 }
 
+// ★PoL試合内容インテリジェンス（CRDB_POL_BATTLE_CONTENT_INTELLIGENCE_DESIGN）。
+//   タワー残HP差＝支配度、エリ漏れ差＝扱いやすさ、勝ち方の質を1試合から読む。欠損は重みから外す。
+function numOr0_(v) { return typeof v === 'number' ? v : 0; }
+function sumArr_(a) { if (!Array.isArray(a)) return 0; var s = 0; for (var i = 0; i < a.length; i++) s += numOr0_(a[i]); return s; }
+function sumTowerHp_(p) { return numOr0_(p && p.kingTowerHitPoints) + sumArr_(p && p.princessTowersHitPoints); }
+function clampN_(x) { return x < -1 ? -1 : x > 1 ? 1 : x; }
+// 固定正規化（v1）。p95目安＝§11.1。データが貯まったら窓内p95へ差し替え可。
+var POL_NORM = { hp: 9000, king: 5000, leak: 12 };
+function battleDominance_(hpMargin, crownMargin, kingHpMargin, hasHp) {
+  var crownNorm = crownMargin / 3;
+  if (!hasHp) return crownNorm; // HP欠損時はクラウンのみ（重み再配分＝1.0）
+  var hpNorm = clampN_(hpMargin / POL_NORM.hp), kingNorm = clampN_(kingHpMargin / POL_NORM.king);
+  return 0.55 * hpNorm + 0.30 * crownNorm + 0.15 * kingNorm;
+}
+function outcomeBucket_(win, dom) {
+  if (win) return dom >= 0.35 ? 'cleanWin' : dom > -0.10 ? 'stableWin' : 'fragileWin';
+  return dom >= 0.10 ? 'pressureLoss' : dom > -0.35 ? 'closeLoss' : 'collapseLoss';
+}
+
 // ★モードbucket分類（CRDB_API_TAG_INVENTORY_NODE_BUILDER §混ぜずにbucket化）。
 //   混ぜると壊れる（PoLとfriendly、通常とDraft/Triple等）ので、type/gameMode を用途別bucketへ。
 //   特殊モードを type 判定より先に見る（例 tournament/TripleElixir は special_triple）。
@@ -304,6 +323,26 @@ async function updateDecks() {
   // ---- バトルログから集計 ----
   var pop = {}, win = {}, unmapped = {}, CHUNK = 40;
   var muNow = {};       // ' 自分arch|相手arch' → [試合数, 勝ち数]（今回ぶん）
+  // ★PoL試合内容（今回ぶん）：sig → [g, domSum, crownSum, hpSum, hpN, leakSum, leakN, troSum, troN, cleanWin, stableWin, fragileWin, pressureLoss, closeLoss, collapseLoss]
+  var polNow = {};
+  function accPol_(sig, b, tc, oc) {
+    var t0 = b.team[0], o0 = b.opponent[0];
+    var hasHp = (typeof t0.kingTowerHitPoints === 'number') && (typeof o0.kingTowerHitPoints === 'number');
+    var hpMargin = sumTowerHp_(t0) - sumTowerHp_(o0);
+    var kingHpMargin = numOr0_(t0.kingTowerHitPoints) - numOr0_(o0.kingTowerHitPoints);
+    var crownMargin = tc - oc, win = tc > oc;
+    var dom = battleDominance_(hpMargin, crownMargin, kingHpMargin, hasHp);
+    var bk = outcomeBucket_(win, dom);
+    var leakAdv = (typeof t0.elixirLeaked === 'number' && typeof o0.elixirLeaked === 'number') ? (o0.elixirLeaked - t0.elixirLeaked) : null;
+    var trophy = (typeof t0.trophyChange === 'number') ? t0.trophyChange : null;
+    var e = polNow[sig] || (polNow[sig] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    e[0]++; e[1] += dom; e[2] += crownMargin;
+    if (hasHp) { e[3] += hpMargin; e[4]++; }
+    if (leakAdv != null) { e[5] += leakAdv; e[6]++; }
+    if (trophy != null) { e[7] += trophy; e[8]++; }
+    var bi = { cleanWin: 9, stableWin: 10, fragileWin: 11, pressureLoss: 12, closeLoss: 13, collapseLoss: 14 }[bk];
+    e[bi]++;
+  }
   var typeSeen = {};    // 観測した type/gameMode の分布（→ api-tags-seen.json）
   var runPlayerSig = {}; // ★今回ぶん：プレイヤータグ → そのプレイヤーの現在デッキ署名（ユニーク人数集計用）
   // ★battle-schema-sample用：先頭~80試合の実フィールド構造を観測（取れる値を確定し憶測実装を防ぐ）
@@ -405,6 +444,7 @@ async function updateDecks() {
       var od = (oppCards.length === 8) ? classifyDeck(oppCards) : null;
       if (od && sameSig_(d.jp, od.jp)) continue;   // ★完全ミラー除外
       tally(win, d, tc > oc, tc, oc);
+      accPol_(sigKey(d), b, tc, oc);               // ★PoL試合内容（支配度/エリ漏れ/勝ち方）を貯める
       if (od) {                                     // ★相性（勝ち筋は複数あれば全組み合わせにカウント）
         var aa = archsForm_(d.jp, d.fm), bb = archsForm_(od.jp, od.fm);
         var oppTag = (b.opponent[0].tag ? String(b.opponent[0].tag).toUpperCase().replace(/[^0-9A-Z]/g, '') : '');
@@ -531,8 +571,11 @@ async function updateDecks() {
   var dkNow = {};
   dkArr.slice(0, DK_KEEP).forEach(function (x) { dkNow[x.sig] = [x.p, x.g, x.w, x.c3, x.cf, x.ca]; });
 
+  // PoL試合内容も上位デッキ（dkNow）分だけスナップショットへ（compact）
+  var polSnap = {};
+  Object.keys(dkNow).forEach(function (sig) { if (polNow[sig]) polSnap[sig] = polNow[sig]; });
   // 履歴へ追加し、3日より古いスナップショットを捨てる
-  hist.snaps.push({ t: now, players: aggregated, use: useNow, bat: batNow, dk: dkNow });
+  hist.snaps.push({ t: now, players: aggregated, use: useNow, bat: batNow, dk: dkNow, pol: polSnap });
   hist.snaps = hist.snaps.filter(function (s) { return s.t >= now - WINDOW_DAYS * 864e5; });
 
   // （窓ごとの合算は buildWindow 内で行う＝1h/1日/3日を同じ snaps から導出）
@@ -704,6 +747,46 @@ async function updateDecks() {
     await ghWriteJson_(shPath, sh, 'chore: update sighist');
     console.log('sighist ' + Object.keys(sh.sigs).length + ' sigs');
   } catch (e) { console.log('sighist error ' + ((e && e.message) || e)); }
+
+  // ★PoL試合内容インテリジェンス：3日窓でデッキ単位に集計（支配度/勝ち方の質/扱いやすさ/トロフィー効率）
+  try {
+    var polAgg = {};
+    hist.snaps.forEach(function (s) {
+      var pl = s.pol || {};
+      Object.keys(pl).forEach(function (sig) {
+        var a = polAgg[sig] || (polAgg[sig] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        var v = pl[sig]; for (var i = 0; i < 15; i++) a[i] += (v[i] || 0);
+      });
+    });
+    var polDecks = {};
+    Object.keys(polAgg).forEach(function (sig) {
+      var a = polAgg[sig], g = a[0]; if (g < 1) return;
+      var d = renderSig(sig); if (!d) return;
+      var wins = a[9] + a[10] + a[11]; // cleanWin+stableWin+fragileWin
+      var lb = wilson_(wins, g), domAvg = a[1] / g, crownAvg = a[2] / g;
+      var leakAdvAvg = a[6] ? a[5] / a[6] : null, troAvg = a[8] ? a[7] / a[8] : null;
+      var cleanWinRate = a[9] / g, fragileWinRate = a[11] / g, pressureLossRate = a[12] / g, collapseLossRate = a[14] / g;
+      var stability = cleanWinRate - fragileWinRate - collapseLossRate;
+      var pilotFit = leakAdvAvg != null ? clampN_(leakAdvAvg / POL_NORM.leak) : 0;
+      var truePower = Math.round((0.46 * lb + 0.27 * ((clampN_(domAvg) + 1) / 2) + 0.13 * ((clampN_(crownAvg / 3) + 1) / 2) + 0.09 * ((clampN_(stability) + 1) / 2) + 0.05 * ((pilotFit + 1) / 2)) * 1000) / 10;
+      polDecks[sig] = {
+        name: d.name, slots: d.slots, forms: d.forms, archs: archsOfSig_(sig),
+        games: g, wins: wins, wr: Math.round(wins / g * 1000) / 10, lb: Math.round(lb * 1000) / 10,
+        dominanceAvg: Math.round(domAvg * 1000) / 1000, crownMarginAvg: Math.round(crownAvg * 100) / 100,
+        cleanWinRate: Math.round(cleanWinRate * 1000) / 10, fragileWinRate: Math.round(fragileWinRate * 1000) / 10,
+        pressureLossRate: Math.round(pressureLossRate * 1000) / 10, collapseLossRate: Math.round(collapseLossRate * 1000) / 10,
+        leakAdvantageAvg: leakAdvAvg != null ? Math.round(leakAdvAvg * 100) / 100 : null,
+        trophyChangeAvg: troAvg != null ? Math.round(troAvg * 100) / 100 : null,
+        truePower: truePower
+      };
+    });
+    await ghWriteJson_(ghSiblingPath_(ghPath, 'pol-battle-intel-v1.json'),
+      { updated: new Date().toISOString(), windowDays: WINDOW_DAYS, source: 'pathOfLegend battlelog',
+        schema: { hasTowerHp: true, hasElixirLeaked: true, hasTrophyChange: true, hasSupportCards: true, hasGlobalRank: true },
+        normalizers: POL_NORM, count: Object.keys(polDecks).length, decks: polDecks },
+      'chore: update pol-battle-intel-v1.json');
+    console.log('pol-battle-intel ' + Object.keys(polDecks).length + ' decks');
+  } catch (e) { console.log('pol-battle-intel error ' + ((e && e.message) || e)); }
 
   // ★API棚卸し：観測した type/gameMode を bucket 分類して保存（混ぜず将来別集計の土台）
   try {
