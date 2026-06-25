@@ -1230,12 +1230,13 @@ async function pasteFromGame() {
   try { text = await navigator.clipboard.readText(); } catch (e) { text = ''; } // クリップボードを自動確認（貼り付け不要）
   const m = String(text).match(/copyDeck\?deck=([0-9;]+)/);     // ゲーム内コピーの公式形式のみ受理
   const ids = m ? m[1].split(';').filter(Boolean) : [];
-  if (ids.length !== 8) { showToast(TR('ゲームからデッキをコピーしてください。')); return; } // それらしきリンクが無ければ案内のみ
+  if (ids.length !== 8) { showToast(TR('ゲーム内でデッキのリンクを発行してください。')); return; } // クリップボードに公式デッキリンクが無ければ案内のみ
   if (!_idToCard) buildIdToCard();
   const cards = ids.map(id => _idToCard[String(id)]);
-  if (cards.some(c => !c)) { showToast(TR('ゲームからデッキをコピーしてください。')); return; }
+  if (cards.some(c => !c)) { showToast(TR('ゲーム内でデッキのリンクを発行してください。')); return; }
   if (window.CRDeckBridge) window.CRDeckBridge.setDeck(cards);
   else { deck = cards.slice(0, 8); renderDeck(); refreshInDeck(); }
+  showToast(TR('✅ デッキを読み込みました'));   // 読み込み成功＝即フィードバック（無言で保存ダイアログだけ出さない）
   try { openSlotSaveDialog(); } catch (e) {}   // ★読み込んだデッキをどのスロットに保存するか聞く
 }
 // 8枚そろってる→ゲームにコピー／未満→ゲームからペースト

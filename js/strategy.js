@@ -644,12 +644,18 @@ function render() {
     wrap.querySelectorAll('.sr-row').forEach(function (r) { r.classList.toggle('sr-sel', r === row); });
   }
   wrap.querySelectorAll('.sr-row').forEach(function (row) {
-    row.addEventListener('click', function () {
+    function selectRow() {
       var btn = row.querySelector('.sr-swap');
       var keys = btn ? (btn.dataset.out || '').split(',').filter(Boolean) : [];
       srHighlight(keys);
       wrap.querySelectorAll('.sr-row').forEach(function (r) { r.classList.toggle('sr-sel', r === row); });
-    });
+    }
+    row.addEventListener('click', selectRow);
+    // 素早いタップにも即反応（clickの遅延/取りこぼし対策。動かさず離した時だけ＝スクロールと区別。selectRowは冪等なので二重発火しても無害）
+    var _sy = 0, _moved = false;
+    row.addEventListener('touchstart', function (e) { _sy = e.touches[0].clientY; _moved = false; }, { passive: true });
+    row.addEventListener('touchmove', function (e) { if (Math.abs(e.touches[0].clientY - _sy) > 8) _moved = true; }, { passive: true });
+    row.addEventListener('touchend', function (e) { if (!_moved && !(e.target && e.target.closest && e.target.closest('.sr-swap'))) selectRow(); }, { passive: true });
   });
   wrap.classList.toggle('tab-sim', _diagTab === 'sim'); // 強化タブだけデッキを上部固定
   try { selectFirstRow(); } catch (e) {}
