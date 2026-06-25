@@ -156,13 +156,14 @@ function injectVT(html) {
 
 // ── 固定（ピン）解除トグル（2026-06-24・全固定対応に拡張）。全ページの <head> に注入（冪等）。
 //    ピンON（既定）=従来どおり固定。ピンOFF(html.nopin)=そのページの固定を「全部」解除して自然スクロール：
-//      ①position:sticky 全部（上部バー/メタマップ/調整タブのデッキ等。動的描画も MutationObserver で捕捉＝今後の新stickyも自動）
+//      ①既知のsticky要素（.sitebar / header / .mm-sticky / 調整タブの #diagResult.tab-sim .dg-deckbar）をCSSで直接 static 化。
+//         ※2026-06-26 パフォーマンス改善：旧実装の「全DOMを getComputedStyle で走査＋MutationObserver」を撤廃（強制リフローが重かった）。新stickyを足したらこの4セレクタ列に追記する運用に変更。
 //      ②index ビルダーの「ビューポート高ロック＋内側スクロール枠」(body fixed / .app height / .left/.right/.card-list/.deck-slots overflow) を流し込みへ変換
 //    ※position:fixed のモーダル/トースト/ポップは解除しない（sticky のみ対象＝オーバーレイは壊さない）。
 const UNPIN_BLOCK = '<!-- CRPIN -->\n'
   + '<script>(function(){try{if(localStorage.getItem(\'cr_pin\')===\'off\')document.documentElement.classList.add(\'nopin\');}catch(e){}})();</script>\n'
   + '<style>'
-  + 'html.nopin .sitebar,html.nopin header,html.nopin .cr-sticky{position:static!important}'
+  + 'html.nopin .sitebar,html.nopin header,html.nopin .mm-sticky,html.nopin #diagResult.tab-sim .dg-deckbar{position:static!important}'
   + 'html.nopin{height:auto!important;overflow:visible!important}'
   + 'html.nopin body{position:static!important;inset:auto!important;height:auto!important;min-height:100vh;overflow:visible!important;overflow-y:visible!important;display:block!important}'
   + 'html.nopin .app{display:block!important;flex:none!important;height:auto!important;min-height:0!important;overflow:visible!important}'
@@ -187,18 +188,14 @@ const UNPIN_BLOCK = '<!-- CRPIN -->\n'
   + '<script>document.addEventListener(\'DOMContentLoaded\',function(){'
   + 'var ja=(document.documentElement.lang||\'ja\').slice(0,2)===\'ja\';'
   + 'var P=\'<span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9A2 2 0 0 1 15 10.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span>\';'
-  + 'function releaseSticky(){try{var els=document.body.getElementsByTagName(\'*\');for(var k=0;k<els.length;k++){var el=els[k];if(el.classList.contains(\'cr-sticky\'))continue;if(getComputedStyle(el).position===\'sticky\')el.classList.add(\'cr-sticky\');}}catch(e){}}'
   + 'var rows=document.querySelectorAll(\'.nav-icons\');'
   + 'for(var i=0;i<rows.length;i++){(function(row){'
   + 'if(row.querySelector(\'.bar-pin-btn\'))return;'
   + 'var b=document.createElement(\'button\');b.type=\'button\';b.className=\'nav-icon bar-pin-btn\';b.innerHTML=P;'
   + 'function paint(){var off=document.documentElement.classList.contains(\'nopin\');b.classList.toggle(\'off\',off);b.title=off?(ja?\'固定する\':\'Pin layout\'):(ja?\'固定を解除\':\'Unpin layout\');b.setAttribute(\'aria-pressed\',off?\'false\':\'true\');}'
-  + 'b.addEventListener(\'click\',function(){var off=!document.documentElement.classList.contains(\'nopin\');document.documentElement.classList.toggle(\'nopin\',off);try{localStorage.setItem(\'cr_pin\',off?\'off\':\'on\');}catch(e){}if(off)releaseSticky();paint();});'
+  + 'b.addEventListener(\'click\',function(){var off=!document.documentElement.classList.contains(\'nopin\');document.documentElement.classList.toggle(\'nopin\',off);try{localStorage.setItem(\'cr_pin\',off?\'off\':\'on\');}catch(e){}paint();});'
   + 'paint();row.insertBefore(b,row.firstChild);'
   + '})(rows[i]);}'
-  + 'releaseSticky();'
-  + 'var t;var mo=new MutationObserver(function(){if(!document.documentElement.classList.contains(\'nopin\'))return;clearTimeout(t);t=setTimeout(releaseSticky,300);});'
-  + 'try{mo.observe(document.body,{childList:true,subtree:true});}catch(e){}'
   + '});</script>\n<!-- /CRPIN -->';
 function injectUnpin(html) {
   // 旧 CRPIN ブロックを全除去してから新ブロックを注入（内容更新に対応・冪等）。
