@@ -547,15 +547,58 @@ const GICON = { good: '◎', ok: '○', warn: '⚠', bad: '❌', info: 'ℹ️' 
 function winOf(c) { if (!WINCON) return null; return WINCON[c.name + mark(c)] || WINCON[c.name] || null; }
 function polOf(deck) {
   if (!POL_INTEL || !POL_INTEL.decks) return null;
-  const key = deck.map(function (c) { return c.name; }).slice().sort().join('|');
-  return POL_INTEL.decks[key] || null;
+  const exact = deckSigForPol(deck);
+  if (POL_INTEL.decks[exact]) return POL_INTEL.decks[exact];
+  const namesKey = deck.map(function (c) { return c.name; }).slice().sort().join('|');
+  let best = null;
+  Object.keys(POL_INTEL.decks).forEach(function (k) {
+    if (String(k).split('#')[0] !== namesKey) return;
+    const d = POL_INTEL.decks[k];
+    if (!best || ((d && d.games) || 0) > ((best && best.games) || 0)) best = d;
+  });
+  return best;
+}
+function winClassGroup(sc, cls) {
+  return sc.filter(function (x) { return x.w && x.w.class === cls; }).sort(function (a, b) {
+    return (b.w.mainWinconScore + b.w.secondaryWinconScore + b.w.finishingScore) - (a.w.mainWinconScore + a.w.secondaryWinconScore + a.w.finishingScore);
+  });
+}
+function winChipGroup(title, arr) {
+  if (!arr.length) return '';
+  return '<div class="dg-detail"><b>' + _tr(title) + '</b>：' + arr.slice(0, 4).map(function (x) { return x.c.name + mark(x.c); }).join(' / ') + '</div>';
+}
+function cycleFitLine(cycles) {
+  if (!cycles.length) return '';
+  const labels = cycles.map(function (x) {
+    const t = x.w.attackType;
+    if (t === 'cycleSplash') return x.c.name + _tr('＝小物処理を補う');
+    if (t === 'cycleReset') return x.c.name + _tr('＝リセットと連鎖処理');
+    if (t === 'cycleFreeze') return x.c.name + _tr('＝足止めで1発を作る');
+    if (t === 'cycleHeal') return x.c.name + _tr('＝反撃の生存時間を伸ばす');
+    if (t === 'cycleDefense') return x.c.name + _tr('＝囲み・タゲ取りで受ける');
+    return x.c.name;
+  });
+  return '<div class="dg-detail"><b>' + _tr('サイクル調整枠') + '</b>：' + labels.join(' / ') + '</div>';
+}
+function practicalRead(mains, secs, supports, cycles, avg) {
+  const bits = [];
+  if (!mains.length) bits.push(_tr('主軸が薄いので、相手に守りを固められると削り切る道筋が曖昧です'));
+  else if (!secs.length && !supports.length) bits.push(_tr('攻めの入口が主軸に寄っています。止められた時の別ルートが課題です'));
+  else if (secs.length) bits.push(_tr('主軸が止まっても、第2勝ち筋で削り直す道があります'));
+  else bits.push(_tr('第2勝ち筋は薄めですが、補助勝ち筋で追加ダメージを作れます'));
+  if (avg < 3.1 && cycles.length) bits.push(_tr('高回転で主軸を何度も回し、相手の受け札をずらす形です'));
+  if (avg >= 4.0 && cycles.length <= 1) bits.push(_tr('重めなので、序盤は無理に攻めず受けから形を作る必要があります'));
+  if (supports.length >= 2) bits.push(_tr('残ったユニットでタワーに触る展開を作りやすいです'));
+  return bits.join('。') + '。';
 }
 function diagnoseHtml(deck) {
   let h = '';
   // 1) このデッキの特徴（監修済みの勝ち筋スコア）
   const sc = deck.map(function (c) { return { c: c, w: winOf(c) }; });
-  const mains = sc.filter(function (x) { return x.w && x.w.mainWinconScore >= 7; }).sort(function (a, b) { return b.w.mainWinconScore - a.w.mainWinconScore; });
-  const secs = sc.filter(function (x) { return x.w && x.w.secondaryWinconScore >= 5 && (!mains[0] || x.c.name !== mains[0].c.name); }).sort(function (a, b) { return b.w.secondaryWinconScore - a.w.secondaryWinconScore; });
+  const mains = winClassGroup(sc, '勝ち筋');
+  const secs = winClassGroup(sc, '第2勝ち筋');
+  const supports = winClassGroup(sc, '補助勝ち筋');
+  const cycles = winClassGroup(sc, 'サイクル札');
   const costs = deck.map(function (c) { return c.info.c; });
   const avg = costs.reduce(function (s, v) { return s + v; }, 0) / 8;
   const typ = avg < 3.1 ? _tr('高速で回すタイプ') : avg < 3.8 ? _tr('バランス型') : avg < 4.4 ? _tr('やや重めの構え') : _tr('重量級（序盤の受けに注意）');
@@ -563,9 +606,12 @@ function diagnoseHtml(deck) {
   const sn = secs[0] ? (secs[0].c.name + mark(secs[0].c)) : null;
   let line = mn ? (_tr('主役は') + '<b>' + mn + '</b>') : _tr('タワーを削る明確な主役が見当たりません');
   if (mn && sn) line += _tr('。詰めや別ルートに') + '<b>' + sn + '</b>' + _tr('も使える形');
+  else if (mn && supports[0]) line += _tr('。追加ダメージ役に') + '<b>' + supports[0].c.name + mark(supports[0].c) + '</b>' + _tr('を使える形');
   line += '。' + typ + '（' + _tr('平均コスト') + avg.toFixed(1) + '）。';
   h += '<div class="dg-cap"><div class="cap-head">🃏 ' + _tr('このデッキの特徴') + '</div><div class="dg-detail">' + line + '</div>'
-    + '<div class="dg-chips">' + sc.filter(function (x) { return x.w && (x.w.mainWinconScore >= 7 || x.w.secondaryWinconScore >= 5); }).slice(0, 3).map(function (x) { return chip(x.c); }).join('') + '</div></div>';
+    + winChipGroup('主軸', mains) + winChipGroup('第2勝ち筋', secs) + winChipGroup('補助勝ち筋', supports) + cycleFitLine(cycles)
+    + '<div class="dg-detail"><b>' + _tr('読み') + '</b>：' + practicalRead(mains, secs, supports, cycles, avg) + '</div>'
+    + '<div class="dg-chips">' + mains.concat(secs).concat(supports).slice(0, 4).map(function (x) { return chip(x.c); }).join('') + '</div></div>';
   // 2) 実戦での傾向（同じ構成の戦績があるときだけ）
   const p = polOf(deck);
   if (p && p.games >= 30) {
