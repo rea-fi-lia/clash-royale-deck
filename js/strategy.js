@@ -17,7 +17,7 @@ const SPELL_ZONES = ['ログ圏内', 'ザップ圏内', '矢の雨圏内', 'フ�
 function _t(k, v) { return window.CRI18N ? CRI18N.t(k, v) : k; }
 function _tr(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
 
-let STATS = null, TAGS = null, POT = null, EVAL = null, DECK = null, META = null, MATCH = null;
+let STATS = null, TAGS = null, POT = null, EVAL = null, DECK = null, META = null, MATCH = null, POL_INTEL = null;
 
 function parseDeck() {
   const q = new URLSearchParams(location.search);
@@ -337,6 +337,80 @@ function matchupHtml(deck) {
     + '<div class="mu-note">' + _tr('※ 中心はこのデッキの平均勝率。全勝ち筋を表示（スクロール）。緑＝平均より上／赤＝下。少数戦は参考値') + '</div></div>';
 }
 
+// ★Fugu実戦読み（第一歩）：構造上の第二軸候補＋Actionsで貯めたPoL支配度を診断に出す。
+function deckSigForPol(deck) {
+  const names = deck.map(c => c.name).slice().sort();
+  const special = deck.filter(c => c.f === 'e' || c.f === 'h' || (c.info && c.info.ch)).map(c => c.name).sort();
+  return names.join('|') + '#' + special.join('|');
+}
+function polRecordForDeck(deck) {
+  const decks = POL_INTEL && POL_INTEL.decks;
+  if (!decks) return null;
+  const exactKey = deckSigForPol(deck);
+  if (decks[exactKey]) return { data: decks[exactKey], exact: true };
+  const namesKey = deck.map(c => c.name).slice().sort().join('|');
+  let best = null;
+  Object.keys(decks).forEach(k => {
+    if (String(k).split('#')[0] !== namesKey) return;
+    const d = decks[k];
+    if (!best || ((d && d.games) || 0) > ((best.data && best.data.games) || 0)) best = { data: d, exact: false };
+  });
+  return best;
+}
+function signedNum(v, digits) {
+  if (typeof v !== 'number' || !isFinite(v)) return '—';
+  const p = Math.pow(10, digits || 1), n = Math.round(v * p) / p;
+  return (n > 0 ? '+' : '') + n.toFixed(digits == null ? 1 : digits);
+}
+function secondAxisHint(deck, ctx) {
+  const wins = (ctx && ctx.wins ? ctx.wins : []).map(c => c.name + mark(c));
+  const names = {}; deck.forEach(c => names[c.name] = c.name + mark(c));
+  if (wins[1]) return { main: wins[0], second: wins[1], source: _tr('勝ち筋カード') };
+  const pairs = [
+    [['ディガー', 'ポイズン'], 'ディガー＋ポイズン', '継続削り'],
+    [['ホグライダー', 'アースクエイク'], 'ホグ＋アースクエイク', '建物突破'],
+    [['ロイヤルホグ', 'アースクエイク'], 'ロイホグ＋アースクエイク', '建物突破'],
+    [['巨大クロスボウ', 'ロケット'], 'Xボウ＋ロケット', '固定削り'],
+    [['迫撃砲', 'ロケット'], '迫撃＋ロケット', '固定削り']
+  ];
+  for (let i = 0; i < pairs.length; i++) {
+    if (pairs[i][0].every(n => names[n])) return { main: wins[0] || pairs[i][1], second: pairs[i][1], source: _tr(pairs[i][2]) };
+  }
+  const spells = (ctx && ctx.spells ? ctx.spells : []).filter(c => ['ロケット', 'ライトニング', 'ポイズン', 'ファイアボール', 'アースクエイク'].indexOf(c.name) >= 0);
+  if (spells.length) return { main: wins[0] || '—', second: spells.sort((a, b) => b.info.c - a.info.c)[0].name + _tr('削り'), source: _tr('呪文補助') };
+  return { main: wins[0] || '—', second: '', source: '' };
+}
+function fuguIntelHtml(deck, ctx) {
+  const axis = secondAxisHint(deck, ctx);
+  const rec = polRecordForDeck(deck);
+  let html = '<div class="dg-cap"><div class="cap-head">🧠 ' + _tr('Fugu実戦読み') + '（β）</div>'
+    + '<div class="dg-row dg-ok"><span class="dg-ico">🎯</span><div class="dg-body"><div class="dg-title">' + _tr('勝ち筋軸') + '</div>'
+    + '<div class="dg-detail">' + _tr('主軸') + '：<b>' + axis.main + '</b>'
+    + (axis.second ? ' ／ ' + _tr('第二軸候補') + '：<b>' + axis.second + '</b>' + (axis.source ? ' <small>（' + axis.source + '）</small>' : '') : ' ／ ' + _tr('第二軸候補は実戦データを蓄積中'))
+    + '</div></div></div>';
+  if (rec && rec.data && rec.data.games) {
+    const d = rec.data, dom = typeof d.dominanceAvg === 'number' ? d.dominanceAvg : 0;
+    const cls = dom >= 0.08 ? 'mu-good' : dom <= -0.08 ? 'mu-bad' : 'mu-even';
+    const w = Math.min(48, Math.abs(dom) * 80);
+    const fill = dom >= 0
+      ? '<span class="mu-fill ' + cls + '" style="left:50%;width:' + w + '%"></span>'
+      : '<span class="mu-fill ' + cls + '" style="right:50%;width:' + w + '%"></span>';
+    const notes = [
+      _tr('勝率') + ' ' + (typeof d.wr === 'number' ? d.wr + '%' : '—'),
+      _tr('真価') + ' ' + (typeof d.truePower === 'number' ? d.truePower : '—'),
+      _tr('クラウン差') + ' ' + signedNum(d.crownMarginAvg, 2)
+    ];
+    if (typeof d.leakAdvantageAvg === 'number') notes.push(_tr('エリ漏れ差') + ' ' + signedNum(d.leakAdvantageAvg, 2));
+    html += '<div class="mu-row"><span class="mu-opp">' + _tr('実戦支配度') + '<small>' + _tr('塔HP・クラウン・キング圧') + '</small></span>'
+      + '<span class="mu-bar">' + fill + '</span>'
+      + '<span class="mu-wr ' + cls + '">' + signedNum(dom * 100, 1) + '<small>' + d.games + _tr('戦') + '</small></span></div>'
+      + '<div class="sr-note">' + notes.join(' / ') + (rec.exact ? '' : ' / ' + _tr('同じ8枚の形態違いを含む近似')) + '</div>';
+  } else {
+    html += '<div class="sr-note">' + _tr('PoL支配度はActions集計後、この枠に自動表示されます。') + '</div>';
+  }
+  return html + '</div>';
+}
+
 // ★似たデッキ（6枚以上一致）の勝率ランキング：sighist（署名ごとの通算[人数,試合,勝]）を、今のデッキと
 //   6枚以上かぶるデッキだけ集めて勝率順に。勝ち/負けランキング＋"あなたとの差分(抜く→入れる)"を出す。
 let SIGHIST_DECKS = null;     // [{ names:[8], g, w }]（月別sighistをカード名で集約＝全累計）
@@ -492,11 +566,11 @@ function render() {
     ? (badTitles.length ? _t('diag.sum', { t: curve, w: winName, b: badTitles.join(' / ') }) : _t('diag.sumGood', { t: curve, w: winName }))
     : _tr('タワーへの明確なダメージ源がありません');
 
-  const deckHtml = '<div class="dg-deck">' + DECK.map(c => {
+  const deckHtml = '<div class="dg-deckbar"><div class="dg-deck">' + DECK.map(c => {
     const img = c.f === 'e' ? c.info.iv : c.f === 'h' ? c.info.ih : c.info.i;
     const badge = c.f === 'e' ? '<span class="slot-badge">⚡</span>' : c.f === 'h' ? '<span class="slot-badge">👑</span>' : '';
     return '<div class="mini-card' + (c.f === 'e' ? ' is-evo' : c.f === 'h' ? ' is-hero' : '') + '" data-key="' + c.name + ':' + _fnorm(c.f) + '"><span class="pip">' + c.info.c + '</span>' + badge + '<img src="' + img + '" alt="' + c.name + '"></div>';
-  }).join('') + '</div>';
+  }).join('') + '</div></div>';
 
   let html = '';
   html += archetypeHtml(DECK, ctx);
@@ -507,6 +581,7 @@ function render() {
     + '<div class="dg-mini">' + _t('diag.curve', { avg: avg, cyc: cyc, hvy: sorted.slice(4).reduce((s, v) => s + v, 0), t: curve })
     + (open && open.badN >= 4 ? '<br>' + _t('diag.openRisk', { p: open.pct, n: open.badN }) : open ? '<br>' + _t('diag.openOk', { n: open.badN }) : '') + '</div></div>';
 
+  html += fuguIntelHtml(DECK, ctx);
   html += matchupHtml(DECK);
 
   if (anti.length) {
@@ -592,7 +667,7 @@ async function init() {
   if (empty) empty.style.display = 'none';
   wrap.innerHTML = '<div class="coming-soon"><div class="big">🔬</div>' + _tr('診断中…') + '</div>';
   try {
-    const [st, tg, pt, wt, dk, mu, sh0, sh1, sh2] = await Promise.all([
+    const [st, tg, pt, wt, dk, mu, sh0, sh1, sh2, pi] = await Promise.all([
       fetch(RAW + 'card-stats.json', { cache: 'no-store' }).then(r => r.json()),
       fetch(RAW + 'card-tags.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
       fetch(RAW + 'card-potential.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
@@ -601,7 +676,8 @@ async function init() {
       fetch(RAW + 'matchups.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
       fetch(RAW + 'sighist-' + ymOffset(0) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
       fetch(RAW + 'sighist-' + ymOffset(-1) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(RAW + 'sighist-' + ymOffset(-2) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
+      fetch(RAW + 'sighist-' + ymOffset(-2) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(RAW + 'pol-battle-intel-v1.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
     ]);
     STATS = {}; (st.cards || []).forEach(c => STATS[c.jp] = c);
     TAGS = (tg && tg.cards) || {};
@@ -609,6 +685,7 @@ async function init() {
     EVAL = (wt && wt.cards) || null;
     META = (dk && Array.isArray(dk.meta)) ? dk.meta : null;
     MATCH = (mu && mu.months) ? mu : null;
+    POL_INTEL = (pi && pi.decks) ? pi : null;
     SIGHIST_DECKS = mergeSighist([sh0, sh1, sh2]);
     render();
   } catch (e) {

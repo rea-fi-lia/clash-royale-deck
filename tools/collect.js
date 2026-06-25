@@ -355,8 +355,8 @@ async function updateDecks() {
     Object.keys(t0).forEach(function (k) { schemaSample.teamKeys[k] = (schemaSample.teamKeys[k] || 0) + 1; });
     Object.keys(c0).forEach(function (k) { schemaSample.cardKeys[k] = (schemaSample.cardKeys[k] || 0) + 1; });
     ['elixirLeaked', 'kingTowerHitPoints', 'princessTowersHitPoints', 'trophyChange', 'startingTrophies', 'supportCards', 'globalRank'].forEach(function (f) { if (t0[f] != null) schemaSample.present[f] = (schemaSample.present[f] || 0) + 1; });
+    ['battleTime', 'duration', 'durationSeconds', 'gameDuration', 'matchDuration', 'endTime'].forEach(function (f) { if (b[f] != null) schemaSample.present[f] = (schemaSample.present[f] || 0) + 1; });
     if (b.leagueNumber != null) schemaSample.present.leagueNumber = (schemaSample.present.leagueNumber || 0) + 1;
-    if (b.battleTime != null) schemaSample.present.battleTime = (schemaSample.present.battleTime || 0) + 1;
   }
 
   // 署名キー（tally と同一規則）。ユニーク人数のローリング表のキーに使う。
@@ -780,9 +780,11 @@ async function updateDecks() {
         truePower: truePower
       };
     });
+    var durationFields = ['duration', 'durationSeconds', 'gameDuration', 'matchDuration', 'endTime'].filter(function (f) { return !!schemaSample.present[f]; });
     await ghWriteJson_(ghSiblingPath_(ghPath, 'pol-battle-intel-v1.json'),
       { updated: new Date().toISOString(), windowDays: WINDOW_DAYS, source: 'pathOfLegend battlelog',
-        schema: { hasTowerHp: true, hasElixirLeaked: true, hasTrophyChange: true, hasSupportCards: true, hasGlobalRank: true },
+        schema: { hasTowerHp: !!(schemaSample.present.kingTowerHitPoints && schemaSample.present.princessTowersHitPoints), hasElixirLeaked: !!schemaSample.present.elixirLeaked, hasTrophyChange: !!schemaSample.present.trophyChange, hasSupportCards: !!schemaSample.present.supportCards, hasGlobalRank: !!schemaSample.present.globalRank, hasBattleTime: !!schemaSample.present.battleTime, hasDuration: durationFields.length > 0, durationFields: durationFields },
+        presentCounts: schemaSample.present,
         normalizers: POL_NORM, count: Object.keys(polDecks).length, decks: polDecks },
       'chore: update pol-battle-intel-v1.json');
     console.log('pol-battle-intel ' + Object.keys(polDecks).length + ' decks');
