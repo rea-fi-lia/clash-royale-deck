@@ -603,7 +603,7 @@ async function updateDecks() {
   var polSnap = {};
   Object.keys(dkNow).forEach(function (sig) { if (polNow[sig]) polSnap[sig] = polNow[sig]; });
   // 履歴へ追加し、3日より古いスナップショットを捨てる
-  hist.snaps.push({ t: now, players: aggregated, use: useNow, bat: batNow, dk: dkNow, pol: polSnap });
+  hist.snaps.push({ t: now, players: aggregated, use: useNow, bat: batNow, dk: dkNow, pol: polSnap, polMu: polMuNow });
   hist.snaps = hist.snaps.filter(function (s) { return s.t >= now - WINDOW_DAYS * 864e5; });
 
   // （窓ごとの合算は buildWindow 内で行う＝1h/1日/3日を同じ snaps から導出）
@@ -817,6 +817,36 @@ async function updateDecks() {
       'chore: update pol-battle-intel-v1.json');
     console.log('pol-battle-intel ' + Object.keys(polDecks).length + ' decks');
   } catch (e) { console.log('pol-battle-intel error ' + ((e && e.message) || e)); }
+
+  // ★PoL対面別インテリジェンス：勝率だけでなく、相手勝ち筋ごとの支配度/崩壊負け率を出す。
+  try {
+    var polMuAgg = {};
+    hist.snaps.forEach(function (s) {
+      var pm = s.polMu || {};
+      Object.keys(pm).forEach(function (k) {
+        var a = polMuAgg[k] || (polMuAgg[k] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        var v = pm[k]; for (var i = 0; i < 15; i++) a[i] += (v[i] || 0);
+      });
+    });
+    var pairs = {}, bySelf = {};
+    Object.keys(polMuAgg).forEach(function (k) {
+      var s = polSummary_(polMuAgg[k]); if (!s) return;
+      var p = k.split('|'), self = p[0] || 'その他', opponent = p[1] || 'その他';
+      var row = Object.assign({ self: self, opponent: opponent }, s);
+      pairs[k] = row;
+      var list = bySelf[self] || (bySelf[self] = []);
+      list.push(row);
+    });
+    Object.keys(bySelf).forEach(function (self) {
+      bySelf[self].sort(function (a, b) { return a.dominanceAvg - b.dominanceAvg || b.games - a.games; });
+      bySelf[self] = bySelf[self].slice(0, 80);
+    });
+    await ghWriteJson_(ghSiblingPath_(ghPath, 'pol-matchup-intel-v1.json'),
+      { updated: new Date().toISOString(), windowDays: WINDOW_DAYS, source: 'pathOfLegend battlelog',
+        normalizers: POL_NORM, count: Object.keys(pairs).length, pairs: pairs, bySelf: bySelf },
+      'chore: update pol-matchup-intel-v1.json');
+    console.log('pol-matchup-intel ' + Object.keys(pairs).length + ' pairs');
+  } catch (e) { console.log('pol-matchup-intel error ' + ((e && e.message) || e)); }
 
   // ★API棚卸し：観測した type/gameMode を bucket 分類して保存（混ぜず将来別集計の土台）
   try {

@@ -1107,7 +1107,7 @@ function showDeckStats(arr, animate) {
   if (filled.length > 0) {
     const avg = (filled.reduce((s, c) => s + (c.cost || 0), 0) / filled.length);
     setAvgVal(avg, animate);
-    document.getElementById('avgSub').textContent = filled.length < 8 ? T('avg.n', { n: filled.length }, '（' + filled.length + '枚）') : '';
+    document.getElementById('avgSub').textContent = ''; // 「（〇枚）」は廃止＝ドラッグ時の±コスト表示と2段化してガクつくため（2026-06-25）
   } else {
     setAvgVal(null, animate);
     document.getElementById('avgSub').textContent = '';
