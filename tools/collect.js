@@ -253,6 +253,27 @@ function aggregateCards_(snaps) {
   return out;
 }
 
+// ★モードbucket分類（CRDB_API_TAG_INVENTORY_NODE_BUILDER §混ぜずにbucket化）。
+//   混ぜると壊れる（PoLとfriendly、通常とDraft/Triple等）ので、type/gameMode を用途別bucketへ。
+//   特殊モードを type 判定より先に見る（例 tournament/TripleElixir は special_triple）。
+function modeBucketOf(type, gm) {
+  type = type || ''; var g = String(gm || '').toLowerCase();
+  if (type === 'pathOfLegend') return 'ranked_pol';
+  if (type === 'boatBattle' || /touchdown|heist|boatbattle|showdown/.test(g)) return 'excluded_special';
+  if (/event_|restless/.test(g)) return 'excluded_event';
+  if (/draft|pickmode|^pick|classicdecks|mirrordeck/.test(g)) return 'draft_pick';
+  if (/rampup/.test(g)) return 'special_rampup';
+  if (/tripleelixir|7xelixir/.test(g)) return 'special_triple';
+  if (/doubleelixir/.test(g)) return 'special_double';
+  if (/overtime/.test(g)) return 'special_overtime';
+  if (type === 'riverRacePvP') return /cw_battle_1v1/.test(g) ? 'clanwar_1v1' : 'clanwar_other';
+  if (type === 'tournament') return 'tournament_standard';
+  if (type === 'PvP' && /ladder/.test(g)) return 'ladder_pvp';
+  if (type === 'trail' && /ladder/.test(g)) return 'ladder_trail';
+  if (type === 'friendly' || type === 'clanMate') return 'friendly_training';
+  return 'other';
+}
+
 async function updateDecks() {
   var token = CR_TOKEN;
   if (!token) throw new Error('CR_TOKEN 未設定');
@@ -282,8 +303,21 @@ async function updateDecks() {
   // ---- バトルログから集計 ----
   var pop = {}, win = {}, unmapped = {}, CHUNK = 40;
   var muNow = {};       // ' 自分arch|相手arch' → [試合数, 勝ち数]（今回ぶん）
-  var typeSeen = {};    // 観測した type/gameMode の分布（ランク判定の検証用ログ）
+  var typeSeen = {};    // 観測した type/gameMode の分布（→ api-tags-seen.json）
   var runPlayerSig = {}; // ★今回ぶん：プレイヤータグ → そのプレイヤーの現在デッキ署名（ユニーク人数集計用）
+  // ★battle-schema-sample用：先頭~80試合の実フィールド構造を観測（取れる値を確定し憶測実装を防ぐ）
+  var schemaSample = { sampleSize: 0, topLevelKeys: {}, teamKeys: {}, cardKeys: {}, present: {} };
+  function observeSchema_(b) {
+    if (schemaSample.sampleSize >= 80) return;
+    schemaSample.sampleSize++;
+    Object.keys(b).forEach(function (k) { schemaSample.topLevelKeys[k] = (schemaSample.topLevelKeys[k] || 0) + 1; });
+    var t0 = (b.team && b.team[0]) || {}, c0 = (t0.cards && t0.cards[0]) || {};
+    Object.keys(t0).forEach(function (k) { schemaSample.teamKeys[k] = (schemaSample.teamKeys[k] || 0) + 1; });
+    Object.keys(c0).forEach(function (k) { schemaSample.cardKeys[k] = (schemaSample.cardKeys[k] || 0) + 1; });
+    ['elixirLeaked', 'kingTowerHitPoints', 'princessTowersHitPoints', 'trophyChange', 'startingTrophies', 'supportCards', 'globalRank'].forEach(function (f) { if (t0[f] != null) schemaSample.present[f] = (schemaSample.present[f] || 0) + 1; });
+    if (b.leagueNumber != null) schemaSample.present.leagueNumber = (schemaSample.present.leagueNumber || 0) + 1;
+    if (b.battleTime != null) schemaSample.present.battleTime = (schemaSample.present.battleTime || 0) + 1;
+  }
 
   // 署名キー（tally と同一規則）。ユニーク人数のローリング表のキーに使う。
   function sigKey(d) {
@@ -352,6 +386,7 @@ async function updateDecks() {
     for (var i = 0; i < battles.length; i++) {
       var b = battles[i];
       if (!isStd(b)) continue;
+      observeSchema_(b);
       var tk = (b.type || '?') + '/' + ((b.gameMode && b.gameMode.name) || '?');
       typeSeen[tk] = (typeSeen[tk] || 0) + 1;
       if (!isRanked_(b)) continue;                 // ★ランク戦のみ
@@ -668,6 +703,28 @@ async function updateDecks() {
     await ghWriteJson_(shPath, sh, 'chore: update sighist');
     console.log('sighist ' + Object.keys(sh.sigs).length + ' sigs');
   } catch (e) { console.log('sighist error ' + ((e && e.message) || e)); }
+
+  // ★API棚卸し：観測した type/gameMode を bucket 分類して保存（混ぜず将来別集計の土台）
+  try {
+    var tags = Object.keys(typeSeen).map(function (k) {
+      var i = k.indexOf('/'); var type = i >= 0 ? k.slice(0, i) : k; var gm = i >= 0 ? k.slice(i + 1) : '';
+      var bucket = modeBucketOf(type, gm);
+      return { type: type, gameMode: gm, count: typeSeen[k], bucket: bucket, useForMainMeta: bucket === 'ranked_pol' };
+    }).sort(function (a, b) { return b.count - a.count; });
+    await ghWriteJson_(ghSiblingPath_(ghPath, 'api-tags-seen.json'),
+      { updated: new Date().toISOString(), window: 'latest-run', tags: tags }, 'chore: update api-tags-seen.json');
+    console.log('api-tags-seen ' + tags.length + ' tags');
+  } catch (e) { console.log('api-tags-seen error ' + ((e && e.message) || e)); }
+
+  // ★battle-schema-sample：実フィールド構造（取れる値の確定）
+  try {
+    await ghWriteJson_(ghSiblingPath_(ghPath, 'battle-schema-sample.json'),
+      { updated: new Date().toISOString(), sampleSize: schemaSample.sampleSize,
+        topLevelKeys: Object.keys(schemaSample.topLevelKeys), teamKeys: Object.keys(schemaSample.teamKeys),
+        cardKeys: Object.keys(schemaSample.cardKeys), presentCounts: schemaSample.present },
+      'chore: update battle-schema-sample.json');
+    console.log('battle-schema-sample size ' + schemaSample.sampleSize);
+  } catch (e) { console.log('battle-schema-sample error ' + ((e && e.message) || e)); }
 
   hist.lastT = newLastT; // ★二重カウント防止のしおり
 

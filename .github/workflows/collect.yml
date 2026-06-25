@@ -1,7 +1,7 @@
 name: collect decks
 
-# CR Deck Builders のデータ収集（GAS の updateDecks を Node 移植＝tools/collect.js）。
-# Phase 1（検証中）：書き込み先は data-test ブランチ。GAS出力(data)と照合してから data へ切替える。
+# CR Deck Builders のデータ収集（GitHub Actions 上の Node collector＝tools/collect.js）。
+# 方針：今後の収集・重い分析JSON生成はGASへ戻さず、Actions上のNode builderで行う。
 # 必要なもの：リポジトリ Secrets に CR_TOKEN（RoyaleAPI トークン）。GITHUB_TOKEN は自動。
 
 on:

@@ -20,3 +20,13 @@ matchups.json
 synergy.json
 band-meta.json
 sighist-*.json
+# --- 分析v2 / Action集計（2026-06-25〜・dataブランチ専用）---
+card-model-v2.json
+wincon-policy.json
+wincon-realization-*.json
+matchups-v2-*.json
+spell-tempo-*.json
+card-context-lift-*.json
+api-tags-seen.json
+battle-schema-sample.json
+battle-feature-buckets.json
