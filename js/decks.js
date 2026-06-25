@@ -159,13 +159,23 @@ const _ALL_CARD_NAMES = Object.keys(CARD_INFO);
 function kana(s) {
   return (s || '').toLowerCase().replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
 }
-// 名前 or 略称(yomi) にヒットするか
+// 英語名（画像スラッグ）を取り出す：例 ".../hog-rider.png" → "hog-rider"
+function cardSlug(name) {
+  const info = (typeof CARD_INFO !== 'undefined' && CARD_INFO[name]) || {};
+  const m = info.i && info.i.match(/\/([a-z0-9-]+)\.png/i);
+  return m ? m[1] : '';
+}
+// 英数字以外を除いた小文字化（"Hog Rider"/"hog-rider" → "hogrider"）
+function asciiKey(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+// 名前(日本語) or 略称(yomi) or 英語名(スラッグ) にヒットするか（大小・かな/カナ・スペース/ハイフン差を吸収）
 function cardMatches(name, q) {
   const qn = kana(q);
   if (kana(name).indexOf(qn) >= 0) return true;
-  // index.htmlと同じく yomi 文字列全体への部分一致
   const y = (typeof CARD_YOMI !== 'undefined' && CARD_YOMI[name]) ? CARD_YOMI[name] : '';
-  return !!y && kana(y).indexOf(qn) >= 0;
+  if (y && kana(y).indexOf(qn) >= 0) return true;
+  // 英語名で検索（"hog"/"Hog Rider"/"hogrider" → ホグライダー）
+  const qa = asciiKey(q);
+  return qa.length >= 1 && asciiKey(cardSlug(name)).indexOf(qa) >= 0;
 }
 function renderCardPop(q) {
   q = (q || '').trim();

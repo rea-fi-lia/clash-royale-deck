@@ -271,6 +271,44 @@ function outcomeBucket_(win, dom) {
   if (win) return dom >= 0.35 ? 'cleanWin' : dom > -0.10 ? 'stableWin' : 'fragileWin';
   return dom >= 0.10 ? 'pressureLoss' : dom > -0.35 ? 'closeLoss' : 'collapseLoss';
 }
+function addPolStats_(map, key, t0, o0, tc, oc) {
+  var hasHp = (typeof t0.kingTowerHitPoints === 'number') && (typeof o0.kingTowerHitPoints === 'number');
+  var hpMargin = sumTowerHp_(t0) - sumTowerHp_(o0);
+  var kingHpMargin = numOr0_(t0.kingTowerHitPoints) - numOr0_(o0.kingTowerHitPoints);
+  var crownMargin = tc - oc, win = tc > oc;
+  var dom = battleDominance_(hpMargin, crownMargin, kingHpMargin, hasHp);
+  var bk = outcomeBucket_(win, dom);
+  var leakAdv = (typeof t0.elixirLeaked === 'number' && typeof o0.elixirLeaked === 'number') ? (o0.elixirLeaked - t0.elixirLeaked) : null;
+  var trophy = (typeof t0.trophyChange === 'number') ? t0.trophyChange : null;
+  var e = map[key] || (map[key] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  e[0]++; e[1] += dom; e[2] += crownMargin;
+  if (hasHp) { e[3] += hpMargin; e[4]++; }
+  if (leakAdv != null) { e[5] += leakAdv; e[6]++; }
+  if (trophy != null) { e[7] += trophy; e[8]++; }
+  var bi = { cleanWin: 9, stableWin: 10, fragileWin: 11, pressureLoss: 12, closeLoss: 13, collapseLoss: 14 }[bk];
+  e[bi]++;
+}
+function polSummary_(a) {
+  var g = a && a[0] || 0; if (!g) return null;
+  var wins = (a[9] || 0) + (a[10] || 0) + (a[11] || 0);
+  var domAvg = a[1] / g, crownAvg = a[2] / g;
+  var leakAdvAvg = a[6] ? a[5] / a[6] : null, troAvg = a[8] ? a[7] / a[8] : null;
+  var cleanWinRate = (a[9] || 0) / g, stableWinRate = (a[10] || 0) / g, fragileWinRate = (a[11] || 0) / g;
+  var pressureLossRate = (a[12] || 0) / g, closeLossRate = (a[13] || 0) / g, collapseLossRate = (a[14] || 0) / g;
+  var stability = cleanWinRate - fragileWinRate - collapseLossRate;
+  var pilotFit = leakAdvAvg != null ? clampN_(leakAdvAvg / POL_NORM.leak) : 0;
+  var truePower = Math.round((0.46 * wilson_(wins, g) + 0.27 * ((clampN_(domAvg) + 1) / 2) + 0.13 * ((clampN_(crownAvg / 3) + 1) / 2) + 0.09 * ((clampN_(stability) + 1) / 2) + 0.05 * ((pilotFit + 1) / 2)) * 1000) / 10;
+  return {
+    games: g, wins: wins, wr: Math.round(wins / g * 1000) / 10, lb: Math.round(wilson_(wins, g) * 1000) / 10,
+    dominanceAvg: Math.round(domAvg * 1000) / 1000, crownMarginAvg: Math.round(crownAvg * 100) / 100,
+    cleanWinRate: Math.round(cleanWinRate * 1000) / 10, stableWinRate: Math.round(stableWinRate * 1000) / 10,
+    fragileWinRate: Math.round(fragileWinRate * 1000) / 10, pressureLossRate: Math.round(pressureLossRate * 1000) / 10,
+    closeLossRate: Math.round(closeLossRate * 1000) / 10, collapseLossRate: Math.round(collapseLossRate * 1000) / 10,
+    leakAdvantageAvg: leakAdvAvg != null ? Math.round(leakAdvAvg * 100) / 100 : null,
+    trophyChangeAvg: troAvg != null ? Math.round(troAvg * 100) / 100 : null,
+    truePower: truePower
+  };
+}
 
 // ★モードbucket分類（CRDB_API_TAG_INVENTORY_NODE_BUILDER §混ぜずにbucket化）。
 //   混ぜると壊れる（PoLとfriendly、通常とDraft/Triple等）ので、type/gameMode を用途別bucketへ。
@@ -325,23 +363,11 @@ async function updateDecks() {
   var muNow = {};       // ' 自分arch|相手arch' → [試合数, 勝ち数]（今回ぶん）
   // ★PoL試合内容（今回ぶん）：sig → [g, domSum, crownSum, hpSum, hpN, leakSum, leakN, troSum, troN, cleanWin, stableWin, fragileWin, pressureLoss, closeLoss, collapseLoss]
   var polNow = {};
+  // ★PoL対面別試合内容（今回ぶん）：'自分arch|相手arch' → pol配列。勝率だけでなく支配度/崩壊負け率まで貯める。
+  var polMuNow = {};
   function accPol_(sig, b, tc, oc) {
     var t0 = b.team[0], o0 = b.opponent[0];
-    var hasHp = (typeof t0.kingTowerHitPoints === 'number') && (typeof o0.kingTowerHitPoints === 'number');
-    var hpMargin = sumTowerHp_(t0) - sumTowerHp_(o0);
-    var kingHpMargin = numOr0_(t0.kingTowerHitPoints) - numOr0_(o0.kingTowerHitPoints);
-    var crownMargin = tc - oc, win = tc > oc;
-    var dom = battleDominance_(hpMargin, crownMargin, kingHpMargin, hasHp);
-    var bk = outcomeBucket_(win, dom);
-    var leakAdv = (typeof t0.elixirLeaked === 'number' && typeof o0.elixirLeaked === 'number') ? (o0.elixirLeaked - t0.elixirLeaked) : null;
-    var trophy = (typeof t0.trophyChange === 'number') ? t0.trophyChange : null;
-    var e = polNow[sig] || (polNow[sig] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-    e[0]++; e[1] += dom; e[2] += crownMargin;
-    if (hasHp) { e[3] += hpMargin; e[4]++; }
-    if (leakAdv != null) { e[5] += leakAdv; e[6]++; }
-    if (trophy != null) { e[7] += trophy; e[8]++; }
-    var bi = { cleanWin: 9, stableWin: 10, fragileWin: 11, pressureLoss: 12, closeLoss: 13, collapseLoss: 14 }[bk];
-    e[bi]++;
+    addPolStats_(polNow, sig, t0, o0, tc, oc);
   }
   var typeSeen = {};    // 観測した type/gameMode の分布（→ api-tags-seen.json）
   var runPlayerSig = {}; // ★今回ぶん：プレイヤータグ → そのプレイヤーの現在デッキ署名（ユニーク人数集計用）
@@ -453,10 +479,12 @@ async function updateDecks() {
           var k = aa[ai] + '|' + bb[bi];
           var mm = muNow[k] || (muNow[k] = [0, 0]);
           mm[0]++; if (tc > oc) mm[1]++;
+          addPolStats_(polMuNow, k, b.team[0], b.opponent[0], tc, oc);
           if (!oppTracked) {
             var k2 = bb[bi] + '|' + aa[ai];
             var mm2 = muNow[k2] || (muNow[k2] = [0, 0]);
             mm2[0]++; if (oc > tc) mm2[1]++;
+            addPolStats_(polMuNow, k2, b.opponent[0], b.team[0], oc, tc);
           }
         }
       }

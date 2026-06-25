@@ -794,13 +794,15 @@
     mo.observe(document.body, { childList: true });
   }
 
+  function notifyLang() { try { window.dispatchEvent(new CustomEvent('crlangchange', { detail: { lang: lang } })); } catch (e) {} }
   function init() {
     injectSwitcher();
     walk();
+    notifyLang();            // ★初回も crlangchange を発火＝各ページの _t() ベース動的テキスト（decks の集計文/タブ説明等）が CRI18N 準備後に再描画され、生キー残りを根絶
     observe('cardList');
     observe('deckSlots');
     observeBody();
-    setTimeout(walk, 800);   // 初期描画の取りこぼし対策（1回だけ）
+    setTimeout(function () { walk(); notifyLang(); }, 800);   // 初期描画/データ遅延の取りこぼし対策（walk＋再通知・1回だけ）
   }
   if (document.readyState !== 'loading') init();
   else document.addEventListener('DOMContentLoaded', init);

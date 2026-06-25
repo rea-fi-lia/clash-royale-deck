@@ -306,7 +306,11 @@ function getFiltered() {
     if (q) {
       const nameMatch = toKatakana(c.name.toLowerCase()).includes(q);
       const yomiMatch = c.yomi && toKatakana(c.yomi.toLowerCase()).includes(q);
-      if (!nameMatch && !yomiMatch) return false;
+      // 英語名（画像スラッグ）でも検索：大小・スペース/ハイフンを無視（"hog"/"Hog Rider"→ホグライダー）
+      const qa = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const slug = ((c.img || '').match(/\/([a-z0-9-]+)\.png/i) || [])[1] || '';
+      const enMatch = qa && slug.toLowerCase().replace(/[^a-z0-9]/g, '').includes(qa);
+      if (!nameMatch && !yomiMatch && !enMatch) return false;
     }
     return true;
   });
