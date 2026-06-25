@@ -261,6 +261,7 @@ function modeBucketOf(type, gm) {
   if (type === 'pathOfLegend') return 'ranked_pol';
   if (type === 'boatBattle' || /touchdown|heist|boatbattle|showdown/.test(g)) return 'excluded_special';
   if (/event_|restless/.test(g)) return 'excluded_event';
+  if (/challenge/.test(g)) return 'challenge_event'; // ★レベル中立（標準レベル）勝率の素材になりうる
   if (/draft|pickmode|^pick|classicdecks|mirrordeck/.test(g)) return 'draft_pick';
   if (/rampup/.test(g)) return 'special_rampup';
   if (/tripleelixir|7xelixir/.test(g)) return 'special_triple';
