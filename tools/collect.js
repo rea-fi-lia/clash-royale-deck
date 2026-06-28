@@ -569,7 +569,7 @@ async function updateDecks() {
       var d = classifyDeck(cards);
       if (!d) continue;
       var ranked = isRanked_(b);
-      if (ranked && !gotPop) { if (tally(pop, d, null)) { gotPop = true; if (tag) runPlayerSig[tag] = sigKey(d); } }
+      if (!seedMode && ranked && !gotPop) { if (tally(pop, d, null)) { gotPop = true; if (tag) runPlayerSig[tag] = sigKey(d); } }
       var bt = b.battleTime || '';
       if (bt && bt > maxT) maxT = bt;
       if (seenT && bt && bt <= seenT) continue;    // ★前回処理済み＝二重カウントしない
@@ -660,9 +660,14 @@ async function updateDecks() {
     try {
       var gotSeed = await fetchTags(seedTags, true);
       var nowMs = Date.now();
+      // ★試行した全seedの lastFetch を進める＝不達tagでローテーションが止まらない。
+      seedAll.slice(0, SEED_PER_RUN).forEach(function (t) {
+        if (hist.oppSeeds[t]) hist.oppSeeds[t].lastFetch = nowMs;
+      });
+      // ★成功tagは別途 lastOk を記録（将来の品質フィルタ用）。
       gotSeed.forEach(function (raw) {
         var t = String(raw).toUpperCase().replace(/[^0-9A-Z]/g, '');
-        if (hist.oppSeeds[t]) hist.oppSeeds[t].lastFetch = nowMs;
+        if (hist.oppSeeds[t]) hist.oppSeeds[t].lastOk = nowMs;
       });
       console.log('seed fetched=' + gotSeed.length + '/' + seedTags.length);
     } catch (e) { console.log('seed fetch error ' + ((e && e.message) || e)); }
