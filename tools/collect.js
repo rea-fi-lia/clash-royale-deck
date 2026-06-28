@@ -127,6 +127,37 @@ async function crGet(path, token) {
   return res.json();
 }
 
+function summarizeRankingItems_(items) {
+  var keys = {}, nums = {};
+  (items || []).forEach(function (p) {
+    Object.keys(p || {}).forEach(function (k) {
+      keys[k] = 1;
+      if (typeof p[k] === 'number') {
+        var n = nums[k] || (nums[k] = { min: p[k], max: p[k], sample: [] });
+        n.min = Math.min(n.min, p[k]); n.max = Math.max(n.max, p[k]);
+        if (n.sample.length < 5) n.sample.push(p[k]);
+      }
+    });
+  });
+  return { count: (items || []).length, keys: Object.keys(keys).sort(), numeric: nums, sample: (items || []).slice(0, 3) };
+}
+
+async function probePolRanking_(token) {
+  var out = { updated: new Date().toISOString(), pages: [] };
+  var first = await crGet('/locations/global/pathoflegend/players?limit=1000', token);
+  out.pages.push(Object.assign({ page: 1, cursorAfter: first.paging && first.paging.cursors && first.paging.cursors.after }, summarizeRankingItems_(first.items || [])));
+  var after = first.paging && first.paging.cursors && first.paging.cursors.after;
+  if (after) {
+    try {
+      var second = await crGet('/locations/global/pathoflegend/players?limit=1000&after=' + encodeURIComponent(after), token);
+      out.pages.push(Object.assign({ page: 2, cursorAfter: second.paging && second.paging.cursors && second.paging.cursors.after }, summarizeRankingItems_(second.items || [])));
+    } catch (e) {
+      out.page2Error = (e && e.message) || String(e);
+    }
+  }
+  return out;
+}
+
 function deckNameGuess(slots) {
   var wins = ['ホグライダー', 'ロイヤルジャイアント', 'エアバルーン', '巨大クロスボウ', '迫撃砲', 'ゴーレム', 'ラヴァハウンド', 'ペッカ', 'メガナイト', 'ロイヤルホグ', '三銃士', 'スケルトンラッシュ', 'ディガー', 'ゴブリンドリル'];
   for (var i = 0; i < slots.length; i++) { if (wins.indexOf(slots[i]) >= 0) return slots[i] + ' デッキ'; }
@@ -354,6 +385,19 @@ async function updateDecks() {
 
   var rankingPath = rankingSource === 'trophy' ? '/locations/global/rankings/players?limit=' + topN : '/locations/global/pathoflegend/players?limit=' + topN;
   var ranking = await crGet(rankingPath, token);
+  if (rankingSource === 'pol') {
+    try {
+      var probe = { updated: new Date().toISOString(), source: 'global pathoflegend ranking', pages: [] };
+      probe.pages.push(Object.assign({ page: 1, cursorAfter: ranking.paging && ranking.paging.cursors && ranking.paging.cursors.after }, summarizeRankingItems_(ranking.items || [])));
+      var afterProbe = ranking.paging && ranking.paging.cursors && ranking.paging.cursors.after;
+      if (afterProbe) {
+        var page2 = await crGet('/locations/global/pathoflegend/players?limit=1000&after=' + encodeURIComponent(afterProbe), token);
+        probe.pages.push(Object.assign({ page: 2, cursorAfter: page2.paging && page2.paging.cursors && page2.paging.cursors.after }, summarizeRankingItems_(page2.items || [])));
+      }
+      await ghWriteJson_(ghSiblingPath_(GH_PATH, 'pol-ranking-probe-v1.json'), probe, 'chore: update pol-ranking-probe-v1.json');
+      console.log('pol-ranking-probe pages=' + probe.pages.length + ' keys=' + (probe.pages[0] && probe.pages[0].keys || []).join(','));
+    } catch (e) { console.log('pol-ranking-probe error ' + ((e && e.message) || e)); }
+  }
   var players = (ranking.items || []).slice(0, topN);
   if (rankingSource === 'trophy') {
     players = players.filter(function (p) {
