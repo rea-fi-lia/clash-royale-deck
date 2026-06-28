@@ -27,6 +27,11 @@ function syncTabUI() {
 let activeCosts = new Set();
 let costDesc = false; // コスト高い順に並べ替えるトグル
 let favSort = (() => { try { return JSON.parse(localStorage.getItem('cr_favsort') || 'false'); } catch(e) { return false; } })(); // ❤トグル：ONでお気に入りを先頭に。リロードでも維持
+let assistMode = (() => { try { return localStorage.getItem('cr_assist_mode') === 'on'; } catch(e) { return false; } })();
+let assistSuggestions = [];
+let assistVariant = 0;
+const ASSIST_DATA_BASE = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/';
+const assistData = { wincon: null, potential: null, tags: null, ready: false, tried: false };
 
 function saveFavorites() {
   if (window.CRAuth && CRAuth.getUser && CRAuth.getUser()) {
@@ -54,7 +59,7 @@ function toggleFav(name, e) {
 function T(key, vars, fb) { return window.CRI18N ? CRI18N.t(key, vars) : (fb != null ? fb : key); }
 function TR(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
 // 言語切替時：数値入りの動的表示（平均コストの枚数など）を現在言語で作り直す
-window.addEventListener('crlangchange', () => { try { showDeckStats(deck); updateActionButtons(); } catch (e) {} });
+window.addEventListener('crlangchange', () => { try { showDeckStats(deck); updateActionButtons(); updateAssistPanel(); } catch (e) {} });
 
 // お気に入り解除の確認ダイアログ
 function openFavRemoveDialog(name) {
@@ -151,6 +156,7 @@ function updateEnergyBar() {
 }
 
 function init() {
+  loadAssistData();
   const cf = document.getElementById('costFilters');
   [1,2,3,4,5,6,7,8,9].forEach(c => {
     const b = document.createElement('button');
@@ -201,6 +207,8 @@ function init() {
   // 永続化された❤トグル状態をUIに反映
   const favTabEl = document.querySelector('.ttab[data-type="fav"]');
   if (favTabEl) favTabEl.classList.toggle('active', favSort);
+  const assistToggle = document.getElementById('assistToggle');
+  if (assistToggle) assistToggle.onclick = () => setAssistMode(!assistMode);
 
   const cardListEl = document.getElementById('cardList');
   cardListEl.addEventListener('dragover', e => {
@@ -287,6 +295,7 @@ function init() {
 
   render();
   renderDeck();
+  updateAssistPanel();
   initTouchDnD();
 }
 
@@ -325,6 +334,333 @@ function getFiltered() {
   return res;
 }
 
+// ===== 参謀モード：次の1枚（v1.5・監修JSONがあれば使い、無ければローカル定義で動く） =====
+function normalizeAssistCards(j) {
+  if (!j) return null;
+  if (j.cards && !Array.isArray(j.cards)) return j.cards;
+  if (Array.isArray(j.cards)) return Object.fromEntries(j.cards.map(x => [x.name, x]));
+  if (Array.isArray(j)) return Object.fromEntries(j.map(x => [x.name, x]));
+  return j.byCard || null;
+}
+function loadAssistJson(name) {
+  return fetch(ASSIST_DATA_BASE + name, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+}
+function loadAssistData() {
+  if (assistData.tried) return;
+  assistData.tried = true;
+  Promise.all([
+    loadAssistJson('wincon-policy.json'),
+    loadAssistJson('card-potential.json'),
+    loadAssistJson('card-tags.json')
+  ]).then(([wincon, potential, tags]) => {
+    assistData.wincon = normalizeAssistCards(wincon);
+    assistData.potential = normalizeAssistCards(potential);
+    assistData.tags = normalizeAssistCards(tags);
+    assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags);
+    updateAssistPanel();
+  }).catch(() => {});
+}
+function assistWincon(c) {
+  return assistData.wincon && assistData.wincon[c.name];
+}
+function assistPotential(c) {
+  return (assistData.potential && (assistData.potential[c.name] || assistData.potential[c.name + '⚡'] || assistData.potential[c.name + '👑'])) || null;
+}
+function assistTags(c) {
+  const row = assistData.tags && (assistData.tags[c.name] || assistData.tags[c.name + '⚡'] || assistData.tags[c.name + '👑']);
+  return new Set((row && row.tags) || []);
+}
+function assistTagHas(c, tag) {
+  return assistTags(c).has(tag);
+}
+const ASSIST_WINCONS = new Set([
+  'ウォールブレイカー','スケルトンバレル','エリクサーゴーレム','ディガー','ゴブリンバレル',
+  'ホグライダー','攻城バーバリアン','ゴブリンドリル','迫撃砲','ジャイアント','エアバルーン',
+  'ロイヤルホグ','ラムライダー','ゴブリンシュタイン','ゴブリンマシン','スケルトンラッシュ',
+  'ロイヤルジャイアント','エリートバーバリアン','ゴブジャイアント','スパーキー','ロケット',
+  '巨大クロスボウ','ペッカ','ラヴァハウンド','エレクトロジャイアント','メガナイト',
+  '見習い親衛隊','ゴーレム','三銃士'
+]);
+const ASSIST_SECONDARY = new Set([
+  'プリンセス','吹き矢ゴブリン','アサシン ユーノ','ロイヤルゴースト','リトルプリンス',
+  'マジックアーチャー','ダークプリンス','ランバージャック','スケルトンキング','フェニックス',
+  'マイティディガー','ゴールドナイト','プリンス','アーチャークイーン','モンク','巨大スケルトン',
+  'ステルスブッシュ','コウモリの群れ','ゴブリンの呪い','アーチャー','ガーゴイル',
+  'ゴブリンギャング','ロケット砲士','スケルトン部隊','盾の戦士','スケルトンドラゴン',
+  'ザッピー','ホバリング砲','ダイナマイトゴブリン','ベビードラゴン','マザーネクロマンサー',
+  'ダークネクロ','鍛冶屋ジャイアント'
+]);
+const ASSIST_SMALL_SPELLS = new Set(['ザップ','巨大雪玉','ローリングバーバリアン','ローリングウッド','矢の雨','ゴブリンの呪い']);
+const ASSIST_MED_SPELLS = new Set(['ファイアボール','ポイズン','フリーズ','トルネード','アースクエイク','ロイヤルデリバリー','ボイド','ヴァイン']);
+const ASSIST_BIG_SPELLS = new Set(['ライトニング','ロケット']);
+
+function assistHas(c, words) {
+  const s = (c.name + ' ' + (c.role || '')).toLowerCase();
+  return words.some(w => s.includes(String(w).toLowerCase()));
+}
+function assistTypeOf(c) {
+  const w = assistWincon(c);
+  if (w && w.class === '勝ち筋') return 'wincon';
+  if (w && w.class === '第2勝ち筋') return 'secondary';
+  if (w && w.class === '補助勝ち筋') return 'supportWincon';
+  if (w && w.class === 'サイクル札') return 'cycle';
+  if (w && w.class === '防衛札') return 'defense';
+  if (ASSIST_WINCONS.has(c.name)) return 'wincon';
+  if (ASSIST_SECONDARY.has(c.name)) return 'secondary';
+  if (ASSIST_SMALL_SPELLS.has(c.name)) return 'smallSpell';
+  if (ASSIST_MED_SPELLS.has(c.name)) return 'midSpell';
+  if (ASSIST_BIG_SPELLS.has(c.name)) return 'bigSpell';
+  if (c.type === 'building') return 'building';
+  if (c.cost <= 2 || assistHas(c, ['サイクル'])) return 'cycle';
+  if (assistTagHas(c, 'air') || assistHas(c, ['対空'])) return 'air';
+  if (assistTagHas(c, 'splash') || assistHas(c, ['範囲','小型処理','スプラッシュ'])) return 'splash';
+  if (assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp') || assistHas(c, ['高DPS','高火力','集中加熱'])) return 'dps';
+  if (assistTagHas(c, 'tgHp') || assistTagHas(c, 'minitank') || assistHas(c, ['タンク','防衛'])) return 'defense';
+  return 'support';
+}
+function assistIsMainWincon(c) {
+  const w = assistWincon(c);
+  return (w && w.class === '勝ち筋') || ASSIST_WINCONS.has(c.name);
+}
+function assistIsSecondary(c) {
+  const w = assistWincon(c);
+  return (w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) || ASSIST_SECONDARY.has(c.name);
+}
+function assistDeckInfo() {
+  const cards = deck.filter(Boolean);
+  const names = new Set(cards.map(c => c.name));
+  const avg = cards.length ? cards.reduce((s, c) => s + (c.cost || 0), 0) / cards.length : 0;
+  const wincons = cards.filter(assistIsMainWincon);
+  const spells = cards.filter(c => c.type === 'spell');
+  const air = cards.filter(c => assistTagHas(c, 'air') || assistHas(c, ['対空']));
+  const splash = cards.filter(c => assistTagHas(c, 'splash') || assistHas(c, ['範囲','小型処理','スプラッシュ']));
+  const dps = cards.filter(c => assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp') || assistHas(c, ['高DPS','高火力','集中加熱']));
+  const buildings = cards.filter(c => c.type === 'building');
+  const cycles = cards.filter(c => c.cost <= 2 || assistHas(c, ['サイクル']));
+  const main = wincons[0] || cards.find(assistIsSecondary) || cards[0] || null;
+  const style = cards.length === 0 ? 'まだ方向未定'
+    : (wincons.length ? TR(wincons[0].name) + '軸' : '主軸探し中')
+      + '・' + (avg && avg <= 3.0 ? '高回転寄り' : avg >= 4.2 ? '重め' : '中速')
+      + (spells.length ? '・呪文あり' : '・呪文なし');
+  return { cards, names, avg, wincons, spells, air, splash, dps, buildings, cycles, main, style };
+}
+function assistLegal(c, info) {
+  if (info.names.has(c.name)) return false;
+  if (info.cards.length >= 8) return false;
+  if (c.champion && info.cards.filter(d => d.champion).length >= 2) return false;
+  return true;
+}
+function assistTextHit(text, needles) {
+  const s = String(text || '').toLowerCase();
+  return needles.some(n => {
+    const w = String(n == null ? '' : n).trim().toLowerCase();
+    if (w.length < 2) return false; // 空文字・1字ノイズは誤ヒットの元なので無視
+    return s.includes(w);
+  });
+}
+function assistDeckTraitText(info) {
+  const parts = [];
+  info.cards.forEach(c => {
+    const p = assistPotential(c);
+    parts.push(c.name, c.role || '', p && p.scaling, p && p.partner);
+    const tags = assistTags(c); tags.forEach(t => parts.push(t));
+  });
+  if (info.cycles.length >= 3 || info.avg <= 3.0) parts.push('軽サイクル', 'サイクル', '高回転');
+  if (info.splash.length) parts.push('範囲攻撃');
+  if (info.dps.length) parts.push('高DPS', 'タンクキラー');
+  if (info.air.length) parts.push('対空');
+  if (info.wincons.some(c => assistTagHas(c, 'tank') || assistHas(c, ['タンク']))) parts.push('タンク', '強後衛');
+  if (info.wincons.some(c => assistTagHas(c, 'spellBait') || assistHas(c, ['バレル']))) parts.push('ベイト');
+  return parts.filter(Boolean).join(' ');
+}
+function assistPotentialFit(c, info) {
+  const p = assistPotential(c);
+  if (!p) return 0;
+  let score = 0;
+  const trait = assistDeckTraitText(info);
+  if (p.partner && assistTextHit(trait, String(p.partner).split(/[・/／,、\s()（）]+/))) score += 26;
+  if (p.scaling && assistTextHit(trait, String(p.scaling).split(/[・/／,、\s()（）]+/))) score += 12;
+  if (p.solo === '◎' && info.cards.length <= 2) score += 8;
+  if (p.solo === '△' && info.cards.length <= 1) score -= 8;
+  if (Array.isArray(p.phase) && (p.phase[1] === '◎' || p.phase[2] === '◎') && info.avg >= 3.8) score += 8;
+  return score;
+}
+function assistWinconBonus(c, kind, info) {
+  const w = assistWincon(c);
+  if (!w) return 0;
+  let score = 0;
+  if (kind === 'natural') score += (w.mainWinconScore || 0) * (!info.wincons.length ? 7 : 2);
+  if (kind === 'discovery') score += (w.secondaryWinconScore || 0) * 4 + (w.finishingScore || 0) * 2;
+  if (kind === 'stable' && w.class === '防衛札') score += 30;
+  if (w.class === 'サイクル札' && (info.avg >= 3.8 || info.cards.length >= 4)) score += 14;
+  if (!w.ownerReviewed) score -= 6;
+  return score;
+}
+function assistScore(c, kind, info) {
+  let score = 0;
+  const t = assistTypeOf(c);
+  if (kind === 'natural') {
+    if (!info.wincons.length && t === 'wincon') score += 90;
+    if (info.wincons.length && (t === 'smallSpell' || t === 'midSpell')) score += 38;
+    if (info.wincons.length && assistIsSecondary(c)) score += 28;
+    if (info.main && assistHas(c, ['レイジ','回復','バフ','トルネード','フリーズ','タンク','範囲'])) score += 15;
+    score += Math.max(0, 8 - Math.abs((info.avg || 3.5) - c.cost) * 2);
+  } else if (kind === 'stable') {
+    if (info.air.length < 2 && (t === 'air' || assistTagHas(c, 'air') || assistHas(c, ['対空']))) score += 65;
+    if (!info.spells.length && c.type === 'spell') score += 56;
+    if (!info.splash.length && (t === 'splash' || assistTagHas(c, 'splash') || assistHas(c, ['範囲','小型処理']))) score += 42;
+    if (!info.dps.length && (t === 'dps' || assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp') || assistHas(c, ['高DPS','高火力','集中加熱']))) score += 36;
+    if (!info.buildings.length && (c.type === 'building' || assistTagHas(c, 'defBuilding'))) score += 24;
+    if (info.avg >= 4.0 && c.cost <= 2) score += 26;
+    if (c.cost <= 4) score += 8;
+  } else {
+    if (assistIsSecondary(c)) score += 52;
+    if (t === 'wincon' && info.wincons.length && info.wincons[0].name !== c.name) score += 38;
+    if (assistTagHas(c, 'bridgeSpam') || assistTagHas(c, 'spellBait') || assistTagHas(c, 'dash') || assistHas(c, ['奇襲','超長射程','透明','ダッシュ','複製','全停止','大量召喚'])) score += 26;
+    if (c.champion) score += 12;
+    if (info.cards.length <= 2 && t === 'wincon') score += 12;
+  }
+  score += assistPotentialFit(c, info);
+  score += assistWinconBonus(c, kind, info);
+  if (info.avg >= 4.4 && c.cost >= 5) score -= 35;
+  if (info.spells.length >= 2 && c.type === 'spell') score -= 18;
+  if (info.cards.length >= 6 && !info.wincons.length && t !== 'wincon') score -= 45;
+  return score;
+}
+function assistReason(c, kind, info) {
+  const t = assistTypeOf(c);
+  const p = assistPotential(c);
+  const w = assistWincon(c);
+  if (kind === 'natural') {
+    if (p && p.partner) return '今の構成と噛み合う相手があり、主軸を伸ばせます。';
+    if (w && w.class === '勝ち筋' && !info.wincons.length) return '監修済みの主勝ち筋。まず勝ち方の主役を作れます。';
+    if (!info.wincons.length && t === 'wincon') return 'まず勝ち方の主役を作れます。';
+    if (c.type === 'spell') return '主軸を通すための呪文として使いやすいです。';
+    return '今の主軸をそのまま伸ばしやすい候補です。';
+  }
+  if (kind === 'stable') {
+    if (info.air.length < 2 && (assistTagHas(c, 'air') || assistHas(c, ['対空']))) return '対空が薄いので、空中勝ち筋への受けが安定します。';
+    if (!info.spells.length && c.type === 'spell') return '呪文が無いので、小物処理や押し込みが安定します。';
+    if (!info.splash.length && (assistTagHas(c, 'splash') || assistHas(c, ['範囲','小型処理']))) return '範囲処理を足して、小物で崩されにくくします。';
+    if (info.avg >= 4.0 && c.cost <= 2) return '重めなので、回転を少し整える候補です。';
+    return '今の穴を埋めて、事故を減らす候補です。';
+  }
+  if (w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) return '監修済みの補助軸。第2の圧を足して受け方を迷わせます。';
+  if (assistIsSecondary(c)) return '第2の圧を足して、相手の受け方を迷わせます。';
+  return '少し違う勝ち筋や面白さを足せる候補です。';
+}
+function assistBadges(c) {
+  const badges = [];
+  const w = assistWincon(c);
+  const p = assistPotential(c);
+  const tags = assistTags(c);
+  if (w && w.class) badges.push(w.class);
+  if (p && p.partner) badges.push('噛み合い: ' + p.partner);
+  if (p && p.scaling) badges.push(p.scaling);
+  if (p && Array.isArray(p.phase)) {
+    if (p.phase[1] === '◎' || p.phase[2] === '◎') badges.push('倍速向き');
+    else if (p.phase[0] === '◎') badges.push('序盤OK');
+  }
+  if (p && p.solo === '◎') badges.push('単体でも動ける');
+  if (tags.has('air')) badges.push('対空');
+  if (tags.has('splash')) badges.push('範囲');
+  if (tags.has('tankKiller')) badges.push('高火力');
+  return [...new Set(badges)].slice(0, 3);
+}
+function pickAssistCandidate(kind, used, info) {
+  const ranked = [];
+  CARDS.forEach(c => {
+    if (!assistLegal(c, info) || used.has(c.name)) return;
+    const score = assistScore(c, kind, info);
+    if (score > 0) ranked.push({ card: c, score });
+  });
+  ranked.sort((a, b) => b.score - a.score || a.card.cost - b.card.cost);
+  const pick = ranked[Math.min(assistVariant, Math.max(0, ranked.length - 1)) % Math.min(3, Math.max(1, ranked.length))];
+  if (!pick) return null;
+  used.add(pick.card.name);
+  return { kind, card: pick.card, score: pick.score, reason: assistReason(pick.card, kind, info), badges: assistBadges(pick.card) };
+}
+function buildAssistSuggestions() {
+  const info = assistDeckInfo();
+  if (info.cards.length >= 8) return [];
+  const used = new Set();
+  return ['natural','stable','discovery'].map(k => pickAssistCandidate(k, used, info)).filter(Boolean);
+}
+function assistKindLabel(kind) {
+  return kind === 'natural' ? '自然候補' : kind === 'stable' ? '安定候補' : '発見候補';
+}
+function assistKindIcon(kind) {
+  return kind === 'natural' ? '🌱' : kind === 'stable' ? '🛡' : '✨';
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function updateAssistPanel() {
+  const controls = document.querySelector('.controls');
+  const btn = document.getElementById('assistToggle');
+  const panel = document.getElementById('assistPanel');
+  if (!controls || !btn || !panel) return;
+  controls.classList.toggle('assist-active', assistMode);
+  btn.setAttribute('aria-pressed', assistMode ? 'true' : 'false');
+  btn.innerHTML = assistMode ? '<span>アシストON</span>' : '<span>アシスト</span>';
+  if (!assistMode) { panel.innerHTML = ''; assistSuggestions = []; refreshAssistHighlights(); return; }
+  const info = assistDeckInfo();
+  assistSuggestions = buildAssistSuggestions();
+  if (info.cards.length >= 8) {
+    panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の一手</div><div class="assist-state">8枚完成</div></div>'
+      + '<div class="assist-empty">デッキが完成しました。ここからは分析で「どう勝つか」を読みましょう。</div>'
+      + '<div class="assist-actions"><a class="assist-mini" href="strategy.html">デッキ分析へ</a></div>';
+    refreshAssistHighlights();
+    return;
+  }
+  const cardsHtml = assistSuggestions.length ? '<div class="assist-cards">' + assistSuggestions.map(s => {
+    const c = s.card;
+    const badges = (s.badges || []).map(x => '<span>' + esc(x) + '</span>').join('');
+    return '<button class="assist-card ' + s.kind + '" type="button" data-assist-card="' + esc(c.name) + '">'
+      + (c.img ? '<img src="' + esc(c.img) + '" alt="" loading="lazy">' : '<span></span>')
+      + '<span class="ac-body"><span class="ac-kind">' + assistKindIcon(s.kind) + ' ' + assistKindLabel(s.kind) + '</span>'
+      + '<span class="ac-name">' + esc(TR(c.name)) + '</span>'
+      + '<span class="ac-reason">' + esc(s.reason) + '</span>'
+      + (badges ? '<span class="ac-badges">' + badges + '</span>' : '') + '</span>'
+      + '<span class="ac-add">＋</span></button>';
+  }).join('') + '</div>' : '<div class="assist-empty">まず使いたいカードを1枚選ぶと、次の候補を出せます。</div>';
+  const dataState = assistData.ready ? '監修データ反映' : 'ローカル簡易';
+  panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の1枚</div><div class="assist-state">' + esc(info.style) + ' / ' + dataState + '</div></div>'
+    + cardsHtml
+    + '<div class="assist-actions"><button class="assist-mini" id="assistRefresh" type="button">別候補</button><button class="assist-mini" id="assistOff" type="button">通常検索</button></div>';
+  panel.querySelectorAll('[data-assist-card]').forEach(b => {
+    b.addEventListener('click', () => {
+      const c = CARDS.find(x => x.name === b.getAttribute('data-assist-card'));
+      if (!c) return;
+      addToDeck(c);
+      showToast(assistKindLabel((assistSuggestions.find(s => s.card.name === c.name) || {}).kind || 'natural') + '：' + c.name);
+      updateAssistPanel();
+    });
+  });
+  const r = document.getElementById('assistRefresh');
+  if (r) r.onclick = () => { assistVariant = (assistVariant + 1) % 3; updateAssistPanel(); };
+  const off = document.getElementById('assistOff');
+  if (off) off.onclick = () => setAssistMode(false);
+  refreshAssistHighlights();
+}
+function refreshAssistHighlights() {
+  const map = {};
+  assistSuggestions.forEach(s => { map[s.card.name] = assistKindLabel(s.kind); });
+  document.querySelectorAll('#cardList .card').forEach(el => {
+    const label = map[el.dataset.name] || '';
+    el.classList.toggle('assist-suggest', !!label);
+    if (label) el.setAttribute('data-assist-label', label);
+    else el.removeAttribute('data-assist-label');
+  });
+}
+function setAssistMode(on) {
+  assistMode = !!on;
+  assistVariant = 0;
+  try { localStorage.setItem('cr_assist_mode', assistMode ? 'on' : 'off'); } catch(e) {}
+  updateAssistPanel();
+  render();
+}
+
 function render() {
   const filtered = getFiltered();
   document.getElementById('countInfo').innerHTML = filtered.length + ' / ' + CARDS.length + ' <span class="cw">枚</span>';
@@ -334,7 +670,9 @@ function render() {
     const inDeck = deck.some(d => d && d.name === c.name);
     const faved = isFav(c.name);
     const div = document.createElement('div');
-    div.className = 'card' + (inDeck ? ' in-deck' : '');
+    const assistHit = assistSuggestions.find(s => s.card.name === c.name);
+    div.className = 'card' + (inDeck ? ' in-deck' : '') + (assistHit ? ' assist-suggest' : '');
+    if (assistHit) div.setAttribute('data-assist-label', assistKindLabel(assistHit.kind));
     div.dataset.name = c.name;
     const tagClass = c.champion ? 'tag-champion' : c.hero ? 'tag-hero' : 'tag-' + c.type;
     const tagText = c.champion ? 'チャンピオン' : c.hero ? 'ヒーロー' : c.type === 'troop' ? 'ユニット' : c.type === 'spell' ? '呪文' : '建物';
@@ -370,6 +708,7 @@ function render() {
     list.appendChild(div);
   });
   if (window.CRI18N) CRI18N.apply(); // 再描画後にUI全体を再翻訳（コスト/枚数など監視外の文言が日本語に戻るのを防ぐ）
+  refreshAssistHighlights();
 }
 
 // ★デッキ変更時の軽量更新：カード一覧を作り直さず .in-deck クラスだけ切替＝連打・スクロール後タップでも軽い（全再構築＋CRI18N.applyを回避）。
@@ -378,6 +717,7 @@ function refreshInDeck() {
   document.querySelectorAll('#cardList .card').forEach(el => {
     el.classList.toggle('in-deck', inset.has(el.dataset.name));
   });
+  refreshAssistHighlights();
 }
 
 
@@ -963,6 +1303,7 @@ function renderDeck() {
   const favAdded = favNow.filter(n => !(window._favPrev || []).includes(n));
   window._favPrev = favNow;
   if (favAdded.length) requestAnimationFrame(() => { popFavSlots(favAdded); flashFavLinks(); }); // 入れた瞬間：ふわん＋お気に入り結線
+  updateAssistPanel();
 }
 
 // ===== ¥500/¥2,000 演出ヘルパー =====
