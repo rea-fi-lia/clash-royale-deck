@@ -23,6 +23,7 @@ const axisByType = {
   cycleHeal: ['cycle', 'heal', 'survivability'],
   cycleGroundDps: ['cycle', 'defense', 'groundDps', 'singleTargetDps'],
   cyclePoke: ['cycle', 'airDefense', 'groundDefense', 'bridgePoke'],
+  cycleDpsPressure: ['cycle', 'defense', 'groundDps', 'towerChipIfConnected'],
   defensiveSplash: ['defense', 'splash', 'antiSwarm', 'groundControl'],
   kiteTank: ['defense', 'miniTank', 'kite', 'lanePull'],
   variableCopy: ['variable', 'copy', 'contextDependent'],

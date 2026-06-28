@@ -573,6 +573,7 @@ function cycleFitLine(cycles) {
     const t = x.w.attackType;
     if (t === 'cycleGroundDps') return x.c.name + _tr('＝地上DPSで受ける');
     if (t === 'cyclePoke') return x.c.name + _tr('＝対空も橋前ちょっかいもできる');
+    if (t === 'cycleDpsPressure') return x.c.name + _tr('＝地上小物処理と入った時の削り');
     if (t === 'cycleSplash') return x.c.name + _tr('＝小物処理を補う');
     if (t === 'cycleReset') return x.c.name + _tr('＝リセットと連鎖処理');
     if (t === 'cycleFreeze') return x.c.name + _tr('＝足止めで1発を作る');
