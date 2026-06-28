@@ -415,6 +415,8 @@ async function updateDecks() {
   var polOppCardNow = {};
   // ★10000〜14000トロフィー戦イベント（今回ぶん）。PoLとは別に、試合時点startingTrophiesで保存する。
   var trophyEventsNow = [];
+  // ★10000〜14000帯で当たった対戦相手のtag＝次回以降に少しずつ収集する母集団のseed候補。
+  var oppSeedNow = {};
   function accPol_(sig, b, tc, oc) {
     var t0 = b.team[0], o0 = b.opponent[0];
     addPolStats_(polNow, sig, t0, o0, tc, oc);
@@ -551,7 +553,7 @@ async function updateDecks() {
   function evoCnt(cards) { var k = 0; for (var j = 0; j < cards.length; j++) if (cards[j].evolutionLevel > 0) k++; return k; }
   function sameSig_(a, b) { return a.slice().sort().join('|') === b.slice().sort().join('|'); }
 
-  function processLog(battles, tag) {
+  function processLog(battles, tag, seedMode) {
     if (!battles || !battles.length) return;
     var gotPop = false;
     var seenT = lastT[tag] || '';
@@ -578,7 +580,12 @@ async function updateDecks() {
       if (od) {
         var tev = trophyBattleEvent_(b, d, od, tc, oc);
         if (tev) trophyEventsNow.push(tev);
+        if (tev) {
+          var ostag = b.opponent[0].tag ? String(b.opponent[0].tag).toUpperCase().replace(/[^0-9A-Z]/g, '') : '';
+          if (ostag) oppSeedNow[ostag] = tev.opponent.trophies || tev.trophyMid;
+        }
       }
+      if (seedMode) continue;                      // ★seed由来はtrophy event抽出のみ。PoLメタ母集団は汚さない
       if (!ranked) continue;                       // ★PoL集計はランク戦のみ
       if (od && sameSig_(d.jp, od.jp)) continue;   // ★完全ミラー除外
       tally(win, d, tc > oc, tc, oc);
@@ -616,7 +623,17 @@ async function updateDecks() {
   var TAGSET = {}; allTags.forEach(function (t) { TAGSET[String(t).toUpperCase().replace(/[^0-9A-Z]/g, '')] = 1; });
   allTags.forEach(function (t) { if (lastT[t]) newLastT[t] = newLastT[t] || lastT[t]; });
 
-  async function fetchTags(tags) {
+  // ★Top1000以外の10000〜14000帯母集団：過去に当たった相手tagをseedとして履歴に保持し、
+  //   毎回少しずつ（SEED_PER_RUN件）だけ追加収集する＝「一気にではなく」少しずつ広げる。
+  if (!hist.oppSeeds) hist.oppSeeds = {}; // tag -> { tr, lastSeen, lastFetch }
+  var SEED_PER_RUN = parseInt(prop('SEED_PER_RUN', '60'), 10);
+  var seedAll = Object.keys(hist.oppSeeds).filter(function (t) { return !TAGSET[t]; });
+  // 未取得（lastFetch無し=0）を優先し、その後は最も長く取得していない順。
+  seedAll.sort(function (a, b) { return (hist.oppSeeds[a].lastFetch || 0) - (hist.oppSeeds[b].lastFetch || 0); });
+  var seedTags = seedAll.slice(0, SEED_PER_RUN).map(function (t) { return '#' + t; });
+  console.log('opp seeds total=' + seedAll.length + ' fetchingThisRun=' + seedTags.length);
+
+  async function fetchTags(tags, seedMode) {
     var got = [];
     for (var off = 0; off < tags.length; off += CHUNK) {
       var slice = tags.slice(off, off + CHUNK);
@@ -626,7 +643,7 @@ async function updateDecks() {
           .catch(function () { return { ok: false, body: null }; });
       }));
       resps.forEach(function (res, i) {
-        if (res.ok) { got.push(slice[i]); try { processLog(res.body, slice[i]); } catch (e) {} }
+        if (res.ok) { got.push(slice[i]); try { processLog(res.body, slice[i], seedMode); } catch (e) {} }
       });
       await sleep(300);
     }
@@ -637,6 +654,19 @@ async function updateDecks() {
   var miss = allTags.filter(function (t) { return got1.indexOf(t) < 0; });
   if (miss.length) { await sleep(1200); await fetchTags(miss); }
   console.log('typeSeen ' + JSON.stringify(typeSeen));
+
+  // ★seed（Top1000以外）を少しずつ追加収集。PoLメタは汚さず、trophy eventのみ拾う。
+  if (seedTags.length) {
+    try {
+      var gotSeed = await fetchTags(seedTags, true);
+      var nowMs = Date.now();
+      gotSeed.forEach(function (raw) {
+        var t = String(raw).toUpperCase().replace(/[^0-9A-Z]/g, '');
+        if (hist.oppSeeds[t]) hist.oppSeeds[t].lastFetch = nowMs;
+      });
+      console.log('seed fetched=' + gotSeed.length + '/' + seedTags.length);
+    } catch (e) { console.log('seed fetch error ' + ((e && e.message) || e)); }
+  }
 
   var aggregated = Object.keys(pop).reduce(function (s, k) { return s + pop[k].count; }, 0);
   var winBattles = Object.keys(win).reduce(function (s, k) { return s + win[k].count; }, 0);
@@ -1082,6 +1112,27 @@ async function updateDecks() {
   } catch (e) { console.log('battle-schema-sample error ' + ((e && e.message) || e)); }
 
   hist.lastT = newLastT; // ★二重カウント防止のしおり
+
+  // ★今回出会った10000〜14000帯の相手tagをseed母集団へ登録（上限つき＝肥大化防止）。
+  try {
+    var seedNowMs = Date.now();
+    Object.keys(oppSeedNow).forEach(function (t) {
+      if (TAGSET[t]) return; // Top1000は別経路で取得済み
+      var e = hist.oppSeeds[t] || (hist.oppSeeds[t] = { lastFetch: 0 });
+      e.tr = oppSeedNow[t];
+      e.lastSeen = seedNowMs;
+    });
+    var SEED_MAX = parseInt(prop('SEED_MAX', '8000'), 10);
+    var seedKeys = Object.keys(hist.oppSeeds);
+    if (seedKeys.length > SEED_MAX) {
+      // 直近で見かけた順に残す＝鮮度の高い母集団を保持。
+      seedKeys.sort(function (a, b) { return (hist.oppSeeds[b].lastSeen || 0) - (hist.oppSeeds[a].lastSeen || 0); });
+      var keep = {};
+      seedKeys.slice(0, SEED_MAX).forEach(function (t) { keep[t] = hist.oppSeeds[t]; });
+      hist.oppSeeds = keep;
+    }
+    console.log('opp seeds stored=' + Object.keys(hist.oppSeeds).length);
+  } catch (e) { console.log('opp seed store error ' + ((e && e.message) || e)); }
 
   var windowsOut = {
     '1h': { players: W1H.players, uniquePlayers: W1H.uniquePlayers, games: W1H.games, decks: W1H.decks, winDecks: W1H.winDecks, trending: W1H.trending, cards: W1H.cards, meta: W1H.meta },

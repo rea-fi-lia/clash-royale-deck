@@ -291,6 +291,7 @@ let ME_CARDS = [];              // あなたの対面メタ（自分のバトル
 let ME_COUNT = 0;               // 対面集計に使った対戦数
 let _cardMode = 'env';          // 'env'=環境 / 'me'=あなたの対面
 let POL_CARD_INTEL = null;      // 3日全体の相手カード別・試合内容統計
+let TROPHY_BAND_INTEL = null;   // 10000〜14000帯のカード別・帯別の実戦統計
 const _mmSel = new Set();       // 分布図に表示するカード名
 let _mmZoom = null;             // ズーム中の象限（'tl'/'tr'/'bl'/'br' or null＝全体）
 let _ctab = 'use';              // 'use'=使用率 / 'win'=勝率
@@ -351,8 +352,27 @@ function _ckey(c) { return c.name + (c.f ? '|' + c.f : ''); }           // 選�
 function _cardImgF(c) { const i = CARD_INFO[c.name]; if (!i) return ''; if (c.f === 'e' && i.iv) return i.iv; if (c.f === 'h' && i.ih) return i.ih; return i.i || ''; }
 function _fmark(c) { return c.f === 'e' ? '⚡' : (c.f === 'h' ? '👑' : ''); }
 function _oppIntel(name) { return POL_CARD_INTEL && POL_CARD_INTEL.byOpponentCard && POL_CARD_INTEL.byOpponentCard[name]; }
+// ★10000〜14000帯のカード別実戦統計。ユーザーの最新トロフィー±150に近い帯を優先し、無ければ全帯byCardを使う。
+function _bandIntel(name) {
+  if (!TROPHY_BAND_INTEL) return null;
+  const center = ME_TROPHY_CENTER;
+  if (center != null && TROPHY_BAND_INTEL.byBand) {
+    let best = null;
+    Object.keys(TROPHY_BAND_INTEL.byBand).forEach(k => {
+      const m = k.match(/^(\d+)-(\d+)$/); if (!m) return;
+      const lo = +m[1], hi = +m[2];
+      if (center >= lo - 150 && center <= hi + 150) {
+        const row = TROPHY_BAND_INTEL.byBand[k].cards && TROPHY_BAND_INTEL.byBand[k].cards[name];
+        if (row && (!best || row.games > best.games)) best = row;
+      }
+    });
+    if (best) return best;
+  }
+  return (TROPHY_BAND_INTEL.byCard && TROPHY_BAND_INTEL.byCard[name]) || null;
+}
 function _cardPracticalIntel(c) {
   const opp = _oppIntel(c.name);
+  const band = _bandIntel(c.name);
   const g = c.games || 0, use = c.use || 0, win = c.win;
   let label = '', detail = '';
   if (_cardMode === 'me') {
@@ -362,14 +382,20 @@ function _cardPracticalIntel(c) {
     else if (use >= 8) label = _tr('👀 よく見る');
     else if (win != null && win < 45) label = _tr('🛠 苦手寄り');
     else label = _tr('🧭 要確認');
-    if (opp && opp.games >= 30) {
+    if (band && band.games >= 20) {
+      const loss = band.collapseLossRate != null ? _tr('崩れ負け') + ' ' + band.collapseLossRate + '%' : '';
+      detail = _tr('あなたの帯') + ' ' + band.games + _tr('戦') + ' / ' + _tr('勝率') + ' ' + band.wr + '%' + (loss ? ' / ' + loss : '');
+    } else if (opp && opp.games >= 30) {
       const loss = opp.collapseLossRate != null ? _tr('崩れ負け') + ' ' + opp.collapseLossRate + '%' : '';
       detail = _tr('全体3日') + ' ' + opp.games + _tr('戦') + ' / ' + _tr('勝率') + ' ' + opp.wr + '%' + (loss ? ' / ' + loss : '');
     } else {
       detail = _tr('あなたの対面') + ' ' + g + _tr('戦') + ' / ' + _tr('対面率') + ' ' + use + '%';
     }
   } else {
-    if (opp && opp.games >= 30) {
+    if (band && band.games >= 20) {
+      label = band.collapseLossRate >= 20 ? _tr('⚠️ 崩し力高め') : band.wr <= 47 ? _tr('🛡 対策され気味') : _tr('📊 帯データ裏付け');
+      detail = _tr('帯で相手にいる時') + ' ' + band.games + _tr('戦') + ' / ' + _tr('勝率') + ' ' + band.wr + '% / ' + _tr('支配度') + ' ' + ((band.dominanceAvg > 0 ? '+' : '') + band.dominanceAvg);
+    } else if (opp && opp.games >= 30) {
       label = opp.collapseLossRate >= 20 ? _tr('⚠️ 崩し力高め') : opp.wr <= 47 ? _tr('🛡 対策され気味') : _tr('📊 3日裏付けあり');
       detail = _tr('相手にいる時') + ' ' + opp.games + _tr('戦') + ' / ' + _tr('勝率') + ' ' + opp.wr + '% / ' + _tr('支配度') + ' ' + ((opp.dominanceAvg > 0 ? '+' : '') + opp.dominanceAvg);
     } else {
@@ -911,6 +937,7 @@ function renderMetaShare() {
 
 const DECKS_DATA_URL = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/decks.json';
 const POL_CARD_INTEL_URL = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/pol-card-intel-v1.json';
+const TROPHY_BAND_INTEL_URL = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/trophy-band-card-intel-v1.json';
 fetch(DECKS_DATA_URL, { cache: 'no-store' })
   .then(r => { if (!r.ok) throw 0; return r.json(); })
   .catch(() => fetch('decks.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null))
@@ -931,6 +958,11 @@ fetch(DECKS_DATA_URL, { cache: 'no-store' })
 fetch(POL_CARD_INTEL_URL, { cache: 'no-store' })
   .then(r => r.ok ? r.json() : null)
   .then(j => { POL_CARD_INTEL = (j && j.byOpponentCard) ? j : null; try { renderCrank(); } catch (e) {} })
+  .catch(() => {});
+
+fetch(TROPHY_BAND_INTEL_URL, { cache: 'no-store' })
+  .then(r => r.ok ? r.json() : null)
+  .then(j => { TROPHY_BAND_INTEL = (j && (j.byCard || j.byBand)) ? j : null; try { renderCrank(); } catch (e) {} })
   .catch(() => {});
 
 // 指定窓(1h/1日/3日/7日)のデータを反映。windows[key] が無ければ top-level にフォールバック＝旧データでも動く。
