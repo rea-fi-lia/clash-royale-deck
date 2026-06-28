@@ -360,6 +360,33 @@ async function updateDecks() {
     console.log('trophy filter ' + trophyMin + '-' + trophyMax + ' => ' + players.length + ' players');
   }
   var headers = { Authorization: 'Bearer ' + token, Accept: 'application/json', 'User-Agent': UA };
+  if (rankingSource === 'trophy' && !players.length) {
+    var emptyWindow = { players: 0, uniquePlayers: 0, games: 0, decks: [], winDecks: [], trending: [], cards: [], meta: [] };
+    await ghWriteJson_(GH_PATH, {
+      updated: new Date().toISOString(),
+      source: rankingSource,
+      trophyRange: { min: trophyMin, max: trophyMax },
+      players: 0,
+      playersPerRun: 0,
+      uniquePlayers: 0,
+      games: 0,
+      topPlayers: 0,
+      intervalHours: intervalHours,
+      windowDays: WINDOW_DAYS,
+      cardsWindowDays: WINDOW_DAYS,
+      defaultWindow: '7d',
+      decks: [],
+      winDecks: [],
+      trending: [],
+      cards: [],
+      meta: [],
+      winMin: parseInt(prop('WIN_MIN_GAMES_3D', '30'), 10),
+      warning: 'No players returned in trophy range from ranking endpoint. Collector skipped without failing.',
+      windows: { '7d': emptyWindow }
+    }, 'chore: update empty trophy range decks.json');
+    console.log('trophy range empty; wrote placeholder and skipped');
+    return;
+  }
 
   // ---- 履歴を先に読む（対戦の二重カウント防止用 lastT を使うため） ----
   var ghPath = GH_PATH;
