@@ -651,8 +651,10 @@
   /* MOBILE */
   @media (max-width: 720px) {
     /* iOS Safariはbody overflow:hiddenでもページをパンできるため、fixedで完全固定。
-       フッターはbody直下(.appの兄弟)に置くことで、.app(flex:1)が縮んでフッターが最下部に常時表示される */
-    body { display: flex; flex-direction: column; position: fixed; inset: 0; width: 100%; height: 100vh; height: 100dvh; overflow: hidden; overscroll-behavior-y: none; }
+       フッターはbody直下(.appの兄弟)に置くことで、.app(flex:1)が縮んでフッターが最下部に常時表示される。
+       ★高さは inset:0（四辺固定）に任せる＝dvh/vhは使わない。iOS Safariのアドレスバー開閉でdvhが再計算され、
+         画面の底に貼ったフッターが上下にズレるのを防ぐ（nopin側のシェルと統一）。 */
+    body { display: flex; flex-direction: column; position: fixed; inset: 0; overflow: hidden; overscroll-behavior-y: none; }
     /* ヘッダーはナビアイコンのためにスリム表示（携帯でもページ切替できるように） */
     header { display: flex; flex-shrink: 0; padding: calc(5px + env(safe-area-inset-top, 0px)) 12px 5px; gap: 8px; position: static; }
     .logo { font-size: 15px; }

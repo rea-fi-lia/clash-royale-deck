@@ -95,13 +95,14 @@ function updateDeckTabDesc() {
   const el = document.getElementById('deckTabDesc');
   if (!el) return;
   const n = PLAYERS_TOTAL || 0;
+  const win = winLabel(CUR_WINDOW);
   let t;
   if (activeTab === 'win') {
-    t = _t('decks.descWin', { n: WIN_MIN_SHOW });
+    t = _t('decks.descWin', { n: WIN_MIN_SHOW, win: win });
   } else if (activeTab === 'trend') {
-    t = _t('decks.descTrend');
+    t = _t('decks.descTrend', { win: win });
   } else {
-    t = n ? _t('decks.descUsageN', { n: n }) : _t('decks.descUsage');
+    t = n ? _t('decks.descUsageN', { n: n, win: win }) : _t('decks.descUsage', { win: win });
   }
   el.innerHTML = t;
 }
@@ -383,20 +384,18 @@ function _cardPracticalIntel(c) {
     else if (win != null && win < 45) label = _tr('🛠 苦手寄り');
     else label = _tr('🧭 要確認');
     if (band && band.games >= 20) {
-      const loss = band.collapseLossRate != null ? _tr('崩れ負け') + ' ' + band.collapseLossRate + '%' : '';
-      detail = _tr('あなたの帯') + ' ' + band.games + _tr('戦') + ' / ' + _tr('勝率') + ' ' + band.wr + '%' + (loss ? ' / ' + loss : '');
+      detail = _tr('あなたの帯') + ' ' + band.games + _tr('戦') + ' / ' + _tr('勝率') + ' ' + band.wr + '%';
     } else if (opp && opp.games >= 30) {
-      const loss = opp.collapseLossRate != null ? _tr('崩れ負け') + ' ' + opp.collapseLossRate + '%' : '';
-      detail = _tr('全体3日') + ' ' + opp.games + _tr('戦') + ' / ' + _tr('勝率') + ' ' + opp.wr + '%' + (loss ? ' / ' + loss : '');
+      detail = _tr('全体3日') + ' ' + opp.games + _tr('戦') + ' / ' + _tr('勝率') + ' ' + opp.wr + '%';
     } else {
       detail = _tr('あなたの対面') + ' ' + g + _tr('戦') + ' / ' + _tr('対面率') + ' ' + use + '%';
     }
   } else {
     if (band && band.games >= 20) {
-      label = band.collapseLossRate >= 20 ? _tr('⚠️ 崩し力高め') : band.wr <= 47 ? _tr('🛡 対策され気味') : _tr('📊 帯データ裏付け');
+      label = band.wr <= 47 ? _tr('🛡 対策され気味') : _tr('📊 帯データ裏付け');
       detail = _tr('帯で相手にいる時') + ' ' + band.games + _tr('戦') + ' / ' + _tr('勝率') + ' ' + band.wr + '% / ' + _tr('支配度') + ' ' + ((band.dominanceAvg > 0 ? '+' : '') + band.dominanceAvg);
     } else if (opp && opp.games >= 30) {
-      label = opp.collapseLossRate >= 20 ? _tr('⚠️ 崩し力高め') : opp.wr <= 47 ? _tr('🛡 対策され気味') : _tr('📊 3日裏付けあり');
+      label = opp.wr <= 47 ? _tr('🛡 対策され気味') : _tr('📊 3日裏付けあり');
       detail = _tr('相手にいる時') + ' ' + opp.games + _tr('戦') + ' / ' + _tr('勝率') + ' ' + opp.wr + '% / ' + _tr('支配度') + ' ' + ((opp.dominanceAvg > 0 ? '+' : '') + opp.dominanceAvg);
     } else {
       label = _tr('📊 環境データ');
@@ -410,24 +409,29 @@ function _cardPracticalIntel(c) {
 function renderCrank() {
   const wrap = document.getElementById('crankList');
   const hint = document.getElementById('crankHint');
+  const note = document.getElementById('crankNote');
   const me = (_cardMode === 'me');
+  const win = winLabel(CUR_WINDOW);
   let list = CARDS_DATA.slice();
   if (_ctab === 'win') {
     list = list.filter(c => (c.games || 0) >= minGames());
     list.sort((a, b) => (b.win || 0) - (a.win || 0) || (b.games || 0) - (a.games || 0));
     hint.textContent = me
       ? _t('crank.hintWinMe', { n: minGames() })
-      : _t('crank.hintWin', { n: minGames() });
+      : _t('crank.hintWin', { n: minGames(), win: win });
   } else if (_ctab === 'rise') {
     list = list.filter(c => c.rise != null && c.rise > 0);
     list.sort((a, b) => (b.rise || 0) - (a.rise || 0));
-    hint.textContent = _t('crank.hintRise');
+    hint.textContent = _t('crank.hintRise', { win: win });
   } else {
     list.sort((a, b) => (b.use || 0) - (a.use || 0));
     hint.textContent = me
       ? _t('crank.hintUseMe')
-      : _t('crank.hintUse');
+      : _t('crank.hintUse', { win: win });
   }
+  if (note) note.textContent = me
+    ? _t('crank.noteMe', { n: ME_COUNT || 0 })
+    : _t('crank.noteEnv', { win: win });
   // 急上昇のデータがまだ無いときは準備中
   if (_ctab === 'rise' && !list.length) {
     wrap.innerHTML = '<div class="coming-soon"><div class="big">🔥</div>' + _tr('カードの急上昇は準備中です')
