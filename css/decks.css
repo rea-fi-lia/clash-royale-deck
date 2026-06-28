@@ -112,6 +112,14 @@
   .crank-tab { flex:1; padding:11px 8px; text-align:center; cursor:pointer; font-family:inherit; font-size:13px; font-weight:700;
     background:var(--surface); border:1px solid var(--border); border-radius:10px; color:var(--text-muted); transition:all 0.15s; }
   .crank-tab.active { background:rgba(232,160,32,0.14); border-color:var(--accent); color:var(--accent); }
+  .crank-search { position:relative; margin:-4px 0 12px; }
+  .crank-search input { width:100%; background:var(--surface); border:1px solid var(--border-hi); border-radius:999px;
+    padding:10px 42px 10px 14px; color:var(--text); font-size:13px; outline:none; font-family:inherit; }
+  .crank-search input:focus { border-color:var(--accent); }
+  .crank-clear { position:absolute; right:5px; top:50%; transform:translateY(-50%); width:32px; height:32px;
+    border-radius:50%; border:none; background:transparent; color:var(--text-muted); cursor:pointer;
+    align-items:center; justify-content:center; font-size:18px; line-height:1; }
+  .crank-clear:hover { color:var(--text); }
   .crank-hint { font-size:11px; color:var(--text-dim); margin:-6px 0 12px; line-height:1.6; }
   .crank-list { display:flex; flex-direction:column; gap:5px; }
   .crank-row { display:flex; align-items:center; gap:10px; padding:7px 10px; background:var(--surface); border:1px solid var(--border);

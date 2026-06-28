@@ -447,10 +447,19 @@ function assistIsSecondary(c) {
   const w = assistWincon(c);
   return (w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) || ASSIST_SECONDARY.has(c.name);
 }
+function assistCostProfile(cards) {
+  const arr = (cards || []).filter(Boolean).map(c => c.cost || 0).sort((a, b) => a - b);
+  const avg = arr.length ? arr.reduce((s, v) => s + v, 0) / arr.length : 0;
+  const cyc = arr.slice(0, Math.min(4, arr.length));
+  const cycleAvg = cyc.length ? cyc.reduce((s, v) => s + v, 0) / cyc.length : 0;
+  return { avg, cycleAvg };
+}
 function assistDeckInfo() {
   const cards = deck.filter(Boolean);
   const names = new Set(cards.map(c => c.name));
-  const avg = cards.length ? cards.reduce((s, c) => s + (c.cost || 0), 0) / cards.length : 0;
+  const costProfile = assistCostProfile(cards);
+  const avg = costProfile.avg;
+  const cycleAvg = costProfile.cycleAvg;
   const wincons = cards.filter(assistIsMainWincon);
   const spells = cards.filter(assistIsSpell);
   const smallSpells = cards.filter(c => assistSpellSize(c) === 'small');
@@ -467,7 +476,7 @@ function assistDeckInfo() {
   const mainAttack = (mainW && mainW.attackType) || '';
   const style = cards.length === 0 ? 'まだ方向未定'
     : (wincons.length ? TR(wincons[0].name) + '軸' : '主軸探し中')
-      + '・' + (avg && avg <= 3.0 ? '高回転寄り' : avg >= 4.2 ? '重め' : '中速')
+      + '・' + (cycleAvg && cycleAvg <= 2.4 ? '回しやすい' : avg >= 4.2 ? '重め' : '中速')
       + (spells.length ? '・呪文あり' : '・呪文なし');
   const personaAxes = (typeof getPersonaAxes === 'function') ? getPersonaAxes() : null;
   // 空きスロットの種類を把握（idx0=進化枠 / idx1=ヒーロー・チャンピオン枠 / idx2=ワイルド枠(進化orヒーロー) / idx3-7=通常）
@@ -480,13 +489,14 @@ function assistDeckInfo() {
     specialOpen: deck[0] === null || deck[1] === null || deck[2] === null, // 特別枠(1〜3)のどれかが空き
     normalOpen: [3, 4, 5, 6, 7].some(i => deck[i] === null)          // 通常枠(4〜8)のどれかが空き
   };
-  return { cards, names, avg, wincons, spells, smallSpells, air, splash, dps, buildings, cycles, main, secondaries, mainAxes, mainAttack, personaAxes, slots, style };
+  return { cards, names, avg, cycleAvg, wincons, spells, smallSpells, air, splash, dps, buildings, cycles, main, secondaries, mainAxes, mainAttack, personaAxes, slots, style };
 }
 function assistLegal(c, info) {
   if (info.names.has(c.name)) return false;
   if (info.cards.length >= 8) return false;
-  // チャンピオンはスロット2か3にしか置けない。両方埋まっている／既に2枚いるなら候補から除外（提案しても置けない）
-  if (c.champion && !(info.slots && info.slots.champOpen)) return false;
+  // 呪文は最大3枚まで。逆に最後の1枚で呪文0なら、必ず呪文を候補にする。
+  if (assistIsSpell(c) && info.spells.length >= 3) return false;
+  if ((8 - info.cards.length) <= 1 && info.spells.length < 1 && !assistIsSpell(c)) return false;
   return true;
 }
 function assistTextHit(text, needles) {
@@ -553,6 +563,28 @@ function assistMainWants(info) {
   }
   return wants;
 }
+function assistCostFit(c, info, kind) {
+  const after = assistCostProfile(info.cards.concat([c]));
+  const count = info.cards.length;
+  let score = 0;
+  // 平均コスト＝デッキ全体の重さ。序盤(1〜2枚)はまだ形が決まっていないので重い主役も許容。
+  if (count >= 4) {
+    if (after.avg > 4.4) score -= 18;
+    else if (after.avg < 2.6) score -= 8;
+    else if (after.avg >= 3.0 && after.avg <= 3.8) score += 6;
+  } else if (assistIsMainWincon(c) && c.cost >= 5) {
+    score += 6; // 早い段階なら重い主役もあり
+  }
+  // 回転コスト＝4枚回しの軽さ。高回転好き/サイクル型ではここを重視。
+  const tempo = info.personaAxes ? (info.personaAxes.tempo || 0) : 0;
+  if (tempo > 0.25 || info.cycles.length >= 2) {
+    if (after.cycleAvg <= 2.4) score += count >= 3 ? 12 : 6;
+    else if (after.cycleAvg >= 3.2 && count >= 4) score -= 10;
+  }
+  // ただし序盤に軽さだけへ寄りすぎると主役不在になりやすいので、序盤の軽量連打は抑える。
+  if (count <= 2 && !info.wincons.length && c.cost <= 2 && !assistIsMainWincon(c)) score -= 12;
+  return score;
+}
 function assistScore(c, kind, info) {
   let score = 0;
   const t = assistTypeOf(c);
@@ -578,7 +610,7 @@ function assistScore(c, kind, info) {
       if (assistIsSecondary(c)) score += 10;
       if (info.main && assistHas(c, ['レイジ','回復','バフ','トルネード','フリーズ'])) score += 10;
     }
-    score += Math.max(0, 8 - Math.abs((info.avg || 3.5) - c.cost) * 2);
+    score += assistCostFit(c, info, kind);
   } else if (kind === 'stable') {
     // 対空は「本当に空を撃てるユニット」だけ。呪文の air/splash タグでの誤加点を防ぐ。
     // さらに1コスのスピリットは“受け”として薄いので対空穴埋めの満点は与えない。
@@ -588,7 +620,7 @@ function assistScore(c, kind, info) {
       score += airBase * thin;
     }
     // 呪文ゼロ → 小型呪文を中心に1枚だけ推す（大型呪文を穴埋め扱いで押し付けない）
-    if (!info.spells.length && isSpell) score += size === 'small' ? 50 : size === 'mid' ? 28 : 8;
+    if (!info.spells.length && isSpell) score += (size === 'small' ? 50 : size === 'mid' ? 28 : 8) + (info.cards.length >= 5 ? 24 : 0);
     // 範囲処理・地上DPSは呪文以外のユニット役で埋める
     if (!info.splash.length && !isSpell && (assistTagHas(c, 'splash') || assistHas(c, ['範囲','小型処理']))) score += 38;
     if (!info.dps.length && !isSpell && (assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp') || assistHas(c, ['高DPS','高火力','集中加熱']))) score += 32;
@@ -597,6 +629,7 @@ function assistScore(c, kind, info) {
     if (!isSpell && c.cost >= 3 && c.cost <= 5 && (assistTagHas(c, 'minitank') || assistTagHas(c, 'tgHp') || assistHas(c, ['防衛','タンク']))) score += 16;
     if (info.avg >= 4.0 && c.cost <= 2 && !isSpell) score += 22;
     if (c.cost <= 4) score += 6;
+    score += assistCostFit(c, info, kind);
   } else {
     // discovery：今の主軸とは「別の圧」を足す。デッキ状況で変わるようにする。
     if (assistIsSecondary(c)) score += 40;
@@ -613,12 +646,12 @@ function assistScore(c, kind, info) {
     }
     if (c.champion) score += 10;
     if (info.cards.length <= 2 && t === 'wincon') score += 10;
+    score += assistCostFit(c, info, kind);
   }
   score += assistPotentialFit(c, info);
   score += assistWinconBonus(c, kind, info);
   // スロット適合：特別枠(進化/ヒーロー/チャンピオン)が空いていれば、その強みを持つカードを後押し。
-  // 枠が埋まっていれば「進化/ヒーローとしての強み」は活かせないので加点しないだけ（弾かない＝素の通常カードとしては有用なため）。
-  // チャンピオンは枠が無いと置けないので assistLegal 側で候補から除外済み。
+  // 枠が埋まっていれば加点しないだけ。シナジーが高ければ通常候補として残す（チャンピオンはタップ時に入れ替えUIへ）。
   if (info.slots) {
     if (info.slots.evoOpen && c.evolved) score += 16;
     if (info.slots.heroOpen && c.hero) score += 14;
@@ -637,7 +670,7 @@ function assistScore(c, kind, info) {
   }
   // 主勝ち筋が既にあるのに別の主勝ち筋を勧めない（natural/stable）
   if (kind !== 'discovery' && info.wincons.length && t === 'wincon') score -= 30;
-  if (info.avg >= 4.4 && c.cost >= 5) score -= 35;
+  if (info.avg >= 4.4 && c.cost >= 5 && info.cards.length >= 5) score -= 28;
   if (info.spells.length >= 2 && isSpell) score -= 22;
   if (info.cards.length >= 6 && !info.wincons.length && t !== 'wincon') score -= 45;
   return score;
@@ -649,7 +682,7 @@ function assistReason(c, kind, info) {
   const size = assistSpellSize(c);
   if (kind === 'natural') {
     if (!info.wincons.length) {
-      if (w && w.class === '勝ち筋') return '監修済みの主勝ち筋。まず勝ち方の主役を作れます。';
+      if (w && w.class === '勝ち筋') return 'まず勝ち方の主役を作れます。';
       if (t === 'wincon') return 'まず勝ち方の主役を作れます。';
     }
     const mainName = info.wincons.length ? TR(info.wincons[0].name) : '主軸';
@@ -659,16 +692,16 @@ function assistReason(c, kind, info) {
     return mainName + 'をそのまま伸ばしやすい候補です。';
   }
   if (kind === 'stable') {
-    if (info.air.length < 2 && assistIsTrueAir(c)) return '対空が薄いので、空中勝ち筋への受けが安定します。';
+    if (info.air.length < 2 && assistIsTrueAir(c)) return '対空が薄いので、空中の攻めへの受けが安定します。';
     if (!info.spells.length && assistIsSpell(c)) return '呪文が無いので、小物処理や押し込みが安定します。';
     if (!info.splash.length && (assistTagHas(c, 'splash') || assistHas(c, ['範囲','小型処理']))) return '範囲処理を足して、小物で崩されにくくします。';
     if (!info.dps.length && (assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp'))) return '相手のタンクを溶かす役がいないので、守りが安定します。';
     if (info.avg >= 4.0 && c.cost <= 2) return '重めなので、回転を少し整える候補です。';
     return '今の穴を埋めて、事故を減らす候補です。';
   }
-  if (w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) return '監修済みの補助軸。第2の圧を足して受け方を迷わせます。';
-  if (assistIsSecondary(c)) return '第2の圧を足して、相手の受け方を迷わせます。';
-  return '少し違う勝ち筋や面白さを足せる候補です。';
+  if (w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) return 'もう一つの圧を足して、相手の受け方を迷わせます。';
+  if (assistIsSecondary(c)) return 'もう一つの圧を足して、相手の受け方を迷わせます。';
+  return '少し違う攻め方や面白さを足せる候補です。';
 }
 // 「理由を詳しく」用の補足文。役割の穴・噛み合い・倍速適性などを1〜2文で添える。
 function assistDetail(c, kind, info) {
@@ -683,7 +716,7 @@ function assistDetail(c, kind, info) {
   }
   // 注意点（穴が残る）を正直に添える＝押し付けない
   if (kind === 'natural' && info.air.length < 1 && !assistIsTrueAir(c)) parts.push('ただし対空は増えないので、次は空受けを足したいです。');
-  if (kind === 'discovery' && w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) parts.push('単体ではなく、組み合わせて初めて勝ち筋になります。');
+  if (kind === 'discovery' && w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) parts.push('単体ではなく、組み合わせるとタワーダメージにつながります。');
   if (!parts.length) parts.push('今の方向を崩さずに足せる、扱いやすい1枚です。');
   return parts.join('');
 }
@@ -692,7 +725,15 @@ function assistBadges(c) {
   const w = assistWincon(c);
   const p = assistPotential(c);
   const tags = assistTags(c);
-  if (w && w.class) badges.push(w.class);
+  if (w && w.class) {
+    const label = w.class === '勝ち筋' ? '主役級'
+      : (w.class === '第2勝ち筋' || w.class === '補助勝ち筋') ? '追加の圧'
+      : w.class === 'サイクル札' ? '回転調整'
+      : w.class === '防衛札' ? '守り安定'
+      : w.class === '変数カード' ? 'コンボ札'
+      : '';
+    if (label) badges.push(label);
+  }
   if (p && p.partner) badges.push('噛み合い: ' + p.partner);
   if (p && p.scaling) badges.push(p.scaling);
   if (p && Array.isArray(p.phase)) {
@@ -770,13 +811,14 @@ function updateAssistPanel() {
       + detail + '</span>'
       + '<span class="ac-add">＋</span></div>';
   }).join('') + '</div>' : '<div class="assist-empty">まず使いたいカードを1枚選ぶと、次の候補を出せます。</div>';
-  const dataState = assistData.ready ? '監修データ反映' : 'ローカル簡易';
+  const dataState = assistData.ready ? 'データ反映' : '簡易提案';
   const pAxes = info.personaAxes;
   const pSum = pAxes ? personaSummary(pAxes) : '';
+  const costState = info.cards.length ? '平均' + info.avg.toFixed(1) + ' / 回転' + info.cycleAvg.toFixed(1) : 'コスト未定';
   const personaLine = pSum
     ? '<div class="assist-persona is-set" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">あなた好み：' + esc(pSum) + '</span><span class="ap-edit">変更</span></div>'
     : '<div class="assist-persona" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">デッキの好みを設定すると、あなた向けに候補が絞れます</span><span class="ap-edit">設定</span></div>';
-  panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の1枚<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + dataState + '</div></div>'
+  panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の1枚<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + esc(costState) + ' / ' + dataState + '</div></div>'
     + personaLine
     + cardsHtml
     + '<div class="assist-actions"><button class="assist-mini" id="assistRefresh" type="button">別候補</button><button class="assist-mini" id="assistOff" type="button">通常検索</button></div>'
@@ -795,15 +837,28 @@ function updateAssistPanel() {
     });
   });
   panel.querySelectorAll('[data-assist-card]').forEach(b => {
+    let touchY = 0, touchMoved = false;
     const addCard = () => {
       const c = CARDS.find(x => x.name === b.getAttribute('data-assist-card'));
       if (!c) return;
-      addToDeck(c);
+      addAssistToDeck(c);
       showToast(assistKindLabel((assistSuggestions.find(s => s.card.name === c.name) || {}).kind || 'natural') + '：' + c.name);
       updateAssistPanel();
     };
+    b.addEventListener('touchstart', (e) => {
+      const t = e.touches && e.touches[0]; touchY = t ? t.clientY : 0; touchMoved = false;
+    }, { passive: true });
+    b.addEventListener('touchmove', (e) => {
+      const t = e.touches && e.touches[0]; if (t && Math.abs(t.clientY - touchY) > 8) touchMoved = true;
+    }, { passive: true });
+    b.addEventListener('touchend', (e) => {
+      if (touchMoved || e.target.closest('.ac-detail-toggle') || e.target.closest('.ac-detail')) return;
+      e.preventDefault();
+      _suppressClickUntil = Date.now() + 600;
+      addCard();
+    }, { passive: false });
     b.addEventListener('click', (e) => {
-      if (e.target.closest('.ac-detail-toggle') || e.target.closest('.ac-detail')) return;
+      if (Date.now() < _suppressClickUntil || e.target.closest('.ac-detail-toggle') || e.target.closest('.ac-detail')) return;
       addCard();
     });
     b.addEventListener('keydown', (e) => {
@@ -1149,10 +1204,42 @@ function firstNormalEmpty() {
   for (let i = 0; i < 8; i++) if (deck[i] === null) return i;
   return -1;
 }
+// アシストから通常カードを足すときは、特別枠(1〜3)を温存して4〜8枠へ入れる
+function firstAssistNormalEmpty() {
+  for (let i = 3; i < 8; i++) if (deck[i] === null) return i;
+  return -1;
+}
 function placeNormal(card) {
   const idx = firstNormalEmpty();
   if (idx === -1) { showToast('⚠ デッキは8枚まで'); return false; }
   deck[idx] = card; return true;
+}
+
+function placeAssistNormal(card) {
+  let idx = firstAssistNormalEmpty();
+  // 通常枠が埋まっている場合だけ最後の保険として特別枠も許可（8枚完成不能を避ける）
+  if (idx === -1) idx = firstNormalEmpty();
+  if (idx === -1) { showToast('⚠ デッキは8枚まで'); return false; }
+  deck[idx] = card; return true;
+}
+
+function assistPlaceSpecial(card) {
+  // チャンピオンはスロット2/3固定。枠が埋まっていれば既存の入れ替えUIへ。
+  if (card.champion) { addToDeck(card); return true; }
+  // 進化/ヒーローは専用枠が空いていればそこへ。埋まっているなら通常枠(4〜8)へ入れる。
+  if (card.evolved && deck[0] === null) { deck[0] = card; renderDeck(); refreshInDeck(); return true; }
+  if (card.hero && deck[1] === null) { deck[1] = card; renderDeck(); refreshInDeck(); return true; }
+  if ((card.evolved || card.hero) && deck[2] === null) { deck[2] = card; renderDeck(); refreshInDeck(); return true; }
+  return false;
+}
+
+function addAssistToDeck(card) {
+  if (!card || deck.some(d => d && d.name === card.name)) return;
+  if (card.evolved || card.hero || card.champion) {
+    if (assistPlaceSpecial(card)) return;
+  }
+  if (!placeAssistNormal(card)) return;
+  renderDeck(); refreshInDeck();
 }
 
 function addToDeck(card) {

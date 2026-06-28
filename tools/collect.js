@@ -1010,6 +1010,100 @@ async function updateDecks() {
     sh.updated = new Date().toISOString();
     await ghWriteJson_(shPath, sh, 'chore: update sighist');
     console.log('sighist ' + Object.keys(sh.sigs).length + ' sigs');
+
+    // ★2枚組シナジー（月別sighistを最大12か月ぶん利用）
+    // P(A+B) / (P(A)*P(B)) で「使用率が高いだけ」を補正し、
+    // top1デッキ集中度で「特定テンプレの一部」か「広い本質シナジー」かを分ける。
+    try {
+      function monthKeyOffset_(off) {
+        var d = new Date();
+        d.setUTCDate(1);
+        d.setUTCMonth(d.getUTCMonth() + off);
+        return d.toISOString().slice(0, 7);
+      }
+      var pairMonths = [];
+      for (var mo = 0; mo > -12; mo--) pairMonths.push(monthKeyOffset_(mo));
+      var shByMonth = {};
+      shByMonth[mkey2] = sh; // 今月は更新済みをそのまま使う
+      for (var mi = 0; mi < pairMonths.length; mi++) {
+        var pmk = pairMonths[mi];
+        if (shByMonth[pmk]) continue;
+        var ps = await ghReadJson_(ghSiblingPath_(ghPath, 'sighist-' + pmk + '.json'));
+        if (ps && ps.cards && ps.sigs) shByMonth[pmk] = ps;
+      }
+      var totalUse = 0, cardUse = {}, cardGames = {}, cardWins = {}, pairUse = {}, pairGames = {}, pairWins = {}, pairDecks = {}, pairTop = {};
+      Object.keys(shByMonth).forEach(function (mk2) {
+        var ss = shByMonth[mk2], cardsL = ss.cards || [], sigsL = ss.sigs || {};
+        Object.keys(sigsL).forEach(function (key) {
+          var ids = String(key).split('|')[0].split('.').map(function (x) { return parseInt(x, 10); }).filter(function (x) { return !isNaN(x); });
+          var names = [];
+          ids.forEach(function (id) { var n = cardsL[id]; if (n && names.indexOf(n) < 0) names.push(n); });
+          if (names.length < 2) return;
+          var v = sigsL[key] || [], use = v[0] || v[1] || 0, games = v[1] || 0, wins = v[2] || 0;
+          if (!use) return;
+          totalUse += use;
+          names.forEach(function (n) {
+            cardUse[n] = (cardUse[n] || 0) + use;
+            cardGames[n] = (cardGames[n] || 0) + games;
+            cardWins[n] = (cardWins[n] || 0) + wins;
+          });
+          for (var a = 0; a < names.length; a++) for (var b = a + 1; b < names.length; b++) {
+            var pk = names[a] < names[b] ? names[a] + '|' + names[b] : names[b] + '|' + names[a];
+            pairUse[pk] = (pairUse[pk] || 0) + use;
+            pairGames[pk] = (pairGames[pk] || 0) + games;
+            pairWins[pk] = (pairWins[pk] || 0) + wins;
+            pairDecks[pk] = (pairDecks[pk] || 0) + 1;
+            pairTop[pk] = Math.max(pairTop[pk] || 0, use);
+          }
+        });
+      });
+      var MIN_PAIR_USE = parseInt(prop('PAIR_MIN_USE', '5'), 10);
+      var pairsOut = [];
+      Object.keys(pairUse).forEach(function (pk) {
+        var use = pairUse[pk]; if (use < MIN_PAIR_USE || !totalUse) return;
+        var sp = pk.split('|'), a = sp[0], b = sp[1];
+        var exp = (cardUse[a] || 0) * (cardUse[b] || 0) / totalUse;
+        if (exp <= 0) return;
+        var lift = use / exp, games = pairGames[pk] || 0, wins = pairWins[pk] || 0;
+        var wr = games ? wins / games : null;
+        var awr = cardGames[a] ? cardWins[a] / cardGames[a] : null;
+        var bwr = cardGames[b] ? cardWins[b] / cardGames[b] : null;
+        var baseWr = (awr != null && bwr != null) ? (awr + bwr) / 2 : null;
+        var winLift = (wr != null && baseWr != null) ? wr - baseWr : null;
+        var concentration = use ? (pairTop[pk] || 0) / use : 1;
+        var broadness = 1 - Math.min(1, Math.max(0, concentration - 0.35) / 0.65);
+        var synergyScore = Math.round((Math.log(Math.max(1, lift)) * Math.sqrt(use) * (0.65 + 0.35 * broadness) + (winLift == null ? 0 : winLift * 2.0)) * 100) / 100;
+        var kind = lift >= 1.35 && concentration <= 0.55 ? 'broadSynergy'
+          : lift >= 1.45 ? 'templateCore'
+          : lift < 1.12 ? 'utilityOrCommon'
+          : 'softSynergy';
+        pairsOut.push({
+          a: a, b: b, use: Math.round(use * 10) / 10, expected: Math.round(exp * 10) / 10,
+          lift: Math.round(lift * 100) / 100, games: games, wr: wr == null ? null : Math.round(wr * 1000) / 10,
+          winLift: winLift == null ? null : Math.round(winLift * 1000) / 10,
+          deckVariants: pairDecks[pk] || 0, concentration: Math.round(concentration * 1000) / 1000,
+          kind: kind, score: synergyScore
+        });
+      });
+      pairsOut.sort(function (x, y) { return y.score - x.score || y.use - x.use; });
+      var byCard = {};
+      pairsOut.slice(0, 3000).forEach(function (p) {
+        [p.a, p.b].forEach(function (n) {
+          var other = n === p.a ? p.b : p.a;
+          var row = Object.assign({ other: other }, p);
+          delete row.a; delete row.b;
+          var list = byCard[n] || (byCard[n] = []);
+          if (list.length < 40) list.push(row);
+        });
+      });
+      await ghWriteJson_(ghSiblingPath_(ghPath, 'card-pair-synergy-v1.json'),
+        { updated: new Date().toISOString(), source: 'sighist monthly digest', months: pairMonths.filter(function (m) { return !!shByMonth[m]; }),
+          minUse: MIN_PAIR_USE, totalDeckUse: Math.round(totalUse * 10) / 10,
+          notes: ['lift=P(A+B)/(P(A)*P(B))。使用率が高いだけの便利枠を補正する。', 'concentrationが高いほど特定テンプレ依存。低くてliftが高いほど広い本質シナジー。'],
+          count: pairsOut.length, pairs: pairsOut.slice(0, 1000), byCard: byCard },
+        'chore: update card-pair-synergy-v1.json');
+      console.log('card-pair-synergy ' + pairsOut.length + ' pairs');
+    } catch (e2) { console.log('card-pair-synergy error ' + ((e2 && e2.message) || e2)); }
   } catch (e) { console.log('sighist error ' + ((e && e.message) || e)); }
 
   // ★PoL試合内容インテリジェンス：3日窓でデッキ単位に集計（支配度/勝ち方の質/扱いやすさ/トロフィー効率）

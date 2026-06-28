@@ -19,6 +19,7 @@ card-weights.json
 card-ids.json
 matchups.json
 synergy.json
+card-pair-synergy-v1.json
 band-meta.json
 sighist-*.json
 # --- 分析v2 / Action集計（2026-06-25〜・dataブランチ専用）---

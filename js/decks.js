@@ -296,6 +296,7 @@ let TROPHY_BAND_INTEL = null;   // 10000〜14000帯のカード別・帯別の�
 const _mmSel = new Set();       // 分布図に表示するカード名
 let _mmZoom = null;             // ズーム中の象限（'tl'/'tr'/'bl'/'br' or null＝全体）
 let _ctab = 'use';              // 'use'=使用率 / 'win'=勝率
+let _crankQuery = '';           // カードランキング内のワード検索
 function minGames() { return _cardMode === 'me' ? 2 : WIN_MIN_GAMES; } // 対面はサンプル少なので緩める
 const WIN_MIN_GAMES = 100;      // 勝率ランキング・メタマップの最低対戦数（GAS WIN_MIN_GAMES_3D=100に合わせる。減りすぎたら下げる）
 
@@ -429,6 +430,7 @@ function renderCrank() {
       ? _t('crank.hintUseMe')
       : _t('crank.hintUse', { win: win });
   }
+  if (_crankQuery) list = list.filter(c => cardMatches(c.name, _crankQuery));
   if (note) note.textContent = me
     ? _t('crank.noteMe', { n: ME_COUNT || 0 })
     : _t('crank.noteEnv', { win: win });
@@ -436,6 +438,10 @@ function renderCrank() {
   if (_ctab === 'rise' && !list.length) {
     wrap.innerHTML = '<div class="coming-soon"><div class="big">🔥</div>' + _tr('カードの急上昇は準備中です')
       + '<div class="note" style="margin-top:8px">' + _tr('数回の更新でデータがたまり次第、自動で表示されます') + '</div></div>';
+    return;
+  }
+  if (_crankQuery && !list.length) {
+    wrap.innerHTML = '<div class="coming-soon"><div class="big">🔍</div>' + _tr('該当するカードがありません') + '</div>';
     return;
   }
   // 使用率/勝率は全カードを表示（上限なし）。急上昇は rise>0 で既に絞り済み。
@@ -477,6 +483,29 @@ document.querySelectorAll('#crankTabs .crank-tab').forEach(btn => {
     renderCrank();
   });
 });
+const _crankSearch = document.getElementById('crankSearch');
+const _crankClear = document.getElementById('crankClear');
+function syncCrankClear() {
+  if (_crankClear) _crankClear.style.display = _crankQuery ? 'flex' : 'none';
+}
+if (_crankSearch) {
+  _crankSearch.addEventListener('input', () => {
+    _crankQuery = _crankSearch.value.trim();
+    syncCrankClear();
+    renderCrank();
+  });
+  _crankSearch.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); _crankSearch.blur(); }
+  });
+}
+if (_crankClear) {
+  _crankClear.addEventListener('click', () => {
+    _crankQuery = '';
+    if (_crankSearch) { _crankSearch.value = ''; _crankSearch.blur(); }
+    syncCrankClear();
+    renderCrank();
+  });
+}
 document.getElementById('crankList').addEventListener('click', (e) => {
   const go = e.target.closest('.crank-go');
   if (go) { e.stopPropagation(); gotoDeckSearch(go.getAttribute('data-go')); return; }
