@@ -149,3 +149,42 @@ const CARD_INFO = Object.fromEntries(CARDS.map(c => [c.name, {
   e: !!c.evolved, h: !!c.hero, ch: !!c.champion
 }]));
 const CARD_YOMI = Object.fromEntries(CARDS.map(c => [c.name, c.yomi || '']));
+
+// ---- カード画像の読み込み失敗フォールバック（全ページ共通・全描画箇所に自動適用） ----
+//  「?」表示の対策：raw.githubusercontent ⇄ cdn.royaleapi を相互フォールバック。
+//  各<img>にonerrorを書かずとも、captureフェーズで画像のerrorを一括補足して別ホストへ再試行する。
+(function () {
+  if (typeof document === 'undefined' || window.__crImgFallback) return;
+  window.__crImgFallback = true;
+  var RAW = 'https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/';
+  var CDN = 'https://cdn.royaleapi.com/static/img/cards-150/';
+  function slugOf(src) {
+    var m = String(src || '').match(/\/([a-z0-9-]+)\.png(?:\?.*)?$/i);
+    return m ? m[1] : '';
+  }
+  function onErr(img) {
+    if (!img || img.tagName !== 'IMG') return;
+    var src = img.currentSrc || img.src || '';
+    if (!/cr-api-assets|royaleapi/.test(src)) return; // カード画像以外は触らない
+    var step = +(img.getAttribute('data-imgfb') || 0);
+    var slug = slugOf(src);
+    if (!slug) return;
+    if (step === 0) {
+      img.setAttribute('data-imgfb', '1');
+      // 今のホストの逆へ切り替え
+      img.src = /raw\.githubusercontent/.test(src) ? (CDN + slug + '.png') : (RAW + slug + '.png');
+    } else if (step === 1) {
+      img.setAttribute('data-imgfb', '2');
+      // 進化/ヒーロー(-ev1/-hero)が無い場合に備え、ベース画像へ落とす
+      var base = slug.replace(/-(ev1|ev2|hero)$/i, '');
+      if (base !== slug) { img.src = RAW + base + '.png'; }
+      else { img.style.visibility = 'hidden'; } // それでも無ければ?枠を隠す
+    } else {
+      img.style.visibility = 'hidden';
+    }
+  }
+  document.addEventListener('error', function (e) {
+    var t = e && e.target;
+    if (t && t.tagName === 'IMG') onErr(t);
+  }, true); // capture＝img単位のerrorを拾う
+})();

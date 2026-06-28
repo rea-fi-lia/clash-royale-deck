@@ -731,6 +731,8 @@
     .card-name { font-size: 10px; }
     .card-role { font-size: 9px; padding-right: 64px; }
     .cost-pip { width: 18px; height: 18px; font-size: 10px; }
+    /* フッターはbodyのflex子＝縮ませない。pin ON/OFFどちらでも最下部の基準を揃え、フッターが上下にズレるのを防ぐ */
+    .footer-signature { flex-shrink: 0; }
   }
 
   .footer-signature {
