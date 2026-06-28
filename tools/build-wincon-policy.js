@@ -21,6 +21,10 @@ const axisByType = {
   cycleSplash: ['cycle', 'splash', 'antiSwarm', 'antiAirSmall'],
   cycleReset: ['cycle', 'reset', 'chain', 'antiSwarm'],
   cycleHeal: ['cycle', 'heal', 'survivability'],
+  cycleGroundDps: ['cycle', 'defense', 'groundDps', 'singleTargetDps'],
+  cyclePoke: ['cycle', 'airDefense', 'groundDefense', 'bridgePoke'],
+  defensiveSplash: ['defense', 'splash', 'antiSwarm', 'groundControl'],
+  kiteTank: ['defense', 'miniTank', 'kite', 'lanePull'],
   variableCopy: ['variable', 'copy', 'contextDependent'],
 };
 
@@ -29,6 +33,7 @@ const displayByClass = {
   '第2勝ち筋': '第2勝ち筋',
   '補助勝ち筋': '補助勝ち筋',
   'サイクル札': 'サイクル札',
+  '防衛札': '防衛札',
   '変数カード': '変数カード',
 };
 

@@ -571,6 +571,8 @@ function cycleFitLine(cycles) {
   if (!cycles.length) return '';
   const labels = cycles.map(function (x) {
     const t = x.w.attackType;
+    if (t === 'cycleGroundDps') return x.c.name + _tr('＝地上DPSで受ける');
+    if (t === 'cyclePoke') return x.c.name + _tr('＝対空も橋前ちょっかいもできる');
     if (t === 'cycleSplash') return x.c.name + _tr('＝小物処理を補う');
     if (t === 'cycleReset') return x.c.name + _tr('＝リセットと連鎖処理');
     if (t === 'cycleFreeze') return x.c.name + _tr('＝足止めで1発を作る');
@@ -580,7 +582,17 @@ function cycleFitLine(cycles) {
   });
   return '<div class="dg-detail"><b>' + _tr('サイクル調整枠') + '</b>：' + labels.join(' / ') + '</div>';
 }
-function practicalRead(mains, secs, supports, cycles, avg) {
+function defenseFitLine(defenses) {
+  if (!defenses.length) return '';
+  const labels = defenses.map(function (x) {
+    const t = x.w.attackType;
+    if (t === 'defensiveSplash') return x.c.name + _tr('＝複数体をまとめて処理');
+    if (t === 'kiteTank') return x.c.name + _tr('＝逆サイド釣りと時間稼ぎ');
+    return x.c.name;
+  });
+  return '<div class="dg-detail"><b>' + _tr('防衛調整枠') + '</b>：' + labels.join(' / ') + '</div>';
+}
+function practicalRead(mains, secs, supports, cycles, defenses, avg) {
   const bits = [];
   if (!mains.length) bits.push(_tr('主軸が薄いので、相手に守りを固められると削り切る道筋が曖昧です'));
   else if (!secs.length && !supports.length) bits.push(_tr('攻めの入口が主軸に寄っています。止められた時の別ルートが課題です'));
@@ -588,6 +600,7 @@ function practicalRead(mains, secs, supports, cycles, avg) {
   else bits.push(_tr('第2勝ち筋は薄めですが、補助勝ち筋で追加ダメージを作れます'));
   if (avg < 3.1 && cycles.length) bits.push(_tr('高回転で主軸を何度も回し、相手の受け札をずらす形です'));
   if (avg >= 4.0 && cycles.length <= 1) bits.push(_tr('重めなので、序盤は無理に攻めず受けから形を作る必要があります'));
+  if (defenses.length) bits.push(_tr('防衛札で受け方を調整し、守ってから攻めへつなげる形です'));
   if (supports.length >= 2) bits.push(_tr('残ったユニットでタワーに触る展開を作りやすいです'));
   return bits.join('。') + '。';
 }
@@ -599,6 +612,7 @@ function diagnoseHtml(deck) {
   const secs = winClassGroup(sc, '第2勝ち筋');
   const supports = winClassGroup(sc, '補助勝ち筋');
   const cycles = winClassGroup(sc, 'サイクル札');
+  const defenses = winClassGroup(sc, '防衛札');
   const costs = deck.map(function (c) { return c.info.c; });
   const avg = costs.reduce(function (s, v) { return s + v; }, 0) / 8;
   const typ = avg < 3.1 ? _tr('高速で回すタイプ') : avg < 3.8 ? _tr('バランス型') : avg < 4.4 ? _tr('やや重めの構え') : _tr('重量級（序盤の受けに注意）');
@@ -609,8 +623,8 @@ function diagnoseHtml(deck) {
   else if (mn && supports[0]) line += _tr('。追加ダメージ役に') + '<b>' + supports[0].c.name + mark(supports[0].c) + '</b>' + _tr('を使える形');
   line += '。' + typ + '（' + _tr('平均コスト') + avg.toFixed(1) + '）。';
   h += '<div class="dg-cap"><div class="cap-head">🃏 ' + _tr('このデッキの特徴') + '</div><div class="dg-detail">' + line + '</div>'
-    + winChipGroup('主軸', mains) + winChipGroup('第2勝ち筋', secs) + winChipGroup('補助勝ち筋', supports) + cycleFitLine(cycles)
-    + '<div class="dg-detail"><b>' + _tr('読み') + '</b>：' + practicalRead(mains, secs, supports, cycles, avg) + '</div>'
+    + winChipGroup('主軸', mains) + winChipGroup('第2勝ち筋', secs) + winChipGroup('補助勝ち筋', supports) + cycleFitLine(cycles) + defenseFitLine(defenses)
+    + '<div class="dg-detail"><b>' + _tr('読み') + '</b>：' + practicalRead(mains, secs, supports, cycles, defenses, avg) + '</div>'
     + '<div class="dg-chips">' + mains.concat(secs).concat(supports).slice(0, 4).map(function (x) { return chip(x.c); }).join('') + '</div></div>';
   // 2) 実戦での傾向（同じ構成の戦績があるときだけ）
   const p = polOf(deck);
