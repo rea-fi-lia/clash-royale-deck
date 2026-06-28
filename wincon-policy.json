@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-06-28T08:08:17.328Z",
+  "updated": "2026-06-28T08:13:42.464Z",
   "source": "Fugu/WINCON_POLICY_OWNER_CLASSIFIED_2026-06-26.tsv",
   "ownerPolicy": true,
   "notes": [
@@ -10,13 +10,13 @@
   ],
   "counts": {
     "totalCards": 121,
-    "classified": 86,
-    "unclassified": 35,
+    "classified": 87,
+    "unclassified": 34,
     "byClass": {
       "勝ち筋": 29,
       "第2勝ち筋": 30,
       "補助勝ち筋": 17,
-      "サイクル札": 7,
+      "サイクル札": 8,
       "変数カード": 1,
       "防衛札": 2
     }
@@ -1758,6 +1758,28 @@
       "ownerReviewed": true,
       "sourceCost": 2,
       "sourceType": "troop"
+    },
+    "バーサーカー": {
+      "order": 87,
+      "name": "バーサーカー",
+      "cost": 2,
+      "class": "サイクル札",
+      "mainWinconScore": 1,
+      "secondaryWinconScore": 4,
+      "finishingScore": 3,
+      "attackType": "cycleDpsPressure",
+      "axes": [
+        "cycle",
+        "defense",
+        "groundDps",
+        "towerChipIfConnected"
+      ],
+      "definition": "2コストなのでサイクルにもなるが1コストよりサイクル適性は低め。DPSで地上小物処理をし、タワーに入れば削れるカード",
+      "reviewMemo": "あなた分類: DPS、地上小物処理、タワーに入れば削れる",
+      "displayGroup": "サイクル札",
+      "ownerReviewed": true,
+      "sourceCost": 2,
+      "sourceType": "troop"
     }
   },
   "groups": {
@@ -1850,7 +1872,8 @@
       "エレクトロスピリット",
       "ヒールスピリット",
       "ゴブリン",
-      "槍ゴブリン"
+      "槍ゴブリン",
+      "バーサーカー"
     ],
     "変数カード": [
       "ミラー"
@@ -1861,7 +1884,6 @@
     ]
   },
   "unclassified": [
-    "バーサーカー",
     "ザップ",
     "巨大雪玉",
     "ローリングバーバリアン",
