@@ -120,6 +120,13 @@ function normSlug(name) {
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
 function apiCardToJp(card) { return SLUG2JP[normSlug(card.name)] || null; }
+function normTag_(tag) { return String(tag || '').toUpperCase().replace(/[^0-9A-Z]/g, ''); }
+function eloBand_(elo) {
+  if (typeof elo !== 'number' || !isFinite(elo)) return null;
+  var size = parseInt(prop('ELO_BAND_SIZE', '200'), 10) || 200;
+  var lo = Math.floor(elo / size) * size;
+  return lo + '-' + (lo + size - 1);
+}
 
 async function crGet(path, token) {
   const res = await fetch(PROXY + path, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json', 'User-Agent': UA } });
@@ -399,6 +406,16 @@ async function updateDecks() {
     } catch (e) { console.log('pol-ranking-probe error ' + ((e && e.message) || e)); }
   }
   var players = (ranking.items || []).slice(0, topN);
+  var rankMetaByTag = {};
+  players.forEach(function (p) {
+    var t = normTag_(p.tag);
+    if (!t) return;
+    rankMetaByTag[t] = {
+      rank: typeof p.rank === 'number' ? p.rank : null,
+      eloRating: typeof p.eloRating === 'number' ? p.eloRating : null,
+      expLevel: typeof p.expLevel === 'number' ? p.expLevel : null
+    };
+  });
   if (rankingSource === 'trophy') {
     players = players.filter(function (p) {
       var tr = typeof p.trophies === 'number' ? p.trophies : (typeof p.score === 'number' ? p.score : null);
@@ -457,6 +474,8 @@ async function updateDecks() {
   var polMuNow = {};
   // ★相手カード別インテリジェンス（今回ぶん）：相手にそのカードが入っていた時、こちらがどう勝ち/負けたか。
   var polOppCardNow = {};
+  // ★ランク戦トロフィ(eloRating)別インテリジェンス（今回ぶん）。eloRatingが取れるTop1000範囲を最大限使う。
+  var polEloNow = {};
   // ★10000〜14000トロフィー戦イベント（今回ぶん）。PoLとは別に、試合時点startingTrophiesで保存する。
   var trophyEventsNow = [];
   // ★10000〜14000帯で当たった対戦相手のtag＝次回以降に少しずつ収集する母集団のseed候補。
@@ -634,6 +653,22 @@ async function updateDecks() {
       if (od && sameSig_(d.jp, od.jp)) continue;   // ★完全ミラー除外
       tally(win, d, tc > oc, tc, oc);
       accPol_(sigKey(d), b, tc, oc);               // ★PoL試合内容（支配度/エリ漏れ/勝ち方）を貯める
+      var rmeta = rankMetaByTag[normTag_(tag)];
+      var eband = rmeta ? eloBand_(rmeta.eloRating) : null;
+      if (eband) {
+        var eb = polEloNow[eband] || (polEloNow[eband] = { players: {}, rankMin: rmeta.rank, rankMax: rmeta.rank, eloMin: rmeta.eloRating, eloMax: rmeta.eloRating, all: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], decks: {}, cards: {} });
+        eb.players[normTag_(tag)] = 1;
+        if (typeof rmeta.rank === 'number') { eb.rankMin = Math.min(eb.rankMin || rmeta.rank, rmeta.rank); eb.rankMax = Math.max(eb.rankMax || rmeta.rank, rmeta.rank); }
+        if (typeof rmeta.eloRating === 'number') { eb.eloMin = Math.min(eb.eloMin || rmeta.eloRating, rmeta.eloRating); eb.eloMax = Math.max(eb.eloMax || rmeta.eloRating, rmeta.eloRating); }
+        addPolStats_(eb.decks, sigKey(d), b.team[0], b.opponent[0], tc, oc);
+        addPolStats_({ tmp: eb.all }, 'tmp', b.team[0], b.opponent[0], tc, oc);
+        var seenOwnCard = {};
+        d.jp.forEach(function (n) {
+          if (seenOwnCard[n]) return;
+          seenOwnCard[n] = 1;
+          addPolStats_(eb.cards, n, b.team[0], b.opponent[0], tc, oc);
+        });
+      }
       if (od) {
         var seenOppCard = {};
         od.jp.forEach(function (n) {
@@ -802,7 +837,7 @@ async function updateDecks() {
   var polSnap = {};
   Object.keys(dkNow).forEach(function (sig) { if (polNow[sig]) polSnap[sig] = polNow[sig]; });
   // 履歴へ追加し、3日より古いスナップショットを捨てる
-  hist.snaps.push({ t: now, players: aggregated, use: useNow, bat: batNow, dk: dkNow, pol: polSnap, polMu: polMuNow, oppCard: polOppCardNow });
+  hist.snaps.push({ t: now, players: aggregated, use: useNow, bat: batNow, dk: dkNow, pol: polSnap, polMu: polMuNow, oppCard: polOppCardNow, polElo: polEloNow });
   hist.snaps = hist.snaps.filter(function (s) { return s.t >= now - WINDOW_DAYS * 864e5; });
 
   // （窓ごとの合算は buildWindow 内で行う＝1h/1日/3日を同じ snaps から導出）
@@ -1072,6 +1107,57 @@ async function updateDecks() {
       'chore: update pol-card-intel-v1.json');
     console.log('pol-card-intel ' + Object.keys(byOpponentCard).length + ' cards');
   } catch (e) { console.log('pol-card-intel error ' + ((e && e.message) || e)); }
+
+  // ★ランク戦トロフィ(eloRating)別インテリジェンス：eloRatingが存在するTop1000範囲を最大限使う。
+  try {
+    function addArr15_(dst, src) { for (var i = 0; i < 15; i++) dst[i] += (src && src[i]) || 0; }
+    var eloAgg = {};
+    hist.snaps.forEach(function (s) {
+      var pe = s.polElo || {};
+      Object.keys(pe).forEach(function (band) {
+        var src = pe[band], dst = eloAgg[band] || (eloAgg[band] = { players: {}, rankMin: src.rankMin, rankMax: src.rankMax, eloMin: src.eloMin, eloMax: src.eloMax, all: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], decks: {}, cards: {} });
+        Object.keys(src.players || {}).forEach(function (t) { dst.players[t] = 1; });
+        if (typeof src.rankMin === 'number') dst.rankMin = Math.min(dst.rankMin == null ? src.rankMin : dst.rankMin, src.rankMin);
+        if (typeof src.rankMax === 'number') dst.rankMax = Math.max(dst.rankMax == null ? src.rankMax : dst.rankMax, src.rankMax);
+        if (typeof src.eloMin === 'number') dst.eloMin = Math.min(dst.eloMin == null ? src.eloMin : dst.eloMin, src.eloMin);
+        if (typeof src.eloMax === 'number') dst.eloMax = Math.max(dst.eloMax == null ? src.eloMax : dst.eloMax, src.eloMax);
+        addArr15_(dst.all, src.all);
+        Object.keys(src.decks || {}).forEach(function (sig) {
+          var a = dst.decks[sig] || (dst.decks[sig] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+          addArr15_(a, src.decks[sig]);
+        });
+        Object.keys(src.cards || {}).forEach(function (name) {
+          var c = dst.cards[name] || (dst.cards[name] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+          addArr15_(c, src.cards[name]);
+        });
+      });
+    });
+    var byBand = {};
+    Object.keys(eloAgg).sort().forEach(function (band) {
+      var a = eloAgg[band], cards = {}, decks = {};
+      Object.keys(a.cards).forEach(function (name) { var s = polSummary_(a.cards[name]); if (s) cards[name] = Object.assign({ name: name }, s); });
+      Object.keys(a.decks).forEach(function (sig) {
+        var s = polSummary_(a.decks[sig]); if (!s) return;
+        var d = renderSig(sig);
+        decks[sig] = Object.assign({ sig: sig, name: d && d.name, slots: d && d.slots, forms: d && d.forms, archs: archsOfSig_(sig) }, s);
+      });
+      byBand[band] = Object.assign({
+        band: band,
+        players: Object.keys(a.players).length,
+        rankRange: { min: a.rankMin, max: a.rankMax },
+        eloRange: { min: a.eloMin, max: a.eloMax },
+        cards: cards,
+        decks: decks
+      }, polSummary_(a.all) || {});
+    });
+    await ghWriteJson_(ghSiblingPath_(ghPath, 'pol-elo-intel-v1.json'),
+      { updated: new Date().toISOString(), windowDays: WINDOW_DAYS,
+        source: 'global pathoflegend ranking battlelog', ratingField: 'eloRating',
+        bandSize: parseInt(prop('ELO_BAND_SIZE', '200'), 10) || 200,
+        bands: byBand },
+      'chore: update pol-elo-intel-v1.json');
+    console.log('pol-elo-intel bands=' + Object.keys(byBand).length);
+  } catch (e) { console.log('pol-elo-intel error ' + ((e && e.message) || e)); }
 
   // ★10000〜14000トロフィー戦イベントDB：試合時点startingTrophiesで抽出し、7日分の軽量eventを保持。
   try {
