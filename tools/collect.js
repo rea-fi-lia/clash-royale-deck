@@ -996,9 +996,9 @@ updateDecks().catch(function (e) {
   process.exit(1);
 }).then(function () {
   if (process.exitCode) return;
-  if (String(prop('RUN_TROPHY_SIDELOAD', '1')) === '0') return;
+  if (String(prop('RUN_TROPHY_SIDELOAD', '0')) !== '1') return;
   if (String(prop('RANKING_SOURCE', 'pol')).toLowerCase() !== 'pol') return;
-  console.log('▶ trophy side collect 10000-14000 start');
+  console.log('▶ trophy side collect 10000-14000 start (experimental seedless ranking mode)');
   var env = Object.assign({}, process.env, {
     RANKING_SOURCE: 'trophy',
     TROPHY_MIN: '10000',
