@@ -252,7 +252,7 @@ const CRAuth = {
   getDisplayName() { return currentUser ? resolveDisplayName(currentUser, currentProfile) : ""; }, // 表示名（未ログインは空）
   getOwnedCards() { return _ownedCards; }, // 取得済みなら日本語カード名の配列、未取得はnull
 
-  // 「あなたの環境」の対戦履歴（端末またぎ用にアカウントへ要約保存）。
+  // 「あなたの環境」の対戦履歴（端末またぎ用にアカウントへ要約保存）。日数では消さず、最新400戦だけ保持。
   //   プロフィール取得時に一緒に読めるので追加の読み取りコストなし。書き込みは呼び出し側で間引く。
   getMeBattles() { return (currentProfile && Array.isArray(currentProfile.meBattles)) ? currentProfile.meBattles : []; },
   async saveMeBattles(arr) {

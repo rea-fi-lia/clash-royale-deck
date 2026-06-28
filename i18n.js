@@ -80,14 +80,14 @@
       "crank.hintUseMe": "直近の対戦で、あなたが当たった割合（対面率）。よく当たる相手カード順。",
       "crank.hintUse": "{win}で、トップ層のデッキに入っている割合。今この環境で「数が多い」カード。",
       "crank.noteEnv": "※ 使用率・勝率・急上昇は、選択中の集計期間（{win}）のデータから算出しています。",
-      "crank.noteMe": "※ あなたの環境は、取得できた直近の対戦ログ（{n}戦）から算出しています。",
+      "crank.noteMe": "※ あなたの環境は、保存中の最新対戦ログ（最大400戦・現在{n}戦）から算出しています。",
       "crank.subWin": "{g}戦 ・ 使用{u}",
       "crank.subRise": "使用 {u} ・ 勝率 {w}",
       "crank.subUse": "勝率 {w} ・ {g}戦",
       "mm.medUse": "中央 使用率{v}%",
       "mm.medWin": "中央 勝率{v}%",
       "decks.whoName": "{name}さん",
-      "decks.meNote": "{who}の直近 {n}戦の対戦相手から集計（{who}のトロフィー帯）。このページを開くたびに精度UP。"
+      "decks.meNote": "{who}の保存中の最新 {n}戦から集計（最大400戦・{who}のトロフィー帯）。このページを開くたびに精度UP。"
     },
     en: {
       "toast.movedToSlot": "Moved {name} to slot {n}",
@@ -178,7 +178,7 @@
       "crank.hintUseMe": "How often you faced each card in recent battles, most frequent first.",
       "crank.hintUse": "Share of top-player decks including the card in {win}.",
       "crank.noteEnv": "※ Usage, win rate and rising are computed from the selected window ({win}).",
-      "crank.noteMe": "※ Your environment is computed from the recent battle logs we could fetch ({n} battles).",
+      "crank.noteMe": "※ Your environment is computed from your saved latest battle logs (up to 400 battles, currently {n}).",
       "crank.subWin": "{g} games · {u} used",
       "crank.subRise": "{u} used · {w} win",
       "crank.subUse": "{w} win · {g} games",
@@ -204,7 +204,7 @@
       "mm.medUse": "Median usage {v}%",
       "mm.medWin": "Median win {v}%",
       // あなたの帯メタ（個人対面ログ→勝ち筋分布）
-      "me.metaTitle": "📍 あなたの帯の環境シェア（直近7日・{n}戦）",
+      "me.metaTitle": "📍 あなたの帯の環境シェア（保存中の最新ログ・{n}戦）",
       "相手デッキの勝ち筋分布＝あなたのランク帯のメタ。使ったデッキに関係なく貯まる正確なサンプルです。勝率は対面3戦未満なら表示しません": "Win-condition share of your opponents = the meta at your trophy range. Accurate regardless of which deck you played. Win rate hidden under 3 encounters.",
       "その他": "Other",
       // ログイン前のポリシー同意
@@ -243,7 +243,7 @@
       "改定": "Changes",
       "最終更新：2026年6月12日": "Last updated: June 12, 2026",
       "decks.whoName": "{name}’s",
-      "decks.meNote": "Aggregated from opponents in {who} last {n} battles ({who} trophy range). Accuracy improves each time you open this page.",
+      "decks.meNote": "Aggregated from {who} saved latest {n} battles (up to 400, {who} trophy range). Accuracy improves each time you open this page.",
       "タップで全体に戻る": "Tap to return to the full view",
       "目立たないが勝ってる": "Quietly winning",
       "安定": "Stable",

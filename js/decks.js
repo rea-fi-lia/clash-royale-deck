@@ -672,15 +672,15 @@ function initCardMeta(isSample) {
   renderCrank(); renderMetaMap();
 }
 
-// --- あなたの対面メタ：自分のバトルログ（相手デッキ）を集計。Worker /battlelog から取得し localStorage に7日ぶん蓄積 ---
+// --- あなたの対面メタ：自分のバトルログ（相手デッキ）を集計。日数では捨てず、最新400戦だけローリング保持 ---
+const ME_BATTLE_KEEP = 400;
 function _parseT(s) { const m = String(s).match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) : 0; }
 function _loadMeBattles(tag) { try { return JSON.parse(localStorage.getItem('cr_me_' + tag) || '[]'); } catch (e) { return []; } }
 function _saveMeBattles(tag, arr) { try { localStorage.setItem('cr_me_' + tag, JSON.stringify(arr)); } catch (e) {} }
 function _mergeBattles(oldArr, fresh) {
   const seen = {}; oldArr.forEach(b => seen[b.t] = 1);
   let merged = oldArr.concat((fresh || []).filter(b => !seen[b.t]));
-  const cut = Date.now() - 7 * 864e5; // 直近7日ぶん保持
-  return merged.filter(b => _parseT(b.t) >= cut).sort((a, b) => _parseT(b.t) - _parseT(a.t)).slice(0, 600);
+  return merged.filter(b => _parseT(b.t)).sort((a, b) => _parseT(b.t) - _parseT(a.t)).slice(0, ME_BATTLE_KEEP);
 }
 function aggregateMe(battles) {
   const total = battles.length, m = {};
@@ -782,7 +782,7 @@ function _syncMeToCloud(merged) {
   try { localStorage.setItem('cr_me_syncAt', String(Date.now())); } catch (e) {}
   CRAuth.saveMeBattles(merged);
 }
-// ★対面ログの月次集計：生ログは7日で消えるので、勝ち筋別の集計を月別に永続保存。
+// ★対面ログの月次集計：最新400戦の生ログとは別に、勝ち筋別の長期集計を月別に永続保存。
 //   しおり（mark=集計済み最新battleTime）方式で新規対戦だけ加算＝何度呼んでも二重計上しない。
 //   形式: users/{uid}/meMonthly/{YYYY-MM} = { mark, total:[対面数,勝数], arch:{勝ち筋:[対面数,勝数]}, upd }
 async function _updateMeMonthly(battles) {
