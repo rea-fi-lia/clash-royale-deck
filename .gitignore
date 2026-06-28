@@ -32,5 +32,6 @@ battle-schema-sample.json
 battle-feature-buckets.json
 pol-battle-intel-v1.json
 pol-matchup-intel-v1.json
+pol-card-intel-v1.json
 pol-tower-troop-meta-v1.json
 pol-spell-weakness-v1.json

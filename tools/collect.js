@@ -365,6 +365,8 @@ async function updateDecks() {
   var polNow = {};
   // ★PoL対面別試合内容（今回ぶん）：'自分arch|相手arch' → pol配列。勝率だけでなく支配度/崩壊負け率まで貯める。
   var polMuNow = {};
+  // ★相手カード別インテリジェンス（今回ぶん）：相手にそのカードが入っていた時、こちらがどう勝ち/負けたか。
+  var polOppCardNow = {};
   function accPol_(sig, b, tc, oc) {
     var t0 = b.team[0], o0 = b.opponent[0];
     addPolStats_(polNow, sig, t0, o0, tc, oc);
@@ -471,6 +473,14 @@ async function updateDecks() {
       if (od && sameSig_(d.jp, od.jp)) continue;   // ★完全ミラー除外
       tally(win, d, tc > oc, tc, oc);
       accPol_(sigKey(d), b, tc, oc);               // ★PoL試合内容（支配度/エリ漏れ/勝ち方）を貯める
+      if (od) {
+        var seenOppCard = {};
+        od.jp.forEach(function (n) {
+          if (seenOppCard[n]) return;
+          seenOppCard[n] = 1;
+          addPolStats_(polOppCardNow, n, b.team[0], b.opponent[0], tc, oc);
+        });
+      }
       if (od) {                                     // ★相性（勝ち筋は複数あれば全組み合わせにカウント）
         var aa = archsForm_(d.jp, d.fm), bb = archsForm_(od.jp, od.fm);
         var oppTag = (b.opponent[0].tag ? String(b.opponent[0].tag).toUpperCase().replace(/[^0-9A-Z]/g, '') : '');
@@ -603,7 +613,7 @@ async function updateDecks() {
   var polSnap = {};
   Object.keys(dkNow).forEach(function (sig) { if (polNow[sig]) polSnap[sig] = polNow[sig]; });
   // 履歴へ追加し、3日より古いスナップショットを捨てる
-  hist.snaps.push({ t: now, players: aggregated, use: useNow, bat: batNow, dk: dkNow, pol: polSnap, polMu: polMuNow });
+  hist.snaps.push({ t: now, players: aggregated, use: useNow, bat: batNow, dk: dkNow, pol: polSnap, polMu: polMuNow, oppCard: polOppCardNow });
   hist.snaps = hist.snaps.filter(function (s) { return s.t >= now - WINDOW_DAYS * 864e5; });
 
   // （窓ごとの合算は buildWindow 内で行う＝1h/1日/3日を同じ snaps から導出）
@@ -847,6 +857,30 @@ async function updateDecks() {
       'chore: update pol-matchup-intel-v1.json');
     console.log('pol-matchup-intel ' + Object.keys(pairs).length + ' pairs');
   } catch (e) { console.log('pol-matchup-intel error ' + ((e && e.message) || e)); }
+
+  // ★PoLカード別インテリジェンス：相手にそのカードがいた時の勝率/支配度/崩壊負け率。
+  // 生ログは保存せず、3日窓の集計だけ保存する＝カードページの統計的裏付けに使う。
+  try {
+    var cardAgg = {};
+    hist.snaps.forEach(function (s) {
+      var oc = s.oppCard || {};
+      Object.keys(oc).forEach(function (name) {
+        var a = cardAgg[name] || (cardAgg[name] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        var v = oc[name]; for (var i = 0; i < 15; i++) a[i] += (v[i] || 0);
+      });
+    });
+    var byOpponentCard = {};
+    Object.keys(cardAgg).forEach(function (name) {
+      var s = polSummary_(cardAgg[name]); if (!s) return;
+      byOpponentCard[name] = Object.assign({ name: name }, s);
+    });
+    await ghWriteJson_(ghSiblingPath_(ghPath, 'pol-card-intel-v1.json'),
+      { updated: new Date().toISOString(), windowDays: WINDOW_DAYS, source: 'pathOfLegend battlelog',
+        perspective: 'tracked-player vs opponent card', normalizers: POL_NORM,
+        count: Object.keys(byOpponentCard).length, byOpponentCard: byOpponentCard },
+      'chore: update pol-card-intel-v1.json');
+    console.log('pol-card-intel ' + Object.keys(byOpponentCard).length + ' cards');
+  } catch (e) { console.log('pol-card-intel error ' + ((e && e.message) || e)); }
 
   // ★API棚卸し：観測した type/gameMode を bucket 分類して保存（混ぜず将来別集計の土台）
   try {

@@ -290,6 +290,7 @@ let ENV_CARDS = [];             // 環境メタ（GASの j.cards / なければ�
 let ME_CARDS = [];              // あなたの対面メタ（自分のバトルログ集計）
 let ME_COUNT = 0;               // 対面集計に使った対戦数
 let _cardMode = 'env';          // 'env'=環境 / 'me'=あなたの対面
+let POL_CARD_INTEL = null;      // 3日全体の相手カード別・試合内容統計
 const _mmSel = new Set();       // 分布図に表示するカード名
 let _mmZoom = null;             // ズーム中の象限（'tl'/'tr'/'bl'/'br' or null＝全体）
 let _ctab = 'use';              // 'use'=使用率 / 'win'=勝率
@@ -349,6 +350,35 @@ function _cardCost(name) { const i = CARD_INFO[name]; return i ? i.c : ''; }
 function _ckey(c) { return c.name + (c.f ? '|' + c.f : ''); }           // 選択・識別キー
 function _cardImgF(c) { const i = CARD_INFO[c.name]; if (!i) return ''; if (c.f === 'e' && i.iv) return i.iv; if (c.f === 'h' && i.ih) return i.ih; return i.i || ''; }
 function _fmark(c) { return c.f === 'e' ? '⚡' : (c.f === 'h' ? '👑' : ''); }
+function _oppIntel(name) { return POL_CARD_INTEL && POL_CARD_INTEL.byOpponentCard && POL_CARD_INTEL.byOpponentCard[name]; }
+function _cardPracticalIntel(c) {
+  const opp = _oppIntel(c.name);
+  const g = c.games || 0, use = c.use || 0, win = c.win;
+  let label = '', detail = '';
+  if (_cardMode === 'me') {
+    if (g < 3) label = _tr('📊 サンプル蓄積中');
+    else if (use >= 8 && win != null && win < 47) label = _tr('⚠️ 優先対策');
+    else if (win != null && win >= 58) label = _tr('✅ 勝ち越し');
+    else if (use >= 8) label = _tr('👀 よく見る');
+    else if (win != null && win < 45) label = _tr('🛠 苦手寄り');
+    else label = _tr('🧭 要確認');
+    if (opp && opp.games >= 30) {
+      const loss = opp.collapseLossRate != null ? _tr('崩れ負け') + ' ' + opp.collapseLossRate + '%' : '';
+      detail = _tr('全体3日') + ' ' + opp.games + _tr('戦') + ' / ' + _tr('勝率') + ' ' + opp.wr + '%' + (loss ? ' / ' + loss : '');
+    } else {
+      detail = _tr('あなたの対面') + ' ' + g + _tr('戦') + ' / ' + _tr('対面率') + ' ' + use + '%';
+    }
+  } else {
+    if (opp && opp.games >= 30) {
+      label = opp.collapseLossRate >= 20 ? _tr('⚠️ 崩し力高め') : opp.wr <= 47 ? _tr('🛡 対策され気味') : _tr('📊 3日裏付けあり');
+      detail = _tr('相手にいる時') + ' ' + opp.games + _tr('戦') + ' / ' + _tr('勝率') + ' ' + opp.wr + '% / ' + _tr('支配度') + ' ' + ((opp.dominanceAvg > 0 ? '+' : '') + opp.dominanceAvg);
+    } else {
+      label = _tr('📊 環境データ');
+      detail = _tr('使用率') + ' ' + use + '% / ' + _tr('勝率') + ' ' + (win != null ? win + '%' : '—');
+    }
+  }
+  return '<span class="crank-intel"><b>' + label + '</b><small>' + detail + '</small></span>';
+}
 
 // --- カード50位ランキング ---
 function renderCrank() {
@@ -402,6 +432,7 @@ function renderCrank() {
         + (_cardImgF(c) ? '<img src="' + _cardImgF(c) + '" alt="' + c.name + '" loading="lazy">' : '')
         + (_fmark(c) ? '<span class="fbadge">' + _fmark(c) + '</span>' : '') + '</span>'
       + '<span class="crank-name">' + _tr(c.name) + (_fmark(c) ? ' <span class="fmark">' + _fmark(c) + '</span>' : '') + '</span>'
+      + _cardPracticalIntel(c)
       + '<span class="crank-bar"><i style="width:' + barPct + '%;background:' + barCol + '"></i></span>'
       + '<span class="crank-stat ' + statCls + '"><span class="big">' + big + '</span><span class="sub">' + sub + '</span></span>'
       + '<button class="crank-go" type="button" data-go="' + String(c.name).replace(/"/g, '&quot;') + '" title="' + _tr('このカードでデッキ検索') + '" aria-label="' + _tr('このカードでデッキ検索') + '">🔍</button>'
@@ -875,6 +906,7 @@ function renderMetaShare() {
 }
 
 const DECKS_DATA_URL = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/decks.json';
+const POL_CARD_INTEL_URL = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/pol-card-intel-v1.json';
 fetch(DECKS_DATA_URL, { cache: 'no-store' })
   .then(r => { if (!r.ok) throw 0; return r.json(); })
   .catch(() => fetch('decks.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null))
@@ -891,6 +923,11 @@ fetch(DECKS_DATA_URL, { cache: 'no-store' })
     applyWindow(CUR_WINDOW);
   })
   .catch(() => { ALL_DECKS = DECKS; TREND_DECKS = []; CARDS_DATA = CARDS_SAMPLE; initCardMeta(true); updateDeckTabDesc(); applyDecks(); });
+
+fetch(POL_CARD_INTEL_URL, { cache: 'no-store' })
+  .then(r => r.ok ? r.json() : null)
+  .then(j => { POL_CARD_INTEL = (j && j.byOpponentCard) ? j : null; try { renderCrank(); } catch (e) {} })
+  .catch(() => {});
 
 // 指定窓(1h/1日/3日)のデータを反映。windows[key] が無ければ top-level(=3日) にフォールバック＝旧データでも動く。
 function applyWindow(key) {
