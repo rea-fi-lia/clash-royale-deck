@@ -31,7 +31,7 @@ let assistMode = (() => { try { return localStorage.getItem('cr_assist_mode') ==
 let assistSuggestions = [];
 let assistVariant = 0;
 const ASSIST_DATA_BASE = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/';
-const assistData = { wincon: null, potential: null, tags: null, ready: false, tried: false };
+const assistData = { wincon: null, potential: null, tags: null, pairs: null, ready: false, tried: false };
 
 function saveFavorites() {
   if (window.CRAuth && CRAuth.getUser && CRAuth.getUser()) {
@@ -351,12 +351,14 @@ function loadAssistData() {
   Promise.all([
     loadAssistJson('wincon-policy.json'),
     loadAssistJson('card-potential.json'),
-    loadAssistJson('card-tags.json')
-  ]).then(([wincon, potential, tags]) => {
+    loadAssistJson('card-tags.json'),
+    loadAssistJson('card-pair-synergy-v1.json')
+  ]).then(([wincon, potential, tags, pairs]) => {
     assistData.wincon = normalizeAssistCards(wincon);
     assistData.potential = normalizeAssistCards(potential);
     assistData.tags = normalizeAssistCards(tags);
-    assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags);
+    assistData.pairs = pairs && pairs.byCard ? pairs.byCard : null;
+    assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags || assistData.pairs);
     updateAssistPanel();
   }).catch(() => {});
 }
@@ -534,6 +536,23 @@ function assistPotentialFit(c, info) {
   if (Array.isArray(p.phase) && (p.phase[1] === '◎' || p.phase[2] === '◎') && info.avg >= 3.8) score += 8;
   return score;
 }
+function assistPairRows(c, info) {
+  if (!assistData.pairs || !c || !info || !info.names) return [];
+  const rows = assistData.pairs[c.name] || [];
+  return rows.filter(r => info.names.has(r.other) && r.kind !== 'utilityOrCommon');
+}
+function assistPairFit(c, info) {
+  const rows = assistPairRows(c, info);
+  if (!rows.length) return 0;
+  const vals = rows.map(r => Math.max(0, Number(r.score) || 0)).sort((a, b) => b - a);
+  const max = vals[0] || 0;
+  const avg2 = vals.length >= 2 ? (vals[0] + vals[1]) / 2 : max;
+  return Math.round(Math.min(30, max * 0.65 + avg2 * 0.35));
+}
+function assistBestPair(c, info) {
+  const rows = assistPairRows(c, info).slice().sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0));
+  return rows[0] || null;
+}
 function assistWinconBonus(c, kind, info) {
   const w = assistWincon(c);
   if (!w) return 0;
@@ -650,6 +669,8 @@ function assistScore(c, kind, info) {
   }
   score += assistPotentialFit(c, info);
   score += assistWinconBonus(c, kind, info);
+  const pairFit = assistPairFit(c, info);
+  if (pairFit) score += kind === 'discovery' ? Math.round(pairFit * 0.55) : pairFit;
   // スロット適合：特別枠(進化/ヒーロー/チャンピオン)が空いていれば、その強みを持つカードを後押し。
   // 枠が埋まっていれば加点しないだけ。シナジーが高ければ通常候補として残す（チャンピオンはタップ時に入れ替えUIへ）。
   if (info.slots) {
@@ -680,6 +701,7 @@ function assistReason(c, kind, info) {
   const p = assistPotential(c);
   const w = assistWincon(c);
   const size = assistSpellSize(c);
+  const bp = assistBestPair(c, info);
   if (kind === 'natural') {
     if (!info.wincons.length) {
       if (w && w.class === '勝ち筋') return 'まず勝ち方の主役を作れます。';
@@ -687,6 +709,7 @@ function assistReason(c, kind, info) {
     }
     const mainName = info.wincons.length ? TR(info.wincons[0].name) : '主軸';
     if (size === 'small') return mainName + 'を通すための小型呪文。道を開けつつ少し圧もかけられます。';
+    if (bp && (bp.score || 0) >= 12) return TR(bp.other) + 'と一緒に使われやすく、今の形に自然に足せます。';
     if (p && p.partner) return '今の構成と噛み合う相手があり、' + mainName + 'を伸ばせます。';
     if (assistIsTrueAir(c) || assistTagHas(c, 'splash')) return mainName + 'の後ろから守って撃てる支援役です。';
     return mainName + 'をそのまま伸ばしやすい候補です。';
@@ -708,6 +731,14 @@ function assistDetail(c, kind, info) {
   const p = assistPotential(c);
   const w = assistWincon(c);
   const parts = [];
+  const bp = assistBestPair(c, info);
+  if (bp && (bp.score || 0) >= 8) {
+    const why = bp.kind === 'broadSynergy' ? 'いろいろな構成で一緒に使われやすい組み合わせです。'
+      : bp.kind === 'templateCore' ? '特定の型でよく使われる組み合わせです。'
+      : bp.kind === 'hiddenWinLift' ? '一緒に入ると勝ちやすい傾向があります。'
+      : '一緒に採用されることが多い組み合わせです。';
+    parts.push(TR(bp.other) + 'との相性データがあります。' + why);
+  }
   if (p && p.partner) parts.push('噛み合う相手: ' + p.partner + '。');
   if (p && p.scaling) parts.push('伸び方は「' + p.scaling + '」型です。');
   if (p && Array.isArray(p.phase)) {
@@ -720,7 +751,7 @@ function assistDetail(c, kind, info) {
   if (!parts.length) parts.push('今の方向を崩さずに足せる、扱いやすい1枚です。');
   return parts.join('');
 }
-function assistBadges(c) {
+function assistBadges(c, info) {
   const badges = [];
   const w = assistWincon(c);
   const p = assistPotential(c);
@@ -741,6 +772,8 @@ function assistBadges(c) {
     else if (p.phase[0] === '◎') badges.push('序盤OK');
   }
   if (p && p.solo === '◎') badges.push('単体でも動ける');
+  const bp = info ? assistBestPair(c, info) : null;
+  if (bp && (bp.score || 0) >= 12) badges.push('相性: ' + bp.other);
   if (tags.has('air')) badges.push('対空');
   if (tags.has('splash')) badges.push('範囲');
   if (tags.has('tankKiller')) badges.push('高火力');
@@ -757,7 +790,7 @@ function pickAssistCandidate(kind, used, info) {
   const pick = ranked[Math.min(assistVariant, Math.max(0, ranked.length - 1)) % Math.min(3, Math.max(1, ranked.length))];
   if (!pick) return null;
   used.add(pick.card.name);
-  return { kind, card: pick.card, score: pick.score, reason: assistReason(pick.card, kind, info), detail: assistDetail(pick.card, kind, info), badges: assistBadges(pick.card) };
+  return { kind, card: pick.card, score: pick.score, reason: assistReason(pick.card, kind, info), detail: assistDetail(pick.card, kind, info), badges: assistBadges(pick.card, info) };
 }
 function buildAssistSuggestions() {
   const info = assistDeckInfo();

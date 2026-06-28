@@ -1031,9 +1031,65 @@ async function updateDecks() {
         var ps = await ghReadJson_(ghSiblingPath_(ghPath, 'sighist-' + pmk + '.json'));
         if (ps && ps.cards && ps.sigs) shByMonth[pmk] = ps;
       }
-      var totalUse = 0, cardUse = {}, cardGames = {}, cardWins = {}, pairUse = {}, pairGames = {}, pairWins = {}, pairDecks = {}, pairTop = {};
+      var tagJson = await ghReadJson_(ghSiblingPath_(ghPath, 'card-tags.json')) || {};
+      var winJson = await ghReadJson_(ghSiblingPath_(ghPath, 'wincon-policy.json')) || {};
+      var tagCards = tagJson.cards || {};
+      var winCards = winJson.cards || {};
+      var SPELL_NAMES = { 'ザップ':1, '巨大雪玉':1, 'ローリングバーバリアン':1, 'ローリングウッド':1, 'レイジ':1, 'ゴブリンの呪い':1, '矢の雨':1, 'トルネード':1, 'アースクエイク':1, 'ロイヤルデリバリー':1, 'ゴブリンバレル':1, 'クローン':1, 'ヴァイン':1, 'ボイド':1, 'ミラー':1, 'ファイアボール':1, 'フリーズ':1, 'ポイズン':1, 'スケルトンラッシュ':1, 'ロケット':1, 'ライトニング':1 };
+      var BUILDING_NAMES = { '大砲':1, '墓石':1, 'ゴブリンの檻':1, 'ゴブリンの小屋':1, 'ボムタワー':1, 'テスラ':1, '迫撃砲':1, 'オーブン':1, 'インフェルノタワー':1, 'エリクサーポンプ':1, 'バーバリアンの小屋':1, '巨大クロスボウ':1 };
+      function clamp01_(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+      function round2_(x) { return Math.round(x * 100) / 100; }
+      function round3_(x) { return Math.round(x * 1000) / 1000; }
+      function tagsFor_(name) { var r = tagCards[name] || {}; return r.tags || []; }
+      function hasTag_(name, tag) { return tagsFor_(name).indexOf(tag) >= 0; }
+      function winClass_(name) { var r = winCards[name] || {}; return r.class || ''; }
+      function roleFlags_(name) {
+        var cls = winClass_(name), cost = COST[name] || 0;
+        return {
+          main: cls === '勝ち筋',
+          secondary: cls === '第2勝ち筋' || cls === '補助勝ち筋',
+          cycle: cls === 'サイクル札' || cost <= 2,
+          spell: !!SPELL_NAMES[name],
+          smallSpell: !!SPELL_NAMES[name] && cost <= 3,
+          bigSpell: !!SPELL_NAMES[name] && cost >= 5,
+          building: !!BUILDING_NAMES[name],
+          air: hasTag_(name, 'air') || hasTag_(name, 'flying'),
+          splash: hasTag_(name, 'splash'),
+          tankKiller: hasTag_(name, 'tankKiller') || hasTag_(name, 'ramp'),
+          tank: hasTag_(name, 'tgHp') || hasTag_(name, 'minitank') || cost >= 6,
+          bait: hasTag_(name, 'spellBait'),
+          bridge: hasTag_(name, 'bridgeSpam') || hasTag_(name, 'dash'),
+          control: hasTag_(name, 'stun') || hasTag_(name, 'stop') || hasTag_(name, 'pull') || hasTag_(name, 'slow') || hasTag_(name, 'knockback')
+        };
+      }
+      function roleComplement_(a, b) {
+        var A = roleFlags_(a), B = roleFlags_(b), s = 0;
+        function one(x, y, v) { if ((A[x] && B[y]) || (B[x] && A[y])) s += v; }
+        one('main', 'smallSpell', 0.32);
+        one('main', 'control', 0.22);
+        one('main', 'splash', 0.18);
+        one('main', 'tankKiller', 0.14);
+        one('main', 'secondary', 0.16);
+        one('tank', 'air', 0.18);
+        one('tank', 'splash', 0.20);
+        one('tank', 'tankKiller', 0.12);
+        one('bait', 'bait', 0.22);
+        one('building', 'tankKiller', 0.16);
+        one('building', 'air', 0.12);
+        one('bridge', 'smallSpell', 0.18);
+        one('secondary', 'smallSpell', 0.10);
+        if (A.spell && B.spell) s -= 0.18;
+        if (A.building && B.building) s -= 0.22;
+        if (A.bigSpell && B.bigSpell) s -= 0.20;
+        if (A.main && B.main && (COST[a] || 0) >= 5 && (COST[b] || 0) >= 5) s -= 0.18;
+        return Math.max(-0.35, Math.min(1, s));
+      }
+      function mean_(arr) { return arr.length ? arr.reduce(function (s, v) { return s + v; }, 0) / arr.length : 0; }
+      function std_(arr) { if (arr.length < 2) return 0; var m = mean_(arr); return Math.sqrt(mean_(arr.map(function (v) { return Math.pow(v - m, 2); }))); }
+      var totalUse = 0, cardUse = {}, cardGames = {}, cardWins = {}, pairUse = {}, pairGames = {}, pairWins = {}, pairDecks = {}, pairTop = {}, monthAgg = {};
       Object.keys(shByMonth).forEach(function (mk2) {
         var ss = shByMonth[mk2], cardsL = ss.cards || [], sigsL = ss.sigs || {};
+        var ms = monthAgg[mk2] || (monthAgg[mk2] = { totalUse: 0, cardUse: {}, pairUse: {} });
         Object.keys(sigsL).forEach(function (key) {
           var ids = String(key).split('|')[0].split('.').map(function (x) { return parseInt(x, 10); }).filter(function (x) { return !isNaN(x); });
           var names = [];
@@ -1042,10 +1098,12 @@ async function updateDecks() {
           var v = sigsL[key] || [], use = v[0] || v[1] || 0, games = v[1] || 0, wins = v[2] || 0;
           if (!use) return;
           totalUse += use;
+          ms.totalUse += use;
           names.forEach(function (n) {
             cardUse[n] = (cardUse[n] || 0) + use;
             cardGames[n] = (cardGames[n] || 0) + games;
             cardWins[n] = (cardWins[n] || 0) + wins;
+            ms.cardUse[n] = (ms.cardUse[n] || 0) + use;
           });
           for (var a = 0; a < names.length; a++) for (var b = a + 1; b < names.length; b++) {
             var pk = names[a] < names[b] ? names[a] + '|' + names[b] : names[b] + '|' + names[a];
@@ -1054,6 +1112,7 @@ async function updateDecks() {
             pairWins[pk] = (pairWins[pk] || 0) + wins;
             pairDecks[pk] = (pairDecks[pk] || 0) + 1;
             pairTop[pk] = Math.max(pairTop[pk] || 0, use);
+            ms.pairUse[pk] = (ms.pairUse[pk] || 0) + use;
           }
         });
       });
@@ -1072,17 +1131,55 @@ async function updateDecks() {
         var winLift = (wr != null && baseWr != null) ? wr - baseWr : null;
         var concentration = use ? (pairTop[pk] || 0) / use : 1;
         var broadness = 1 - Math.min(1, Math.max(0, concentration - 0.35) / 0.65);
-        var synergyScore = Math.round((Math.log(Math.max(1, lift)) * Math.sqrt(use) * (0.65 + 0.35 * broadness) + (winLift == null ? 0 : winLift * 2.0)) * 100) / 100;
-        var kind = lift >= 1.35 && concentration <= 0.55 ? 'broadSynergy'
-          : lift >= 1.45 ? 'templateCore'
-          : lift < 1.12 ? 'utilityOrCommon'
+        var monthlyLifts = [], monthlyUses = [];
+        pairMonths.forEach(function (mk3) {
+          var ms2 = monthAgg[mk3]; if (!ms2 || !ms2.totalUse || !ms2.pairUse[pk]) return;
+          var ex2 = ((ms2.cardUse[a] || 0) * (ms2.cardUse[b] || 0)) / ms2.totalUse;
+          if (ex2 <= 0) return;
+          monthlyLifts.push(ms2.pairUse[pk] / ex2);
+          monthlyUses.push(ms2.pairUse[pk]);
+        });
+        var logL = monthlyLifts.map(function (x) { return Math.log(Math.max(0.01, x)); });
+        var activeMonths = monthlyLifts.length;
+        var liftStability = activeMonths >= 3 ? clamp01_(1 - std_(logL) / 0.55) : clamp01_(activeMonths / 3 * 0.65);
+        var currentLift = monthlyLifts.length ? monthlyLifts[0] : lift;
+        var priorLift = monthlyLifts.length > 1 ? mean_(monthlyLifts.slice(1)) : lift;
+        var trend = priorLift ? (currentLift - priorLift) / priorLift : 0;
+        var cardUseRateA = (cardUse[a] || 0) / totalUse, cardUseRateB = (cardUse[b] || 0) / totalUse;
+        var utilityIndex = Math.max(0, cardUseRateA - 0.25) + Math.max(0, cardUseRateB - 0.25);
+        var utilityPenalty = utilityIndex * (lift < 1.25 ? 34 : 18);
+        var templateLockPenalty = concentration > 0.70 ? (concentration - 0.70) * 42 : 0;
+        var sampleConfidence = clamp01_(Math.sqrt(use / (use + 25)) * (games ? Math.sqrt(games / (games + 60)) : 0.72));
+        var roleComp = roleComplement_(a, b);
+        var liftScore = Math.log(Math.max(1, lift)) * 42;
+        var winLiftScore = winLift == null ? 0 : winLift * 120;
+        var broadnessScore = broadness * 16;
+        var confidenceScore = sampleConfidence * 13;
+        var roleScore = roleComp * 18;
+        var stabilityScore = liftStability * 12;
+        var trendScore = Math.max(-8, Math.min(8, trend * 10));
+        var components = {
+          lift: round2_(liftScore), winLift: round2_(winLiftScore), broadness: round2_(broadnessScore),
+          confidence: round2_(confidenceScore), roleComplement: round2_(roleScore),
+          stability: round2_(stabilityScore), trend: round2_(trendScore),
+          utilityPenalty: round2_(utilityPenalty), templatePenalty: round2_(templateLockPenalty)
+        };
+        var synergyScore = round2_(liftScore + winLiftScore + broadnessScore + confidenceScore + roleScore + stabilityScore + trendScore - utilityPenalty - templateLockPenalty);
+        var kind = sampleConfidence < 0.35 || use < MIN_PAIR_USE * 2 ? 'provisional'
+          : lift >= 1.45 && (winLift == null || winLift >= 0) && concentration <= 0.55 && (pairDecks[pk] || 0) >= 5 && liftStability >= 0.45 && utilityPenalty < 8 ? 'broadSynergy'
+          : lift >= 1.45 && concentration > 0.70 ? 'templateCore'
+          : lift <= 1.15 && utilityIndex > 0 ? 'utilityOrCommon'
+          : winLift != null && winLift >= 0.015 && lift >= 1.15 ? 'hiddenWinLift'
           : 'softSynergy';
         pairsOut.push({
           a: a, b: b, use: Math.round(use * 10) / 10, expected: Math.round(exp * 10) / 10,
           lift: Math.round(lift * 100) / 100, games: games, wr: wr == null ? null : Math.round(wr * 1000) / 10,
           winLift: winLift == null ? null : Math.round(winLift * 1000) / 10,
-          deckVariants: pairDecks[pk] || 0, concentration: Math.round(concentration * 1000) / 1000,
-          kind: kind, score: synergyScore
+          deckVariants: pairDecks[pk] || 0, concentration: round3_(concentration),
+          broadness: round3_(broadness), sampleConfidence: round3_(sampleConfidence),
+          activeMonths: activeMonths, liftStability: round3_(liftStability), currentLift: round2_(currentLift), trend: round3_(trend),
+          utilityIndex: round3_(utilityIndex), roleComplement: round3_(roleComp),
+          kind: kind, score: synergyScore, components: components
         });
       });
       pairsOut.sort(function (x, y) { return y.score - x.score || y.use - x.use; });
@@ -1099,7 +1196,16 @@ async function updateDecks() {
       await ghWriteJson_(ghSiblingPath_(ghPath, 'card-pair-synergy-v1.json'),
         { updated: new Date().toISOString(), source: 'sighist monthly digest', months: pairMonths.filter(function (m) { return !!shByMonth[m]; }),
           minUse: MIN_PAIR_USE, totalDeckUse: Math.round(totalUse * 10) / 10,
-          notes: ['lift=P(A+B)/(P(A)*P(B))。使用率が高いだけの便利枠を補正する。', 'concentrationが高いほど特定テンプレ依存。低くてliftが高いほど広い本質シナジー。'],
+          scoring: {
+            score: 'lift + winLift + broadness + sampleConfidence + roleComplement + liftStability + trend - utilityPenalty - templatePenalty',
+            lift: 'P(A+B)/(P(A)*P(B))。単純共起ではなく期待共起との差を見る',
+            winLift: 'pair勝率 - 単体2枚の平均勝率',
+            concentration: 'pair総使用のうち最大1テンプレが占める比率。高いほどテンプレ依存',
+            liftStability: '月別liftの安定度。短期だけ跳ねたpairを下げる',
+            roleComplement: '勝ち方/呪文/対空/範囲/建物などの役割補完',
+            utilityPenalty: '単体使用率が高すぎる便利カードの過大評価補正'
+          },
+          notes: ['表示の鮮度は1h/1d/3d、シナジー判定は月別sighist最大12か月で統計的に見る。', 'lift高・concentration低・月間安定・便利枠補正を抜けたpairほど本質シナジー。'],
           count: pairsOut.length, pairs: pairsOut.slice(0, 1000), byCard: byCard },
         'chore: update card-pair-synergy-v1.json');
       console.log('card-pair-synergy ' + pairsOut.length + ' pairs');
