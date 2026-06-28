@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-06-25T16:52:27.415Z",
+  "updated": "2026-06-28T08:08:17.328Z",
   "source": "Fugu/WINCON_POLICY_OWNER_CLASSIFIED_2026-06-26.tsv",
   "ownerPolicy": true,
   "notes": [
@@ -10,14 +10,15 @@
   ],
   "counts": {
     "totalCards": 121,
-    "classified": 82,
-    "unclassified": 39,
+    "classified": 86,
+    "unclassified": 35,
     "byClass": {
       "勝ち筋": 29,
       "第2勝ち筋": 30,
       "補助勝ち筋": 17,
-      "サイクル札": 5,
-      "変数カード": 1
+      "サイクル札": 7,
+      "変数カード": 1,
+      "防衛札": 2
     }
   },
   "cards": {
@@ -1669,6 +1670,94 @@
       "ownerReviewed": true,
       "sourceCost": 1,
       "sourceType": "spell"
+    },
+    "ゴブリン": {
+      "order": 83,
+      "name": "ゴブリン",
+      "cost": 2,
+      "class": "サイクル札",
+      "mainWinconScore": 1,
+      "secondaryWinconScore": 3,
+      "finishingScore": 1,
+      "attackType": "cycleGroundDps",
+      "axes": [
+        "cycle",
+        "defense",
+        "groundDps",
+        "singleTargetDps"
+      ],
+      "definition": "サイクルにもなりつつ、地上DPSで防衛を支えるカード。勝ち筋ではないが受けの安定に効く",
+      "reviewMemo": "あなた分類: サイクルにもなりつつ防衛・地上DPS",
+      "displayGroup": "サイクル札",
+      "ownerReviewed": true,
+      "sourceCost": 2,
+      "sourceType": "troop"
+    },
+    "ボンバー": {
+      "order": 84,
+      "name": "ボンバー",
+      "cost": 2,
+      "class": "防衛札",
+      "mainWinconScore": 1,
+      "secondaryWinconScore": 2,
+      "finishingScore": 1,
+      "attackType": "defensiveSplash",
+      "axes": [
+        "defense",
+        "splash",
+        "antiSwarm",
+        "groundControl"
+      ],
+      "definition": "範囲攻撃で複数体をまとめて処理する防衛札。小物・複数攻めへの回答になる",
+      "reviewMemo": "あなた分類: 範囲攻撃・複数対策",
+      "displayGroup": "防衛札",
+      "ownerReviewed": true,
+      "sourceCost": 2,
+      "sourceType": "troop"
+    },
+    "槍ゴブリン": {
+      "order": 85,
+      "name": "槍ゴブリン",
+      "cost": 2,
+      "class": "サイクル札",
+      "mainWinconScore": 1,
+      "secondaryWinconScore": 4,
+      "finishingScore": 2,
+      "attackType": "cyclePoke",
+      "axes": [
+        "cycle",
+        "airDefense",
+        "groundDefense",
+        "bridgePoke"
+      ],
+      "definition": "サイクルしながら地上・対空を補い、橋前で小さく削るちょっかいもできるカード",
+      "reviewMemo": "あなた分類: サイクル、地上対空、橋前ちょっかい",
+      "displayGroup": "サイクル札",
+      "ownerReviewed": true,
+      "sourceCost": 2,
+      "sourceType": "troop"
+    },
+    "アイスゴーレム": {
+      "order": 86,
+      "name": "アイスゴーレム",
+      "cost": 2,
+      "class": "防衛札",
+      "mainWinconScore": 1,
+      "secondaryWinconScore": 2,
+      "finishingScore": 1,
+      "attackType": "kiteTank",
+      "axes": [
+        "defense",
+        "miniTank",
+        "kite",
+        "lanePull"
+      ],
+      "definition": "中型タンクとして逆サイド釣りと時間稼ぎが優秀な防衛札。攻めの主役ではなく形を作るカード",
+      "reviewMemo": "あなた分類: 中型タンク・逆サイド釣り優秀",
+      "displayGroup": "防衛札",
+      "ownerReviewed": true,
+      "sourceCost": 2,
+      "sourceType": "troop"
     }
   },
   "groups": {
@@ -1759,17 +1848,19 @@
       "アイススピリット",
       "ファイアスピリット",
       "エレクトロスピリット",
-      "ヒールスピリット"
+      "ヒールスピリット",
+      "ゴブリン",
+      "槍ゴブリン"
     ],
     "変数カード": [
       "ミラー"
+    ],
+    "防衛札": [
+      "ボンバー",
+      "アイスゴーレム"
     ]
   },
   "unclassified": [
-    "ゴブリン",
-    "ボンバー",
-    "槍ゴブリン",
-    "アイスゴーレム",
     "バーサーカー",
     "ザップ",
     "巨大雪玉",
