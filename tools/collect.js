@@ -20,6 +20,7 @@
  *   TOP_PLAYERS         … 集計するトップランカー数（既定 "1000"）
  *   RANKING_SOURCE      … "pol"=PoLランキング / "trophy"=トロフィーランキング（既定 "pol"）
  *   TROPHY_MIN/MAX      … RANKING_SOURCE=trophy の時だけ、ランキング取得後に絞り込むトロフィー範囲
+ *   TROPHY_EVENT_MIN/MAX… battlelog内で保存するトロフィー戦イベントの試合時点トロフィー範囲
  *   WINDOW_DAYS         … ローリング期間（日）。既定 "3"
  *   INTERVAL_HOURS      … 参考値としてdecks.jsonに載せる（既定 "6"）
  *   WIN_MIN_GAMES_3D    … 勝率ランキングの最低試合数（既定 "30"）
@@ -345,6 +346,8 @@ async function updateDecks() {
   var rankingSource = String(prop('RANKING_SOURCE', 'pol')).toLowerCase();
   var trophyMin = parseInt(prop('TROPHY_MIN', '0'), 10);
   var trophyMax = parseInt(prop('TROPHY_MAX', '999999'), 10);
+  var trophyEventMin = parseInt(prop('TROPHY_EVENT_MIN', '10000'), 10);
+  var trophyEventMax = parseInt(prop('TROPHY_EVENT_MAX', '14000'), 10);
   var intervalHours = parseInt(prop('INTERVAL_HOURS', '6'), 10);
 
   console.log('▶ collect start repo=' + REPO + ' branch=' + BRANCH + ' source=' + rankingSource + ' top=' + topN + ' path=' + GH_PATH);
@@ -410,6 +413,8 @@ async function updateDecks() {
   var polMuNow = {};
   // ★相手カード別インテリジェンス（今回ぶん）：相手にそのカードが入っていた時、こちらがどう勝ち/負けたか。
   var polOppCardNow = {};
+  // ★10000〜14000トロフィー戦イベント（今回ぶん）。PoLとは別に、試合時点startingTrophiesで保存する。
+  var trophyEventsNow = [];
   function accPol_(sig, b, tc, oc) {
     var t0 = b.team[0], o0 = b.opponent[0];
     addPolStats_(polNow, sig, t0, o0, tc, oc);
@@ -445,6 +450,58 @@ async function updateDecks() {
       return typeof tr === 'number' && tr >= trophyMin && tr <= trophyMax && (bucket === 'ladder_pvp' || bucket === 'ladder_trail');
     }
     return t === 'pathOfLegend' || /ranked|path.?of.?legend/i.test(t) || /ranked|path.?of.?legend/i.test(gm);
+  }
+  function parseBattleTimeMs_(s) {
+    var m = String(s || '').match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
+    return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) : 0;
+  }
+  function durationSec_(b) {
+    var fs = ['durationSeconds', 'duration', 'gameDuration', 'matchDuration'];
+    for (var i = 0; i < fs.length; i++) if (typeof b[fs[i]] === 'number') return b[fs[i]];
+    if (b.endTime && b.battleTime) {
+      var a = parseBattleTimeMs_(b.battleTime), z = parseBattleTimeMs_(b.endTime);
+      if (a && z && z > a) return Math.round((z - a) / 1000);
+    }
+    return null;
+  }
+  function supportName_(p) {
+    var sc = p && p.supportCards;
+    if (!Array.isArray(sc) || !sc.length) return null;
+    return apiCardToJp(sc[0]) || sc[0].name || null;
+  }
+  function sideLite_(p, d, crowns) {
+    return {
+      trophies: typeof p.startingTrophies === 'number' ? p.startingTrophies : null,
+      deck: d.jp, forms: d.fm, crowns: crowns,
+      kingTowerHitPoints: typeof p.kingTowerHitPoints === 'number' ? p.kingTowerHitPoints : null,
+      princessTowersHitPoints: Array.isArray(p.princessTowersHitPoints) ? p.princessTowersHitPoints : null,
+      elixirLeaked: typeof p.elixirLeaked === 'number' ? p.elixirLeaked : null,
+      towerTroop: supportName_(p)
+    };
+  }
+  function trophyBattleEvent_(b, d, od, tc, oc) {
+    var t0 = b.team[0], o0 = b.opponent[0];
+    var tt = typeof t0.startingTrophies === 'number' ? t0.startingTrophies : null;
+    var ot = typeof o0.startingTrophies === 'number' ? o0.startingTrophies : null;
+    if (tt == null || ot == null) return null;
+    var mid = Math.round((tt + ot) / 2);
+    if (mid < trophyEventMin || mid > trophyEventMax) return null;
+    var bucket = modeBucketOf(b.type || '', (b.gameMode && b.gameMode.name) || '');
+    if (bucket !== 'ladder_pvp' && bucket !== 'ladder_trail') return null;
+    var dur = durationSec_(b);
+    var id = [b.battleTime || '', tt, ot, d.jp.slice().sort().join('.'), od.jp.slice().sort().join('.')].join('|');
+    return {
+      id: id,
+      battleTime: b.battleTime || '',
+      mode: bucket,
+      trophyMid: mid,
+      trophyDiff: Math.abs(tt - ot),
+      durationSeconds: dur,
+      reachedTripleElixir: dur == null ? null : dur > 180,
+      team: sideLite_(t0, d, tc),
+      opponent: sideLite_(o0, od, oc),
+      win: tc > oc
+    };
   }
   function classifyDeck(cards) {
     var jp = [], fm = [], ok = true;
@@ -505,12 +562,12 @@ async function updateDecks() {
       observeSchema_(b);
       var tk = (b.type || '?') + '/' + ((b.gameMode && b.gameMode.name) || '?');
       typeSeen[tk] = (typeSeen[tk] || 0) + 1;
-      if (!isRanked_(b)) continue;                 // ★ランク戦のみ
       var cards = b.team[0].cards;
       if (evoCnt(cards) > 4) continue;
       var d = classifyDeck(cards);
       if (!d) continue;
-      if (!gotPop) { if (tally(pop, d, null)) { gotPop = true; if (tag) runPlayerSig[tag] = sigKey(d); } }
+      var ranked = isRanked_(b);
+      if (ranked && !gotPop) { if (tally(pop, d, null)) { gotPop = true; if (tag) runPlayerSig[tag] = sigKey(d); } }
       var bt = b.battleTime || '';
       if (bt && bt > maxT) maxT = bt;
       if (seenT && bt && bt <= seenT) continue;    // ★前回処理済み＝二重カウントしない
@@ -518,6 +575,11 @@ async function updateDecks() {
       if (typeof tc !== 'number' || typeof oc !== 'number' || tc === oc) continue;
       var oppCards = b.opponent[0].cards || [];
       var od = (oppCards.length === 8) ? classifyDeck(oppCards) : null;
+      if (od) {
+        var tev = trophyBattleEvent_(b, d, od, tc, oc);
+        if (tev) trophyEventsNow.push(tev);
+      }
+      if (!ranked) continue;                       // ★PoL集計はランク戦のみ
       if (od && sameSig_(d.jp, od.jp)) continue;   // ★完全ミラー除外
       tally(win, d, tc > oc, tc, oc);
       accPol_(sigKey(d), b, tc, oc);               // ★PoL試合内容（支配度/エリ漏れ/勝ち方）を貯める
@@ -931,6 +993,71 @@ async function updateDecks() {
       'chore: update pol-card-intel-v1.json');
     console.log('pol-card-intel ' + Object.keys(byOpponentCard).length + ' cards');
   } catch (e) { console.log('pol-card-intel error ' + ((e && e.message) || e)); }
+
+  // ★10000〜14000トロフィー戦イベントDB：試合時点startingTrophiesで抽出し、7日分の軽量eventを保持。
+  try {
+    var evPath = ghSiblingPath_(ghPath, 'trophy-battle-events-v1.json');
+    var oldEv = (await ghReadJson_(evPath)) || { events: [] };
+    var seenEv = {}, events = [];
+    (oldEv.events || []).concat(trophyEventsNow).forEach(function (e) {
+      if (!e || !e.id || seenEv[e.id]) return;
+      seenEv[e.id] = 1; events.push(e);
+    });
+    var eventCut = now - 7 * 864e5;
+    events = events.filter(function (e) { var t = parseBattleTimeMs_(e.battleTime); return t && t >= eventCut; })
+      .sort(function (a, b) { return parseBattleTimeMs_(b.battleTime) - parseBattleTimeMs_(a.battleTime); })
+      .slice(0, parseInt(prop('TROPHY_EVENT_KEEP', '20000'), 10));
+
+    function playerFromEvent_(e, side) {
+      var p = side === 'team' ? e.team : e.opponent;
+      return {
+        crowns: p.crowns,
+        kingTowerHitPoints: p.kingTowerHitPoints,
+        princessTowersHitPoints: p.princessTowersHitPoints,
+        elixirLeaked: p.elixirLeaked
+      };
+    }
+    function addEventSideStats_(map, key, e, side) {
+      var mine = playerFromEvent_(e, side), opp = playerFromEvent_(e, side === 'team' ? 'opponent' : 'team');
+      addPolStats_(map, key, mine, opp, mine.crowns, opp.crowns);
+    }
+    var cardAgg = {}, bandAgg = {}, triple = { known: 0, reached: 0, notReached: 0 };
+    events.forEach(function (e) {
+      var band = Math.floor(e.trophyMid / 300) * 300;
+      var bandKey = band + '-' + (band + 299);
+      var b = bandAgg[bandKey] || (bandAgg[bandKey] = { games: 0, cards: {} });
+      b.games++;
+      if (e.reachedTripleElixir === true) { triple.known++; triple.reached++; }
+      else if (e.reachedTripleElixir === false) { triple.known++; triple.notReached++; }
+      [['team', e.team], ['opponent', e.opponent]].forEach(function (pair) {
+        var side = pair[0], p = pair[1], unique = {};
+        (p.deck || []).forEach(function (name) {
+          if (unique[name]) return; unique[name] = 1;
+          addEventSideStats_(cardAgg, name, e, side);
+          var ba = b.cards[name] || (b.cards[name] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+          var tmp = {}; addEventSideStats_(tmp, name, e, side);
+          var v = tmp[name]; for (var i = 0; i < 15; i++) ba[i] += (v[i] || 0);
+        });
+      });
+    });
+    var byCard = {};
+    Object.keys(cardAgg).forEach(function (name) { var s = polSummary_(cardAgg[name]); if (s) byCard[name] = Object.assign({ name: name }, s); });
+    var byBand = {};
+    Object.keys(bandAgg).forEach(function (bk) {
+      var cards = {};
+      Object.keys(bandAgg[bk].cards).forEach(function (name) { var s = polSummary_(bandAgg[bk].cards[name]); if (s) cards[name] = Object.assign({ name: name }, s); });
+      byBand[bk] = { games: bandAgg[bk].games, cards: cards };
+    });
+    await ghWriteJson_(evPath,
+      { updated: new Date().toISOString(), windowDays: 7, trophyRange: { min: trophyEventMin, max: trophyEventMax },
+        count: events.length, duration: triple, events: events },
+      'chore: update trophy-battle-events-v1.json');
+    await ghWriteJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-v1.json'),
+      { updated: new Date().toISOString(), windowDays: 7, trophyRange: { min: trophyEventMin, max: trophyEventMax },
+        count: events.length, duration: triple, byCard: byCard, byBand: byBand },
+      'chore: update trophy-band-card-intel-v1.json');
+    console.log('trophy-events ' + events.length + ' events / cards ' + Object.keys(byCard).length);
+  } catch (e) { console.log('trophy-events error ' + ((e && e.message) || e)); }
 
   // ★API棚卸し：観測した type/gameMode を bucket 分類して保存（混ぜず将来別集計の土台）
   try {

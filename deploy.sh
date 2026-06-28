@@ -33,7 +33,7 @@ git add -A
 
 # 4) 安全ガード: 統計データが万一「追加/変更」でステージされていたら中断
 #    （削除 D は許可＝main に紛れ込んだ古いデータを消すのは安全）
-LEAK="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(trophy-[^/]+/.*|decks|cardhist|card-stats|card-tags|card-potential|card-eval|card-weights|card-ids|card-model-v2|matchups|matchups-v2-|synergy|band-meta|sighist-|wincon-policy|wincon-realization-|spell-tempo-|card-context-lift-|api-tags-seen|battle-schema-sample|battle-feature-buckets|pol-battle-intel-v1|pol-matchup-intel-v1|pol-card-intel-v1|pol-tower-troop-meta-v1|pol-spell-weakness-v1).*\.json$' || true)"
+LEAK="$(git diff --cached --name-only --diff-filter=ACMR | grep -E '^(trophy-[^/]+/.*|decks|cardhist|card-stats|card-tags|card-potential|card-eval|card-weights|card-ids|card-model-v2|matchups|matchups-v2-|synergy|band-meta|sighist-|wincon-policy|wincon-realization-|spell-tempo-|card-context-lift-|api-tags-seen|battle-schema-sample|battle-feature-buckets|pol-battle-intel-v1|pol-matchup-intel-v1|pol-card-intel-v1|pol-tower-troop-meta-v1|pol-spell-weakness-v1|trophy-battle-events-v1|trophy-band-card-intel-v1).*\.json$' || true)"
 if [ -n "$LEAK" ]; then
   echo "✗ 統計データが staged されています。main へは push できません:"
   echo "$LEAK"
