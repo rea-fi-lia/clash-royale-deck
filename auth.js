@@ -388,6 +388,17 @@ const CRAuth = {
     await FB.updateDoc(FB.doc(db, "users", currentUser.uid), { favorites: list, updatedAt: FB.serverTimestamp() });
     if (currentProfile) currentProfile.favorites = list;
   },
+
+  // ---- デッキ嗜好プロフィール（MBTI＋2択の答え→方向性。アシストの intentFit に使う） ----
+  // 形：{ mbti:"INTJ", axes:{weight,tempo,style,thrill,risk,complexity}, answers:{...}, updatedAt }
+  getDeckPersona() { return (currentProfile && currentProfile.deckPersona) || null; },
+  async saveDeckPersona(persona) {
+    if (!currentUser || !FB) return;
+    const p = persona || null;
+    if (currentProfile) currentProfile.deckPersona = p;
+    try { await FB.updateDoc(FB.doc(db, "users", currentUser.uid), { deckPersona: p, updatedAt: FB.serverTimestamp() }); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("cr-deck-persona", { detail: p })); } catch (e) {}
+  },
 };
 window.CRAuth = CRAuth;
 

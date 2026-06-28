@@ -469,7 +469,8 @@ function assistDeckInfo() {
     : (wincons.length ? TR(wincons[0].name) + '軸' : '主軸探し中')
       + '・' + (avg && avg <= 3.0 ? '高回転寄り' : avg >= 4.2 ? '重め' : '中速')
       + (spells.length ? '・呪文あり' : '・呪文なし');
-  return { cards, names, avg, wincons, spells, smallSpells, air, splash, dps, buildings, cycles, main, secondaries, mainAxes, mainAttack, style };
+  const personaAxes = (typeof getPersonaAxes === 'function') ? getPersonaAxes() : null;
+  return { cards, names, avg, wincons, spells, smallSpells, air, splash, dps, buildings, cycles, main, secondaries, mainAxes, mainAttack, personaAxes, style };
 }
 function assistLegal(c, info) {
   if (info.names.has(c.name)) return false;
@@ -604,6 +605,12 @@ function assistScore(c, kind, info) {
   }
   score += assistPotentialFit(c, info);
   score += assistWinconBonus(c, kind, info);
+  // intentFit：ユーザーの嗜好プロフィール(MBTI＋2択)に沿うほど加点。
+  // 「発見候補」は少し違う方向を出す枠なので persona の効きを弱める。
+  if (info.personaAxes) {
+    const fit = personaCardFit(c, info.personaAxes);
+    score += kind === 'discovery' ? Math.round(fit * 0.4) : fit;
+  }
   // 同じ役割が既に厚いなら重複ペナルティ（どの候補でも効かせる）
   if (!isSpell) {
     if (info.air.length >= 2 && assistIsTrueAir(c)) score -= 16;
@@ -719,7 +726,7 @@ function updateAssistPanel() {
   const info = assistDeckInfo();
   assistSuggestions = buildAssistSuggestions();
   if (info.cards.length >= 8) {
-    panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の一手</div><div class="assist-state">8枚完成</div></div>'
+    panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の一手<span class="assist-beta">BETA</span></div><div class="assist-state">8枚完成</div></div>'
       + '<div class="assist-empty">デッキが完成しました。ここからは分析で「どう勝つか」を読みましょう。</div>'
       + '<div class="assist-actions"><a class="assist-mini" href="strategy.html">デッキ分析へ</a></div>';
     refreshAssistHighlights();
@@ -740,7 +747,13 @@ function updateAssistPanel() {
       + '<span class="ac-add">＋</span></div>';
   }).join('') + '</div>' : '<div class="assist-empty">まず使いたいカードを1枚選ぶと、次の候補を出せます。</div>';
   const dataState = assistData.ready ? '監修データ反映' : 'ローカル簡易';
-  panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の1枚</div><div class="assist-state">' + esc(info.style) + ' / ' + dataState + '</div></div>'
+  const pAxes = info.personaAxes;
+  const pSum = pAxes ? personaSummary(pAxes) : '';
+  const personaLine = pSum
+    ? '<div class="assist-persona is-set" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">あなた好み：' + esc(pSum) + '</span><span class="ap-edit">変更</span></div>'
+    : '<div class="assist-persona" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">デッキの好みを設定すると、あなた向けに候補が絞れます</span><span class="ap-edit">設定</span></div>';
+  panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の1枚<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + dataState + '</div></div>'
+    + personaLine
     + cardsHtml
     + '<div class="assist-actions"><button class="assist-mini" id="assistRefresh" type="button">別候補</button><button class="assist-mini" id="assistOff" type="button">通常検索</button></div>';
   // 「理由を詳しく」トグル（カード追加クリックより先に拾い、伝播を止める）
@@ -775,6 +788,8 @@ function updateAssistPanel() {
   if (r) r.onclick = () => { assistVariant = (assistVariant + 1) % 3; updateAssistPanel(); };
   const off = document.getElementById('assistOff');
   if (off) off.onclick = () => setAssistMode(false);
+  const pe = document.getElementById('assistPersona');
+  if (pe) pe.onclick = () => openPersonaDialog();
   refreshAssistHighlights();
 }
 function refreshAssistHighlights() {
@@ -791,14 +806,255 @@ function setAssistMode(on) {
   assistMode = !!on;
   assistVariant = 0;
   try { localStorage.setItem('cr_assist_mode', assistMode ? 'on' : 'off'); } catch(e) {}
+  const list = document.getElementById('cardList');
+  if (list) list.classList.toggle('assist-lock', assistMode);
   updateAssistPanel();
   render();
+}
+
+// =============================================================
+//  デッキ嗜好プロフィール（MBTI＋2択）— アシストの方向付け(intentFit)に使う
+//  ・6軸で正規化（-1〜+1）。MBTIで土台を作り、2択の答えで微調整して掛け合わせる。
+//  ・「MBTIの情報」は外部APIでなく内蔵テーブルで性格→デッキ嗜好へ写像（後でAPI差し替え可）。
+//  ・ログイン中はアカウントへ保存(CRAuth.saveDeckPersona)、未ログインはローカルに保持。
+// =============================================================
+// 軸の意味（左 -1 ／ 右 +1）
+const PERSONA_AXES = [
+  { key: 'weight',     left: '軽い',   right: '重い',     desc: 'コストの重さ' },
+  { key: 'tempo',      left: 'じっくり', right: '高回転',   desc: '回転率' },
+  { key: 'style',      left: '受け',   right: '攻め',     desc: '攻撃型/防御型' },
+  { key: 'thrill',     left: '堅実',   right: '爽快',     desc: '爽快感' },
+  { key: 'risk',       left: '安定',   right: '一発',     desc: 'リスク許容' },
+  { key: 'complexity', left: 'シンプル', right: 'テクい',   desc: '操作の複雑さ' }
+];
+const PERSONA_AXIS_KEYS = PERSONA_AXES.map(a => a.key);
+let personaCache = (() => { try { return JSON.parse(localStorage.getItem('cr_deck_persona') || 'null'); } catch (e) { return null; } })();
+
+function emptyAxes() { const o = {}; PERSONA_AXIS_KEYS.forEach(k => o[k] = 0); return o; }
+function clamp1(x) { return x < -1 ? -1 : x > 1 ? 1 : x; }
+function addAxes(base, delta, w) {
+  w = (w == null) ? 1 : w;
+  const o = Object.assign({}, base);
+  PERSONA_AXIS_KEYS.forEach(k => { if (delta && delta[k] != null) o[k] = (o[k] || 0) + delta[k] * w; });
+  return o;
+}
+// MBTI 4軸 → デッキ嗜好の寄与（内蔵「MBTI情報」テーブル）
+const MBTI_CONTRIB = {
+  E: { style: 0.5, thrill: 0.4, tempo: 0.3 },   I: { style: -0.5, thrill: -0.3, weight: 0.2 },
+  S: { complexity: -0.4, weight: -0.2, risk: -0.1 }, N: { complexity: 0.4, thrill: 0.2, risk: 0.2 },
+  T: { style: 0.2, risk: -0.2, complexity: 0.2 },  F: { thrill: 0.4, style: -0.1, risk: 0.1 },
+  J: { risk: -0.4, tempo: -0.1, complexity: 0.1 }, P: { risk: 0.4, tempo: 0.3, thrill: 0.2 }
+};
+function normalizeMbti(s) {
+  const v = String(s || '').toUpperCase().replace(/[^EISNTFJP]/g, '');
+  if (v.length !== 4) return '';
+  if (!/^[EI][SN][TF][JP]$/.test(v)) return '';
+  return v;
+}
+function mbtiToAxes(mbti) {
+  const m = normalizeMbti(mbti);
+  let ax = emptyAxes();
+  if (!m) return ax;
+  m.split('').forEach(letter => { ax = addAxes(ax, MBTI_CONTRIB[letter], 1); });
+  return ax;
+}
+// 2択質問（クラロワの言葉で。MBTIという語は前面に出さない）。各選択肢が軸へ寄与。
+const PERSONA_QUESTIONS = [
+  { id: 'q_weight', q: 'デッキの主役はどっち？',
+    a: { label: '軽くて手数で押す', d: { weight: -0.7, tempo: 0.5 } },
+    b: { label: '重くて一撃が大きい', d: { weight: 0.7, tempo: -0.4 } } },
+  { id: 'q_style', q: '試合の入り方は？',
+    a: { label: '受けてから返す', d: { style: -0.7, risk: -0.3 } },
+    b: { label: '橋前から圧をかける', d: { style: 0.7, thrill: 0.3 } } },
+  { id: 'q_tempo', q: '回し方の好みは？',
+    a: { label: '細かく速く回す', d: { tempo: 0.7, weight: -0.3 } },
+    b: { label: 'エリクサーを溜めて構える', d: { tempo: -0.6, weight: 0.3 } } },
+  { id: 'q_thrill', q: '勝つときの気持ちよさは？',
+    a: { label: '一気に爽快に削りたい', d: { thrill: 0.7, risk: 0.3 } },
+    b: { label: '堅実に確実に勝ちたい', d: { thrill: -0.6, risk: -0.3 } } },
+  { id: 'q_risk', q: '勝負どころは？',
+    a: { label: '安定択でじわじわ', d: { risk: -0.7, style: -0.2 } },
+    b: { label: 'ハマれば一発逆転', d: { risk: 0.7, thrill: 0.3 } } },
+  { id: 'q_complexity', q: '操作はどっちが好き？',
+    a: { label: 'シンプルで分かりやすい', d: { complexity: -0.7 } },
+    b: { label: '組み合わせて魅せる', d: { complexity: 0.7, thrill: 0.2 } } }
+];
+// MBTI土台 ＋ 2択の答え → 最終軸（-1〜+1にクランプ）
+function computePersonaAxes(persona) {
+  if (!persona) return null;
+  let ax = mbtiToAxes(persona.mbti);
+  const answers = persona.answers || {};
+  PERSONA_QUESTIONS.forEach(qn => {
+    const pick = answers[qn.id];
+    if (pick === 'a') ax = addAxes(ax, qn.a.d, 1);
+    else if (pick === 'b') ax = addAxes(ax, qn.b.d, 1);
+  });
+  const out = {}; PERSONA_AXIS_KEYS.forEach(k => out[k] = clamp1(ax[k] || 0));
+  return out;
+}
+// 現在のpersona（ログイン中はアカウント優先、無ければローカル）
+function getPersona() {
+  if (window.CRAuth && CRAuth.getUser && CRAuth.getUser() && CRAuth.getDeckPersona) {
+    const p = CRAuth.getDeckPersona();
+    if (p) return p;
+  }
+  return personaCache;
+}
+function getPersonaAxes() { return computePersonaAxes(getPersona()); }
+function personaIsSet() {
+  const p = getPersona();
+  return !!(p && (normalizeMbti(p.mbti) || (p.answers && Object.keys(p.answers).length)));
+}
+async function savePersona(persona) {
+  personaCache = persona;
+  try { localStorage.setItem('cr_deck_persona', JSON.stringify(persona)); } catch (e) {}
+  if (window.CRAuth && CRAuth.getUser && CRAuth.getUser() && CRAuth.saveDeckPersona) {
+    try { await CRAuth.saveDeckPersona(persona); } catch (e) {}
+  }
+}
+// カード固有の軸ベクトル（カードデータ＋監修JSONから推定）
+function personaCardVector(c) {
+  const v = emptyAxes();
+  const cost = c.cost || 0;
+  v.weight = clamp1((cost - 3.5) / 2.5);            // 軽い(-) 〜 重い(+)
+  v.tempo = cost <= 2 ? 0.7 : cost >= 5 ? -0.5 : 0; // 軽い札ほど高回転
+  // 攻め/受け：勝ち筋・橋前・奇襲は攻め、建物・防衛・タンクは受け
+  let style = 0;
+  if (assistIsMainWincon(c) || assistIsSecondary(c)) style += 0.5;
+  if (assistTagHas(c, 'bridgeSpam') || assistHas(c, ['奇襲','突撃','橋前'])) style += 0.4;
+  if (c.type === 'building' || assistTagHas(c, 'defBuilding') || assistHas(c, ['防衛','タンク'])) style -= 0.6;
+  v.style = clamp1(style);
+  // 爽快感：チャンピオン・大型呪文・一撃・大量召喚・複製・全停止
+  let thrill = 0;
+  if (c.champion) thrill += 0.4;
+  if (assistSpellSize(c) === 'big') thrill += 0.5;
+  if (assistTagHas(c, 'dash') || assistHas(c, ['一撃','複製','全停止','大量召喚','超長射程'])) thrill += 0.3;
+  if (c.cost <= 1) thrill -= 0.2;
+  v.thrill = clamp1(thrill);
+  // リスク：ガラスタンク/オールイン気味（高HP低DPS壁＋単体勝ち筋）や大型呪文all-in
+  let risk = 0;
+  if (assistIsMainWincon(c) && cost >= 6) risk += 0.4;
+  if (assistTagHas(c, 'spellBait')) risk += 0.2;
+  if (assistSpellSize(c) === 'big') risk += 0.3;
+  if (c.type === 'building') risk -= 0.3;
+  v.risk = clamp1(risk);
+  // 複雑さ：チャンピオン・コンボ前提(partner)・攻城・透明など
+  let cx = 0;
+  const p = assistPotential(c);
+  if (c.champion) cx += 0.4;
+  if (p && p.partner) cx += 0.3;
+  if (assistHas(c, ['攻城','透明','潜伏','超長射程'])) cx += 0.3;
+  if (cost <= 2 && !c.champion) cx -= 0.2;
+  v.complexity = clamp1(cx);
+  return v;
+}
+// persona軸 × カード軸 の一致度（intentFit用の加点。最大～+30）
+function personaCardFit(c, axes) {
+  if (!axes) return 0;
+  const v = personaCardVector(c);
+  let dot = 0, wsum = 0;
+  PERSONA_AXIS_KEYS.forEach(k => {
+    const u = axes[k] || 0;
+    dot += u * (v[k] || 0);
+    wsum += Math.abs(u);
+  });
+  if (wsum < 0.001) return 0;
+  return Math.round((dot / wsum) * 30); // -30〜+30
+}
+// persona要約文（アシストの状態表示用）
+function personaSummary(axes) {
+  if (!axes) return '';
+  const parts = [];
+  PERSONA_AXES.forEach(a => {
+    const v = axes[a.key];
+    if (v >= 0.34) parts.push(a.right);
+    else if (v <= -0.34) parts.push(a.left);
+  });
+  return parts.slice(0, 3).join('・');
+}
+
+// ===== デッキ嗜好プロフィール 設定ダイアログ（MBTI入力＋2択） =====
+let _personaDraft = null;
+function openPersonaDialog() {
+  const cur = getPersona() || {};
+  _personaDraft = { mbti: normalizeMbti(cur.mbti) || '', answers: Object.assign({}, cur.answers || {}) };
+  const ov = document.createElement('div');
+  ov.className = 'swap-overlay persona-overlay';
+  ov.innerHTML = '<div class="swap-box persona-box">'
+    + '<div class="persona-title">デッキの好みを設定</div>'
+    + '<div class="persona-sub">性格タイプ（MBTI）と、いくつかの2択から、あなた向けに候補を絞ります。未入力でもOK。</div>'
+    + '<div class="persona-mbti">'
+    + '<label class="persona-label">MBTI（任意）</label>'
+    + '<input type="text" id="personaMbti" class="persona-input" maxlength="4" placeholder="例：INTJ" autocomplete="off" autocapitalize="characters" spellcheck="false" value="' + esc(_personaDraft.mbti) + '">'
+    + '<div class="persona-mbti-hint" id="personaMbtiHint"></div>'
+    + '</div>'
+    + '<div class="persona-qs" id="personaQs"></div>'
+    + '<div class="persona-actions">'
+    + '<button class="btn btn-ghost" id="personaClear" type="button">クリア</button>'
+    + '<button class="btn btn-ghost" id="personaCancel" type="button">閉じる</button>'
+    + '<button class="btn" id="personaSave" type="button">保存</button>'
+    + '</div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+
+  function renderQs() {
+    const wrap = ov.querySelector('#personaQs');
+    wrap.innerHTML = PERSONA_QUESTIONS.map(qn => {
+      const sel = _personaDraft.answers[qn.id] || '';
+      return '<div class="persona-q">'
+        + '<div class="persona-q-text">' + esc(qn.q) + '</div>'
+        + '<div class="persona-q-opts">'
+        + '<button class="persona-opt' + (sel === 'a' ? ' on' : '') + '" type="button" data-q="' + esc(qn.id) + '" data-pick="a">' + esc(qn.a.label) + '</button>'
+        + '<button class="persona-opt' + (sel === 'b' ? ' on' : '') + '" type="button" data-q="' + esc(qn.id) + '" data-pick="b">' + esc(qn.b.label) + '</button>'
+        + '</div></div>';
+    }).join('');
+    wrap.querySelectorAll('.persona-opt').forEach(b => {
+      b.onclick = () => {
+        const q = b.getAttribute('data-q'), pick = b.getAttribute('data-pick');
+        // 同じ選択を再タップで解除（中立に戻せる）
+        if (_personaDraft.answers[q] === pick) delete _personaDraft.answers[q];
+        else _personaDraft.answers[q] = pick;
+        renderQs();
+      };
+    });
+  }
+  function updateMbtiHint() {
+    const hint = ov.querySelector('#personaMbtiHint');
+    if (!hint) return;
+    const v = normalizeMbti(_personaDraft.mbti);
+    if (!_personaDraft.mbti) hint.textContent = '空欄でも2択だけで設定できます。';
+    else if (v) hint.textContent = '✓ ' + v + ' を反映します。';
+    else hint.textContent = '4文字（E/I・S/N・T/F・J/P）で入力してください。';
+  }
+  const mbtiInput = ov.querySelector('#personaMbti');
+  mbtiInput.addEventListener('input', () => {
+    mbtiInput.value = mbtiInput.value.toUpperCase().replace(/[^EISNTFJP]/g, '').slice(0, 4);
+    _personaDraft.mbti = mbtiInput.value;
+    updateMbtiHint();
+  });
+  ov.querySelector('#personaClear').onclick = () => {
+    _personaDraft = { mbti: '', answers: {} };
+    mbtiInput.value = '';
+    updateMbtiHint(); renderQs();
+  };
+  ov.querySelector('#personaCancel').onclick = () => ov.remove();
+  ov.querySelector('#personaSave').onclick = async () => {
+    const persona = { mbti: normalizeMbti(_personaDraft.mbti), answers: _personaDraft.answers, updatedAt: Date.now() };
+    await savePersona(persona);
+    ov.remove();
+    showToast('好みを保存しました');
+    updateAssistPanel();
+  };
+  updateMbtiHint();
+  renderQs();
 }
 
 function render() {
   const filtered = getFiltered();
   document.getElementById('countInfo').innerHTML = filtered.length + ' / ' + CARDS.length + ' <span class="cw">枚</span>';
   const list = document.getElementById('cardList');
+  list.classList.toggle('assist-lock', assistMode);
   list.innerHTML = '';
   filtered.forEach(c => {
     const inDeck = deck.some(d => d && d.name === c.name);
@@ -838,7 +1094,7 @@ function render() {
       e.dataTransfer.effectAllowed = 'move';
     });
     div.addEventListener('dragend', e => { div.style.opacity = ''; dragSrcCard = null; });
-    div.onclick = () => { if (isDragging || Date.now() < _suppressClickUntil) return; toggleDeck(c); }; // ドラッグ中／タッチタップ直後のclickは無視
+    div.onclick = () => { if (assistMode || isDragging || Date.now() < _suppressClickUntil) return; toggleDeck(c); }; // アシストON中はタップ追加しない（スクロールは可）。ドラッグ中／タッチタップ直後のclickも無視
     list.appendChild(div);
   });
   if (window.CRI18N) CRI18N.apply(); // 再描画後にUI全体を再翻訳（コスト/枚数など監視外の文言が日本語に戻るのを防ぐ）
@@ -1182,6 +1438,7 @@ function initTouchDnD() {
   // カード選択ゾーン
   document.getElementById('cardList').addEventListener('touchstart', e => {
     if (isDragging || longPressTimer || e.touches.length > 1) return; // ドラッグ中/長押し待ち/2本指は無視（2枚目タップでバグらない）
+    if (assistMode) return; // アシストON中はドラッグ無効（スクロール優先・タップ追加もしない）
     if (e.target.closest('.fav-btn')) return; // ハートタップ時はドラッグしない
     const card = e.target.closest('.card');
     if (!card || card.classList.contains('in-deck')) return;
@@ -1200,6 +1457,7 @@ function initTouchDnD() {
   document.getElementById('cardList').addEventListener('touchend', e => {
     if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
     if (isDragging || _touchMoved) return;            // ドラッグ/スクロールはタップにしない
+    if (assistMode) return;                            // アシストON中はタップ追加しない（スクロールは効く）
     if (e.target.closest('.fav-btn')) return;
     const cardEl = e.target.closest('.card');
     if (!cardEl || cardEl.classList.contains('in-deck')) return;
@@ -2181,6 +2439,14 @@ document.body.classList.add('perk-drop', 'perk-bottle'); // 枠の光/8枚シャ
     render();
   });
 })();
+
+// ログイン状態が変わったら、アカウント保存の好みプロフィールをアシストへ反映
+(function hookPersona() {
+  if (!window.CRAuth) { setTimeout(hookPersona, 100); return; }
+  CRAuth.onChange(() => { try { if (assistMode) updateAssistPanel(); } catch (e) {} });
+})();
+// 好みプロフィール保存イベント（別タブ/別経路の更新にも追従）
+window.addEventListener('cr-deck-persona', () => { try { if (assistMode) updateAssistPanel(); } catch (e) {} });
 
 // 未ログイン共有の「ログインで保存・名前が入れられます」からログインした直後：空きスロット最小番号に保存＋SNS共有(by名前)を再表示。初回のみ（_pendingLoginShareフラグ）。
 (function hookLoginShare() {
