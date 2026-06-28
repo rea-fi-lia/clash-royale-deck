@@ -470,12 +470,23 @@ function assistDeckInfo() {
       + '・' + (avg && avg <= 3.0 ? '高回転寄り' : avg >= 4.2 ? '重め' : '中速')
       + (spells.length ? '・呪文あり' : '・呪文なし');
   const personaAxes = (typeof getPersonaAxes === 'function') ? getPersonaAxes() : null;
-  return { cards, names, avg, wincons, spells, smallSpells, air, splash, dps, buildings, cycles, main, secondaries, mainAxes, mainAttack, personaAxes, style };
+  // 空きスロットの種類を把握（idx0=進化枠 / idx1=ヒーロー・チャンピオン枠 / idx2=ワイルド枠(進化orヒーロー) / idx3-7=通常）
+  // 例：進化枠/ワイルド枠が両方埋まっていると、カードの「進化として強い」価値は出せない＝特別枠ボーナスを乗せない。
+  const champCount = cards.filter(c => c.champion).length;
+  const slots = {
+    evoOpen:    deck[0] === null || deck[2] === null,                 // 進化を活かせる枠が空いているか
+    heroOpen:   deck[1] === null || deck[2] === null,                 // ヒーローを活かせる枠が空いているか
+    champOpen:  (deck[1] === null || deck[2] === null) && champCount < 2, // チャンピオンを置ける枠が空いているか
+    specialOpen: deck[0] === null || deck[1] === null || deck[2] === null, // 特別枠(1〜3)のどれかが空き
+    normalOpen: [3, 4, 5, 6, 7].some(i => deck[i] === null)          // 通常枠(4〜8)のどれかが空き
+  };
+  return { cards, names, avg, wincons, spells, smallSpells, air, splash, dps, buildings, cycles, main, secondaries, mainAxes, mainAttack, personaAxes, slots, style };
 }
 function assistLegal(c, info) {
   if (info.names.has(c.name)) return false;
   if (info.cards.length >= 8) return false;
-  if (c.champion && info.cards.filter(d => d.champion).length >= 2) return false;
+  // チャンピオンはスロット2か3にしか置けない。両方埋まっている／既に2枚いるなら候補から除外（提案しても置けない）
+  if (c.champion && !(info.slots && info.slots.champOpen)) return false;
   return true;
 }
 function assistTextHit(text, needles) {
@@ -605,6 +616,14 @@ function assistScore(c, kind, info) {
   }
   score += assistPotentialFit(c, info);
   score += assistWinconBonus(c, kind, info);
+  // スロット適合：特別枠(進化/ヒーロー/チャンピオン)が空いていれば、その強みを持つカードを後押し。
+  // 枠が埋まっていれば「進化/ヒーローとしての強み」は活かせないので加点しないだけ（弾かない＝素の通常カードとしては有用なため）。
+  // チャンピオンは枠が無いと置けないので assistLegal 側で候補から除外済み。
+  if (info.slots) {
+    if (info.slots.evoOpen && c.evolved) score += 16;
+    if (info.slots.heroOpen && c.hero) score += 14;
+    if (info.slots.champOpen && c.champion) score += 16;
+  }
   // intentFit：ユーザーの嗜好プロフィール(MBTI＋2択)に沿うほど加点。
   // 「発見候補」は少し違う方向を出す枠なので persona の効きを弱める。
   if (info.personaAxes) {
@@ -711,6 +730,11 @@ function assistKindLabel(kind) {
 function assistKindIcon(kind) {
   return kind === 'natural' ? '🌱' : kind === 'stable' ? '🛡' : '✨';
 }
+// アシスト3択の下に出す拡張ブロック（将来：帯メタ/対面相性/支配度などをここに足す）。
+// いまは空のプレースホルダ＝コンテナだけ用意して、増えても下までスクロールで届くようにする。
+function assistExtraHtml(info) {
+  return '<div class="assist-extra" id="assistExtra"></div>';
+}
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
@@ -755,7 +779,9 @@ function updateAssistPanel() {
   panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の1枚<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + dataState + '</div></div>'
     + personaLine
     + cardsHtml
-    + '<div class="assist-actions"><button class="assist-mini" id="assistRefresh" type="button">別候補</button><button class="assist-mini" id="assistOff" type="button">通常検索</button></div>';
+    + '<div class="assist-actions"><button class="assist-mini" id="assistRefresh" type="button">別候補</button><button class="assist-mini" id="assistOff" type="button">通常検索</button></div>'
+    + assistExtraHtml(info)
+    + '<div class="assist-bottom-pad" aria-hidden="true"></div>';
   // 「理由を詳しく」トグル（カード追加クリックより先に拾い、伝播を止める）
   panel.querySelectorAll('.ac-detail-toggle').forEach(t => {
     t.addEventListener('click', (e) => {
@@ -806,8 +832,6 @@ function setAssistMode(on) {
   assistMode = !!on;
   assistVariant = 0;
   try { localStorage.setItem('cr_assist_mode', assistMode ? 'on' : 'off'); } catch(e) {}
-  const list = document.getElementById('cardList');
-  if (list) list.classList.toggle('assist-lock', assistMode);
   updateAssistPanel();
   render();
 }
@@ -1054,7 +1078,6 @@ function render() {
   const filtered = getFiltered();
   document.getElementById('countInfo').innerHTML = filtered.length + ' / ' + CARDS.length + ' <span class="cw">枚</span>';
   const list = document.getElementById('cardList');
-  list.classList.toggle('assist-lock', assistMode);
   list.innerHTML = '';
   filtered.forEach(c => {
     const inDeck = deck.some(d => d && d.name === c.name);

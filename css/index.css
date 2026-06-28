@@ -129,7 +129,19 @@
     display: grid; gap: 6px; padding: 7px;
     border: 1px solid rgba(232,160,32,0.28); border-radius: 10px;
     background: linear-gradient(180deg, rgba(232,160,32,0.10), rgba(20,22,30,0.72));
+    flex: 1 1 auto; min-height: 0; align-content: start;
+    overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain;
   }
+  /* アシストON：カード一覧は隠し、アシストパネル自体を縦スクロール領域にする
+     （3択目まで＋将来パネル下部に足す内容も下端まで届く） */
+  .controls.assist-active { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+  .controls.assist-active ~ .card-list { display: none; }
+  /* ピンOFF（ページ全体スクロール）時はパネルを clip せず、ページスクロールで下端まで見せる */
+  html.nopin .controls.assist-active { overflow: visible; flex: none; }
+  html.nopin .controls.assist-active .assist-panel { overflow: visible; }
+  /* アシスト下部の拡張枠と、スクロール下端の余白（最後の候補が切れないように） */
+  .assist-extra:empty { display: none; }
+  .assist-bottom-pad { height: 8px; flex: 0 0 auto; }
   .assist-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .assist-title { font-family: var(--font-head); font-size: 14px; color: var(--accent); letter-spacing: .04em; display: inline-flex; align-items: center; gap: 6px; }
   .assist-beta { font-family: var(--font-body); font-size: 9px; font-weight: 700; letter-spacing: .06em; color: #000; background: var(--accent); border-radius: 999px; padding: 1px 6px; line-height: 1.5; }
@@ -173,10 +185,6 @@
     border: 1px solid var(--border); background: rgba(255,255,255,0.035); color: var(--text-muted);
     border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 700; cursor: pointer;
   }
-  /* アシストON中はカード一覧をタップ追加できないが、スクロールは可能（半透明で示す） */
-  .controls.assist-active ~ .card-list .card,
-  .card-list.assist-lock .card { opacity: 0.62; }
-  .card-list.assist-lock .card .fav-btn { pointer-events: none; }
   /* アシスト：好みプロフィール行 */
   .assist-persona {
     display: flex; align-items: center; gap: 6px; cursor: pointer;
