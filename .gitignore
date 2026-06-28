@@ -10,6 +10,7 @@ nohup.out
 # 誤って main に古い統計を push＝事故（PROJECT_HANDOFF §1 の最重要警告）。
 decks.json
 cardhist.json
+trophy-*/*.json
 card-stats.json
 card-tags.json
 card-potential.json

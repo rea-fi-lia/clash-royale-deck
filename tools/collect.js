@@ -18,6 +18,9 @@
  *   DECKS_PATH          … decks.json のパス（既定 "decks.json"＝リポジトリ直下）
  *                         ※ GITHUB_PATH は Actions の予約名なので使わない（DECKS_PATH に改名）
  *   TOP_PLAYERS         … 集計するトップランカー数（既定 "1000"）
+ *   RANKING_SOURCE      … "pol"=PoLランキング / "trophy"=トロフィーランキング（既定 "pol"）
+ *   TROPHY_MIN/MAX      … RANKING_SOURCE=trophy の時だけ、ランキング取得後に絞り込むトロフィー範囲
+ *   WINDOW_DAYS         … ローリング期間（日）。既定 "3"
  *   INTERVAL_HOURS      … 参考値としてdecks.jsonに載せる（既定 "6"）
  *   WIN_MIN_GAMES_3D    … 勝率ランキングの最低試合数（既定 "30"）
  *
@@ -29,8 +32,10 @@
 
 'use strict';
 
+const { spawnSync } = require('child_process');
+
 const PROXY = 'https://proxy.royaleapi.dev/v1';
-const WINDOW_DAYS = 3; // ローリング期間（日）。デッキ・カード共通。
+const WINDOW_DAYS = parseInt(prop('WINDOW_DAYS', '3'), 10); // ローリング期間（日）。デッキ・カード共通。
 const UA = 'cr-deck-collector'; // ★Node fetch は UA を送らない→GitHub API が 403。全GitHub/CR要求に付与。
 
 function prop(k, def) {
@@ -337,12 +342,23 @@ async function updateDecks() {
   if (!token) throw new Error('CR_TOKEN 未設定');
   if (!GH_TOKEN || !REPO) throw new Error('GITHUB_TOKEN / GITHUB_REPOSITORY 未設定');
   var topN = parseInt(prop('TOP_PLAYERS', '1000'), 10);
+  var rankingSource = String(prop('RANKING_SOURCE', 'pol')).toLowerCase();
+  var trophyMin = parseInt(prop('TROPHY_MIN', '0'), 10);
+  var trophyMax = parseInt(prop('TROPHY_MAX', '999999'), 10);
   var intervalHours = parseInt(prop('INTERVAL_HOURS', '6'), 10);
 
-  console.log('▶ collect start repo=' + REPO + ' branch=' + BRANCH + ' top=' + topN);
+  console.log('▶ collect start repo=' + REPO + ' branch=' + BRANCH + ' source=' + rankingSource + ' top=' + topN + ' path=' + GH_PATH);
 
-  var ranking = await crGet('/locations/global/pathoflegend/players?limit=' + topN, token);
+  var rankingPath = rankingSource === 'trophy' ? '/locations/global/rankings/players?limit=' + topN : '/locations/global/pathoflegend/players?limit=' + topN;
+  var ranking = await crGet(rankingPath, token);
   var players = (ranking.items || []).slice(0, topN);
+  if (rankingSource === 'trophy') {
+    players = players.filter(function (p) {
+      var tr = typeof p.trophies === 'number' ? p.trophies : (typeof p.score === 'number' ? p.score : null);
+      return tr != null && tr >= trophyMin && tr <= trophyMax;
+    });
+    console.log('trophy filter ' + trophyMin + '-' + trophyMax + ' => ' + players.length + ' players');
+  }
   var headers = { Authorization: 'Bearer ' + token, Accept: 'application/json', 'User-Agent': UA };
 
   // ---- 履歴を先に読む（対戦の二重カウント防止用 lastT を使うため） ----
@@ -396,6 +412,11 @@ async function updateDecks() {
 
   function isRanked_(b) {
     var t = b.type || '', gm = (b.gameMode && b.gameMode.name) || '';
+    if (rankingSource === 'trophy') {
+      var tr = b.team && b.team[0] && b.team[0].startingTrophies;
+      var bucket = modeBucketOf(t, gm);
+      return typeof tr === 'number' && tr >= trophyMin && tr <= trophyMax && (bucket === 'ladder_pvp' || bucket === 'ladder_trail');
+    }
     return t === 'pathOfLegend' || /ranked|path.?of.?legend/i.test(t) || /ranked|path.?of.?legend/i.test(gm);
   }
   function classifyDeck(cards) {
@@ -739,10 +760,12 @@ async function updateDecks() {
 
   var DAY = 864e5, HOUR = 36e5;
   var W3D = buildWindow(3 * DAY, WIN_MIN_3D);   // 既定（最低試合数100）
+  var W7D = WINDOW_DAYS >= 7 ? buildWindow(7 * DAY, WIN_MIN_3D) : null;
+  var WDEF = W7D || W3D;
   var W1D = buildWindow(1 * DAY, 40);           // 1日（少サンプルなので閾値を下げる）
   var W1H = buildWindow(1 * HOUR, 10);          // 1時間（超新鮮・最も少サンプル）
-  var players3d = W3D.players;
-  console.log('windows 3d(decks ' + W3D.decks.length + '/win ' + W3D.winDecks.length + '/uniq ' + W3D.uniquePlayers + ') 1d(' + W1D.decks.length + '/' + W1D.winDecks.length + '/' + W1D.uniquePlayers + ') 1h(' + W1H.decks.length + '/' + W1H.winDecks.length + '/' + W1H.uniquePlayers + ')');
+  var players3d = WDEF.players;
+  console.log('windows default(decks ' + WDEF.decks.length + '/win ' + WDEF.winDecks.length + '/uniq ' + WDEF.uniquePlayers + ') 3d(' + W3D.decks.length + '/' + W3D.winDecks.length + '/' + W3D.uniquePlayers + ') 1d(' + W1D.decks.length + '/' + W1D.winDecks.length + '/' + W1D.uniquePlayers + ') 1h(' + W1H.decks.length + '/' + W1H.winDecks.length + '/' + W1H.uniquePlayers + ')');
 
   // ★相性（matchups.json に月別累積）
   if (Object.keys(muNow).length) {
@@ -906,30 +929,35 @@ async function updateDecks() {
 
   hist.lastT = newLastT; // ★二重カウント防止のしおり
 
+  var windowsOut = {
+    '1h': { players: W1H.players, uniquePlayers: W1H.uniquePlayers, games: W1H.games, decks: W1H.decks, winDecks: W1H.winDecks, trending: W1H.trending, cards: W1H.cards, meta: W1H.meta },
+    '1d': { players: W1D.players, uniquePlayers: W1D.uniquePlayers, games: W1D.games, decks: W1D.decks, winDecks: W1D.winDecks, trending: W1D.trending, cards: W1D.cards, meta: W1D.meta },
+    '3d': { players: W3D.players, uniquePlayers: W3D.uniquePlayers, games: W3D.games, decks: W3D.decks, winDecks: W3D.winDecks, trending: W3D.trending, cards: W3D.cards, meta: W3D.meta }
+  };
+  if (W7D) windowsOut['7d'] = { players: W7D.players, uniquePlayers: W7D.uniquePlayers, games: W7D.games, decks: W7D.decks, winDecks: W7D.winDecks, trending: W7D.trending, cards: W7D.cards, meta: W7D.meta };
+
   await ghWriteJson_(ghPath, {
     updated: new Date().toISOString(),
-    players: W3D.players,
+    source: rankingSource,
+    trophyRange: rankingSource === 'trophy' ? { min: trophyMin, max: trophyMax } : null,
+    players: WDEF.players,
     playersPerRun: aggregated,
-    uniquePlayers: W3D.uniquePlayers,   // ★3日窓の総ユニーク人数（収集頻度に依存しない）
-    games: W3D.games,                   // ★3日窓の総戦数
+    uniquePlayers: WDEF.uniquePlayers,  // ★既定窓の総ユニーク人数（収集頻度に依存しない）
+    games: WDEF.games,                  // ★既定窓の総戦数
     topPlayers: players.length,
     intervalHours: intervalHours,
     windowDays: WINDOW_DAYS,
     cardsWindowDays: WINDOW_DAYS,
-    defaultWindow: '3d',
-    // 既定(3日)を従来どおりトップレベルにも置く＝後方互換（旧フロントもそのまま動く）
-    decks: W3D.decks,
-    winDecks: W3D.winDecks,
-    trending: W3D.trending,
-    cards: W3D.cards,
-    meta: W3D.meta,
+    defaultWindow: W7D ? '7d' : '3d',
+    // 既定窓をトップレベルにも置く＝後方互換（旧フロントもそのまま動く）
+    decks: WDEF.decks,
+    winDecks: WDEF.winDecks,
+    trending: WDEF.trending,
+    cards: WDEF.cards,
+    meta: WDEF.meta,
     winMin: WIN_MIN_3D,
     // ★窓別（1h / 1日 / 3日）＝フロントのセレクタで切替。既定は 3d。
-    windows: {
-      '1h': { players: W1H.players, uniquePlayers: W1H.uniquePlayers, games: W1H.games, decks: W1H.decks, winDecks: W1H.winDecks, trending: W1H.trending, cards: W1H.cards, meta: W1H.meta },
-      '1d': { players: W1D.players, uniquePlayers: W1D.uniquePlayers, games: W1D.games, decks: W1D.decks, winDecks: W1D.winDecks, trending: W1D.trending, cards: W1D.cards, meta: W1D.meta },
-      '3d': { players: W3D.players, uniquePlayers: W3D.uniquePlayers, games: W3D.games, decks: W3D.decks, winDecks: W3D.winDecks, trending: W3D.trending, cards: W3D.cards, meta: W3D.meta }
-    }
+    windows: windowsOut
   }, 'chore: update decks.json');
   await ghWriteJson_(histPath, hist, 'chore: update cardhist.json'); // 履歴
 
@@ -939,4 +967,19 @@ async function updateDecks() {
 updateDecks().catch(function (e) {
   console.error('❌ collect failed: ' + ((e && e.stack) || e));
   process.exit(1);
+}).then(function () {
+  if (process.exitCode) return;
+  if (String(prop('RUN_TROPHY_SIDELOAD', '1')) === '0') return;
+  if (String(prop('RANKING_SOURCE', 'pol')).toLowerCase() !== 'pol') return;
+  console.log('▶ trophy side collect 10000-14000 start');
+  var env = Object.assign({}, process.env, {
+    RANKING_SOURCE: 'trophy',
+    TROPHY_MIN: '10000',
+    TROPHY_MAX: '14000',
+    WINDOW_DAYS: '7',
+    DECKS_PATH: 'trophy-10000-14000/decks.json',
+    RUN_TROPHY_SIDELOAD: '0'
+  });
+  var r = spawnSync(process.execPath, [__filename], { env: env, stdio: 'inherit' });
+  if (r.status) process.exit(r.status);
 });

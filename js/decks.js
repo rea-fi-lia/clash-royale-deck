@@ -26,9 +26,9 @@ let UNIQUE_TOTAL = 0;      // 窓内の総ユニーク人数（%の分母）
 let WIN_MIN_SHOW = 100;    // 勝率ランキングの最低試合数（decks.jsonのwinMinに追従。既定もGAS WIN_MIN_GAMES_3D=100に合わせる）
 let UPDATE_HRS = 6;        // 更新間隔（時間）。decks.json の intervalHours から
 let DECKS_JSON = null;     // 取得した decks.json 全体（窓切替用に保持）
-let CUR_WINDOW = '3d';     // 表示中の集計窓 '1h' | '1d' | '3d'（既定3日）
-const WIN_KEYS = ['1h', '1d', '3d'];
-const WIN_LABEL_JA = { '1h': '直近1時間', '1d': '直近1日', '3d': '過去3日' }; // _tr で各言語へ
+let CUR_WINDOW = '3d';     // 表示中の集計窓 '1h' | '1d' | '3d' | '7d'（既定3日）
+const WIN_KEYS = ['1h', '1d', '3d', '7d'];
+const WIN_LABEL_JA = { '1h': '直近1時間', '1d': '直近1日', '3d': '過去3日', '7d': '統計目安7日' }; // _tr で各言語へ
 function winLabel(k) { return _tr(WIN_LABEL_JA[k] || k); }
 function currentList() { return activeTab === 'win' ? WIN_DECKS : activeTab === 'trend' ? TREND_DECKS : ALL_DECKS; }
 
@@ -681,10 +681,12 @@ function aggregateMeArch(battles) {
   return Object.keys(m).map(k => ({ k: k, games: m[k].g, share: total ? Math.round(m[k].g / total * 1000) / 10 : 0, win: m[k].g ? Math.round(m[k].w / m[k].g * 100) : null }))
     .sort((a, b) => b.games - a.games);
 }
-// ===== トロフィー帯（500刻み）：個人ログを帯別に集計＝ランカー横断band-metaの素 =====
-function _bandOf(tr) { return (typeof tr === 'number' && tr > 0) ? Math.floor(tr / 500) * 500 : null; }
-function _meBand(battles) { for (const b of (battles || [])) { const x = _bandOf(b.tr); if (x != null) return x; } return null; } // battlesはt降順＝先頭が最新
-let ME_BAND = null;
+// ===== 近似トロフィー帯：最新トロフィー±150（計300幅）で「今当たりやすい相手」に絞る =====
+const ME_TROPHY_RANGE_HALF = 150;
+function _bandOf(tr) { return (typeof tr === 'number' && tr > 0) ? Math.floor(tr / 500) * 500 : null; } // 月次保存用の粗い帯は残す
+function _meTrophyCenter(battles) { for (const b of (battles || [])) if (typeof b.tr === 'number' && b.tr > 0) return b.tr; return null; } // battlesはt降順＝先頭が最新
+function _inTrophyRange(b, center) { return center == null || (typeof b.tr === 'number' && Math.abs(b.tr - center) <= ME_TROPHY_RANGE_HALF); }
+let ME_TROPHY_CENTER = null, ME_RANGE_COUNT = 0;
 function renderMeMeta() {
   const el = document.getElementById('meMeta');
   if (!el) return;
@@ -692,9 +694,9 @@ function renderMeMeta() {
   const top = ME_ARCH.slice(0, 12);
   const maxS = Math.max(1, ...top.map(m => m.share || 0));
   el.style.display = '';
-  const _bandBadge = (ME_BAND != null) ? '<div class="ms-band" style="font-size:12px;font-weight:700;color:#e8a020;margin:0 0 4px">🏆 ' + ME_BAND + '–' + (ME_BAND + 499) + '</div>' : '';
-  el.innerHTML = _bandBadge + '<div class="ms-title">' + _t('me.metaTitle', { n: ME_COUNT }) + '</div>'
-    + '<div class="ms-note">' + _tr('相手デッキの勝ち筋分布＝あなたのランク帯のメタ。使ったデッキに関係なく貯まる正確なサンプルです。勝率は対面3戦未満なら表示しません') + '</div>'
+  const _bandBadge = (ME_TROPHY_CENTER != null) ? '<div class="ms-band" style="font-size:12px;font-weight:700;color:#e8a020;margin:0 0 4px">🏆 ' + (ME_TROPHY_CENTER - ME_TROPHY_RANGE_HALF) + '–' + (ME_TROPHY_CENTER + ME_TROPHY_RANGE_HALF) + '</div>' : '';
+  el.innerHTML = _bandBadge + '<div class="ms-title">' + _t('me.metaTitle', { n: ME_RANGE_COUNT || ME_COUNT }) + '</div>'
+    + '<div class="ms-note">' + _tr('相手デッキの勝ち筋分布＝あなたの現在トロフィー±150の近似メタ。使ったデッキに関係なく貯まる正確なサンプルです。勝率は対面3戦未満なら表示しません') + '</div>'
     + top.map(m => {
       const base = m.k;
       const info = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[base] : null;
@@ -725,8 +727,10 @@ async function loadMeCards(force) {
   } catch (e) { /* 取得失敗時は手元の蓄積を使う */ }
   _saveMeBattles(tag, battles);
   ME_CARDS = aggregateMe(battles); ME_COUNT = battles.length;
-  ME_ARCH = aggregateMeArch(battles); // 帯メタ（勝ち筋分布）
-  ME_BAND = _meBand(battles); // 現在のトロフィー帯（直近の対戦のstartingTrophies）
+  ME_TROPHY_CENTER = _meTrophyCenter(battles); // 現在トロフィー（直近の対戦のstartingTrophies）
+  const rangeBattles = (ME_TROPHY_CENTER == null) ? battles : battles.filter(b => _inTrophyRange(b, ME_TROPHY_CENTER));
+  ME_RANGE_COUNT = rangeBattles.length;
+  ME_ARCH = aggregateMeArch(rangeBattles.length ? rangeBattles : battles); // 近似トロフィー環境（±150）。薄ければ全個人ログにフォールバック
   _syncMeToCloud(battles); // 間引き書込（await しない＝UIを止めない）
   _updateMeMonthly(battles); // ★月次集計（await しない）
   return { ok: true, count: battles.length };
@@ -929,7 +933,7 @@ fetch(POL_CARD_INTEL_URL, { cache: 'no-store' })
   .then(j => { POL_CARD_INTEL = (j && j.byOpponentCard) ? j : null; try { renderCrank(); } catch (e) {} })
   .catch(() => {});
 
-// 指定窓(1h/1日/3日)のデータを反映。windows[key] が無ければ top-level(=3日) にフォールバック＝旧データでも動く。
+// 指定窓(1h/1日/3日/7日)のデータを反映。windows[key] が無ければ top-level にフォールバック＝旧データでも動く。
 function applyWindow(key) {
   const j = DECKS_JSON;
   CUR_WINDOW = key;
@@ -966,8 +970,9 @@ function buildWindowSelector() {
   if (!tabs || !tabs.parentNode) return;
   const seg = document.createElement('div');
   seg.className = 'win-seg';
+  const keys = WIN_KEYS.filter(k => DECKS_JSON.windows && DECKS_JSON.windows[k]);
   seg.innerHTML = '<span class="win-seg-lbl">' + _tr('集計期間') + '</span>'
-    + WIN_KEYS.map(k => '<button type="button" data-win="' + k + '"' + (k === CUR_WINDOW ? ' class="active"' : '') + '>' + winLabel(k) + '</button>').join('');
+    + keys.map(k => '<button type="button" data-win="' + k + '"' + (k === CUR_WINDOW ? ' class="active"' : '') + '>' + winLabel(k) + '</button>').join('');
   tabs.parentNode.insertBefore(seg, tabs);
   seg.querySelectorAll('[data-win]').forEach(b => b.addEventListener('click', () => applyWindow(b.dataset.win)));
 }
