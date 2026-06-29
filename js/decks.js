@@ -971,7 +971,10 @@ function renderMetaShare() {
 const DECKS_DATA_URL = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/decks.json';
 const POL_CARD_INTEL_URL = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/pol-card-intel-v1.json';
 const TROPHY_BAND_INTEL_URL = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/trophy-band-card-intel-v1.json';
-fetch(DECKS_DATA_URL, { cache: 'no-store' })
+function dataFreshUrl(url) {
+  return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + Date.now();
+}
+fetch(dataFreshUrl(DECKS_DATA_URL), { cache: 'no-store' })
   .then(r => { if (!r.ok) throw 0; return r.json(); })
   .catch(() => fetch('decks.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null))
   .then(j => {
@@ -988,12 +991,12 @@ fetch(DECKS_DATA_URL, { cache: 'no-store' })
   })
   .catch(() => { ALL_DECKS = DECKS; TREND_DECKS = []; CARDS_DATA = CARDS_SAMPLE; initCardMeta(true); updateDeckTabDesc(); applyDecks(); });
 
-fetch(POL_CARD_INTEL_URL, { cache: 'no-store' })
+fetch(dataFreshUrl(POL_CARD_INTEL_URL), { cache: 'no-store' })
   .then(r => r.ok ? r.json() : null)
   .then(j => { POL_CARD_INTEL = (j && j.byOpponentCard) ? j : null; try { renderCrank(); } catch (e) {} })
   .catch(() => {});
 
-fetch(TROPHY_BAND_INTEL_URL, { cache: 'no-store' })
+fetch(dataFreshUrl(TROPHY_BAND_INTEL_URL), { cache: 'no-store' })
   .then(r => r.ok ? r.json() : null)
   .then(j => { TROPHY_BAND_INTEL = (j && (j.byCard || j.byBand)) ? j : null; try { renderCrank(); } catch (e) {} })
   .catch(() => {});

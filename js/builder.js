@@ -31,6 +31,9 @@ let assistMode = (() => { try { return localStorage.getItem('cr_assist_mode') ==
 let assistSuggestions = [];
 let assistVariant = 0;
 const ASSIST_DATA_BASE = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/';
+function dataFreshUrl(url) {
+  return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + Date.now();
+}
 const assistData = { wincon: null, potential: null, tags: null, pairs: null, ready: false, tried: false };
 
 function saveFavorites() {
@@ -343,7 +346,7 @@ function normalizeAssistCards(j) {
   return j.byCard || null;
 }
 function loadAssistJson(name) {
-  return fetch(ASSIST_DATA_BASE + name, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+  return fetch(dataFreshUrl(ASSIST_DATA_BASE + name), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
 }
 function loadAssistData() {
   if (assistData.tried) return;
@@ -2045,7 +2048,7 @@ function clearPreviewStats() {
 //    card-ids.json（dataブランチ・slug→公式数値ID。GASの dumpCardIds が出力）を読んで生成する。
 //    まだ card-ids.json が無い／IDが揃わない時はデッキのテキストにフォールバック（壊れない）。
 let CARD_IDS = {};
-fetch('https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/card-ids.json', { cache: 'no-store' })
+fetch(dataFreshUrl('https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/card-ids.json'), { cache: 'no-store' })
   .then(r => r.ok ? r.json() : null)
   .then(j => { if (j && j.ids) CARD_IDS = j.ids; })
   .catch(() => {});

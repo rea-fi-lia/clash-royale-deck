@@ -16,8 +16,12 @@ on:
         required: false
         default: '1000'
   schedule:
-    # GitHub Actions の毎時0分は混雑で遅延/欠落しやすいため、0分を避ける。
-    - cron: '17 * * * *'  # 1時間ごと（Phase 2＝超新鮮メタ）。uniq/games は頻度非依存・count(延べ)のみ膨らむが表示はuniq/games主。
+    # GitHub Actions のscheduleは遅延/欠落があり得るため、1時間に3回「起動チェック」を置く。
+    # 下の freshness gate が decks.json の鮮度を見て、古い時だけcollectorを実行する。
+    # これにより通常は毎時1回更新、17分が欠落した時だけ37/57分がバックアップになる。
+    - cron: '17 * * * *'
+    - cron: '37 * * * *'
+    - cron: '57 * * * *'
 
 concurrency:
   group: collect-decks      # 多重起動を防ぐ（前の収集が走っていたら待つ）
@@ -39,7 +43,62 @@ jobs:
         with:
           node-version: '22'
 
+      - name: Check data freshness
+        id: freshness
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const out = process.env.GITHUB_OUTPUT;
+          const eventName = process.env.EVENT_NAME || '';
+          function setOutput(key, value) {
+            fs.appendFileSync(out, `${key}=${value}\n`);
+          }
+          if (eventName !== 'schedule') {
+            console.log(`manual/event=${eventName}; run collector`);
+            setOutput('run_collect', 'true');
+            process.exit(0);
+          }
+          const repo = process.env.REPO;
+          const token = process.env.GH_TOKEN;
+          const url = `https://api.github.com/repos/${repo}/contents/decks.json?ref=data`;
+          const headers = {
+            'Accept': 'application/vnd.github+json',
+            'User-Agent': 'cr-deck-freshness-gate',
+            'Authorization': `Bearer ${token}`
+          };
+          (async () => {
+            let run = true;
+            let updated = '';
+            let ageMin = null;
+            try {
+              const res = await fetch(url, { headers });
+              if (!res.ok) throw new Error(`GitHub contents ${res.status}`);
+              const body = await res.json();
+              const json = JSON.parse(Buffer.from(body.content || '', 'base64').toString('utf8'));
+              updated = json.updated || '';
+              const ts = Date.parse(updated);
+              if (Number.isFinite(ts)) {
+                ageMin = (Date.now() - ts) / 60000;
+                run = ageMin >= 50;
+              }
+            } catch (err) {
+              console.log(`freshness check failed; run collector as fallback: ${err.message}`);
+              run = true;
+            }
+            console.log(`decks.updated=${updated || 'unknown'} ageMin=${ageMin == null ? 'unknown' : ageMin.toFixed(1)} run_collect=${run}`);
+            setOutput('run_collect', run ? 'true' : 'false');
+          })().catch(err => {
+            console.log(`freshness check crashed; run collector as fallback: ${err.message}`);
+            setOutput('run_collect', 'true');
+          });
+          NODE
+
       - name: Run collector
+        if: steps.freshness.outputs.run_collect == 'true'
         env:
           CR_TOKEN: ${{ secrets.CR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

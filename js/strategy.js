@@ -13,6 +13,10 @@ const WINCONS = ['ラヴァハウンド', 'ゴーレム', 'エレクトロジャ
   'ゴブリンバレル', 'ゴブリンドリル', 'ウォールブレイカー', 'マイティディガー', 'ディガー', 'ロケット'];
 
 const RAW = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/';
+function dataFreshUrl(path) {
+  const url = RAW + path;
+  return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + Date.now();
+}
 const SPELL_ZONES = ['ログ圏内', 'ザップ圏内', '矢の雨圏内', 'ファイボ圏内', 'ポイズン圏内', 'ライトニング圏内', 'ロケット圏内'];
 function _t(k, v) { return window.CRI18N ? CRI18N.t(k, v) : k; }
 function _tr(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
@@ -748,17 +752,17 @@ async function init() {
   wrap.innerHTML = '<div class="coming-soon"><div class="big">🔬</div>' + _tr('診断中…') + '</div>';
   try {
     const [st, tg, pt, wt, dk, mu, sh0, sh1, sh2, pi, wp] = await Promise.all([
-      fetch(RAW + 'card-stats.json', { cache: 'no-store' }).then(r => r.json()),
-      fetch(RAW + 'card-tags.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(RAW + 'card-potential.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(RAW + 'card-eval.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(RAW + 'decks.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(RAW + 'matchups.json', { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(RAW + 'sighist-' + ymOffset(0) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(RAW + 'sighist-' + ymOffset(-1) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(RAW + 'sighist-' + ymOffset(-2) + '.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(RAW + 'pol-battle-intel-v1.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(RAW + 'wincon-policy.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
+      fetch(dataFreshUrl('card-stats.json'), { cache: 'no-store' }).then(r => r.json()),
+      fetch(dataFreshUrl('card-tags.json'), { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+      fetch(dataFreshUrl('card-potential.json'), { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+      fetch(dataFreshUrl('card-eval.json'), { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+      fetch(dataFreshUrl('decks.json'), { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+      fetch(dataFreshUrl('matchups.json'), { cache: 'no-store' }).then(r => r.json()).catch(() => null),
+      fetch(dataFreshUrl('sighist-' + ymOffset(0) + '.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(dataFreshUrl('sighist-' + ymOffset(-1) + '.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(dataFreshUrl('sighist-' + ymOffset(-2) + '.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(dataFreshUrl('pol-battle-intel-v1.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(dataFreshUrl('wincon-policy.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
     ]);
     STATS = {}; (st.cards || []).forEach(c => STATS[c.jp] = c);
     TAGS = (tg && tg.cards) || {};
