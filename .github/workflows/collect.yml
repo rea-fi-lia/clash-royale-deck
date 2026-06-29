@@ -16,7 +16,8 @@ on:
         required: false
         default: '1000'
   schedule:
-    - cron: '0 * * * *'   # 1時間ごと（Phase 2＝超新鮮メタ）。uniq/games は頻度非依存・count(延べ)のみ膨らむが表示はuniq/games主。
+    # GitHub Actions の毎時0分は混雑で遅延/欠落しやすいため、0分を避ける。
+    - cron: '17 * * * *'  # 1時間ごと（Phase 2＝超新鮮メタ）。uniq/games は頻度非依存・count(延べ)のみ膨らむが表示はuniq/games主。
 
 concurrency:
   group: collect-decks      # 多重起動を防ぐ（前の収集が走っていたら待つ）
