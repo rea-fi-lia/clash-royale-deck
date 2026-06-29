@@ -34,7 +34,7 @@ const ASSIST_DATA_BASE = 'https://raw.githubusercontent.com/rea-fi-lia/clash-roy
 function dataFreshUrl(url) {
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + Date.now();
 }
-const assistData = { wincon: null, potential: null, tags: null, pairs: null, ready: false, tried: false };
+const assistData = { wincon: null, potential: null, tags: null, pairs: null, pairExt: null, ready: false, tried: false };
 
 function saveFavorites() {
   if (window.CRAuth && CRAuth.getUser && CRAuth.getUser()) {
@@ -355,13 +355,15 @@ function loadAssistData() {
     loadAssistJson('wincon-policy.json'),
     loadAssistJson('card-potential.json'),
     loadAssistJson('card-tags.json'),
-    loadAssistJson('card-pair-synergy-v1.json')
-  ]).then(([wincon, potential, tags, pairs]) => {
+    loadAssistJson('card-pair-synergy-v1.json'),
+    loadAssistJson('card-pair-extension-synergy-v1.json')
+  ]).then(([wincon, potential, tags, pairs, pairExt]) => {
     assistData.wincon = normalizeAssistCards(wincon);
     assistData.potential = normalizeAssistCards(potential);
     assistData.tags = normalizeAssistCards(tags);
     assistData.pairs = pairs && pairs.byCard ? pairs.byCard : null;
-    assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags || assistData.pairs);
+    assistData.pairExt = pairExt && pairExt.byPair ? pairExt.byPair : null;
+    assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags || assistData.pairs || assistData.pairExt);
     updateAssistPanel();
   }).catch(() => {});
 }
@@ -556,6 +558,34 @@ function assistBestPair(c, info) {
   const rows = assistPairRows(c, info).slice().sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0));
   return rows[0] || null;
 }
+function assistPairKey(a, b) {
+  return a < b ? a + '|' + b : b + '|' + a;
+}
+function assistPairExtensionRows(c, info) {
+  if (!assistData.pairExt || !c || !info || !info.cards || info.cards.length < 2) return [];
+  const out = [];
+  for (let i = 0; i < info.cards.length; i++) for (let j = i + 1; j < info.cards.length; j++) {
+    const a = info.cards[i].name, b = info.cards[j].name;
+    const key = assistPairKey(a, b);
+    const rows = assistData.pairExt[key] || [];
+    rows.forEach(r => {
+      if (r && r.card === c.name && r.kind !== 'templateExtension') out.push(Object.assign({ a, b }, r));
+    });
+  }
+  return out;
+}
+function assistPairExtensionFit(c, info) {
+  const rows = assistPairExtensionRows(c, info);
+  if (!rows.length) return 0;
+  const vals = rows.map(r => Math.max(0, Number(r.score) || 0)).sort((a, b) => b - a);
+  const max = vals[0] || 0;
+  const avg2 = vals.length >= 2 ? (vals[0] + vals[1]) / 2 : max;
+  const kindBonus = rows.some(r => r.kind === 'pairEnabler') ? 4 : rows.some(r => r.kind === 'coveragePatch') ? 3 : 0;
+  return Math.round(Math.min(38, max * 0.58 + avg2 * 0.25 + kindBonus));
+}
+function assistBestPairExtension(c, info) {
+  return assistPairExtensionRows(c, info).slice().sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0))[0] || null;
+}
 function assistWinconBonus(c, kind, info) {
   const w = assistWincon(c);
   if (!w) return 0;
@@ -674,6 +704,8 @@ function assistScore(c, kind, info) {
   score += assistWinconBonus(c, kind, info);
   const pairFit = assistPairFit(c, info);
   if (pairFit) score += kind === 'discovery' ? Math.round(pairFit * 0.55) : pairFit;
+  const pairExtFit = assistPairExtensionFit(c, info);
+  if (pairExtFit) score += kind === 'discovery' ? Math.round(pairExtFit * 0.5) : pairExtFit;
   // スロット適合：特別枠(進化/ヒーロー/チャンピオン)が空いていれば、その強みを持つカードを後押し。
   // 枠が埋まっていれば加点しないだけ。シナジーが高ければ通常候補として残す（チャンピオンはタップ時に入れ替えUIへ）。
   if (info.slots) {
@@ -705,12 +737,14 @@ function assistReason(c, kind, info) {
   const w = assistWincon(c);
   const size = assistSpellSize(c);
   const bp = assistBestPair(c, info);
+  const bx = assistBestPairExtension(c, info);
   if (kind === 'natural') {
     if (!info.wincons.length) {
       if (w && w.class === '勝ち筋') return 'まず勝ち方の主役を作れます。';
       if (t === 'wincon') return 'まず勝ち方の主役を作れます。';
     }
     const mainName = info.wincons.length ? TR(info.wincons[0].name) : '主軸';
+    if (bx && (bx.score || 0) >= 16) return TR(bx.a) + '＋' + TR(bx.b) + 'の形を通しやすくする1枚です。';
     if (size === 'small') return mainName + 'を通すための小型呪文。道を開けつつ少し圧もかけられます。';
     if (bp && (bp.score || 0) >= 12) return TR(bp.other) + 'と一緒に使われやすく、今の形に自然に足せます。';
     if (p && p.partner) return '今の構成と噛み合う相手があり、' + mainName + 'を伸ばせます。';
@@ -735,6 +769,13 @@ function assistDetail(c, kind, info) {
   const w = assistWincon(c);
   const parts = [];
   const bp = assistBestPair(c, info);
+  const bx = assistBestPairExtension(c, info);
+  if (bx && (bx.score || 0) >= 12) {
+    const why = bx.kind === 'coveragePatch' ? 'この形で苦しくなりやすい相手への受けも補えます。'
+      : bx.kind === 'resultLift' ? '足した時に勝ちやすさが上がる傾向があります。'
+      : 'この2枚の形を前に進めやすい候補です。';
+    parts.push(TR(bx.a) + '＋' + TR(bx.b) + 'に足す候補として相性データがあります。' + why);
+  }
   if (bp && (bp.score || 0) >= 8) {
     const why = bp.kind === 'broadSynergy' ? 'いろいろな構成で一緒に使われやすい組み合わせです。'
       : bp.kind === 'templateCore' ? '特定の型でよく使われる組み合わせです。'

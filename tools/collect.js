@@ -1084,12 +1084,35 @@ async function updateDecks() {
         if (A.main && B.main && (COST[a] || 0) >= 5 && (COST[b] || 0) >= 5) s -= 0.18;
         return Math.max(-0.35, Math.min(1, s));
       }
+      function pairRoleExtension_(a, b, c) {
+        var A = roleFlags_(a), B = roleFlags_(b), C = roleFlags_(c);
+        var P = {};
+        Object.keys(A).forEach(function (k) { P[k] = !!(A[k] || B[k]); });
+        var s = (roleComplement_(a, c) + roleComplement_(b, c)) * 0.5;
+        if (P.main && C.smallSpell) s += 0.26;
+        if (P.main && C.control) s += 0.20;
+        if (P.main && C.splash) s += 0.14;
+        if (P.main && C.secondary) s += 0.12;
+        if (P.tank && C.air) s += 0.20;
+        if (P.tank && C.splash) s += 0.18;
+        if (P.tank && C.tankKiller) s += 0.10;
+        if (P.bait && (C.bait || C.smallSpell)) s += 0.18;
+        if (P.bridge && C.smallSpell) s += 0.18;
+        if (!P.air && C.air) s += 0.18;
+        if (!P.splash && C.splash) s += 0.14;
+        if (!P.tankKiller && C.tankKiller) s += 0.14;
+        if (!P.building && C.building) s += 0.10;
+        if (P.spell && C.spell) s -= 0.14;
+        if (P.building && C.building) s -= 0.18;
+        if (P.bigSpell && C.bigSpell) s -= 0.18;
+        return Math.max(-0.35, Math.min(1, s));
+      }
       function mean_(arr) { return arr.length ? arr.reduce(function (s, v) { return s + v; }, 0) / arr.length : 0; }
       function std_(arr) { if (arr.length < 2) return 0; var m = mean_(arr); return Math.sqrt(mean_(arr.map(function (v) { return Math.pow(v - m, 2); }))); }
-      var totalUse = 0, cardUse = {}, cardGames = {}, cardWins = {}, pairUse = {}, pairGames = {}, pairWins = {}, pairDecks = {}, pairTop = {}, monthAgg = {};
+      var totalUse = 0, cardUse = {}, cardGames = {}, cardWins = {}, pairUse = {}, pairGames = {}, pairWins = {}, pairDecks = {}, pairTop = {}, tripleUse = {}, tripleGames = {}, tripleWins = {}, tripleDecks = {}, tripleTop = {}, monthAgg = {};
       Object.keys(shByMonth).forEach(function (mk2) {
         var ss = shByMonth[mk2], cardsL = ss.cards || [], sigsL = ss.sigs || {};
-        var ms = monthAgg[mk2] || (monthAgg[mk2] = { totalUse: 0, cardUse: {}, pairUse: {} });
+        var ms = monthAgg[mk2] || (monthAgg[mk2] = { totalUse: 0, cardUse: {}, pairUse: {}, tripleUse: {} });
         Object.keys(sigsL).forEach(function (key) {
           var ids = String(key).split('|')[0].split('.').map(function (x) { return parseInt(x, 10); }).filter(function (x) { return !isNaN(x); });
           var names = [];
@@ -1105,14 +1128,24 @@ async function updateDecks() {
             cardWins[n] = (cardWins[n] || 0) + wins;
             ms.cardUse[n] = (ms.cardUse[n] || 0) + use;
           });
-          for (var a = 0; a < names.length; a++) for (var b = a + 1; b < names.length; b++) {
-            var pk = names[a] < names[b] ? names[a] + '|' + names[b] : names[b] + '|' + names[a];
+          for (var ai = 0; ai < names.length; ai++) for (var bi = ai + 1; bi < names.length; bi++) {
+            var pk = names[ai] < names[bi] ? names[ai] + '|' + names[bi] : names[bi] + '|' + names[ai];
             pairUse[pk] = (pairUse[pk] || 0) + use;
             pairGames[pk] = (pairGames[pk] || 0) + games;
             pairWins[pk] = (pairWins[pk] || 0) + wins;
             pairDecks[pk] = (pairDecks[pk] || 0) + 1;
             pairTop[pk] = Math.max(pairTop[pk] || 0, use);
             ms.pairUse[pk] = (ms.pairUse[pk] || 0) + use;
+            if (names.length >= 3) for (var ci = 0; ci < names.length; ci++) {
+              if (ci === ai || ci === bi) continue;
+              var tk = pk + '|' + names[ci];
+              tripleUse[tk] = (tripleUse[tk] || 0) + use;
+              tripleGames[tk] = (tripleGames[tk] || 0) + games;
+              tripleWins[tk] = (tripleWins[tk] || 0) + wins;
+              tripleDecks[tk] = (tripleDecks[tk] || 0) + 1;
+              tripleTop[tk] = Math.max(tripleTop[tk] || 0, use);
+              ms.tripleUse[tk] = (ms.tripleUse[tk] || 0) + use;
+            }
           }
         });
       });
@@ -1183,6 +1216,8 @@ async function updateDecks() {
         });
       });
       pairsOut.sort(function (x, y) { return y.score - x.score || y.use - x.use; });
+      var pairScoreByKey = {};
+      pairsOut.forEach(function (p) { pairScoreByKey[p.a + '|' + p.b] = p; });
       var byCard = {};
       pairsOut.slice(0, 3000).forEach(function (p) {
         [p.a, p.b].forEach(function (n) {
@@ -1209,6 +1244,100 @@ async function updateDecks() {
           count: pairsOut.length, pairs: pairsOut.slice(0, 1000), byCard: byCard },
         'chore: update card-pair-synergy-v1.json');
       console.log('card-pair-synergy ' + pairsOut.length + ' pairs');
+
+      var MIN_EXT_USE = parseInt(prop('PAIR_EXT_MIN_USE', '4'), 10);
+      var extOut = [];
+      Object.keys(tripleUse).forEach(function (tk) {
+        var sp3 = tk.split('|'), a3 = sp3[0], b3 = sp3[1], c3 = sp3[2], pk3 = a3 + '|' + b3;
+        var use3 = tripleUse[tk], pairBaseUse = pairUse[pk3] || 0, candUse = cardUse[c3] || 0;
+        if (use3 < MIN_EXT_USE || pairBaseUse < MIN_PAIR_USE || !candUse || !totalUse) return;
+        var expected3 = pairBaseUse * candUse / totalUse;
+        if (expected3 <= 0) return;
+        var conditionalLift = use3 / expected3;
+        var games3 = tripleGames[tk] || 0, wins3 = tripleWins[tk] || 0;
+        var wr3 = games3 ? wins3 / games3 : null;
+        var pairWr = pairGames[pk3] ? pairWins[pk3] / pairGames[pk3] : null;
+        var pairExtWinLift = (wr3 != null && pairWr != null) ? wr3 - pairWr : null;
+        var concentration3 = use3 ? (tripleTop[tk] || 0) / use3 : 1;
+        var diversity3 = 1 - Math.min(1, Math.max(0, concentration3 - 0.35) / 0.65);
+        var monthlyExtLifts = [];
+        pairMonths.forEach(function (mk4) {
+          var ms3 = monthAgg[mk4];
+          if (!ms3 || !ms3.totalUse || !ms3.tripleUse[tk] || !ms3.pairUse[pk3] || !ms3.cardUse[c3]) return;
+          var ex3 = ms3.pairUse[pk3] * ms3.cardUse[c3] / ms3.totalUse;
+          if (ex3 <= 0) return;
+          monthlyExtLifts.push(ms3.tripleUse[tk] / ex3);
+        });
+        var logE = monthlyExtLifts.map(function (x) { return Math.log(Math.max(0.01, x)); });
+        var activeExtMonths = monthlyExtLifts.length;
+        var extStability = activeExtMonths >= 3 ? clamp01_(1 - std_(logE) / 0.60) : clamp01_(activeExtMonths / 3 * 0.65);
+        var currentExtLift = monthlyExtLifts.length ? monthlyExtLifts[0] : conditionalLift;
+        var priorExtLift = monthlyExtLifts.length > 1 ? mean_(monthlyExtLifts.slice(1)) : conditionalLift;
+        var extTrend = priorExtLift ? (currentExtLift - priorExtLift) / priorExtLift : 0;
+        var sampleConfidence3 = clamp01_(Math.sqrt(use3 / (use3 + 22)) * (games3 ? Math.sqrt(games3 / (games3 + 55)) : 0.70));
+        var roleExt = pairRoleExtension_(a3, b3, c3);
+        var basePair = pairScoreByKey[pk3] || null;
+        var pairQualityScore = Math.min(16, Math.max(0, basePair ? (basePair.score || 0) : 0) * 0.20);
+        var candUseRate = candUse / totalUse;
+        var commonPenalty = Math.max(0, candUseRate - 0.28) * (conditionalLift < 1.20 ? 30 : 14);
+        var templatePenalty3 = concentration3 > 0.72 ? (concentration3 - 0.72) * 38 : 0;
+        if (basePair && basePair.kind === 'utilityOrCommon') commonPenalty += 8;
+        var conditionalScore = Math.log(Math.max(1, conditionalLift)) * 44;
+        var winExtScore = pairExtWinLift == null ? 0 : pairExtWinLift * 150;
+        var diversityScore = diversity3 * 12;
+        var confidenceScore3 = sampleConfidence3 * 12;
+        var roleExtScore = roleExt * 20;
+        var stabilityScore3 = extStability * 10;
+        var trendScore3 = Math.max(-7, Math.min(7, extTrend * 9));
+        var extScore = round2_(conditionalScore + winExtScore + diversityScore + confidenceScore3 + roleExtScore + stabilityScore3 + trendScore3 + pairQualityScore - commonPenalty - templatePenalty3);
+        var extKind = sampleConfidence3 < 0.34 || use3 < MIN_EXT_USE * 2 ? 'provisional'
+          : conditionalLift >= 1.35 && (pairExtWinLift == null || pairExtWinLift >= -0.006) && concentration3 <= 0.66 && roleExt >= 0.16 ? 'pairEnabler'
+          : pairExtWinLift != null && pairExtWinLift >= 0.015 && conditionalLift >= 1.10 ? 'resultLift'
+          : roleExt >= 0.24 && conditionalLift >= 1.05 ? 'coveragePatch'
+          : conditionalLift >= 1.35 && concentration3 > 0.72 ? 'templateExtension'
+          : 'softExtension';
+        extOut.push({
+          a: a3, b: b3, c: c3, use: Math.round(use3 * 10) / 10, pairUse: Math.round(pairBaseUse * 10) / 10,
+          expected: Math.round(expected3 * 10) / 10, conditionalLift: round2_(conditionalLift), games: games3,
+          wr: wr3 == null ? null : Math.round(wr3 * 1000) / 10,
+          pairWr: pairWr == null ? null : Math.round(pairWr * 1000) / 10,
+          pairExtWinLift: pairExtWinLift == null ? null : Math.round(pairExtWinLift * 1000) / 10,
+          deckVariants: tripleDecks[tk] || 0, concentration: round3_(concentration3), diversity: round3_(diversity3),
+          sampleConfidence: round3_(sampleConfidence3), activeMonths: activeExtMonths, liftStability: round3_(extStability),
+          currentLift: round2_(currentExtLift), trend: round3_(extTrend), roleExtension: round3_(roleExt),
+          basePairKind: basePair ? basePair.kind : '', basePairScore: basePair ? basePair.score : null,
+          kind: extKind, score: extScore,
+          components: {
+            conditionalLift: round2_(conditionalScore), winLift: round2_(winExtScore), diversity: round2_(diversityScore),
+            confidence: round2_(confidenceScore3), roleExtension: round2_(roleExtScore), stability: round2_(stabilityScore3),
+            trend: round2_(trendScore3), pairQuality: round2_(pairQualityScore), commonPenalty: round2_(commonPenalty), templatePenalty: round2_(templatePenalty3)
+          }
+        });
+      });
+      extOut.sort(function (x, y) { return y.score - x.score || y.use - x.use; });
+      var byPair = {};
+      extOut.slice(0, 6000).forEach(function (e3) {
+        var k3 = e3.a + '|' + e3.b;
+        var row3 = Object.assign({ card: e3.c }, e3);
+        delete row3.a; delete row3.b; delete row3.c;
+        var list3 = byPair[k3] || (byPair[k3] = []);
+        if (list3.length < 36) list3.push(row3);
+      });
+      await ghWriteJson_(ghSiblingPath_(ghPath, 'card-pair-extension-synergy-v1.json'),
+        { updated: new Date().toISOString(), source: 'sighist monthly digest', months: pairMonths.filter(function (m) { return !!shByMonth[m]; }),
+          minUse: MIN_EXT_USE, totalDeckUse: Math.round(totalUse * 10) / 10,
+          scoring: {
+            score: 'conditionalLift + pairExtWinLift + diversity + sampleConfidence + roleExtension + liftStability + trend + basePairQuality - commonPenalty - templatePenalty',
+            conditionalLift: 'P(C|A+B)/P(C)。2枚組A+Bに対してCがどれだけ足されやすいかを見る',
+            pairExtWinLift: 'A+B+C勝率 - A+B勝率。3枚全体ではなく、2枚に足した時の上乗せを見る',
+            diversity: '最大1テンプレ集中を避ける補正。高いほどいろいろな形に足されている',
+            roleExtension: 'A+Bの勝ち方・受け方をCがどれだけ通しやすく/埋めやすくするか',
+            commonPenalty: '単体使用率が高すぎる便利カードの過大評価補正'
+          },
+          notes: ['3枚組テンプレではなく、2枚組A+Bに対する3枚目Cの候補。', 'UIでは「この2枚を通しやすくする1枚」「この形の弱点を埋める1枚」として使う。'],
+          count: extOut.length, extensions: extOut.slice(0, 1500), byPair: byPair },
+        'chore: update card-pair-extension-synergy-v1.json');
+      console.log('card-pair-extension-synergy ' + extOut.length + ' extensions');
     } catch (e2) { console.log('card-pair-synergy error ' + ((e2 && e2.message) || e2)); }
   } catch (e) { console.log('sighist error ' + ((e && e.message) || e)); }
 
