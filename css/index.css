@@ -146,6 +146,14 @@
   .assist-title { font-family: var(--font-head); font-size: 14px; color: var(--accent); letter-spacing: .04em; display: inline-flex; align-items: center; gap: 6px; }
   .assist-beta { font-family: var(--font-body); font-size: 9px; font-weight: 700; letter-spacing: .06em; color: #000; background: var(--accent); border-radius: 999px; padding: 1px 6px; line-height: 1.5; }
   .assist-state { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .assist-chunks { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+  .assist-chunk {
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 8px;
+    background: rgba(255,255,255,0.035); color: var(--text-muted); font-size: 12px; font-weight: 800;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .assist-chunk.active { border-color: rgba(232,160,32,0.52); color: var(--accent); background: rgba(232,160,32,0.11); }
+  .assist-chunk span { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; margin-left: 4px; border-radius: 999px; background: rgba(232,160,32,0.18); font-size: 10px; }
   .assist-cards { display: grid; gap: 5px; }
   .assist-card {
     display: grid; grid-template-columns: 42px 1fr auto; gap: 7px; align-items: center;
@@ -178,6 +186,22 @@
   .assist-card.natural { border-color: rgba(38,198,160,0.42); }
   .assist-card.stable { border-color: rgba(58,142,240,0.42); }
   .assist-card.discovery { border-color: rgba(139,92,246,0.42); }
+  .assist-threats { display: grid; gap: 6px; }
+  .assist-threat { border: 1px solid rgba(255,255,255,0.10); border-radius: 9px; padding: 7px; background: rgba(255,255,255,0.035); }
+  .assist-threat .at-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 800; color: var(--text); }
+  .assist-threat .at-head small { flex: 0 0 auto; color: var(--accent); font-size: 10px; }
+  .assist-threat .at-text { margin-top: 3px; color: var(--text-muted); font-size: 11px; line-height: 1.45; }
+  .assist-threat .at-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 6px; }
+  .assist-threat-card {
+    display: grid; grid-template-columns: 30px 1fr auto; gap: 5px; align-items: center;
+    border: 1px solid rgba(232,160,32,0.22); border-radius: 8px; padding: 4px 5px;
+    background: rgba(232,160,32,0.07); color: var(--text); text-align: left; cursor: pointer;
+    font-family: var(--font-body); -webkit-tap-highlight-color: transparent;
+  }
+  .assist-threat-card img { width: 30px; height: 30px; object-fit: contain; }
+  .assist-threat-card b { display: block; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .assist-threat-card small { display: block; color: var(--text-muted); font-size: 9px; margin-top: 1px; }
+  .assist-threat-card em { color: var(--accent); font-style: normal; font-size: 15px; }
   .assist-empty { font-size: 13px; color: var(--text-muted); line-height: 1.55; padding: 4px 2px; }
   .assist-actions { display: flex; gap: 6px; justify-content: flex-end; }
   .assist-mini {
@@ -847,6 +871,12 @@
     .assist-card .ac-kind { font-size: 10px; }
     .assist-card .ac-badges { margin-top: 3px; }
     .assist-card .ac-badges span { font-size: 9px; padding: 1px 5px; }
+    .assist-chunk { padding: 4px 7px; font-size: 11px; }
+    .assist-threat { padding: 6px; }
+    .assist-threat .at-cards { gap: 4px; }
+    .assist-threat-card { grid-template-columns: 26px 1fr auto; padding: 4px; }
+    .assist-threat-card img { width: 26px; height: 26px; }
+    .assist-threat-card b { font-size: 10px; }
     /* ハートは折り返さず、同じ行の一番右上に固定 */
     .type-tabs { gap: 2px; flex-wrap: wrap; align-items: center; position: relative; padding-right: 26px; }
     .type-tabs .ttab[data-type="fav"] { position: absolute; top: 0; right: 0; margin-left: 0; padding: 4px 4px; }

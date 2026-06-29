@@ -30,6 +30,7 @@ let favSort = (() => { try { return JSON.parse(localStorage.getItem('cr_favsort'
 let assistMode = (() => { try { return localStorage.getItem('cr_assist_mode') === 'on'; } catch(e) { return false; } })();
 let assistSuggestions = [];
 let assistVariant = 0;
+let assistChunk = 'cards';
 const ASSIST_DATA_BASE = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/';
 function dataFreshUrl(url) {
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + Date.now();
@@ -848,8 +849,84 @@ function assistKindLabel(kind) {
 function assistKindIcon(kind) {
   return kind === 'natural' ? '🌱' : kind === 'stable' ? '🛡' : '✨';
 }
-// アシスト3択の下に出す拡張ブロック（将来：帯メタ/対面相性/支配度などをここに足す）。
-// いまは空のプレースホルダ＝コンテナだけ用意して、増えても下までスクロールで届くようにする。
+function assistThreatScore(c, threat, info) {
+  if (!assistLegal(c, info)) return -999;
+  let score = 0;
+  const small = assistSpellSize(c) === 'small';
+  const mid = assistSpellSize(c) === 'mid';
+  const big = assistSpellSize(c) === 'big';
+  const air = assistIsTrueAir(c);
+  const splash = assistTagHas(c, 'splash') || assistHas(c, ['範囲','小型処理','スプラッシュ']);
+  const dps = assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp') || assistHas(c, ['高DPS','高火力','集中加熱']);
+  const building = c.type === 'building';
+  const control = assistTagHas(c, 'stun') || assistTagHas(c, 'stop') || assistTagHas(c, 'pull') || assistTagHas(c, 'slow') || assistTagHas(c, 'knockback') || assistHas(c, ['気絶','停止','引き寄せ','ノックバック','スロー']);
+  if (threat.id === 'airBig') {
+    if (air) score += 48;
+    if (building) score += 24;
+    if (control) score += 18;
+    if (dps && air) score += 12;
+  } else if (threat.id === 'swarmBait') {
+    if (small) score += 52;
+    if (splash) score += 34;
+    if (control) score += 8;
+  } else if (threat.id === 'tankPush') {
+    if (dps) score += 50;
+    if (building) score += 36;
+    if (control) score += 12;
+  } else if (threat.id === 'fastPressure') {
+    if (building) score += 38;
+    if (c.cost <= 2 && !assistIsSpell(c)) score += 26;
+    if (small) score += 20;
+    if (assistHas(c, ['防衛','ミニタンク']) || assistTagHas(c, 'minitank')) score += 16;
+  } else if (threat.id === 'buildingWall') {
+    if (c.name === 'アースクエイク') score += 56;
+    if (big || mid) score += 26;
+    if (assistHas(c, ['超長射程','貫通','遠距離'])) score += 14;
+  }
+  score += Math.max(0, assistScore(c, 'stable', info)) * 0.18;
+  score += Math.max(0, assistPairExtensionFit(c, info)) * 0.45;
+  if (info.spells.length >= 2 && assistIsSpell(c)) score -= 14;
+  if (info.air.length >= 2 && air) score -= 12;
+  return Math.round(score);
+}
+function assistThreatRows(info) {
+  if (!info || info.cards.length < 2) return [];
+  const rows = [];
+  function add(id, title, severity, text, need) {
+    if (severity <= 0) return;
+    const ranked = CARDS.map(c => ({ card: c, score: assistThreatScore(c, { id }, info) }))
+      .filter(x => x.score > 25)
+      .sort((a, b) => b.score - a.score || a.card.cost - b.card.cost)
+      .slice(0, 2);
+    if (!ranked.length) return;
+    rows.push({ id, title, severity, text, need, responses: ranked });
+  }
+  add('airBig', '空中大型が重い', (2 - info.air.length) * 32 + (info.buildings.length ? 0 : 10) + (info.dps.length ? 0 : 8), 'ラヴァやバルーン系を受ける札が少なめです。', '空受け');
+  add('swarmBait', '小物で止まりやすい', (!info.smallSpells.length ? 38 : 0) + (!info.splash.length ? 24 : 0), 'バレルや群れで道をふさがれると攻めが止まりやすいです。', '小物処理');
+  add('tankPush', 'タンク受けが薄い', (!info.dps.length ? 42 : 0) + (!info.buildings.length ? 18 : 0), '大型を前に置かれた時、溶かす役がもう少し欲しい形です。', '高火力');
+  add('fastPressure', '速い攻めに遅れやすい', (info.avg >= 3.8 ? 18 : 0) + (!info.buildings.length ? 20 : 0) + (info.cycles.length < 2 ? 14 : 0), 'ホグや橋前の速い攻めに、受けの初手が重くなりやすいです。', '軽い受け');
+  add('buildingWall', '建物で受けられやすい', (info.wincons.length ? 18 : 0) + (!info.spells.some(c => ['アースクエイク','ライトニング','ファイアボール','ポイズン'].includes(c.name)) ? 20 : 0), '主役を建物で止められた時の押し込みが少し欲しいです。', '道を開ける札');
+  return rows.sort((a, b) => b.severity - a.severity).slice(0, 2);
+}
+function assistThreatHtml(info) {
+  const rows = assistThreatRows(info);
+  if (!rows.length) return '<div class="assist-empty">今の形で大きく薄い受けはまだ見えにくいです。もう1〜2枚足すと読みやすくなります。</div>';
+  return '<div class="assist-threats">' + rows.map(r => {
+    const cards = r.responses.map(x => '<button class="assist-threat-card" type="button" data-threat-card="' + esc(x.card.name) + '">'
+      + (x.card.img ? '<img src="' + esc(x.card.img) + '" alt="" loading="lazy">' : '')
+      + '<span><b>' + esc(TR(x.card.name)) + '</b><small>' + esc(r.need) + '</small></span><em>＋</em></button>').join('');
+    return '<div class="assist-threat"><div class="at-head"><span>⚠ ' + esc(r.title) + '</span><small>' + esc(r.need) + '</small></div>'
+      + '<div class="at-text">' + esc(r.text) + '</div><div class="at-cards">' + cards + '</div></div>';
+  }).join('') + '</div>';
+}
+function assistChunkTabs(info) {
+  const count = assistThreatRows(info).length;
+  const active = assistChunk === 'threats' ? 'threats' : 'cards';
+  return '<div class="assist-chunks" role="tablist" aria-label="アシスト表示切替">'
+    + '<button type="button" class="assist-chunk' + (active === 'cards' ? ' active' : '') + '" data-assist-chunk="cards">次の候補</button>'
+    + '<button type="button" class="assist-chunk' + (active === 'threats' ? ' active' : '') + '" data-assist-chunk="threats">苦しい相手' + (count ? '<span>' + count + '</span>' : '') + '</button>'
+    + '</div>';
+}
 function assistExtraHtml(info) {
   return '<div class="assist-extra" id="assistExtra"></div>';
 }
@@ -895,10 +972,16 @@ function updateAssistPanel() {
   const personaLine = pSum
     ? '<div class="assist-persona is-set" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">あなた好み：' + esc(pSum) + '</span><span class="ap-edit">変更</span></div>'
     : '<div class="assist-persona" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">デッキの好みを設定すると、あなた向けに候補が絞れます</span><span class="ap-edit">設定</span></div>';
+  const activeChunk = assistChunk === 'threats' ? 'threats' : 'cards';
+  const chunkHtml = activeChunk === 'threats' ? assistThreatHtml(info) : cardsHtml;
+  const actionMain = activeChunk === 'threats'
+    ? '<button class="assist-mini" id="assistBackCards" type="button">候補へ戻る</button>'
+    : '<button class="assist-mini" id="assistRefresh" type="button">別候補</button>';
   panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の1枚<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + esc(costState) + ' / ' + dataState + '</div></div>'
     + personaLine
-    + cardsHtml
-    + '<div class="assist-actions"><button class="assist-mini" id="assistRefresh" type="button">別候補</button><button class="assist-mini" id="assistOff" type="button">通常検索</button></div>'
+    + assistChunkTabs(info)
+    + chunkHtml
+    + '<div class="assist-actions">' + actionMain + '<button class="assist-mini" id="assistOff" type="button">通常検索</button></div>'
     + assistExtraHtml(info)
     + '<div class="assist-bottom-pad" aria-hidden="true"></div>';
   // 「理由を詳しく」トグル（カード追加クリックより先に拾い、伝播を止める）
@@ -942,8 +1025,27 @@ function updateAssistPanel() {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); addCard(); }
     });
   });
+  panel.querySelectorAll('[data-threat-card]').forEach(b => {
+    b.addEventListener('click', (e) => {
+      e.preventDefault();
+      const c = CARDS.find(x => x.name === b.getAttribute('data-threat-card'));
+      if (!c) return;
+      addAssistToDeck(c);
+      showToast('受ける1枚：' + c.name);
+      assistChunk = 'cards';
+      updateAssistPanel();
+    });
+  });
+  panel.querySelectorAll('[data-assist-chunk]').forEach(b => {
+    b.addEventListener('click', () => {
+      assistChunk = b.getAttribute('data-assist-chunk') || 'cards';
+      updateAssistPanel();
+    });
+  });
   const r = document.getElementById('assistRefresh');
   if (r) r.onclick = () => { assistVariant = (assistVariant + 1) % 3; updateAssistPanel(); };
+  const bc = document.getElementById('assistBackCards');
+  if (bc) bc.onclick = () => { assistChunk = 'cards'; updateAssistPanel(); };
   const off = document.getElementById('assistOff');
   if (off) off.onclick = () => setAssistMode(false);
   const pe = document.getElementById('assistPersona');
