@@ -817,7 +817,7 @@ function assistBadges(c, info) {
   }
   if (p && p.solo === '◎') badges.push('単体でも動ける');
   const bp = info ? assistBestPair(c, info) : null;
-  if (bp && (bp.score || 0) >= 12) badges.push('相性: ' + bp.other);
+  if (bp && (bp.score || 0) >= 12) badges.push('合わせやすい: ' + bp.other);
   if (tags.has('air')) badges.push('対空');
   if (tags.has('splash')) badges.push('範囲');
   if (tags.has('tankKiller')) badges.push('高火力');
