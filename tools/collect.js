@@ -1318,6 +1318,7 @@ async function updateDecks() {
       extOut.sort(function (x, y) { return y.score - x.score || y.use - x.use; });
       var byPair = {};
       extOut.slice(0, 4000).forEach(function (e3) {
+        if (e3.kind === 'provisional' || e3.kind === 'templateExtension') return;
         var k3 = e3.a + '|' + e3.b;
         var list3 = byPair[k3] || (byPair[k3] = []);
         if (list3.length < 12) list3.push({

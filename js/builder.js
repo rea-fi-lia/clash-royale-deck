@@ -569,7 +569,7 @@ function assistPairExtensionRows(c, info) {
     const key = assistPairKey(a, b);
     const rows = assistData.pairExt[key] || [];
     rows.forEach(r => {
-      if (r && r.card === c.name && r.kind !== 'templateExtension') out.push(Object.assign({ a, b }, r));
+      if (r && r.card === c.name && !['templateExtension', 'provisional'].includes(r.kind)) out.push(Object.assign({ a, b }, r));
     });
   }
   return out;
