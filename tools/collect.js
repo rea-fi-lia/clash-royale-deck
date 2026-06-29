@@ -1245,12 +1245,12 @@ async function updateDecks() {
         'chore: update card-pair-synergy-v1.json');
       console.log('card-pair-synergy ' + pairsOut.length + ' pairs');
 
-      var MIN_EXT_USE = parseInt(prop('PAIR_EXT_MIN_USE', '4'), 10);
+      var MIN_EXT_USE = parseInt(prop('PAIR_EXT_MIN_USE', '8'), 10);
       var extOut = [];
       Object.keys(tripleUse).forEach(function (tk) {
         var sp3 = tk.split('|'), a3 = sp3[0], b3 = sp3[1], c3 = sp3[2], pk3 = a3 + '|' + b3;
         var use3 = tripleUse[tk], pairBaseUse = pairUse[pk3] || 0, candUse = cardUse[c3] || 0;
-        if (use3 < MIN_EXT_USE || pairBaseUse < MIN_PAIR_USE || !candUse || !totalUse) return;
+        if (use3 < MIN_EXT_USE || pairBaseUse < Math.max(MIN_PAIR_USE, 10) || !candUse || !totalUse) return;
         var expected3 = pairBaseUse * candUse / totalUse;
         if (expected3 <= 0) return;
         var conditionalLift = use3 / expected3;
@@ -1282,7 +1282,7 @@ async function updateDecks() {
         var commonPenalty = Math.max(0, candUseRate - 0.28) * (conditionalLift < 1.20 ? 30 : 14);
         var templatePenalty3 = concentration3 > 0.72 ? (concentration3 - 0.72) * 38 : 0;
         if (basePair && basePair.kind === 'utilityOrCommon') commonPenalty += 8;
-        var conditionalScore = Math.log(Math.max(1, conditionalLift)) * 44;
+        var conditionalScore = Math.min(58, Math.log(Math.max(1, conditionalLift)) * 32);
         var winExtScore = pairExtWinLift == null ? 0 : pairExtWinLift * 150;
         var diversityScore = diversity3 * 12;
         var confidenceScore3 = sampleConfidence3 * 12;
@@ -1290,6 +1290,7 @@ async function updateDecks() {
         var stabilityScore3 = extStability * 10;
         var trendScore3 = Math.max(-7, Math.min(7, extTrend * 9));
         var extScore = round2_(conditionalScore + winExtScore + diversityScore + confidenceScore3 + roleExtScore + stabilityScore3 + trendScore3 + pairQualityScore - commonPenalty - templatePenalty3);
+        if (extScore < 10) return;
         var extKind = sampleConfidence3 < 0.34 || use3 < MIN_EXT_USE * 2 ? 'provisional'
           : conditionalLift >= 1.35 && (pairExtWinLift == null || pairExtWinLift >= -0.006) && concentration3 <= 0.66 && roleExt >= 0.16 ? 'pairEnabler'
           : pairExtWinLift != null && pairExtWinLift >= 0.015 && conditionalLift >= 1.10 ? 'resultLift'
@@ -1316,13 +1317,23 @@ async function updateDecks() {
       });
       extOut.sort(function (x, y) { return y.score - x.score || y.use - x.use; });
       var byPair = {};
-      extOut.slice(0, 6000).forEach(function (e3) {
+      extOut.slice(0, 4000).forEach(function (e3) {
         var k3 = e3.a + '|' + e3.b;
-        var row3 = Object.assign({ card: e3.c }, e3);
-        delete row3.a; delete row3.b; delete row3.c;
         var list3 = byPair[k3] || (byPair[k3] = []);
-        if (list3.length < 36) list3.push(row3);
+        if (list3.length < 12) list3.push({
+          card: e3.c, kind: e3.kind, score: e3.score, use: e3.use, games: e3.games,
+          conditionalLift: e3.conditionalLift, pairExtWinLift: e3.pairExtWinLift,
+          roleExtension: e3.roleExtension, basePairKind: e3.basePairKind
+        });
       });
+      function slimExt_(e3) {
+        return {
+          a: e3.a, b: e3.b, c: e3.c, kind: e3.kind, score: e3.score, use: e3.use, pairUse: e3.pairUse,
+          conditionalLift: e3.conditionalLift, games: e3.games, pairExtWinLift: e3.pairExtWinLift,
+          deckVariants: e3.deckVariants, concentration: e3.concentration, roleExtension: e3.roleExtension,
+          basePairKind: e3.basePairKind, basePairScore: e3.basePairScore
+        };
+      }
       await ghWriteJson_(ghSiblingPath_(ghPath, 'card-pair-extension-synergy-v1.json'),
         { updated: new Date().toISOString(), source: 'sighist monthly digest', months: pairMonths.filter(function (m) { return !!shByMonth[m]; }),
           minUse: MIN_EXT_USE, totalDeckUse: Math.round(totalUse * 10) / 10,
@@ -1335,7 +1346,7 @@ async function updateDecks() {
             commonPenalty: '単体使用率が高すぎる便利カードの過大評価補正'
           },
           notes: ['3枚組テンプレではなく、2枚組A+Bに対する3枚目Cの候補。', 'UIでは「この2枚を通しやすくする1枚」「この形の弱点を埋める1枚」として使う。'],
-          count: extOut.length, extensions: extOut.slice(0, 1500), byPair: byPair },
+          count: extOut.length, extensions: extOut.slice(0, 500).map(slimExt_), byPair: byPair },
         'chore: update card-pair-extension-synergy-v1.json');
       console.log('card-pair-extension-synergy ' + extOut.length + ' extensions');
     } catch (e2) { console.log('card-pair-synergy error ' + ((e2 && e2.message) || e2)); }
