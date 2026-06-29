@@ -746,7 +746,7 @@ function assistReason(c, kind, info) {
     const mainName = info.wincons.length ? TR(info.wincons[0].name) : '主軸';
     if (bx && (bx.score || 0) >= 16) return TR(bx.a) + '＋' + TR(bx.b) + 'の形を通しやすくする1枚です。';
     if (size === 'small') return mainName + 'を通すための小型呪文。道を開けつつ少し圧もかけられます。';
-    if (bp && (bp.score || 0) >= 12) return TR(bp.other) + 'と一緒に使われやすく、今の形に自然に足せます。';
+    if (bp && (bp.score || 0) >= 12) return TR(bp.other) + 'と合わせると、今の形に自然に足せます。';
     if (p && p.partner) return '今の構成と噛み合う相手があり、' + mainName + 'を伸ばせます。';
     if (assistIsTrueAir(c) || assistTagHas(c, 'splash')) return mainName + 'の後ろから守って撃てる支援役です。';
     return mainName + 'をそのまま伸ばしやすい候補です。';
@@ -774,14 +774,14 @@ function assistDetail(c, kind, info) {
     const why = bx.kind === 'coveragePatch' ? 'この形で苦しくなりやすい相手への受けも補えます。'
       : bx.kind === 'resultLift' ? '足した時に勝ちやすさが上がる傾向があります。'
       : 'この2枚の形を前に進めやすい候補です。';
-    parts.push(TR(bx.a) + '＋' + TR(bx.b) + 'に足す候補として相性データがあります。' + why);
+    parts.push(TR(bx.a) + '＋' + TR(bx.b) + 'の形に足すと、攻め方や受け方をつなげやすくなります。' + why);
   }
   if (bp && (bp.score || 0) >= 8) {
-    const why = bp.kind === 'broadSynergy' ? 'いろいろな構成で一緒に使われやすい組み合わせです。'
-      : bp.kind === 'templateCore' ? '特定の型でよく使われる組み合わせです。'
-      : bp.kind === 'hiddenWinLift' ? '一緒に入ると勝ちやすい傾向があります。'
-      : '一緒に採用されることが多い組み合わせです。';
-    parts.push(TR(bp.other) + 'との相性データがあります。' + why);
+    const why = bp.kind === 'broadSynergy' ? 'いろいろな形に合わせやすい組み合わせです。'
+      : bp.kind === 'templateCore' ? '形がはっきり出やすい組み合わせです。'
+      : bp.kind === 'hiddenWinLift' ? '合わせると攻め方や守り方が安定しやすいです。'
+      : '並べると役割がつながりやすい組み合わせです。';
+    parts.push(TR(bp.other) + 'と合わせると、今の形を作りやすくなります。' + why);
   }
   if (p && p.partner) parts.push('噛み合う相手: ' + p.partner + '。');
   if (p && p.scaling) parts.push('伸び方は「' + p.scaling + '」型です。');
