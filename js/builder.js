@@ -927,6 +927,31 @@ function assistChunkTabs(info) {
     + '<button type="button" class="assist-chunk' + (active === 'threats' ? ' active' : '') + '" data-assist-chunk="threats">苦しい相手' + (count ? '<span>' + count + '</span>' : '') + '</button>'
     + '</div>';
 }
+function updateAssistTopInfo(info) {
+  const el = document.getElementById('assistTopInfo');
+  if (!el) return;
+  if (!assistMode || !info) { el.innerHTML = ''; return; }
+  const rows = assistThreatRows(info);
+  const threats = rows.length ? rows.map(r => r.title.replace('が重い', '').replace('が薄い', '').replace('に遅れやすい', '')).join(' / ') : '大きな穴は少なめ';
+  let main = '今の読み';
+  let sub = '';
+  if (info.cards.length >= 8) {
+    main = '8枚完成';
+    sub = '分析で勝ち方を確認できます';
+  } else if (!info.cards.length) {
+    main = 'アシスト';
+    sub = '1枚選ぶと候補と苦しい相手を読みます';
+  } else if (assistChunk === 'threats') {
+    main = '苦しい相手';
+    sub = rows.length ? rows.map(r => r.title).join(' / ') : 'もう少し枚数が増えると読みやすいです';
+  } else {
+    main = info.cards.length + '/8枚';
+    sub = info.style + '｜苦: ' + threats;
+  }
+  const go = assistChunk === 'threats' ? '候補へ' : '受けへ';
+  el.innerHTML = '<span class="ati-main">' + esc(main) + '</span><span class="ati-sub">' + esc(sub) + '</span><span class="ati-go">' + esc(go) + '</span>';
+  el.title = sub;
+}
 function assistExtraHtml(info) {
   return '<div class="assist-extra" id="assistExtra"></div>';
 }
@@ -941,9 +966,10 @@ function updateAssistPanel() {
   controls.classList.toggle('assist-active', assistMode);
   btn.setAttribute('aria-pressed', assistMode ? 'true' : 'false');
   btn.innerHTML = assistMode ? '<span>アシストON</span>' : '<span>アシスト</span>';
-  if (!assistMode) { panel.innerHTML = ''; assistSuggestions = []; refreshAssistHighlights(); return; }
+  if (!assistMode) { panel.innerHTML = ''; assistSuggestions = []; updateAssistTopInfo(null); refreshAssistHighlights(); return; }
   const info = assistDeckInfo();
   assistSuggestions = buildAssistSuggestions();
+  updateAssistTopInfo(info);
   if (info.cards.length >= 8) {
     panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の一手<span class="assist-beta">BETA</span></div><div class="assist-state">8枚完成</div></div>'
       + '<div class="assist-empty">デッキが完成しました。ここからは分析で「どう勝つか」を読みましょう。</div>'
@@ -1042,6 +1068,12 @@ function updateAssistPanel() {
       updateAssistPanel();
     });
   });
+  const topInfo = document.getElementById('assistTopInfo');
+  if (topInfo) topInfo.onclick = () => {
+    if (!assistMode) return;
+    assistChunk = assistChunk === 'threats' ? 'cards' : 'threats';
+    updateAssistPanel();
+  };
   const r = document.getElementById('assistRefresh');
   if (r) r.onclick = () => { assistVariant = (assistVariant + 1) % 3; updateAssistPanel(); };
   const bc = document.getElementById('assistBackCards');
