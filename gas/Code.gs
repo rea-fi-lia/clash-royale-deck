@@ -1034,7 +1034,7 @@ function buildElixirVectorUsageSheet() {
     ['レイジ前提', 'レイジは30%速度ブーストとして扱います。移動速度、発射速度、建物/生成系のテンポが伸びる前提で見ます。発射速度+30%は攻撃/生成間隔÷1.3として見ます。', '', ''],
     ['公開手順', 'タグ/ポテンシャルを直したら exportTagSheetV2() → exportPotentialV1() → buildCardEvalV1() → buildElixirVectorSheet()。赤入れ後は exportElixirVectorsV1()。', '', ''],
     ['Node導線', 'ローカルからは node tools/export-elixir-vectors-from-sheet.js --out /tmp/card-elixir-vectors-v1.json --publish --verify', '', ''],
-    ['フロント反映', 'サイト側は card-elixir-vectors-v1.json を優先して読みます。足りない時だけカード評価から同じ考え方で補います。', '', ''],
+    ['フロント反映', 'サイト側は card-elixir-vectors-public-v1.json だけを直接読みます。深い材料はR2/Workerへ移す方針です。', '', ''],
     ['文言ルール', 'ユーザー向けには裏側の言い方を出さず、「受けを作りやすい」「攻めを通しやすい」「手札を回し直しやすい」のように自然に出します。', '', ''],
     ['今後足す軸', '5枚目以降は 空受け/小物処理/中型処理/大型処理/射程支援/手数/速度で伸びる札/回転力 を細かく見ます。', '', '']
   ];
@@ -1097,6 +1097,16 @@ function exportElixirVectorsV1() {
     cards: cards
   };
   ghWriteJson_('card-elixir-vectors-v1.json', out);
+  ghWriteJson_('card-elixir-vectors-public-v1.json', {
+    updated: out.updated,
+    version: 1,
+    visibility: 'public-display',
+    scale: out.scale,
+    vectors: out.vectors,
+    subs: out.subs,
+    count: out.count,
+    cards: out.cards
+  });
   Logger.log('card-elixir-vectors-v1.json exported: ' + out.count + ' cards');
 }
 

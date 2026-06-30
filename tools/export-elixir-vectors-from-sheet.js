@@ -118,6 +118,22 @@ function buildJson(values) {
     cards
   };
 }
+function buildPublicJson(out) {
+  return {
+    updated: out.updated,
+    version: 1,
+    visibility: 'public-display',
+    scale: out.scale,
+    vectors: out.vectors,
+    subs: out.subs,
+    count: out.count,
+    cards: out.cards
+  };
+}
+function publicOutPath(outPath) {
+  if (/card-elixir-vectors-v1\.json$/.test(outPath)) return outPath.replace(/card-elixir-vectors-v1\.json$/, 'card-elixir-vectors-public-v1.json');
+  return outPath.replace(/\.json$/, '-public.json');
+}
 function comparableJson(text) {
   const obj = JSON.parse(text);
   delete obj.updated;
@@ -128,12 +144,12 @@ function githubToken() {
   if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
   try { return execFileSync('gh', ['auth', 'token'], { encoding: 'utf8' }).trim(); } catch (e) { return ''; }
 }
-async function publishJson(out, filePath) {
+async function publishJson(out, filePath, targetOverride) {
   const token = githubToken();
   if (!token) throw new Error('--publish には GITHUB_TOKEN / GH_TOKEN、または gh auth が必要です');
   const repo = process.env.GITHUB_REPOSITORY || process.env.GITHUB_REPO || 'rea-fi-lia/clash-royale-deck';
   const branch = process.env.GITHUB_BRANCH || process.env.DATA_BRANCH || 'data';
-  const target = process.env.ELIXIR_VECTORS_PATH || 'card-elixir-vectors-v1.json';
+  const target = targetOverride || process.env.ELIXIR_VECTORS_PATH || 'card-elixir-vectors-v1.json';
   const api = 'https://api.github.com/repos/' + repo + '/contents/' + target;
   const headers = { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'User-Agent': 'crdb-elixir-export', 'Content-Type': 'application/json' };
   let sha = null;
@@ -182,13 +198,20 @@ async function main() {
   const keyPath = process.env.GOOGLE_APPLICATION_CREDENTIALS || path.join(os.homedir(), '.config/crdb/google-service-account.json');
   const values = await readSheetValues(spreadsheetId, sheetTitle, keyPath);
   const out = buildJson(values);
+  const publicOut = buildPublicJson(out);
+  const publicPath = argValue('--public-out', process.env.PUBLIC_OUT || publicOutPath(outPath));
   fs.writeFileSync(outPath, JSON.stringify(out), 'utf8');
+  fs.writeFileSync(publicPath, JSON.stringify(publicOut), 'utf8');
   console.log('wrote ' + outPath + ' cards=' + out.count + ' bytes=' + fs.statSync(outPath).size);
+  console.log('wrote ' + publicPath + ' cards=' + publicOut.count + ' bytes=' + fs.statSync(publicPath).size);
   let pub = { repo: process.env.GITHUB_REPOSITORY || process.env.GITHUB_REPO || 'rea-fi-lia/clash-royale-deck', branch: process.env.GITHUB_BRANCH || process.env.DATA_BRANCH || 'data', target: process.env.ELIXIR_VECTORS_PATH || 'card-elixir-vectors-v1.json' };
+  let publicPub = { repo: pub.repo, branch: pub.branch, target: process.env.ELIXIR_VECTORS_PUBLIC_PATH || 'card-elixir-vectors-public-v1.json' };
   if (hasArg('--publish')) {
     pub = await publishJson(out, outPath);
     console.log((pub.skipped ? 'up-to-date ' : 'published ') + pub.repo + '/' + pub.target + ' branch=' + pub.branch + ' commit=' + (pub.commit || '-'));
+    publicPub = await publishJson(publicOut, publicPath, publicPub.target);
+    console.log((publicPub.skipped ? 'up-to-date ' : 'published ') + publicPub.repo + '/' + publicPub.target + ' branch=' + publicPub.branch + ' commit=' + (publicPub.commit || '-'));
   }
-  if (hasArg('--verify')) await verifyPublished(pub);
+  if (hasArg('--verify')) { await verifyPublished(pub); await verifyPublished(publicPub); }
 }
 main().catch(err => { console.error(err.stack || err.message); process.exit(1); });

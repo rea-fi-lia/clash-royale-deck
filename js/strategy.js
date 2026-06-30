@@ -1,7 +1,7 @@
 /* =============================================================
  *  デッキ診断 v2（§8.11 D1 + アンチシナジー + 初手事故率）
  *  - 構造: 大枠（総評・事故率・警告）→ <details>で詳細チェック
- *  - 材料: card-stats.json / card-tags.json / card-potential.json（素出し適性solo）
+ *  - 材料: 公開表示用JSON + card-stats/card-tags/card-potential（カード定義）
  *  - β運用: しきい値・文言は随時調整
  *  ★WINCONS は GASのARCH_WINCONS / decks.jsのME_ARCH_WINCONS と同一に保つこと（3箇所同期）
  * ============================================================= */
@@ -21,7 +21,7 @@ const SPELL_ZONES = ['ログ圏内', 'ザップ圏内', '矢の雨圏内', 'フ�
 function _t(k, v) { return window.CRI18N ? CRI18N.t(k, v) : k; }
 function _tr(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
 
-let STATS = null, TAGS = null, POT = null, EVAL = null, DECK = null, META = null, MATCH = null, POL_INTEL = null, WINCON = null;
+let STATS = null, TAGS = null, POT = null, VECTORS = null, DECK = null, WINCON = null;
 
 function parseDeck() {
   const q = new URLSearchParams(location.search);
@@ -188,27 +188,39 @@ function archetypeHtml(deck, ctx) {
     + '<div class="id-plan">' + _tr(a.plan) + '</div></div>';
 }
 
-// ★デッキ能力スコア（card-eval集計）をマップで返す＝相性の"答え"判定に使う
+function vectorOf(c) {
+  if (!VECTORS) return null;
+  return VECTORS[c.name + mark(c)] || VECTORS[c.name] || null;
+}
+function vectorValue(v, key) {
+  if (!v) return 0;
+  if (key.indexOf('sub.') === 0) return Number(v.sub && v.sub[key.slice(4)]) || 0;
+  return Number(v[key]) || 0;
+}
+const CAP_AXES = [
+  { k: '対空', it: ['sub.antiAir', 'sub.airClear', 'def'] },
+  { k: 'タンク処理', it: ['sub.tank', 'sub.mid', 'fire'] },
+  { k: '小物処理', it: ['sub.small', 'sub.swarm', 'area'] },
+  { k: 'タワー圧', it: ['reach', 'sub.range', 'sub.tempo', 'fire'] },
+  { k: '施設攻略', it: ['reach', 'sub.range', 'fire', 'ctrl'] },
+  { k: '耐久', it: ['dur', 'sub.bigBlock'], avg: true },
+  { k: '回転', it: ['cycle', 'flex'], avg: true }
+];
+
+// ★デッキ能力を公開用エリクサー価値ベクトルから組み立てる
 function capScores(deck) {
-  if (!EVAL) return null;
-  const E = deck.map(c => ({ e: EVAL[c.name + mark(c)] || EVAL[c.name] }));
+  if (!VECTORS) return null;
+  const E = deck.map(c => ({ e: vectorOf(c) }));
   if (E.filter(x => x.e).length < 6) return null;
-  const AX = [
-    { k: '対空', it: ['対空単体処理', '対空群れ処理'] },
-    { k: 'タンク処理', it: ['タンク処理', '中型タンク処理'] },
-    { k: '小物処理', it: ['地上群れ処理', '対空群れ処理'] },
-    { k: 'タワー圧', it: ['タワーダメージ力', 'タワーダメージ決定力'] },
-    { k: '施設攻略', it: ['施設破壊力', '施設突破力'] }
-  ];
   const out = {};
-  AX.forEach(ax => {
-    const c = E.map(x => x.e ? Math.max.apply(null, ax.it.map(it => x.e[it] || 0)) : 0).sort((a, b) => b - a);
-    out[ax.k] = Math.max(0, Math.min(10, Math.round((0.65 * c[0] + 0.35 * (c[1] || 0)) * 10) / 10));
+  CAP_AXES.slice(0, 5).forEach(ax => {
+    const c = E.map(x => x.e ? Math.max.apply(null, ax.it.map(it => vectorValue(x.e, it))) : 0).sort((a, b) => b - a);
+    out[ax.k] = Math.max(0, Math.min(10, Math.round((0.65 * (c[0] || 0) + 0.35 * (c[1] || 0)) * 10) / 10));
   });
   return out;
 }
 
-// ★相手の型→"核の脅威"に、自分が答えを持つか（card-evalの軸で判定）
+// ★相手の型→"核の脅威"に、自分が答えを持つか（公開用ベクトルの軸で判定）
 const THREAT_AXIS = {
   'ラヴァハウンド': '対空', 'エアバルーン': '対空', 'スケルトンバレル': '対空',
   'ゴーレム': 'タンク処理', 'エレクトロジャイアント': 'タンク処理', 'ジャイアント': 'タンク処理',
@@ -232,31 +244,22 @@ function threatReason(oppBase, caps) {
   return '';
 }
 
-// ★デッキ能力（card-eval.json＝全カード相対評価1〜10から集計）。"下から持ち上げる"構成的診断。
-//   各軸＝関連項目をカードごとに最大化→デッキは「担い手1位＋0.35×2位」。耐性/エリ得は全体平均。
+// ★デッキ能力（公開用エリクサー価値ベクトルから集計）。
+//   各軸＝関連項目をカードごとに最大化→デッキは「担い手1位＋0.35×2位」。耐久/回転は全体平均。
 function capabilityHtml(deck) {
-  if (!EVAL) return '';
-  const E = deck.map(c => ({ c: c, e: EVAL[c.name + mark(c)] || EVAL[c.name] }));
+  if (!VECTORS) return '';
+  const E = deck.map(c => ({ c: c, e: vectorOf(c) }));
   if (E.filter(x => x.e).length < 6) return '';
-  const AX = [
-    { l: _tr('対空'), it: ['対空単体処理', '対空群れ処理'], avg: false },
-    { l: _tr('タンク処理'), it: ['タンク処理', '中型タンク処理'], avg: false },
-    { l: _tr('小物処理'), it: ['地上群れ処理', '対空群れ処理'], avg: false },
-    { l: _tr('タワー圧'), it: ['タワーダメージ力', 'タワーダメージ決定力'], avg: false },
-    { l: _tr('施設攻略'), it: ['施設破壊力', '施設突破力'], avg: false },
-    { l: _tr('呪文耐性'), it: ['呪文耐性'], avg: true },
-    { l: _tr('エリ得'), it: ['エリクサーアドバンテージ'], avg: true }
-  ];
-  const axData = AX.map(ax => {
+  const axData = CAP_AXES.map(ax => {
     const contrib = E.map(x => {
-      const v = x.e ? Math.max.apply(null, ax.it.map(it => x.e[it] || 0)) : 0;
+      const v = x.e ? Math.max.apply(null, ax.it.map(it => vectorValue(x.e, it))) : 0;
       return { c: x.c, v: v };
     }).sort((a, b) => b.v - a.v);
     let score = ax.avg
       ? contrib.reduce((s, x) => s + x.v, 0) / E.length
       : 0.65 * contrib[0].v + 0.35 * (contrib[1] ? contrib[1].v : 0);
     score = Math.max(0, Math.min(10, Math.round(score * 10) / 10));
-    return { l: ax.l, score: score, carry: (!ax.avg && contrib[0].v >= 4) ? contrib[0].c : null };
+    return { l: _tr(ax.k), raw: ax.k, score: score, carry: (!ax.avg && contrib[0].v >= 4) ? contrib[0].c : null };
   });
   const bars = axData.map(a => {
     const pct = Math.max(4, Math.round(a.score / 10 * 100));
@@ -269,8 +272,8 @@ function capabilityHtml(deck) {
   const strong = axData.slice().sort((a, b) => b.score - a.score)[0];
   const weak = axData.slice().sort((a, b) => a.score - b.score)[0];
   const tip = '<div class="cap-tip"><div class="cap-strong">💪 ' + _tr('強み') + '：「' + strong.l + '」' + _tr('が高い。ここを主軸に組み立てよう') + '</div>'
-    + '<div class="cap-weak">🛠 ' + _tr('伸ばすなら') + '：「' + weak.l + '」' + _tr('は控えめ。') + capAdvice(weak.l) + '</div></div>';
-  return '<div class="dg-cap"><div class="cap-head">⚙️ ' + _tr('デッキ能力（カード評価ベース）') + '</div>'
+    + '<div class="cap-weak">🛠 ' + _tr('伸ばすなら') + '：「' + weak.l + '」' + _tr('は控えめ。') + capAdvice(weak.raw) + '</div></div>';
+  return '<div class="dg-cap"><div class="cap-head">⚙️ ' + _tr('デッキ能力') + '</div>'
     + bars
     + tip + '</div>';
 }
@@ -282,13 +285,13 @@ function capAdvice(l) {
     '小物処理': '数で来る相手は呪文を温存し、引きつけてからまとめて',
     'タワー圧': 'カウンター主体で、守ってから少数で確実に削る展開に',
     '施設攻略': '正面が硬いので左右に振り、的を絞らせず横圧をかける',
-    '呪文耐性': '主力を固めず散らして置き、呪文の一掃を避ける',
-    'エリ得': '無駄打ちを減らし、受けてから攻める"後出し"を意識'
+    '耐久': '主力を固めすぎず、受け札を重ねて残る形を作る',
+    '回転': '重い札を抱えた時は無理に攻めず、軽い受けから手札を整える'
   };
   return _tr(M[l] || '立ち回りでカバーしよう');
 }
 
-// ★相性表（§8.11 D2）：自デッキの代表勝ち筋 vs 環境上位勝ち筋の実戦勝率（matchups.json）
+// ★相性表：核JSON直読みは止め、Worker API化後に復帰する。
 function selfArchs(deck) {
   // WINCONS順＝オーナー監修の優先度。デッキ内の勝ち筋を形態サフィックス付きで返す
   const out = [];
@@ -296,49 +299,7 @@ function selfArchs(deck) {
   return out;
 }
 function matchupHtml(deck) {
-  if (!MATCH || !META || !META.length) return '';
-  const caps = capScores(deck);
-  const archs = selfArchs(deck);
-  if (!archs.length) return '';
-  const self = archs[0]; // 代表勝ち筋
-  const pair = {}, months = MATCH.months || {};
-  Object.keys(months).forEach(mk => {
-    const bk = months[mk] || {};
-    Object.keys(bk).forEach(k => { const v = bk[k]; if (!Array.isArray(v)) return; pair[k] = pair[k] || [0, 0]; pair[k][0] += v[0]; pair[k][1] += v[1]; });
-  });
-  const MIN = 20; // 全勝ち筋を出す。少数サンプルのノイズだけ除外
-  const rows = [];
-  let sw = 0, sg = 0;
-  META.forEach(m => {
-    if (!m || m.k === self) return; // ミラーは除外
-    const gw = pair[self + '|' + m.k];
-    if (!gw || gw[0] < MIN) return;
-    rows.push({ opp: m.k, share: m.share, wr: Math.round(gw[1] / gw[0] * 1000) / 10, games: gw[0] });
-    sw += gw[1]; sg += gw[0];
-  });
-  if (rows.length < 2) return '';
-  const avg = Math.round(sw / sg * 1000) / 10; // 中心線＝このデッキの平均勝率
-  rows.sort((a, b) => b.wr - a.wr); // 得意→苦手
-  const rowHtml = rows.map(r => {
-    const dev = r.wr - avg;
-    const cls = dev >= 3 ? 'mu-good' : dev <= -3 ? 'mu-bad' : 'mu-even';
-    const w = Math.min(48, Math.abs(dev) * 4.0); // 平均からの差を拡大（収束しても見える）
-    const fill = dev >= 0
-      ? '<span class="mu-fill ' + cls + '" style="left:50%;width:' + w + '%"></span>'
-      : '<span class="mu-fill ' + cls + '" style="right:50%;width:' + w + '%"></span>';
-    const base = String(r.opp).replace(/[⚡👑]+$/, ''), suf = String(r.opp).slice(base.length);
-    const reason = threatReason(base, caps);
-    const inf = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[base] : null;
-    const src = inf ? ((suf === '⚡' && inf.iv) ? inf.iv : (suf === '👑' && inf.ih) ? inf.ih : inf.i) : '';
-    const ico = '<span class="mu-ico">' + (src ? '<img src="' + src + '" alt="' + base + '" loading="lazy">' : '') + '</span>';
-    return '<div class="mu-row">' + ico + '<span class="mu-opp">' + r.opp + '<small>' + _tr('環境') + ' ' + r.share + '%</small>' + (reason ? '<small class="mu-reason">' + reason + '</small>' : '') + '</span>'
-      + '<span class="mu-bar">' + fill + '</span>'
-      + '<span class="mu-wr ' + cls + '">' + r.wr + '%<small>' + r.games + _tr('戦') + '</small></span></div>';
-  }).join('');
-  return '<div class="dg-matchup"><div class="mu-head">📊 ' + _tr('環境との相性') + '（β）</div>'
-    + '<div class="mu-sub">' + _tr('あなたの勝ち筋') + '「' + self + '」／' + _tr('中心線＝このデッキの平均') + ' ' + avg + '%（' + _tr('右=得意／左=苦手') + '）</div>'
-    + '<div class="mu-list">' + rowHtml + '</div>'
-    + '<div class="mu-note">' + _tr('※ 中心はこのデッキの平均勝率。全勝ち筋を表示（スクロール）。緑＝平均より上／赤＝下。少数戦は参考値') + '</div></div>';
+  return '';
 }
 
 // ★Fugu実戦読み（第一歩）：構造上の第二軸候補＋Actionsで貯めたPoL支配度を診断に出す。
@@ -348,18 +309,7 @@ function deckSigForPol(deck) {
   return names.join('|') + '#' + special.join('|');
 }
 function polRecordForDeck(deck) {
-  const decks = POL_INTEL && POL_INTEL.decks;
-  if (!decks) return null;
-  const exactKey = deckSigForPol(deck);
-  if (decks[exactKey]) return { data: decks[exactKey], exact: true };
-  const namesKey = deck.map(c => c.name).slice().sort().join('|');
-  let best = null;
-  Object.keys(decks).forEach(k => {
-    if (String(k).split('#')[0] !== namesKey) return;
-    const d = decks[k];
-    if (!best || ((d && d.games) || 0) > ((best.data && best.data.games) || 0)) best = { data: d, exact: false };
-  });
-  return best;
+  return null;
 }
 function signedNum(v, digits) {
   if (typeof v !== 'number' || !isFinite(v)) return '—';
@@ -441,6 +391,27 @@ function mergeSighist(files) {
   });
   return Object.keys(agg).map(k => agg[k]);
 }
+function publicDeckRows(j) {
+  const out = {};
+  function addList(list) {
+    (list || []).forEach(function (d) {
+      if (!d || !Array.isArray(d.slots) || d.slots.length !== 8) return;
+      const names = d.slots.slice();
+      const forms = Array.isArray(d.forms) ? d.forms.map(function (f) { return f === 'evo' ? 'e' : f === 'hero' ? 'h' : 'n'; }) : names.map(function () { return 'n'; });
+      const games = Number(d.games || d.count || d.uniq || 0) || 0;
+      const wr = Number(d.winRate);
+      if (games < SIM_MINGAMES && !isFinite(wr)) return;
+      const key = names.map(function (n, i) { return n + ':' + forms[i]; }).sort().join('|');
+      const row = { names: names, forms: forms, g: games, w: isFinite(wr) ? games * wr / 100 : 0, wr: isFinite(wr) ? wr : null };
+      if (!out[key] || (row.g || 0) > (out[key].g || 0)) out[key] = row;
+    });
+  }
+  const win = j && j.defaultWindow && j.windows && j.windows[j.defaultWindow] ? j.windows[j.defaultWindow] : j;
+  addList(win && win.winDecks);
+  addList(win && win.decks);
+  addList(win && win.trending);
+  return Object.keys(out).map(function (k) { return out[k]; });
+}
 function similarRankingHtml(deck) {
   if (!SIGHIST_DECKS || !SIGHIST_DECKS.length) return '';
   const userBase = {}; deck.forEach(c => userBase[c.name] = 1);
@@ -451,7 +422,8 @@ function similarRankingHtml(deck) {
     const out = deck.filter(c => d.names.indexOf(c.name) < 0);                 // 自分にあって相手に無い＝名前ベース（最大2枚）
     const inc = []; d.names.forEach((n, i) => { if (!userBase[n]) inc.push({ name: n, form: d.forms[i] }); }); // 相手にあって自分に無い＝名前＋相手の形態
     const eh = d.names.map(function (n, i) { return { name: n, form: d.forms[i] }; }).filter(function (x) { return x.form === 'e' || x.form === 'h'; }); // このランカーが進化/ヒーローさせてるカード
-    rows.push({ wr: Math.round(d.w / d.g * 1000) / 10, g: d.g, self: (!out.length && !inc.length), out: out, inc: inc, eh: eh });
+    const wr = d.wr != null ? d.wr : Math.round(d.w / d.g * 1000) / 10;
+    rows.push({ wr: wr, g: d.g, self: (!out.length && !inc.length), out: out, inc: inc, eh: eh });
   });
   if (!rows.length) return '';
   const self = rows.find(r => r.self);
@@ -550,17 +522,7 @@ const GICON = { good: '◎', ok: '○', warn: '⚠', bad: '❌', info: 'ℹ️' 
 //   ★ユーザー向け文言に内部用語（収集元・外部名など裏側がわかる語）は出さない。
 function winOf(c) { if (!WINCON) return null; return WINCON[c.name + mark(c)] || WINCON[c.name] || null; }
 function polOf(deck) {
-  if (!POL_INTEL || !POL_INTEL.decks) return null;
-  const exact = deckSigForPol(deck);
-  if (POL_INTEL.decks[exact]) return POL_INTEL.decks[exact];
-  const namesKey = deck.map(function (c) { return c.name; }).slice().sort().join('|');
-  let best = null;
-  Object.keys(POL_INTEL.decks).forEach(function (k) {
-    if (String(k).split('#')[0] !== namesKey) return;
-    const d = POL_INTEL.decks[k];
-    if (!best || ((d && d.games) || 0) > ((best && best.games) || 0)) best = d;
-  });
-  return best;
+  return null;
 }
 function winClassGroup(sc, cls) {
   return sc.filter(function (x) { return x.w && x.w.class === cls; }).sort(function (a, b) {
@@ -751,28 +713,20 @@ async function init() {
   if (empty) empty.style.display = 'none';
   wrap.innerHTML = '<div class="coming-soon"><div class="big">🔬</div>' + _tr('診断中…') + '</div>';
   try {
-    const [st, tg, pt, wt, dk, mu, sh0, sh1, sh2, pi, wp] = await Promise.all([
+    const [st, tg, pt, wp, vec, dk] = await Promise.all([
       fetch(dataFreshUrl('card-stats.json'), { cache: 'no-store' }).then(r => r.json()),
       fetch(dataFreshUrl('card-tags.json'), { cache: 'no-store' }).then(r => r.json()).catch(() => null),
       fetch(dataFreshUrl('card-potential.json'), { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(dataFreshUrl('card-eval.json'), { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(dataFreshUrl('decks.json'), { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(dataFreshUrl('matchups.json'), { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(dataFreshUrl('sighist-' + ymOffset(0) + '.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(dataFreshUrl('sighist-' + ymOffset(-1) + '.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(dataFreshUrl('sighist-' + ymOffset(-2) + '.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(dataFreshUrl('pol-battle-intel-v1.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(dataFreshUrl('wincon-policy.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
+      fetch(dataFreshUrl('wincon-policy-public-v1.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(dataFreshUrl('card-elixir-vectors-public-v1.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch(dataFreshUrl('decks-public-v1.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
     ]);
     STATS = {}; (st.cards || []).forEach(c => STATS[c.jp] = c);
     TAGS = (tg && tg.cards) || {};
     POT = (pt && pt.cards) || null;
-    EVAL = (wt && wt.cards) || null;
-    META = (dk && Array.isArray(dk.meta)) ? dk.meta : null;
-    MATCH = (mu && mu.months) ? mu : null;
-    POL_INTEL = (pi && pi.decks) ? pi : null;
+    VECTORS = (vec && vec.cards) || null;
     WINCON = (wp && wp.cards) || null;
-    SIGHIST_DECKS = mergeSighist([sh0, sh1, sh2]);
+    SIGHIST_DECKS = publicDeckRows(dk);
     render();
   } catch (e) {
     wrap.innerHTML = '<div class="coming-soon"><div class="big">📡</div>' + _tr('データの取得に失敗しました。時間をおいて再読み込みしてください') + '</div>';

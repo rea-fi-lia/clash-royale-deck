@@ -9,6 +9,7 @@ nohup.out
 # raw.githubusercontent.com/.../data/<file> から読むので main 側は不要。
 # 誤って main に古い統計を push＝事故（PROJECT_HANDOFF §1 の最重要警告）。
 decks.json
+decks-public-v1.json
 cardhist.json
 trophy-*/*.json
 card-stats.json
@@ -20,13 +21,19 @@ card-ids.json
 matchups.json
 synergy.json
 card-pair-synergy-v1.json
+card-pair-synergy-public-v1.json
 card-pair-extension-synergy-v1.json
+card-pair-extension-synergy-public-v1.json
+card-threat-response-v1.json
+card-threat-response-public-v1.json
 card-elixir-vectors-v1.json
+card-elixir-vectors-public-v1.json
 band-meta.json
 sighist-*.json
 # --- 分析v2 / Action集計（2026-06-25〜・dataブランチ専用）---
 card-model-v2.json
 wincon-policy.json
+wincon-policy-public-v1.json
 wincon-realization-*.json
 matchups-v2-*.json
 spell-tempo-*.json
@@ -37,9 +44,11 @@ battle-feature-buckets.json
 pol-battle-intel-v1.json
 pol-matchup-intel-v1.json
 pol-card-intel-v1.json
+pol-card-intel-public-v1.json
 pol-tower-troop-meta-v1.json
 pol-spell-weakness-v1.json
 trophy-battle-events-v1.json
 trophy-band-card-intel-v1.json
+trophy-band-card-intel-public-v1.json
 pol-ranking-probe-v1.json
 pol-elo-intel-v1.json

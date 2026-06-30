@@ -23,9 +23,9 @@ let onlyOwned = false;     // 絞り込みON/OFF
 let cardFilter = null;     // 「このカードを含むデッキだけ」絞り込み（カード名 or null）
 let PLAYERS_TOTAL = 0;     // 集計した母数（延べ・参考）
 let UNIQUE_TOTAL = 0;      // 窓内の総ユニーク人数（%の分母）
-let WIN_MIN_SHOW = 100;    // 勝率ランキングの最低試合数（decks.jsonのwinMinに追従。既定もGAS WIN_MIN_GAMES_3D=100に合わせる）
-let UPDATE_HRS = 6;        // 更新間隔（時間）。decks.json の intervalHours から
-let DECKS_JSON = null;     // 取得した decks.json 全体（窓切替用に保持）
+let WIN_MIN_SHOW = 100;    // 勝率ランキングの最低試合数（公開デッキJSONのwinMinに追従）
+let UPDATE_HRS = 6;        // 更新間隔（時間）。公開デッキJSON の intervalHours から
+let DECKS_JSON = null;     // 取得した公開デッキJSON全体（窓切替用に保持）
 let CUR_WINDOW = '3d';     // 表示中の集計窓 '1h' | '1d' | '3d' | '7d'（既定3日）
 const WIN_KEYS = ['1h', '1d', '3d', '7d'];
 const WIN_LABEL_JA = { '1h': '直近1時間', '1d': '直近1日', '3d': '過去3日', '7d': '統計目安7日' }; // _tr で各言語へ
@@ -892,9 +892,8 @@ async function setCardMode(mode, force) {
   renderCrank(); renderMetaMap();
 }
 
-// データ(decks.json)はGASが「同じリポジトリの data ブランチ」に更新する → raw から取得。
-// サイト本体(main)をManus等で丸ごと差し替えても、data ブランチは触らないので消えない。
-// 取得できなければ同一オリジンの decks.json、それも無ければ内蔵DECKSにフォールバック（移行中も壊れない）。
+// デッキ/カード表示は data ブランチの公開表示用JSONだけを読む。
+// 取得できなければ内蔵DECKSにフォールバック（核JSONへは戻らない）。
 // 集計テキスト（更新間隔・母数・最終更新など）。動的＝i18nのt()で言語対応。言語切替時に再描画する。
 let _agg = { top: null, sample: null, hrs: 6, cardsReal: false, updated: null };
 function _t(k, v) { return window.CRI18N ? CRI18N.t(k, v) : k; }
@@ -968,15 +967,15 @@ function renderMetaShare() {
     }).join('') + '</div>';
 }
 
-const DECKS_DATA_URL = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/decks.json';
-const POL_CARD_INTEL_URL = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/pol-card-intel-v1.json';
-const TROPHY_BAND_INTEL_URL = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/trophy-band-card-intel-v1.json';
+const DATA_BASE = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/';
 function dataFreshUrl(url) {
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + Date.now();
 }
-fetch(dataFreshUrl(DECKS_DATA_URL), { cache: 'no-store' })
-  .then(r => { if (!r.ok) throw 0; return r.json(); })
-  .catch(() => fetch('decks.json', { cache: 'no-store' }).then(r => r.ok ? r.json() : null))
+function fetchDataJsonAny(names) {
+  return names.reduce((p, name) => p.then(j => j || fetch(dataFreshUrl(DATA_BASE + name), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)), Promise.resolve(null));
+}
+fetchDataJsonAny(['decks-public-v1.json'])
+  .then(j => { if (!j) throw 0; return j; })
   .then(j => {
     DECKS_JSON = j || null;
     // 全窓共通のメタ情報
@@ -991,13 +990,11 @@ fetch(dataFreshUrl(DECKS_DATA_URL), { cache: 'no-store' })
   })
   .catch(() => { ALL_DECKS = DECKS; TREND_DECKS = []; CARDS_DATA = CARDS_SAMPLE; initCardMeta(true); updateDeckTabDesc(); applyDecks(); });
 
-fetch(dataFreshUrl(POL_CARD_INTEL_URL), { cache: 'no-store' })
-  .then(r => r.ok ? r.json() : null)
+fetchDataJsonAny(['pol-card-intel-public-v1.json'])
   .then(j => { POL_CARD_INTEL = (j && j.byOpponentCard) ? j : null; try { renderCrank(); } catch (e) {} })
   .catch(() => {});
 
-fetch(dataFreshUrl(TROPHY_BAND_INTEL_URL), { cache: 'no-store' })
-  .then(r => r.ok ? r.json() : null)
+fetchDataJsonAny(['trophy-band-card-intel-public-v1.json'])
   .then(j => { TROPHY_BAND_INTEL = (j && (j.byCard || j.byBand)) ? j : null; try { renderCrank(); } catch (e) {} })
   .catch(() => {});
 

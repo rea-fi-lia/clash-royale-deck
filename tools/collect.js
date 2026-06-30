@@ -205,6 +205,49 @@ function archForm_(jpArr, forms) {
   return 'その他';
 }
 
+var THREAT_TITLES = {
+  airBig: { title: '空中大型が重い', enemy: 'ラヴァ/バルーン系', need: '空受け', text: 'ラヴァやバルーン系を受ける札が少なめです。' },
+  swarmBait: { title: '小物で止まりやすい', enemy: 'バレル/群れ系', need: '小物処理', text: 'バレルや群れで道をふさがれると攻めが止まりやすいです。' },
+  tankPush: { title: 'タンク受けが薄い', enemy: '大型後衛系', need: '高火力', text: '大型を前に置かれた時、溶かす役がもう少し欲しい形です。' },
+  fastPressure: { title: '速い攻めに遅れやすい', enemy: '橋前/速攻系', need: '軽い受け', text: 'ホグや橋前の速い攻めに、受けの初手が重くなりやすいです。' },
+  buildingWall: { title: '建物で受けられやすい', enemy: '建物受け', need: '道を開ける札', text: '主役を建物で止められた時の押し込みが少し欲しいです。' }
+};
+var THREAT_BUCKET_CARDS = {
+  airBig: { 'ラヴァハウンド':1, 'エアバルーン':1 },
+  swarmBait: { 'ゴブリンバレル':1, 'ゴブリンドリル':1, 'スケルトンバレル':1, 'ウォールブレイカー':1, 'スケルトンラッシュ':1, 'ゴブリンギャング':1, 'スケルトン部隊':1 },
+  tankPush: { 'ゴーレム':1, 'エレクトロジャイアント':1, 'ジャイアント':1, 'ゴブジャイアント':1, 'ロイヤルジャイアント':1, 'メガナイト':1, 'ペッカ':1, '巨大スケルトン':1, 'スパーキー':1 },
+  fastPressure: { 'ホグライダー':1, 'ラムライダー':1, 'ロイヤルホグ':1, '攻城バーバリアン':1, 'エリートバーバリアン':1, 'プリンス':1, 'ウォールブレイカー':1, 'ディガー':1 },
+  buildingWall: { '大砲':1, '墓石':1, 'ゴブリンの檻':1, 'ゴブリンの小屋':1, 'ボムタワー':1, 'テスラ':1, '迫撃砲':1, 'オーブン':1, 'インフェルノタワー':1, 'バーバリアンの小屋':1, '巨大クロスボウ':1 }
+};
+function pairKey_(a, b) { return a < b ? a + '|' + b : b + '|' + a; }
+function addGw_(map, key, won) { var a = map[key] || (map[key] = [0, 0]); a[0]++; if (won) a[1]++; }
+function threatBucketsOfCards_(jpArr) {
+  var out = [], seen = {};
+  Object.keys(THREAT_BUCKET_CARDS).forEach(function (id) {
+    var set = THREAT_BUCKET_CARDS[id];
+    for (var i = 0; i < jpArr.length; i++) if (set[jpArr[i]]) { seen[id] = 1; break; }
+  });
+  Object.keys(THREAT_TITLES).forEach(function (id) { if (seen[id]) out.push(id); });
+  return out;
+}
+function addPairBattleStats_(cards, won, pairAll) {
+  var arr = cards.slice().sort();
+  for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < arr.length; j++) addGw_(pairAll, arr[i] + '|' + arr[j], won);
+}
+function addThreatBattleStats_(cards, threatIds, won, pairThreat, tripleThreat) {
+  if (!threatIds || !threatIds.length) return;
+  var arr = cards.slice().sort();
+  for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < arr.length; j++) {
+    var pk = arr[i] + '|' + arr[j];
+    threatIds.forEach(function (tid) { addGw_(pairThreat, pk + '|' + tid, won); });
+    for (var k = 0; k < arr.length; k++) {
+      if (k === i || k === j) continue;
+      var base = pk + '|' + arr[k] + '|';
+      threatIds.forEach(function (tid) { addGw_(tripleThreat, base + tid, won); });
+    }
+  }
+}
+
 function wilson_(w, g) {
   if (!g) return 0;
   var z = 1.96, p = w / g, n = g;
@@ -353,6 +396,57 @@ function polSummary_(a) {
     truePower: truePower
   };
 }
+function publicFit_(v, max) {
+  var n = Number(v);
+  if (!isFinite(n)) return 0;
+  var out = Math.round(n);
+  if (max != null) out = Math.min(max, out);
+  return Math.max(0, out);
+}
+function publicPairByCard_(pairsOut) {
+  var byCard = {};
+  (pairsOut || []).slice(0, 3000).forEach(function (p) {
+    if (!p || p.kind === 'utilityOrCommon') return;
+    [p.a, p.b].forEach(function (n) {
+      var other = n === p.a ? p.b : p.a;
+      var list = byCard[n] || (byCard[n] = []);
+      if (list.length < 40) list.push({ other: other, kind: p.kind, fit: publicFit_(p.score, 40) });
+    });
+  });
+  return byCard;
+}
+function publicPairExtensionByPair_(extOut) {
+  var byPair = {};
+  (extOut || []).slice(0, 4000).forEach(function (e3) {
+    if (!e3 || e3.kind === 'provisional' || e3.kind === 'templateExtension') return;
+    var k = e3.a + '|' + e3.b;
+    var list = byPair[k] || (byPair[k] = []);
+    if (list.length < 12) list.push({ card: e3.c, kind: e3.kind, fit: publicFit_(e3.score, 50) });
+  });
+  return byPair;
+}
+function publicThreatByPair_(threatRows) {
+  var byPair = {};
+  (threatRows || []).slice(0, 2500).forEach(function (r) {
+    if (!r || !r.pair) return;
+    var list = byPair[r.pair] || (byPair[r.pair] = []);
+    if (list.length >= 2) return;
+    list.push({ threatId: r.threatId, title: r.title, enemy: r.enemy, need: r.need, text: r.text,
+      level: publicFit_(r.severity, 100), responses: (r.responses || []).slice(0, 3).map(function (x) { return { card: x.card, kind: x.kind, fit: publicFit_(x.fit, 100) }; }) });
+  });
+  return byPair;
+}
+function publicPolRow_(row) {
+  if (!row) return null;
+  var out = { games: row.games || 0, wr: row.wr == null ? null : row.wr, dominanceAvg: row.dominanceAvg == null ? 0 : row.dominanceAvg };
+  if (row.name) out.name = row.name;
+  return out;
+}
+function publicPolMap_(map) {
+  var out = {};
+  Object.keys(map || {}).forEach(function (key) { var row = publicPolRow_(map[key]); if (row) out[key] = row; });
+  return out;
+}
 
 // ★モードbucket分類（CRDB_API_TAG_INVENTORY_NODE_BUILDER §混ぜずにbucket化）。
 //   混ぜると壊れる（PoLとfriendly、通常とDraft/Triple等）ので、type/gameMode を用途別bucketへ。
@@ -468,6 +562,8 @@ async function updateDecks() {
   // ---- バトルログから集計 ----
   var pop = {}, win = {}, unmapped = {}, CHUNK = 40;
   var muNow = {};       // ' 自分arch|相手arch' → [試合数, 勝ち数]（今回ぶん）
+  // ★苦しい相手×対策札（今回ぶん）：pair全体 / pair×相手型 / pair+C×相手型 を貯め、UI用JSONへ落とす。
+  var pairAllNow = {}, pairThreatNow = {}, tripleThreatNow = {};
   // ★PoL試合内容（今回ぶん）：sig → [g, domSum, crownSum, hpSum, hpN, leakSum, leakN, troSum, troN, cleanWin, stableWin, fragileWin, pressureLoss, closeLoss, collapseLoss]
   var polNow = {};
   // ★PoL対面別試合内容（今回ぶん）：'自分arch|相手arch' → pol配列。勝率だけでなく支配度/崩壊負け率まで貯める。
@@ -651,6 +747,10 @@ async function updateDecks() {
       if (seedMode) continue;                      // ★seed由来はtrophy event抽出のみ。PoLメタ母集団は汚さない
       if (!ranked) continue;                       // ★PoL集計はランク戦のみ
       if (od && sameSig_(d.jp, od.jp)) continue;   // ★完全ミラー除外
+      if (od) {
+        addPairBattleStats_(d.jp, tc > oc, pairAllNow);
+        addThreatBattleStats_(d.jp, threatBucketsOfCards_(od.jp), tc > oc, pairThreatNow, tripleThreatNow);
+      }
       tally(win, d, tc > oc, tc, oc);
       accPol_(sigKey(d), b, tc, oc);               // ★PoL試合内容（支配度/エリ漏れ/勝ち方）を貯める
       var rmeta = rankMetaByTag[normTag_(tag)];
@@ -1243,6 +1343,10 @@ async function updateDecks() {
           notes: ['表示の鮮度は1h/1d/3d、シナジー判定は月別sighist最大12か月で統計的に見る。', 'lift高・concentration低・月間安定・便利枠補正を抜けたpairほど本質シナジー。'],
           count: pairsOut.length, pairs: pairsOut.slice(0, 1000), byCard: byCard },
         'chore: update card-pair-synergy-v1.json');
+      await ghWriteJson_(ghSiblingPath_(ghPath, 'card-pair-synergy-public-v1.json'),
+        { updated: new Date().toISOString(), version: 1, visibility: 'public-display',
+          count: pairsOut.length, byCard: publicPairByCard_(pairsOut) },
+        'chore: update card-pair-synergy-public-v1.json');
       console.log('card-pair-synergy ' + pairsOut.length + ' pairs');
 
       var MIN_EXT_USE = parseInt(prop('PAIR_EXT_MIN_USE', '8'), 10);
@@ -1349,7 +1453,115 @@ async function updateDecks() {
           notes: ['3枚組テンプレではなく、2枚組A+Bに対する3枚目Cの候補。', 'UIでは「この2枚を通しやすくする1枚」「この形の弱点を埋める1枚」として使う。'],
           count: extOut.length, extensions: extOut.slice(0, 500).map(slimExt_), byPair: byPair },
         'chore: update card-pair-extension-synergy-v1.json');
+      await ghWriteJson_(ghSiblingPath_(ghPath, 'card-pair-extension-synergy-public-v1.json'),
+        { updated: new Date().toISOString(), version: 1, visibility: 'public-display',
+          count: extOut.length, byPair: publicPairExtensionByPair_(extOut) },
+        'chore: update card-pair-extension-synergy-public-v1.json');
       console.log('card-pair-extension-synergy ' + extOut.length + ' extensions');
+
+      function threatRoleFit_(name, threatId) {
+        var C = roleFlags_(name), cost = COST[name] || 0;
+        var s = 0;
+        if (threatId === 'airBig') {
+          if (C.air) s += 0.45;
+          if (C.building) s += 0.26;
+          if (C.tankKiller) s += 0.22;
+          if (C.control) s += 0.18;
+          if (C.spell && cost >= 4) s += 0.08;
+        } else if (threatId === 'swarmBait') {
+          if (C.smallSpell) s += 0.50;
+          if (C.splash) s += 0.34;
+          if (C.control) s += 0.12;
+          if (C.cycle && cost <= 3) s += 0.10;
+        } else if (threatId === 'tankPush') {
+          if (C.tankKiller) s += 0.48;
+          if (C.building) s += 0.32;
+          if (C.control) s += 0.18;
+          if (C.bigSpell) s += 0.12;
+        } else if (threatId === 'fastPressure') {
+          if (C.building) s += 0.40;
+          if (C.cycle && cost <= 3) s += 0.26;
+          if (C.smallSpell) s += 0.18;
+          if (C.tank || C.control) s += 0.14;
+        } else if (threatId === 'buildingWall') {
+          if (name === 'アースクエイク') s += 0.60;
+          if (C.spell && cost >= 4) s += 0.28;
+          if (C.control) s += 0.12;
+          if (C.secondary || C.bridge) s += 0.10;
+        }
+        return clamp01_(s);
+      }
+      function threatResponseKind_(role, relief) {
+        return role >= 0.55 && relief >= 0.025 ? 'directAnswer'
+          : relief >= 0.035 ? 'resultRelief'
+          : role >= 0.50 ? 'structurePatch'
+          : 'softCover';
+      }
+      var MIN_THREAT_PAIR_GAMES = parseInt(prop('THREAT_PAIR_MIN_GAMES', '8'), 10);
+      var MIN_THREAT_RESPONSE_GAMES = parseInt(prop('THREAT_RESPONSE_MIN_GAMES', '4'), 10);
+      var tripleByPairThreat = {};
+      Object.keys(tripleThreatNow).forEach(function (tk4) {
+        var sp4 = tk4.split('|');
+        if (sp4.length < 4) return;
+        var pk4 = sp4[0] + '|' + sp4[1], card4 = sp4[2], tid4 = sp4[3];
+        var arr4 = tripleByPairThreat[pk4 + '|' + tid4] || (tripleByPairThreat[pk4 + '|' + tid4] = []);
+        arr4.push({ card: card4, gw: tripleThreatNow[tk4] });
+      });
+      var threatRows = [];
+      Object.keys(pairThreatNow).forEach(function (ptk) {
+        var sp = ptk.split('|');
+        if (sp.length < 3) return;
+        var pk = sp[0] + '|' + sp[1], tid = sp[2], metaT = THREAT_TITLES[tid];
+        if (!metaT) return;
+        var pt = pairThreatNow[ptk], pa = pairAllNow[pk];
+        if (!pt || !pa || pt[0] < MIN_THREAT_PAIR_GAMES || pa[0] < MIN_THREAT_PAIR_GAMES) return;
+        var pairWrNow = pa[1] / pa[0], threatWr = pt[1] / pt[0];
+        var gap = pairWrNow - threatWr;
+        var conf = Math.sqrt(pt[0] / (pt[0] + 28));
+        var metaShare = Math.min(0.35, pt[0] / Math.max(1, pa[0]));
+        var pairQuality = pairScoreByKey[pk] ? Math.min(8, Math.max(0, pairScoreByKey[pk].score || 0) * 0.06) : 0;
+        var severity = Math.round((Math.max(0, gap) * 145 + Math.max(0, 0.505 - threatWr) * 92 + metaShare * 48) * conf + pairQuality);
+        if (severity < 18) return;
+        var responses = (tripleByPairThreat[pk + '|' + tid] || []).map(function (r) {
+          var gw = r.gw || [0, 0];
+          if (gw[0] < MIN_THREAT_RESPONSE_GAMES) return null;
+          var wr3x = gw[1] / gw[0], relief = wr3x - threatWr, role = threatRoleFit_(r.card, tid);
+          if (relief < -0.025 && role < 0.45) return null;
+          var conf3x = Math.sqrt(gw[0] / (gw[0] + 18));
+          var fit = Math.round(Math.max(0, relief) * 155 + role * 54 + Math.max(0, wr3x - 0.50) * 34 + conf3x * 12);
+          if (fit < 24) return null;
+          return { card: r.card, fit: fit, games: gw[0], kind: threatResponseKind_(role, relief) };
+        }).filter(Boolean).sort(function (a, b) { return b.fit - a.fit || b.games - a.games; });
+        var seenResp = {}, slimResp = [];
+        responses.forEach(function (r) {
+          if (seenResp[r.card] || slimResp.length >= 3) return;
+          seenResp[r.card] = 1;
+          slimResp.push(r);
+        });
+        if (!slimResp.length) return;
+        threatRows.push({ pair: pk, threatId: tid, title: metaT.title, enemy: metaT.enemy, need: metaT.need, text: metaT.text,
+          severity: severity, games: pt[0], pairWr: Math.round(pairWrNow * 1000) / 10, threatWr: Math.round(threatWr * 1000) / 10,
+          responses: slimResp });
+      });
+      threatRows.sort(function (a, b) { return b.severity - a.severity || b.games - a.games; });
+      var threatByPair = {};
+      threatRows.slice(0, 2500).forEach(function (r) {
+        var list = threatByPair[r.pair] || (threatByPair[r.pair] = []);
+        if (list.length >= 2) return;
+        list.push({ threatId: r.threatId, title: r.title, enemy: r.enemy, need: r.need, text: r.text,
+          severity: r.severity, responses: r.responses.map(function (x) { return { card: x.card, kind: x.kind }; }) });
+      });
+      await ghWriteJson_(ghSiblingPath_(ghPath, 'card-threat-response-v1.json'),
+        { updated: new Date().toISOString(), version: 1, source: 'latest ranked battlelog pair-vs-threat aggregate + role fit',
+          minPairGames: MIN_THREAT_PAIR_GAMES, minResponseGames: MIN_THREAT_RESPONSE_GAMES,
+          notes: ['UI用に薄くした候補だけを持つ。内部値は載せない。', 'R2/Worker移行後はこの全体JSONをブラウザへ直接渡さない。'],
+          count: threatRows.length, byPairCount: Object.keys(threatByPair).length, byPair: threatByPair },
+        'chore: update card-threat-response-v1.json');
+      await ghWriteJson_(ghSiblingPath_(ghPath, 'card-threat-response-public-v1.json'),
+        { updated: new Date().toISOString(), version: 1, visibility: 'public-display',
+          count: threatRows.length, byPair: publicThreatByPair_(threatRows) },
+        'chore: update card-threat-response-public-v1.json');
+      console.log('card-threat-response ' + threatRows.length + ' rows / byPair ' + Object.keys(threatByPair).length);
     } catch (e2) { console.log('card-pair-synergy error ' + ((e2 && e2.message) || e2)); }
   } catch (e) { console.log('sighist error ' + ((e && e.message) || e)); }
 
@@ -1446,6 +1658,10 @@ async function updateDecks() {
         perspective: 'tracked-player vs opponent card', normalizers: POL_NORM,
         count: Object.keys(byOpponentCard).length, byOpponentCard: byOpponentCard },
       'chore: update pol-card-intel-v1.json');
+    await ghWriteJson_(ghSiblingPath_(ghPath, 'pol-card-intel-public-v1.json'),
+      { updated: new Date().toISOString(), version: 1, visibility: 'public-display', windowDays: WINDOW_DAYS,
+        count: Object.keys(byOpponentCard).length, byOpponentCard: publicPolMap_(byOpponentCard) },
+      'chore: update pol-card-intel-public-v1.json');
     console.log('pol-card-intel ' + Object.keys(byOpponentCard).length + ' cards');
   } catch (e) { console.log('pol-card-intel error ' + ((e && e.message) || e)); }
 
@@ -1562,6 +1778,13 @@ async function updateDecks() {
       { updated: new Date().toISOString(), windowDays: 7, trophyRange: { min: trophyEventMin, max: trophyEventMax },
         count: events.length, duration: triple, byCard: byCard, byBand: byBand },
       'chore: update trophy-band-card-intel-v1.json');
+    var publicBand = {};
+    Object.keys(byBand).forEach(function (bk) { publicBand[bk] = { games: byBand[bk].games, cards: publicPolMap_(byBand[bk].cards) }; });
+    await ghWriteJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-public-v1.json'),
+      { updated: new Date().toISOString(), version: 1, visibility: 'public-display', windowDays: 7,
+        trophyRange: { min: trophyEventMin, max: trophyEventMax }, count: events.length,
+        byCard: publicPolMap_(byCard), byBand: publicBand },
+      'chore: update trophy-band-card-intel-public-v1.json');
     console.log('trophy-events ' + events.length + ' events / cards ' + Object.keys(byCard).length);
   } catch (e) { console.log('trophy-events error ' + ((e && e.message) || e)); }
 
@@ -1617,7 +1840,7 @@ async function updateDecks() {
   };
   if (W7D) windowsOut['7d'] = { players: W7D.players, uniquePlayers: W7D.uniquePlayers, games: W7D.games, decks: W7D.decks, winDecks: W7D.winDecks, trending: W7D.trending, cards: W7D.cards, meta: W7D.meta };
 
-  await ghWriteJson_(ghPath, {
+  var decksPublicOut = {
     updated: new Date().toISOString(),
     source: rankingSource,
     trophyRange: rankingSource === 'trophy' ? { min: trophyMin, max: trophyMax } : null,
@@ -1639,7 +1862,11 @@ async function updateDecks() {
     winMin: WIN_MIN_3D,
     // ★窓別（1h / 1日 / 3日）＝フロントのセレクタで切替。既定は 3d。
     windows: windowsOut
-  }, 'chore: update decks.json');
+  };
+  await ghWriteJson_(ghPath, decksPublicOut, 'chore: update decks.json');
+  await ghWriteJson_(ghSiblingPath_(ghPath, 'decks-public-v1.json'),
+    Object.assign({}, decksPublicOut, { version: 1, visibility: 'public-display' }),
+    'chore: update decks-public-v1.json');
   await ghWriteJson_(histPath, hist, 'chore: update cardhist.json'); // 履歴
 
   console.log('✅ done. players3d=' + players3d + ' decks=' + W3D.decks.length + ' winDecks=' + W3D.winDecks.length);

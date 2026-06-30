@@ -7,6 +7,7 @@ const HANDOFF_ROOT = path.resolve(ROOT, '..');
 const TSV = path.join(HANDOFF_ROOT, 'Fugu', 'WINCON_POLICY_OWNER_CLASSIFIED_2026-06-26.tsv');
 const CARDS_JS = path.join(ROOT, 'js', 'cards-data.js');
 const OUT = path.join(ROOT, 'wincon-policy.json');
+const PUBLIC_OUT = path.join(ROOT, 'wincon-policy-public-v1.json');
 
 const axisByType = {
   mainPressure: ['mainWincon', 'pressure'],
@@ -115,7 +116,26 @@ const output = {
 };
 
 fs.writeFileSync(OUT, JSON.stringify(output, null, 2) + '\n');
+const publicOutput = {
+  schemaVersion: 1,
+  updated: output.updated,
+  version: 1,
+  visibility: 'public-display',
+  cards: Object.fromEntries(Object.entries(policy).map(([name, row]) => [name, {
+    name,
+    cost: row.cost,
+    class: row.class,
+    mainWinconScore: row.mainWinconScore,
+    secondaryWinconScore: row.secondaryWinconScore,
+    finishingScore: row.finishingScore,
+    attackType: row.attackType,
+    axes: row.axes,
+    displayGroup: row.displayGroup,
+  }]))
+};
+fs.writeFileSync(PUBLIC_OUT, JSON.stringify(publicOutput, null, 2) + '\n');
 console.log(`wrote ${path.relative(process.cwd(), OUT)}`);
+console.log(`wrote ${path.relative(process.cwd(), PUBLIC_OUT)}`);
 console.log(JSON.stringify(output.counts, null, 2));
 if (duplicates.length || missingInCards.length) {
   console.error(JSON.stringify(output.validation, null, 2));

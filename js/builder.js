@@ -39,7 +39,7 @@ const ASSIST_DATA_BASE = 'https://raw.githubusercontent.com/rea-fi-lia/clash-roy
 function dataFreshUrl(url) {
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + Date.now();
 }
-const assistData = { wincon: null, potential: null, tags: null, pairs: null, pairExt: null, vectors: null, eval: null, ready: false, tried: false };
+const assistData = { wincon: null, potential: null, tags: null, pairs: null, pairExt: null, threatResp: null, vectors: null, eval: null, ready: false, tried: false };
 
 function saveFavorites() {
   if (window.CRAuth && CRAuth.getUser && CRAuth.getUser()) {
@@ -353,28 +353,33 @@ function normalizeAssistCards(j) {
 function loadAssistJson(name) {
   return fetch(dataFreshUrl(ASSIST_DATA_BASE + name), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
 }
+function loadAssistJsonAny(names) {
+  const list = Array.isArray(names) ? names : [names];
+  return list.reduce((p, name) => p.then(j => j || loadAssistJson(name)), Promise.resolve(null));
+}
 function loadAssistData() {
   if (assistData.tried) return;
   assistData.tried = true;
   Promise.all([
-    loadAssistJson('wincon-policy.json'),
+    loadAssistJson('wincon-policy-public-v1.json'),
     loadAssistJson('card-potential.json'),
     loadAssistJson('card-tags.json'),
-    loadAssistJson('card-pair-synergy-v1.json'),
-    loadAssistJson('card-pair-extension-synergy-v1.json'),
-    loadAssistJson('card-elixir-vectors-v1.json'),
-    loadAssistJson('card-eval.json')
-  ]).then(([wincon, potential, tags, pairs, pairExt, vectors, evalJ]) => {
+    loadAssistJson('card-pair-synergy-public-v1.json'),
+    loadAssistJson('card-pair-extension-synergy-public-v1.json'),
+    loadAssistJson('card-threat-response-public-v1.json'),
+    loadAssistJson('card-elixir-vectors-public-v1.json')
+  ]).then(([wincon, potential, tags, pairs, pairExt, threatResp, vectors]) => {
     assistData.wincon = normalizeAssistCards(wincon);
     assistData.potential = normalizeAssistCards(potential);
     assistData.tags = normalizeAssistCards(tags);
     assistData.pairs = pairs && pairs.byCard ? pairs.byCard : null;
     assistData.pairExt = pairExt && pairExt.byPair ? pairExt.byPair : null;
-    // エリクサー価値ベクトル：監修JSONがあれば最優先。無ければ card-eval.json から同じ式でその場導出。
+    assistData.threatResp = threatResp && threatResp.byPair ? threatResp.byPair : null;
+    // エリクサー価値ベクトル：ブラウザは公開用JSONだけを読む。
     assistData.vectors = normalizeAssistCards(vectors);
-    assistData.eval = (evalJ && evalJ.cards) ? evalJ.cards : null;
+    assistData.eval = null;
     assistVectorCache = {};
-    assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags || assistData.pairs || assistData.pairExt || assistData.vectors || assistData.eval);
+    assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags || assistData.pairs || assistData.pairExt || assistData.threatResp || assistData.vectors || assistData.eval);
     updateAssistPanel();
   }).catch(() => {});
 }
@@ -391,9 +396,9 @@ function assistTags(c) {
 function assistTagHas(c, tag) {
   return assistTags(c).has(tag);
 }
-// ===== エリクサー価値ベクトル（9軸）：監修JSON優先・無ければ card-eval から同式で導出 =====
+// ===== エリクサー価値ベクトル（9軸）：公開用JSON優先 =====
 // 9ベクトル：fire火力 / dur耐久 / clear処理 / ctrl制御 / area範囲 / reach到達 / def防衛 / cycle回転 / flex柔軟。
-// 「1エリクサーで“どんな局面をどれだけ片づけられるか”」を見る。HP/DPSの無い呪文も card-eval 側で価値が入っている。
+// 「1エリクサーで“どんな局面をどれだけ片づけられるか”」を見る。HP/DPSの無い呪文も生成済みベクトル側で扱う。
 const ASSIST_VEC_KEYS = ['fire','dur','clear','ctrl','area','reach','def','cycle','flex'];
 function assistEvalRow(c) {
   if (!assistData.eval) return null;
@@ -402,20 +407,20 @@ function assistEvalRow(c) {
 function assistVector(c) {
   if (!c) return null;
   if (assistVectorCache[c.name]) return assistVectorCache[c.name];
-  // ① 監修JSON（card-elixir-vectors-v1.json）があれば最優先で使う
+  // ① 生成済みJSON（公開用優先）があれば最優先で使う
   const row = assistData.vectors && (assistData.vectors[c.name] || assistData.vectors[c.name + '⚡'] || assistData.vectors[c.name + '👑']);
   let vec = null;
   if (row && typeof row === 'object') {
     vec = { fire: +row.fire||0, dur: +row.dur||0, clear: +row.clear||0, ctrl: +row.ctrl||0, area: +row.area||0,
             reach: +row.reach||0, def: +row.def||0, cycle: +row.cycle||0, flex: +row.flex||0, sub: row.sub || {} };
   } else {
-    // ② 無ければ card-eval.json からその場導出（GASの elixirVectorDraft_ と同じ式）
+    // ② 無ければローカル情報だけで控えめに導出（公開用JSON生成までの保険）
     vec = deriveElixirVector(c);
   }
   if (vec) assistVectorCache[c.name] = vec;
   return vec;
 }
-// card-eval(17項目0-10)＋タグ＋コストから9ベクトル＋subを導出。GAS elixirVectorDraft_ と式をそろえる。
+// タグ＋コスト＋必要なら評価行から9ベクトル＋subを導出。GAS elixirVectorDraft_ と式をそろえる。
 function deriveElixirVector(c) {
   const e = assistEvalRow(c);
   const tags = assistTags(c);
@@ -832,7 +837,8 @@ function assistPotentialFit(c, info) {
 function assistPairRows(c, info) {
   if (!assistData.pairs || !c || !info || !info.names) return [];
   const rows = assistData.pairs[c.name] || [];
-  return rows.filter(r => info.names.has(r.other) && r.kind !== 'utilityOrCommon');
+  return rows.filter(r => info.names.has(r.other) && r.kind !== 'utilityOrCommon')
+    .map(r => Object.assign({}, r, { score: Number(r.fit != null ? r.fit : r.score) || 0 }));
 }
 function assistPairFit(c, info) {
   const rows = assistPairRows(c, info);
@@ -857,7 +863,9 @@ function assistPairExtensionRows(c, info) {
     const key = assistPairKey(a, b);
     const rows = assistData.pairExt[key] || [];
     rows.forEach(r => {
-      if (r && r.card === c.name && !['templateExtension', 'provisional'].includes(r.kind)) out.push(Object.assign({ a, b }, r));
+      if (r && r.card === c.name && !['templateExtension', 'provisional'].includes(r.kind)) {
+        out.push(Object.assign({}, r, { a, b, score: Number(r.fit != null ? r.fit : r.score) || 0 }));
+      }
     });
   }
   return out;
@@ -884,7 +892,7 @@ function assistWinconBonus(c, kind, info) {
   if (kind === 'discovery') score += (w.secondaryWinconScore || 0) * 3 + (w.finishingScore || 0) * 1.5;
   if (kind === 'stable' && w.class === '防衛札') score += 30;
   if (w.class === 'サイクル札' && (info.avg >= 3.8 || info.cards.length >= 4)) score += 14;
-  if (!w.ownerReviewed) score -= 6;
+  if (w.ownerReviewed === false) score -= 6;
   return score;
 }
 // 主勝ち筋の「型」が次に欲しがる性質を返す（natural候補の方向付け）。
@@ -1166,6 +1174,40 @@ function assistKindLabel(kind) {
 function assistKindIcon(kind) {
   return kind === 'natural' ? '🌱' : kind === 'stable' ? '🛡' : '✨';
 }
+function assistThreatDataRows(info) {
+  if (!assistData.threatResp || !info || !info.cards || info.cards.length < 2) return [];
+  const byThreat = {};
+  for (let i = 0; i < info.cards.length; i++) for (let j = i + 1; j < info.cards.length; j++) {
+    const key = assistPairKey(info.cards[i].name, info.cards[j].name);
+    const rows = assistData.threatResp[key] || [];
+    rows.forEach(r => {
+      if (!r || !r.threatId) return;
+      const responses = (r.responses || []).map((x, idx) => {
+        const card = CARDS.find(c => c.name === x.card);
+        if (!card || !assistLegal(card, info)) return null;
+        return { card, score: Number(x.fit || x.score || (100 - idx)), kind: x.kind || '' };
+      }).filter(Boolean).sort((a, b) => b.score - a.score).slice(0, 3);
+      if (!responses.length) return;
+      const severity = Number(r.level != null ? r.level : r.severity) || 0;
+      const cur = byThreat[r.threatId];
+      if (!cur || severity > cur.severity) {
+        byThreat[r.threatId] = {
+          id: r.threatId,
+          title: r.title || '苦しい相手',
+          severity,
+          text: r.text || '今の形だと受けをもう少し作りたい相手です。',
+          need: r.need || '受ける1枚',
+          responses,
+          source: 'threatResp'
+        };
+      } else {
+        const seen = new Set(cur.responses.map(x => x.card.name));
+        responses.forEach(x => { if (!seen.has(x.card.name) && cur.responses.length < 3) cur.responses.push(x); });
+      }
+    });
+  }
+  return Object.values(byThreat).sort((a, b) => b.severity - a.severity).slice(0, 2);
+}
 function assistThreatScore(c, threat, info) {
   if (!assistLegal(c, info)) return -999;
   let score = 0;
@@ -1208,6 +1250,8 @@ function assistThreatScore(c, threat, info) {
 }
 function assistThreatRows(info) {
   if (!info || info.cards.length < 2) return [];
+  const dataRows = assistThreatDataRows(info);
+  if (dataRows.length) return dataRows;
   const rows = [];
   function add(id, title, severity, text, need) {
     if (severity <= 0) return;
