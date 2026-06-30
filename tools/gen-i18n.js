@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
  * 海外SEO用：言語別の静的ページを生成する（依存ゼロ・純Node）。
- *  - 各言語フォルダ /<lang>/ に index/decks/strategy を出力
+ *  - 各言語フォルダ /<lang>/ に index/decks/strategy などを出力
  *  - 各ページに その言語の <title>/<meta>/og:locale、<html lang>、hreflang一式、自己canonical
  *  - css/js 等の相対アセットはルート絶対(/css /js)へ書換（サブフォルダでも壊れない）
  *  - ルート(ja)ページにも hreflang を注入、sitemap.xml を全URL+alternateで再生成
@@ -16,10 +16,14 @@ const BASE = 'https://crdeckbuilders.com';
 
 const TARGETS = ['en', 'es', 'pt-br', 'fr', 'de', 'ru', 'ko', 'zh-cn', 'ar', 'tr', 'it', 'id', 'th', 'vi', 'zh-tw', 'fa', 'nl'];
 const ALL = ['ja'].concat(TARGETS);
+// AdSense審査中は、日本語ページだけをindex/広告対象にする。
+// 18言語広告化へ戻すときは REVIEW_MODE を false にし、各言語本文を厚くしてから再生成する。
+const REVIEW_MODE = true;
+const INDEX_LANGS = REVIEW_MODE ? ['ja'] : ALL;
 const HTMLLANG = { ja: 'ja', en: 'en', es: 'es', 'pt-br': 'pt-BR', fr: 'fr', de: 'de', ru: 'ru', ko: 'ko', 'zh-cn': 'zh-CN', ar: 'ar', tr: 'tr', it: 'it', id: 'id', th: 'th', vi: 'vi', 'zh-tw': 'zh-TW', fa: 'fa', nl: 'nl' };
 const HREFLANG = HTMLLANG;
 const LOCALE = { ja: 'ja_JP', en: 'en_US', es: 'es_ES', 'pt-br': 'pt_BR', fr: 'fr_FR', de: 'de_DE', ru: 'ru_RU', ko: 'ko_KR', 'zh-cn': 'zh_CN', ar: 'ar_AR', tr: 'tr_TR', it: 'it_IT', id: 'id_ID', th: 'th_TH', vi: 'vi_VN', 'zh-tw': 'zh_TW', fa: 'fa_IR', nl: 'nl_NL' };
-const PAGES = ['index.html', 'decks.html', 'strategy.html'];
+const PAGES = ['index.html', 'decks.html', 'strategy.html', 'guide.html', 'about.html', 'faq.html', 'glossary.html'];
 const UTIL = ['support.html', 'contact.html', 'privacy.html'].filter(p => fs.existsSync(path.join(ROOT, p)));
 const GEN = PAGES.concat(UTIL); // 生成対象。UTILはSEO文字列なし＝metaは日本語のまま、lang/hreflang/canonical/assetは付与（404回避＋言語内に留まる）
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -90,9 +94,9 @@ function pageUrl(lang, page) {
   const file = page === 'index.html' ? '/' : '/' + page;
   return BASE + prefix + file;
 }
-function hreflangBlock(page) {
+function hreflangBlock(page, langs = INDEX_LANGS) {
   let s = '<!--HREFLANG-->\n';
-  ALL.forEach(l => { s += '<link rel="alternate" hreflang="' + HREFLANG[l] + '" href="' + pageUrl(l, page) + '">\n'; });
+  langs.forEach(l => { s += '<link rel="alternate" hreflang="' + HREFLANG[l] + '" href="' + pageUrl(l, page) + '">\n'; });
   s += '<link rel="alternate" hreflang="x-default" href="' + pageUrl('ja', page) + '">\n';
   s += '<!--/HREFLANG-->';
   return s;
@@ -107,6 +111,12 @@ function setMeta(html, key, v) {
   const esc = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const re = new RegExp('(<meta\\s+(?:name|property)="' + esc + '"\\s+content=")[^"]*(")', 'i');
   return html.replace(re, (m, a, b) => a + v + b);
+}
+function setRobots(html, v) {
+  if (/<meta\s+name="robots"\s+content="[^"]*"\s*>/i.test(html)) {
+    return html.replace(/(<meta\s+name="robots"\s+content=")[^"]*("\s*>)/i, (m, a, b) => a + v + b);
+  }
+  return html.replace(/<meta\s+name="viewport"[^>]*>/i, m => m + '\n<meta name="robots" content="' + v + '">');
 }
 function setCanonical(html, url) { return html.replace(/(<link rel="canonical" href=")[^"]*(">)/i, (m, a, b) => a + url + b); }
 function absolutizeAssets(html) {
@@ -134,6 +144,9 @@ const ADSENSE_SNIPPET = '<!-- Google AdSense -->\n'
 function injectAdSense(html) {
   if (html.indexOf(ADSENSE_CLIENT) !== -1) return html;
   return html.replace(/<head>/i, '<head>\n' + ADSENSE_SNIPPET);
+}
+function stripAdSense(html) {
+  return html.replace(new RegExp('\\s*<!-- Google AdSense -->\\n<script async src="https://pagead2\\.googlesyndication\\.com/pagead/js/adsbygoogle\\.js\\?client=' + ADSENSE_CLIENT + '" crossorigin="anonymous"><\\/script>', 'g'), '');
 }
 
 // ── ライト/ダークテーマ。全ページの <head> 先頭に「localStorage→html.light適用script（描画前＝チラつき無し）」＋「html.light上書きstyle」を注入。
@@ -208,6 +221,7 @@ function injectUnpin(html) {
 
 function buildLangPage(srcHtml, lang, page) {
   const seo = (SEO[page] && SEO[page][lang]) || null;
+  const shouldIndex = INDEX_LANGS.includes(lang);
   let h = stripHreflang(srcHtml);
   h = h.replace(/<html lang="ja">/, '<html lang="' + HTMLLANG[lang] + '">');
   h = absolutizeAssets(h);
@@ -223,21 +237,23 @@ function buildLangPage(srcHtml, lang, page) {
   }
   h = setMeta(h, 'og:locale', LOCALE[lang]);
   h = setMeta(h, 'og:url', url);
+  h = setRobots(h, shouldIndex ? 'index,follow' : 'noindex,follow');
   h = setCanonical(h, url);
-  h = h.replace(/<\/head>/i, hreflangBlock(page) + '\n</head>');
-  h = injectUnpin(injectVT(injectTheme(injectGA(injectAdSense(h)))));
+  if (shouldIndex) h = h.replace(/<\/head>/i, hreflangBlock(page) + '\n</head>');
+  h = injectUnpin(injectVT(injectTheme(injectGA(h))));
+  h = shouldIndex ? injectAdSense(h) : stripAdSense(h);
   return h;
 }
 
 function writeSitemap() {
   let out = '<?xml version="1.0" encoding="UTF-8"?>\n';
   out += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n';
-  const cf = { 'index.html': 'weekly', 'decks.html': 'daily', 'strategy.html': 'monthly' };
-  const pr = { 'index.html': '1.0', 'decks.html': '0.9', 'strategy.html': '0.7' };
+  const cf = { 'index.html': 'weekly', 'decks.html': 'daily', 'strategy.html': 'monthly', 'guide.html': 'monthly', 'about.html': 'yearly', 'faq.html': 'monthly', 'glossary.html': 'monthly' };
+  const pr = { 'index.html': '1.0', 'decks.html': '0.9', 'strategy.html': '0.7', 'guide.html': '0.85', 'about.html': '0.65', 'faq.html': '0.7', 'glossary.html': '0.7' };
   GEN.forEach(page => {
-    ALL.forEach(lang => {
+    INDEX_LANGS.forEach(lang => {
       out += '  <url>\n    <loc>' + pageUrl(lang, page) + '</loc>\n';
-      ALL.forEach(l => { out += '    <xhtml:link rel="alternate" hreflang="' + HREFLANG[l] + '" href="' + pageUrl(l, page) + '"/>\n'; });
+      INDEX_LANGS.forEach(l => { out += '    <xhtml:link rel="alternate" hreflang="' + HREFLANG[l] + '" href="' + pageUrl(l, page) + '"/>\n'; });
       out += '    <xhtml:link rel="alternate" hreflang="x-default" href="' + pageUrl('ja', page) + '"/>\n';
       out += '    <lastmod>' + TODAY + '</lastmod>\n    <changefreq>' + (cf[page] || 'monthly') + '</changefreq>\n    <priority>' + (pr[page] || '0.4') + '</priority>\n  </url>\n';
     });
@@ -255,8 +271,13 @@ function main() {
     fs.mkdirSync(dir, { recursive: true });
     GEN.forEach(p => { fs.writeFileSync(path.join(dir, p), buildLangPage(src[p], lang, p)); n++; });
   });
-  GEN.forEach(p => { fs.writeFileSync(path.join(ROOT, p), injectUnpin(injectVT(injectTheme(injectGA(injectAdSense(injectHreflang(src[p], p))))))); });
+  GEN.forEach(p => {
+    let h = injectHreflang(src[p], p);
+    h = setRobots(h, 'index,follow');
+    h = injectUnpin(injectVT(injectTheme(injectGA(injectAdSense(h)))));
+    fs.writeFileSync(path.join(ROOT, p), h);
+  });
   writeSitemap();
-  console.log('generated ' + n + ' lang pages (' + GEN.join(',') + ') for [' + TARGETS.join(', ') + '] + hreflang + sitemap');
+  console.log('generated ' + n + ' lang pages (' + GEN.join(',') + ') for [' + TARGETS.join(', ') + '] + hreflang + sitemap; index langs=[' + INDEX_LANGS.join(', ') + '], reviewMode=' + REVIEW_MODE);
 }
 main();

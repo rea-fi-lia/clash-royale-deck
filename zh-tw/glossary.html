@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<script>(function(){try{if(localStorage.getItem('cr_theme')==='light')document.documentElement.classList.add('light');}catch(e){}})();</script>
+<style>html.light{--bg:#f4f5f7;--surface:#ffffff;--surface2:#eef1f5;--border:rgba(0,0,0,.10);--border-hi:rgba(0,0,0,.22);--text:#1a1d24;--text-muted:#5c6270;--text-dim:#aeb4c0;--accent:#d6900f;--accent2:#b67a12;--red:#d83a3a;--evo:#7c4dff;--hero:#d6900f;--dim:#5c6270;--gold:#b67a12}</style>
+<!-- Google Analytics (GA4) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-N19CVY3C3K"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-N19CVY3C3K');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>クラロワ デッキ用語集｜勝ち筋・シナジー・対策札</title>
+<meta name="description" content="クラロワのデッキ作成で使う用語集。勝ち筋、シナジー、3枚目候補、対策札、平均コスト、回転、対空、小物処理、建物受けなどをわかりやすく説明します。">
+<meta name="robots" content="noindex,follow">
+<link rel="canonical" href="https://crdeckbuilders.com/zh-tw/glossary.html">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/content.css?v=260708">
+<!-- CRVT --><style>@view-transition{navigation:auto}@keyframes cr-ol{to{transform:translateX(-26%);opacity:.5}}@keyframes cr-ir{from{transform:translateX(100%)}}@keyframes cr-or{to{transform:translateX(26%);opacity:.5}}@keyframes cr-il{from{transform:translateX(-100%)}}@media(max-width:768px){html:active-view-transition-type(crf)::view-transition-old(root){animation:cr-ol .26s ease both}html:active-view-transition-type(crf)::view-transition-new(root){animation:cr-ir .26s ease both}html:active-view-transition-type(crb)::view-transition-old(root){animation:cr-or .26s ease both}html:active-view-transition-type(crb)::view-transition-new(root){animation:cr-il .26s ease both}}</style><script>(function(){if(!("startViewTransition"in document)||!window.navigation)return;function ty(a){try{if(!a||!a.from)return null;var f=new URL(a.from.url).pathname,o=new URL(a.entry.url).pathname;var S=function(p){return p.indexOf("strategy.html")>-1};var I=function(p){return p.charAt(p.length-1)==="/"||p.indexOf("index.html")>-1};if(I(f)&&S(o))return"crf";if(S(f)&&I(o))return"crb"}catch(e){}return null}addEventListener("pageswap",function(e){if(e.viewTransition){var t=ty(e.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}});addEventListener("pagereveal",function(e){if(e.viewTransition){var t=ty(navigation.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}})})();</script>
+<!-- CRPIN -->
+<script>(function(){try{if(localStorage.getItem('cr_pin')==='off')document.documentElement.classList.add('nopin');}catch(e){}})();</script>
+<style>html.nopin .sitebar,html.nopin header,html.nopin .mm-sticky,html.nopin #diagResult.tab-sim .dg-deckbar{position:static!important}html.nopin{height:auto!important;overflow:visible!important}html.nopin body{position:static!important;inset:auto!important;height:auto!important;min-height:100vh;overflow:visible!important;overflow-y:visible!important;display:block!important}html.nopin .app{display:block!important;flex:none!important;height:auto!important;min-height:0!important;overflow:visible!important}html.nopin .left,html.nopin .right{flex:none!important;height:auto!important;max-height:none!important;overflow:visible!important;touch-action:auto!important}html.nopin .card-list,html.nopin .deck-slots{overflow:visible!important;height:auto!important;max-height:none!important;flex:none!important}@media (max-width:720px){html.nopin body.cr-builder{position:fixed!important;inset:0!important;height:auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}html.nopin .app{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;height:auto!important;min-height:0!important;overflow:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}html.nopin .right{flex:0 0 auto!important;overflow:visible!important;touch-action:auto!important}html.nopin .left{flex:0 0 auto!important;height:auto!important;overflow:visible!important}html.nopin .card-list,html.nopin .deck-slots{overflow:visible!important;height:auto!important;max-height:none!important;flex:none!important}html.nopin body.cr-builder .footer-signature{flex:0 0 auto!important}}.bar-pin-btn{cursor:pointer}.nav-icon{color:var(--text)!important;border:1px solid var(--border-hi)!important;background:var(--surface2)!important;box-shadow:0 1px 2px rgba(0,0,0,.22)!important;width:36px!important;height:36px!important}.nav-icon .nav-emoji svg{stroke-width:2.1}.nav-icon.active{color:var(--accent)!important;border-color:var(--accent)!important;background:rgba(232,160,32,.16)!important;box-shadow:0 0 0 1px rgba(232,160,32,.35),0 0 10px -2px rgba(232,160,32,.55)!important}@media(hover:hover){.nav-icon:hover{color:var(--accent)!important;border-color:var(--accent)!important;background:var(--surface)!important;transform:translateY(-1px)}}.bar-pin-btn{color:var(--accent)!important;border-color:rgba(232,160,32,.5)!important;background:rgba(232,160,32,.12)!important}.bar-pin-btn.off{opacity:1!important;color:var(--text-muted)!important;border-color:var(--border-hi)!important;background:var(--surface2)!important}@media(max-width:720px){.nav-icon{width:34px!important;height:34px!important}}</style>
+<script>document.addEventListener('DOMContentLoaded',function(){var ja=(document.documentElement.lang||'ja').slice(0,2)==='ja';var P='<span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9A2 2 0 0 1 15 10.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span>';var rows=document.querySelectorAll('.nav-icons');for(var i=0;i<rows.length;i++){(function(row){if(row.querySelector('.bar-pin-btn'))return;var b=document.createElement('button');b.type='button';b.className='nav-icon bar-pin-btn';b.innerHTML=P;function paint(){var off=document.documentElement.classList.contains('nopin');b.classList.toggle('off',off);b.title=off?(ja?'固定する':'Pin layout'):(ja?'固定を解除':'Unpin layout');b.setAttribute('aria-pressed',off?'false':'true');}b.addEventListener('click',function(){var off=!document.documentElement.classList.contains('nopin');document.documentElement.classList.toggle('nopin',off);try{localStorage.setItem('cr_pin',off?'off':'on');}catch(e){}paint();});paint();row.insertBefore(b,row.firstChild);})(rows[i]);}});</script>
+<!-- /CRPIN -->
+</head>
+<body>
+<div class="sitebar"><header><a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>クラロワデッキ作成・診断ツール</span></div></a><nav class="nav-icons" aria-label="主要ページ"><a class="nav-icon" href="index.html" title="デッキ作成"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 8.5v7M8.5 12h7"/></svg></span></a><a class="nav-icon" href="decks.html" title="人気デッキ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5a1.5 1.5 0 0 0 0 3H7M17 6h2.5a1.5 1.5 0 0 1 0 3H17M9.5 17h5M10 21h4M12 14v3"/></svg></span></a><a class="nav-icon" href="guide.html" title="使い方ガイド"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H7a3 3 0 0 0-3 3V5.5z"/><path d="M8 7h8M8 11h7M8 15h5"/></svg></span></a><a class="nav-icon" href="support.html" title="支援"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.7S3.5 15.4 3.5 9.3A4.3 4.3 0 0 1 12 6.6 4.3 4.3 0 0 1 20.5 9.3c0 6.1-8.5 11.4-8.5 11.4z"/></svg></span></a><a class="nav-icon" href="contact.html" title="お問い合わせ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></span></a></nav></header></div>
+
+<main class="content-shell">
+  <section class="hero">
+    <div class="eyebrow">Glossary</div>
+    <h1>クラロワ デッキ作成用語集</h1>
+    <p class="lead">デッキを組むときに出てくる言葉を、実戦でどう使うかに寄せてまとめました。用語を覚えるためではなく、自分のデッキの穴や強みを言葉にするためのページです。</p>
+    <div class="hero-actions"><a class="btn primary" href="guide.html">デッキ作成ガイドへ</a><a class="btn" href="index.html">デッキを組む</a></div>
+  </section>
+
+  <section class="section">
+    <h2>基本の考え方</h2>
+    <h3>勝ち筋</h3>
+    <p>タワーへダメージを通す中心カードや攻め方です。ホグライダーで何度も削る、大型ユニットで押し切る、空中から形を作るなど、デッキの方向を決めます。</p>
+    <h3>シナジー</h3>
+    <p>カード同士の役割がつながることです。片方が相手の防衛を引き出し、もう片方がそこを処理する、守ったカードがそのまま攻めに変わる、といった形があります。</p>
+    <h3>2枚の形</h3>
+    <p>最初に見える小さなデッキの意図です。勝ち筋＋呪文、防衛カード＋カウンター、盾役＋後衛など、2枚で何をしたいかを決めると次の候補が絞れます。</p>
+    <h3>3枚目候補</h3>
+    <p>2枚の形に足すことで、攻めや守りを進めやすくするカードです。固定の3枚セットではなく、組みかけの意図を助ける1枚として考えます。</p>
+  </section>
+
+  <section class="section">
+    <h2>守りと対策の言葉</h2>
+    <h3>対策札</h3>
+    <p>苦しい相手を受けるために入れるカードです。ただ止めるだけでなく、守った後に攻めへつなげられるとデッキ全体が強くなります。</p>
+    <h3>対空</h3>
+    <p>空中ユニットを処理する力です。空中大型やバルーンが重い場合、対空ユニット、建物、呪文のどれで受けるかを考えます。</p>
+    <h3>小物処理</h3>
+    <p>スケルトン、ゴブリン、コウモリなどを素早く処理する力です。小型呪文、範囲攻撃、低コストユニットが不足すると、勝ち筋が止まりやすくなります。</p>
+    <h3>タンク受け</h3>
+    <p>ジャイアントやゴーレムなど、体力の高いユニットを受ける力です。建物、高火力ユニット、引きつけ役、呪文を組み合わせて考えます。</p>
+    <h3>建物受け</h3>
+    <p>相手の勝ち筋を中央へ引きつけ、タワーと一緒に処理する考え方です。ホグライダーやロイヤルジャイアントのような攻めを止めるときに重要です。</p>
+  </section>
+
+  <section class="section">
+    <h2>デッキの使用感</h2>
+    <h3>平均コスト</h3>
+    <p>8枚のエリクサーコストの平均です。軽いほど回しやすく、重いほど一回の攻めが大きくなりやすいですが、カードの役割によって体感は変わります。</p>
+    <h3>回転</h3>
+    <p>必要なカードを手札に戻す速さです。軽いカードが多いと同じ勝ち筋を何度も出しやすくなりますが、守りが薄くならないよう注意が必要です。</p>
+    <h3>カウンター</h3>
+    <p>守りで残ったカードを使って、そのまま攻めに変えることです。守り専用のカードばかりだと攻めが細くなり、カウンターが作れると相手に圧をかけやすくなります。</p>
+    <h3>環境</h3>
+    <p>その時期によく使われるデッキやカードの流れです。環境で多い相手を意識すると、対策札や呪文の選び方が変わります。</p>
+  </section>
+
+  <section class="section">
+    <h2>次に読むページ</h2>
+    <div class="page-links"><a href="guide.html">デッキ作成ガイド</a><a href="faq.html">よくある質問</a><a href="decks.html">人気デッキ</a><a href="strategy.html">デッキ分析</a></div>
+  </section>
+</main>
+
+<div class="footer-signature"><span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span></div>
+<script defer src="/i18n.js?v=260708"></script>
+</body>
+</html>
