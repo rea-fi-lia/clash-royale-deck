@@ -434,16 +434,17 @@ function deriveElixirVector(c) {
   const wall = ev('壁性能'), spellRes = ev('呪文耐性');
   const towerDmg = ev('タワーダメージ力'), towerFin = ev('タワーダメージ決定力'), bldDmg = ev('施設破壊力'), bldBreak = ev('施設突破力');
   const solo = ev('素出し適正'), ph1 = ev('序盤適性(エリクサー1倍)'), ph2 = ev('中盤適性(エリクサー2倍)'), ph3 = ev('中盤適性(エリクサー3倍)');
+  const rangePress = ev('射程圧'), tempoPress = ev('手数圧'), rageFit = ev('レイジ適性');
   const cheap = (7 - cost) / 6 * 10;
-  const fire = cl(0.42 * towerDmg + 0.33 * towerFin + 0.25 * bldDmg);
+  const fire = cl(0.38 * towerDmg + 0.30 * towerFin + 0.22 * bldDmg + 0.10 * tempoPress);
   const dur = cl(0.62 * wall + 0.38 * spellRes);
-  const clear = cl(0.24 * tankProc + 0.18 * midProc + 0.18 * airSingle + 0.24 * grdSwarm + 0.16 * airSwarm);
+  const clear = cl(0.23 * tankProc + 0.17 * midProc + 0.17 * airSingle + 0.22 * grdSwarm + 0.15 * airSwarm + 0.06 * tempoPress);
   const ctrl = cl((has('stun') ? 3.4 : 0) + (has('stop') ? 3.8 : 0) + (has('slow') ? 2.6 : 0) + (has('knockback') ? 2.4 : 0) + (has('pull') ? 3.2 : 0));
   const area = splash ? cl(Math.max(6, Math.max(grdSwarm, airSwarm))) : cl(0.5 * Math.max(grdSwarm, airSwarm));
-  const reach = cl(0.45 * bldBreak + (canAir ? 2.5 : 0) + reachHint + rangeHint);
-  const def = cl(0.36 * wall + 0.30 * Math.max(airSingle, airSwarm) + 0.24 * Math.max(tankProc, midProc) + (defBld ? 2.5 : 0) + (minitank ? 1 : 0));
+  const reach = cl(0.40 * bldBreak + 0.18 * rangePress + (canAir ? 2.2 : 0) + reachHint + rangeHint);
+  const def = cl(0.34 * wall + 0.28 * Math.max(airSingle, airSwarm) + 0.23 * Math.max(tankProc, midProc) + 0.08 * rangePress + (defBld ? 2.5 : 0) + (minitank ? 1 : 0));
   const cycle = cl(cheap);
-  const flex = cl(0.32 * solo + 0.28 * ((ph1 + ph2 + ph3) / 3) + (canAir ? 2.2 : 0) + 0.15 * clear);
+  const flex = cl(0.28 * solo + 0.24 * ((ph1 + ph2 + ph3) / 3) + (canAir ? 2.0 : 0) + 0.13 * clear + 0.13 * rangePress + 0.12 * tempoPress + 0.10 * rageFit);
   const tagCtl = on => on ? cl(5 + (7 - cost) / 6 * 5) : 0;
   const sub = {
     small: cl(Math.max(grdSwarm, airSwarm)), mid: cl(midProc), swarm: cl(grdSwarm),
@@ -452,7 +453,8 @@ function deriveElixirVector(c) {
     antiAir: cl(Math.max(airSingle, airSwarm)),
     bigBlock: cl(0.6 * wall + 0.4 * Math.max(tankProc, midProc)),
     fastBlock: cl((7 - cost) / 6 * 6 + 0.4 * Math.max(tankProc, midProc) + (defBld ? 2 : 0)),
-    bldBlock: defBld ? cl(6 + 0.4 * wall) : 0
+    bldBlock: defBld ? cl(6 + 0.4 * wall) : 0,
+    range: cl(rangePress), tempo: cl(tempoPress), rage: cl(rageFit)
   };
   return { fire, dur, clear, ctrl, area, reach, def, cycle, flex, sub };
 }
@@ -484,11 +486,20 @@ function assistCycleValueInContext(c, info) {
 // 4枚目以降の「方向」チップに対する適合度（0-10ベース）。方向＝攻撃強化/防衛強化/回転力強化。
 function assistDirectionScore(c, dir, info) {
   if (!dir) return 0;
+  const v = assistVector(c);
+  const sub = (v && v.sub) ? v.sub : {};
   if (dir === 'attack') {
-    return Math.max(assistVecVal(c, 'fire'), 0.7 * assistVecVal(c, 'reach') + 0.3 * assistVecVal(c, 'fire'));
+    const fire = assistVecVal(c, 'fire');
+    const reach = assistVecVal(c, 'reach');
+    const pressure = 0.42 * fire + 0.24 * reach + 0.14 * (+sub.range || 0) + 0.12 * (+sub.tempo || 0) + 0.08 * (+sub.rage || 0);
+    return Math.max(fire, 0.7 * reach + 0.3 * fire, pressure);
   }
   if (dir === 'defense') {
-    return Math.max(assistVecVal(c, 'def'), 0.6 * assistVecVal(c, 'clear') + 0.4 * assistVecVal(c, 'dur'));
+    const def = assistVecVal(c, 'def');
+    const clear = assistVecVal(c, 'clear');
+    const dur = assistVecVal(c, 'dur');
+    const cover = 0.38 * def + 0.20 * clear + 0.12 * dur + 0.10 * Math.max(+sub.antiAir || 0, +sub.tank || 0) + 0.10 * Math.max(+sub.bigBlock || 0, +sub.fastBlock || 0) + 0.10 * (+sub.range || 0);
+    return Math.max(def, 0.6 * clear + 0.4 * dur, cover);
   }
   if (dir === 'cycle') {
     let s = assistCycleValueInContext(c, info);
@@ -512,6 +523,9 @@ function assistDirectionReason(c, dir, info) {
   if (!v) return '';
   const sub = v.sub || {};
   if (dir === 'attack') {
+    if (sub.range >= 7 && v.reach >= 6) return '射程を活かして、攻めを前に通しやすくします。';
+    if (sub.tempo >= 7 && v.fire >= 5) return '手数を足して、相手の受けを追い込みやすくします。';
+    if (sub.rage >= 7 && v.fire >= 5) return '速度を乗せた時の伸びが大きく、攻め切る力を足せます。';
     if (v.reach >= 6 && v.fire >= 6) return 'タワーまで届きやすく、押し込む圧を足せます。';
     if (sub.bldBlock < 1 && v.fire >= 7) return 'タワーを大きく削れて、攻めの決定力が上がります。';
     if (v.fire >= 6) return 'タワーを削る力を足して、攻めの圧を上げられます。';
@@ -521,6 +535,8 @@ function assistDirectionReason(c, dir, info) {
   }
   if (dir === 'defense') {
     if (sub.antiAir >= 6 && (info.air.length < 2)) return '空中の攻めにも受けを作れて、守りが安定します。';
+    if (sub.range >= 7 && v.def >= 5) return '少し後ろから受けを作れて、守りを崩されにくくします。';
+    if (sub.tempo >= 7 && (sub.tank >= 5 || v.clear >= 5)) return '細かい手数で処理を進めやすく、受けが安定します。';
     if (v.ctrl >= 5) return '相手を止めて時間を作り、受けを立て直しやすくします。';
     if (sub.swarm >= 6 || sub.small >= 6) return '群れや小物をまとめてさばける受けになります。';
     if (sub.tank >= 6) return '大型を前に置かれても溶かしやすくなります。';
@@ -1019,6 +1035,11 @@ function assistBadges(c, info) {
   if (p && p.solo === '◎') badges.push('単体でも動ける');
   const bp = info ? assistBestPair(c, info) : null;
   if (bp && (bp.score || 0) >= 12) badges.push('合わせやすい: ' + bp.other);
+  const v = info ? assistVector(c) : null;
+  const sub = v && v.sub ? v.sub : {};
+  if ((+sub.range || 0) >= 7) badges.push('射程で圧');
+  if ((+sub.tempo || 0) >= 7) badges.push('手数あり');
+  if ((+sub.rage || 0) >= 7 && (assistHas(c, ['レイジ','デスレイジ','バフ']) || assistTagHas(c, 'ramp') || c.type === 'building')) badges.push('速度で伸びる');
   if (tags.has('air')) badges.push('対空');
   if (tags.has('splash')) badges.push('範囲');
   if (tags.has('tankKiller')) badges.push('高火力');
@@ -1199,7 +1220,6 @@ function updateAssistPanel() {
       + detail + '</span>'
       + '<span class="ac-add">＋</span></div>';
   }).join('') + '</div>' : '<div class="assist-empty">まず使いたいカードを1枚選ぶと、次の候補を出せます。</div>';
-  const dataState = assistData.ready ? 'データ反映' : '簡易提案';
   const pAxes = info.personaAxes;
   const pSum = pAxes ? personaSummary(pAxes) : '';
   const costState = info.cards.length ? '平均' + info.avg.toFixed(1) + ' / 回転' + info.cycleAvg.toFixed(1) : 'コスト未定';
@@ -1211,7 +1231,7 @@ function updateAssistPanel() {
   const actionMain = activeChunk === 'threats'
     ? '<button class="assist-mini" id="assistBackCards" type="button">候補へ戻る</button>'
     : '<button class="assist-mini" id="assistRefresh" type="button">別候補</button>';
-  panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の1枚<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + esc(costState) + ' / ' + dataState + '</div></div>'
+  panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の1枚<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + esc(costState) + '</div></div>'
     + personaLine
     + assistChunkTabs(info)
     + chunkHtml

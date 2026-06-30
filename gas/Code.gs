@@ -719,14 +719,15 @@ function createTriggers() {
  * v1の exportTagSheet は旧シート1用にそのまま残置。今後はこちらを実行する。 */
 function exportTagSheetV2() {
   var id = PropertiesService.getScriptProperties().getProperty('TAG_SHEET_ID') || '1cjX3ptT0g0qjfwhoTBKbzRfXGZUNGLy_jspMSRCDPyU';
-  var sh = SpreadsheetApp.openById(id).getSheetByName('タグ表v2');
-  if (!sh) throw new Error('シート「タグ表v2」が見つかりません');
+  var ss = SpreadsheetApp.openById(id);
+  var sh = ss.getSheetByName('タグ表v2') || ss.getSheetByName('タグ');
+  if (!sh) throw new Error('シート「タグ表v2」または「タグ」が見つかりません');
   var vals = sh.getDataRange().getValues();
   var head = vals[0].map(function(h){ return String(h).trim(); });
   var KEY = {
-    'タゲ取り:高HP':'tgHp','タゲ取り:振り向き':'tgKite','タゲ取り:建物':'tgBuilding',
-    'タンク':'tank','中型タンク':'minitank','橋前スパム':'bridgeSpam','群れ':'swarm',
-    'タンクキラー':'tankKiller','防衛建物':'defBuilding','呪文釣り':'spellBait',
+    'タゲ取り:高HP':'tgHp','タゲ取り:振り向き':'tgKite','タゲ取り:建物':'tgBuilding','タゲ取り:施設':'tgBuilding',
+    'タンク':'tank','中型タンク':'minitank','橋前スパム':'bridgeSpam','橋前特攻':'bridgeSpam','群れ':'swarm',
+    'タンクキラー':'tankKiller','防衛建物':'defBuilding','防衛施設':'defBuilding','呪文釣り':'spellBait','呪文枯渇':'spellBait',
     'ユニット生成':'spawner','エリクサー生成':'collector','スタン':'stun',
     '凍結・停止':'stop','減速':'slow','ノックバック':'knockback','引き寄せ':'pull',
     '突進':'charge','盾持ち':'shield','回復':'heal','バフ':'buff',
@@ -764,7 +765,7 @@ function exportPotentialV1() {
   var head = vals[0].map(function(h){ return String(h).trim(); });
   function col(name){ for (var i=0;i<head.length;i++){ if (head[i].indexOf(name)===0) return i; } return -1; }
   var cName=col('カード名'), cHp=col('HP効率'), cDps=col('DPS効率'), cSp=col('呪文ダメ効率'), cCt=col('呪文タワー効率');
-  var c1=col('1倍適性'), c2=col('2倍適性'), c3=col('3倍適性'), cSc=col('スケーリング型'), cPa=col('噛み合う相手'), cSo=col('素出し適性'), cSep=col('セパレート適性'), cMe=col('メモ');
+  var c1=col('1倍適性'), c2=col('2倍適性'), c3=col('3倍適性'), cKi=col('キラー'), cSc=col('スケーリング型'), cPa=col('噛み合う相手'), cSo=col('素出し適性'), cSep=col('セパレート適性'), cMe=col('メモ');
   function numOf(v){ var n=parseFloat(v); return isFinite(n)?n:null; }
   function strOf(v){ return String(v==null?'':v).trim(); }
   var cards={};
@@ -773,7 +774,7 @@ function exportPotentialV1() {
     cards[nm]={
       hpEff:numOf(vals[r][cHp]), dpsEff:numOf(vals[r][cDps]), spellEff:numOf(vals[r][cSp]), towerEff:numOf(vals[r][cCt]),
       phase:[strOf(vals[r][c1]),strOf(vals[r][c2]),strOf(vals[r][c3])],
-      scaling:strOf(vals[r][cSc]), partner:strOf(vals[r][cPa]), solo:strOf(vals[r][cSo]), sep:(cSep>=0?strOf(vals[r][cSep]):'')
+      killer:(cKi>=0?strOf(vals[r][cKi]):''), scaling:strOf(vals[r][cSc]), partner:strOf(vals[r][cPa]), solo:strOf(vals[r][cSo]), sep:(cSep>=0?strOf(vals[r][cSep]):'')
     };
     var memo=strOf(vals[r][cMe]); if(memo) cards[nm].memo=memo;
   }
@@ -914,45 +915,69 @@ function buildElixirVectorSheet() {
   var evalJ = ghReadJson_('card-eval.json');
   if (!evalJ || !evalJ.cards) throw new Error('card-eval.json が読めない（先に buildCardEvalV1 を実行）');
   var tagsJ = ghReadJson_('card-tags.json') || { cards: {} };
+  var potJ = ghReadJson_('card-potential.json') || { cards: {} };
   var stats = ghReadJson_('card-stats.json') || { cards: [] };
   var byJp = {}; (stats.cards || []).forEach(function (c) { byJp[c.jp] = c; });
-  var EC = evalJ.cards, TC = tagsJ.cards || {};
+  var EC = evalJ.cards, TC = tagsJ.cards || {}, PC = potJ.cards || {};
+  var TOP = [['火力', 'fire'], ['耐久', 'dur'], ['処理', 'clear'], ['制御', 'ctrl'], ['範囲', 'area'],
+    ['到達', 'reach'], ['防衛', 'def'], ['回転', 'cycle'], ['柔軟', 'flex']];
+  var SUB = [['小物処理', 'small'], ['中型処理', 'mid'], ['群れ処理', 'swarm'], ['空中処理', 'airClear'], ['タンク処理', 'tank'],
+    ['ノックバック', 'knock'], ['リセット', 'reset'], ['スタン', 'stun'], ['スロー', 'slow'], ['対空', 'antiAir'],
+    ['大型受け', 'bigBlock'], ['速攻受け', 'fastBlock'], ['建物受け', 'bldBlock'], ['射程圧', 'range'], ['手数圧', 'tempo'], ['レイジ適性', 'rage']];
+  function baseOf(nm) { return String(nm || '').replace(/[⚡👑]+$/, ''); }
+  function formOf(nm) { return /⚡$/.test(nm) ? '進化' : /👑$/.test(nm) ? 'ヒーロー/特殊' : '通常'; }
+  function num(v) { var n = parseFloat(v); return isFinite(n) ? Math.round(n * 10) / 10 : ''; }
+  function rangeNum(v) { if (typeof v === 'number') return v; var s = String(v || ''); var m = s.match(/\(([0-9.]+)\)/); return m ? parseFloat(m[1]) : parseFloat(s); }
+  function a1(n) { var s = ''; while (n > 0) { var r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; }
+  function addTriplet(row, label, val, rowNo) {
+    var c = row.length + 1;
+    row.push(num(val), '', '=IF(' + a1(c + 1) + rowNo + '="",' + a1(c) + rowNo + ',' + a1(c + 1) + rowNo + ')');
+  }
+  function addAdjusted(row, raw, rowNo, mode) {
+    var c = row.length + 1;
+    row.push(raw == null ? '' : raw, '');
+    if (mode === 'divide') row.push('=IF(' + a1(c + 1) + rowNo + '="",' + a1(c) + rowNo + ',' + a1(c) + rowNo + '/(1+' + a1(c + 1) + rowNo + '))');
+    else if (mode === 'add') row.push('=IF(' + a1(c + 1) + rowNo + '="",' + a1(c) + rowNo + ',' + a1(c) + rowNo + '+' + a1(c + 1) + rowNo + ')');
+    else row.push('=IF(' + a1(c + 1) + rowNo + '="",' + a1(c) + rowNo + ',' + a1(c) + rowNo + '*(1+' + a1(c + 1) + rowNo + '))');
+  }
+  var head = ['カード名', '形態', 'コスト', '種別', '役割', '確認状態', '私のメモ', '調整理由'];
+  TOP.forEach(function (p) { head.push(p[0] + ' 自動', p[0] + ' 調整', p[0] + ' 最終'); });
+  SUB.forEach(function (p) { head.push(p[0] + ' 自動', p[0] + ' 調整', p[0] + ' 最終'); });
+  head = head.concat(['HP16', 'HP補正%', '補正HP16', 'DPS16', 'DPS補正%', '補正DPS16', '単発ダメ16', '攻撃速度', '発射速度補正%', '補正攻撃速度',
+    '射程', '射程補正', '補正射程', '移動速度', '移動速度補正%', '補正移動速度', '体数', '攻撃対象', '主要タグ',
+    'HP効率', 'DPS効率', '呪文ダメ効率', '呪文タワー効率', '1倍適性', '2倍適性', '3倍適性', '素出し適性', 'キラー',
+    'レイジ後DPS(+30%)', 'レイジ後移動速度(+30%)', '素材メモ']);
 
   var rows = [];
   Object.keys(EC).forEach(function (nm) {
-    var base = nm.replace(/[⚡👑]+$/, '');
-    var v = elixirVectorDraft_(EC[nm], (TC[nm] || TC[base] || {}).tags || [], byJp[base] || {});
-    var cost = (byJp[base] && byJp[base].n) ? byJp[base].n.cost : '';
-    var memo = (nm === base) ? '自動ドラフト・要赤入れ' : '形態行：要赤入れ';
-    rows.push([nm, cost,
-      v.fire, v.dur, v.clear, v.ctrl, v.area, v.reach, v.def, v.cycle, v.flex,
-      v.sub.small, v.sub.mid, v.sub.swarm, v.sub.airClear, v.sub.tank,
-      v.sub.knock, v.sub.reset, v.sub.stun, v.sub.slow,
-      v.sub.antiAir, v.sub.bigBlock, v.sub.fastBlock, v.sub.bldBlock, memo]);
+    var base = baseOf(nm), st = byJp[base] || {}, n = st.n || {}, p = PC[base] || {}, ph = p.phase || [];
+    var tags = ((TC[nm] || TC[base] || {}).tags || []), v = elixirVectorDraft_(EC[nm], tags, st);
+    var rowNo = rows.length + 2;
+    var row = [nm, formOf(nm), n.cost || '', n.type || '', '', '未確認', '', ''];
+    TOP.forEach(function (x) { addTriplet(row, x[0], v[x[1]], rowNo); });
+    SUB.forEach(function (x) { addTriplet(row, x[0], v.sub[x[1]], rowNo); });
+    addAdjusted(row, st.hp16 || '', rowNo, 'multiply');
+    addAdjusted(row, st.dps16 || '', rowNo, 'multiply');
+    row.push(st.dmg16 || '');
+    addAdjusted(row, n.hitSpeed || '', rowNo, 'divide');
+    addAdjusted(row, rangeNum(n.range) || '', rowNo, 'add');
+    addAdjusted(row, n.speed || '', rowNo, 'multiply');
+    row.push(n.count || 1, n.type === 'Building' ? '建物' : (n.air ? '両方' : '地上'), tags.join(' / '), p.hpEff || '', p.dpsEff || '', p.spellEff || '', p.towerEff || '',
+      ph[0] || '', ph[1] || '', ph[2] || '', p.solo || '', p.killer || '',
+      '=IF(' + a1(head.indexOf('補正DPS16') + 1) + rowNo + '="","",' + a1(head.indexOf('補正DPS16') + 1) + rowNo + '*1.3)',
+      '=IF(' + a1(head.indexOf('補正移動速度') + 1) + rowNo + '="","",' + a1(head.indexOf('補正移動速度') + 1) + rowNo + '*1.3)',
+      'HP/DPS/攻撃速度/射程/移動速度はバランス調整時の把握用。JSONは左側の最終列を出力。');
+    rows.push(row);
   });
 
-  var head = ['カード名', 'コスト',
-    '火力価値', '耐久価値', '処理価値', '制御価値', '範囲価値', '到達価値', '防衛価値', '回転価値', '柔軟性価値',
-    '小物処理', '中型処理', '群れ処理', '空中処理', 'タンク処理',
-    'ノックバック', 'リセット', 'スタン', 'スロー',
-    '対空', '大型受け', '速攻受け', '建物受け', 'メモ'];
   var id = prop('TAG_SHEET_ID', '1cjX3ptT0g0qjfwhoTBKbzRfXGZUNGLy_jspMSRCDPyU');
   var ss = SpreadsheetApp.openById(id);
   var sh = ss.getSheetByName('エリクサー価値') || ss.insertSheet('エリクサー価値');
   sh.clear();
   sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#e8eaf0');
   if (rows.length) sh.getRange(2, 1, rows.length, head.length).setValues(rows);
-  sh.setFrozenRows(1); sh.setFrozenColumns(1);
-  // 価値の高低が一目で分かるよう 0-10 を白→緑のグラデで色付け（ベクトル列＋サブ値列）。
-  try {
-    var rng = sh.getRange(2, 3, Math.max(1, rows.length), head.length - 3);
-    var rule = SpreadsheetApp.newConditionalFormatRule()
-      .setGradientMinpointWithValue('#ffffff', SpreadsheetApp.InterpolationType.NUMBER, '0')
-      .setGradientMidpointWithValue('#d9ead3', SpreadsheetApp.InterpolationType.NUMBER, '5')
-      .setGradientMaxpointWithValue('#57bb8a', SpreadsheetApp.InterpolationType.NUMBER, '10')
-      .setRanges([rng]).build();
-    sh.setConditionalFormatRules([rule]);
-  } catch (e) {}
+  sh.setFrozenRows(1); sh.setFrozenColumns(8);
+  try { sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).createFilter(); } catch (e) {}
   Logger.log('エリクサー価値 ' + rows.length + '行を生成。続けてエクスポートします');
   exportElixirVectorsV1();
 }
@@ -968,14 +993,21 @@ function exportElixirVectorsV1() {
     ['到達', 'reach'], ['防衛', 'def'], ['回転', 'cycle'], ['柔軟', 'flex']];
   var SUB = [['小物', 'small'], ['中型', 'mid'], ['群れ', 'swarm'], ['空中', 'airClear'], ['タンク', 'tank'],
     ['ノックバック', 'knock'], ['リセット', 'reset'], ['スタン', 'stun'], ['スロー', 'slow'],
-    ['対空', 'antiAir'], ['大型受け', 'bigBlock'], ['速攻受け', 'fastBlock'], ['建物受け', 'bldBlock']];
+    ['対空', 'antiAir'], ['大型受け', 'bigBlock'], ['速攻受け', 'fastBlock'], ['建物受け', 'bldBlock'],
+    ['射程圧', 'range'], ['手数圧', 'tempo'], ['レイジ適性', 'rage']];
   var vals = sh.getDataRange().getValues();
   var head = vals[0].map(function (h) { return String(h).trim(); });
   function colByPrefix(label) { for (var i = 0; i < head.length; i++) { if (head[i].indexOf(label) === 0) return i; } return -1; }
+  function colValue(label) {
+    for (var i = 0; i < head.length; i++) { if (head[i] === label + ' 最終') return i; }
+    for (var j = 0; j < head.length; j++) { if (head[j].indexOf(label) === 0 && head[j].indexOf('最終') >= 0) return j; }
+    for (var k = 0; k < head.length; k++) { if (head[k] === label + '価値' || head[k] === label) return k; }
+    return colByPrefix(label);
+  }
   var cName = colByPrefix('カード名');
   var topCol = {}, subCol = {};
-  TOP.forEach(function (p) { topCol[p[1]] = colByPrefix(p[0]); });
-  SUB.forEach(function (p) { subCol[p[1]] = colByPrefix(p[0]); });
+  TOP.forEach(function (p) { topCol[p[1]] = colValue(p[0]); });
+  SUB.forEach(function (p) { subCol[p[1]] = colValue(p[0]); });
   function num(v) { var n = parseFloat(v); return isFinite(n) ? Math.round(n * 10) / 10 : 0; }
   var cards = {};
   for (var r = 1; r < vals.length; r++) {
@@ -993,7 +1025,7 @@ function exportElixirVectorsV1() {
     scale: '0-10',
     note: '1エリクサー当たりの解決力。回転価値は単体の軽さ＝素点で、実デッキの平均コスト文脈での価値はフロントで再計算する。',
     vectors: ['fire', 'dur', 'clear', 'ctrl', 'area', 'reach', 'def', 'cycle', 'flex'],
-    subs: ['small', 'mid', 'swarm', 'airClear', 'tank', 'knock', 'reset', 'stun', 'slow', 'antiAir', 'bigBlock', 'fastBlock', 'bldBlock'],
+    subs: ['small', 'mid', 'swarm', 'airClear', 'tank', 'knock', 'reset', 'stun', 'slow', 'antiAir', 'bigBlock', 'fastBlock', 'bldBlock', 'range', 'tempo', 'rage'],
     count: Object.keys(cards).length,
     cards: cards
   };
@@ -1008,13 +1040,14 @@ function elixirVectorDraft_(e, tags, st) {
   function has(k) { return !!T[k]; }
   function ev(k) { var x = e ? e[k] : 0; return (typeof x === 'number' && isFinite(x)) ? x : 0; }
   function cl(x) { return Math.max(0, Math.min(10, Math.round(x * 10) / 10)); }
+  function rangeNum(v) { if (typeof v === 'number') return v; var s = String(v || ''); var m = s.match(/\(([0-9.]+)\)/); var n = parseFloat(m ? m[1] : s); return isFinite(n) ? n : 0; }
   var n = st && st.n ? st.n : {};
   var cost = n.cost || 5;
   var canAir = !!n.air;
   var splash = !!n.splash || has('splash');
   var defBld = has('defBuilding');
   var minitank = has('minitank');
-  var rng = (typeof n.range === 'number' && isFinite(n.range)) ? n.range : 0;
+  var rng = rangeNum(n.range);
   var rangeBonus = rng >= 5 ? 3 : rng >= 4 ? 2.2 : rng >= 3 ? 1.4 : 0;
 
   var tankProc = ev('タンク処理'), midProc = ev('中型タンク処理');
@@ -1022,17 +1055,18 @@ function elixirVectorDraft_(e, tags, st) {
   var wall = ev('壁性能'), spellRes = ev('呪文耐性');
   var towerDmg = ev('タワーダメージ力'), towerFin = ev('タワーダメージ決定力'), bldDmg = ev('施設破壊力'), bldBreak = ev('施設突破力');
   var solo = ev('素出し適正'), ph1 = ev('序盤適性(エリクサー1倍)'), ph2 = ev('中盤適性(エリクサー2倍)'), ph3 = ev('中盤適性(エリクサー3倍)');
+  var rangePress = ev('射程圧'), tempoPress = ev('手数圧'), rageFit = ev('レイジ適性');
   var cheap = (7 - cost) / 6 * 10; // cost1→10, cost7→0
 
-  var fire = cl(0.42 * towerDmg + 0.33 * towerFin + 0.25 * bldDmg);
+  var fire = cl(0.38 * towerDmg + 0.30 * towerFin + 0.22 * bldDmg + 0.10 * tempoPress);
   var dur = cl(0.62 * wall + 0.38 * spellRes);
-  var clear = cl(0.24 * tankProc + 0.18 * midProc + 0.18 * airSingle + 0.24 * grdSwarm + 0.16 * airSwarm);
+  var clear = cl(0.23 * tankProc + 0.17 * midProc + 0.17 * airSingle + 0.22 * grdSwarm + 0.15 * airSwarm + 0.06 * tempoPress);
   var ctrl = cl((has('stun') ? 3.4 : 0) + (has('stop') ? 3.8 : 0) + (has('slow') ? 2.6 : 0) + (has('knockback') ? 2.4 : 0) + (has('pull') ? 3.2 : 0));
   var area = splash ? cl(Math.max(6, Math.max(grdSwarm, airSwarm))) : cl(0.5 * Math.max(grdSwarm, airSwarm));
-  var reach = cl(0.45 * bldBreak + (canAir ? 2.5 : 0) + ((has('bridgeSpam') || has('dash') || has('charge')) ? 2.5 : 0) + rangeBonus);
-  var def = cl(0.36 * wall + 0.30 * Math.max(airSingle, airSwarm) + 0.24 * Math.max(tankProc, midProc) + (defBld ? 2.5 : 0) + (minitank ? 1 : 0));
+  var reach = cl(0.40 * bldBreak + 0.18 * rangePress + (canAir ? 2.2 : 0) + ((has('bridgeSpam') || has('dash') || has('charge')) ? 2.3 : 0) + rangeBonus);
+  var def = cl(0.34 * wall + 0.28 * Math.max(airSingle, airSwarm) + 0.23 * Math.max(tankProc, midProc) + 0.08 * rangePress + (defBld ? 2.5 : 0) + (minitank ? 1 : 0));
   var cycle = cl(cheap);
-  var flex = cl(0.32 * solo + 0.28 * ((ph1 + ph2 + ph3) / 3) + ((canAir) ? 2.2 : 0) + 0.15 * clear);
+  var flex = cl(0.28 * solo + 0.24 * ((ph1 + ph2 + ph3) / 3) + ((canAir) ? 2.0 : 0) + 0.13 * clear + 0.13 * rangePress + 0.12 * tempoPress + 0.10 * rageFit);
 
   function tagCtl(on) { return on ? cl(5 + (7 - cost) / 6 * 5) : 0; }
   var sub = {
@@ -1048,7 +1082,10 @@ function elixirVectorDraft_(e, tags, st) {
     antiAir: cl(Math.max(airSingle, airSwarm)),
     bigBlock: cl(0.6 * wall + 0.4 * Math.max(tankProc, midProc)),
     fastBlock: cl((7 - cost) / 6 * 6 + 0.4 * Math.max(tankProc, midProc) + (defBld ? 2 : 0)),
-    bldBlock: defBld ? cl(6 + 0.4 * wall) : 0
+    bldBlock: defBld ? cl(6 + 0.4 * wall) : 0,
+    range: cl(rangePress),
+    tempo: cl(tempoPress),
+    rage: cl(rageFit)
   };
   return { fire: fire, dur: dur, clear: clear, ctrl: ctrl, area: area, reach: reach, def: def, cycle: cycle, flex: flex, sub: sub };
 }
@@ -1380,12 +1417,14 @@ function buildCardEvalV1() {
   var SIEGE = { '迫撃砲': 1, '巨大クロスボウ': 1 };
   function mp(s){ return s==='◎'?9 : s==='○'?6 : s==='△'?3 : 0; }
   function spd(s){ return typeof s==='number'? s : (parseFloat(s)||60); }
+  function num(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
+  function rangeNum(v){ if (typeof v === 'number') return v; var s = String(v || ''); var m = s.match(/\(([0-9.]+)\)/); return m ? num(m[1]) : num(s); }
   var cards = stats.cards.map(function (c) {
     var n = c.n || {}, arr = ((TC[c.jp]||{}).tags)||[], tset = {};
     for (var i=0;i<arr.length;i++) tset[arr[i]] = 1;
     var p = PC[c.jp] || {}, ph = p.phase || [];
     return { name:c.jp, type:n.type, cnt:n.count||1, cost:n.cost||1, speed:spd(n.speed), air:!!n.air, splash:!!n.splash,
-      bld:n.type==='Building', siege:!!SIEGE[c.jp], hp:c.hp16||0, dps:c.dps16||0, t:tset,
+      bld:n.type==='Building', siege:!!SIEGE[c.jp], hp:c.hp16||0, dps:c.dps16||0, dmg:c.dmg16||0, hitSpeed:num(n.hitSpeed), range:rangeNum(n.range), t:tset,
       hpEff:p.hpEff||0, dpsEff:p.dpsEff||0, spellEff:p.spellEff||0, towerEff:p.towerEff||0,
       solo:p.solo, ph1:mp(ph[0]), ph2:mp(ph[1]), ph3:mp(ph[2]) };
   });
@@ -1405,7 +1444,10 @@ function buildCardEvalV1() {
     'タワーダメージ決定力': function(c){ return !offGate(c)?0 : (SP(c)? c.towerEff*1.6 : c.dps*((H(c,'invisible')||H(c,'dash'))?1.4:1)); },
     '施設破壊力': function(c){ return c.bld?0 : (SP(c)? c.towerEff*0.9 : c.dps*(H(c,'tgBuilding')?1.8:0.6)); },
     '施設突破力': function(c){ return (H(c,'charge')?3:0)+(H(c,'dash')?3:0)+(H(c,'bridgeSpam')?2:0)+(H(c,'tgBuilding')?2:0); },
-    '呪文枯渇': function(c){ return (H(c,'spellBait')?5:0)+(H(c,'spawner')?3:0)+(H(c,'swarm')?2:0)+(H(c,'collector')?1:0); }
+    '呪文枯渇': function(c){ return (H(c,'spellBait')?5:0)+(H(c,'spawner')?3:0)+(H(c,'swarm')?2:0)+(H(c,'collector')?1:0); },
+    '射程圧': function(c){ return SP(c)?0 : c.range * (c.air?1.25:1) + (c.siege?4:0) + (H(c,'bridgeSpam')?1.5:0); },
+    '手数圧': function(c){ if (SP(c)) return 0; var hs = c.hitSpeed || 1.5; return (1 / Math.max(0.25, hs)) * (c.cnt || 1) * (c.splash?1.25:1) * 100; },
+    'レイジ適性': function(c){ if (SP(c)) return H(c,'buff') ? 350 : 0; var rageDpsGain = c.dps * 0.30; var moveGain = c.bld ? 0 : c.speed * 0.30; var spawnFireGain = (c.bld || H(c,'spawner')) ? 180 : 0; return rageDpsGain + moveGain + spawnFireGain + (H(c,'ramp')?80:0); }
   };
   function pctMap(arr){ var a=arr.filter(function(x){return x.r>0;}).sort(function(x,y){return x.r-y.r;}); var nn=a.length, m={}; for(var i=0;i<nn;i++) m[a[i].n]= nn>1? i/(nn-1):1; return m; }
   var norm = {};
@@ -1457,6 +1499,9 @@ function buildCardEvalV1() {
     '施設突破力': 'タグ:突進3＋ダッシュ3＋橋前2＋建物狙い2 →[生0.5＋÷コスト効率0.5]相対',
     '呪文耐性': 'card-stats:HP16が各呪文威力(ログ426/ザップ306/矢588/ファイボ1100/ライト1690/ロケ2372)を超える本数→1-10',
     '呪文枯渇': 'タグ:呪文釣り5＋ユニット生成3＋群れ2＋エリクサー生成1 →[生0.5＋÷コスト効率0.5]相対',
+    '射程圧': 'card-stats:射程×(対空1.25)＋攻城4＋橋前1.5 →[生0.5＋÷コスト効率0.5]相対',
+    '手数圧': 'card-stats:1/攻撃速度×体数×範囲補正。細かい攻撃・多体・範囲の処理価値 →[生0.5＋÷コスト効率0.5]相対',
+    'レイジ適性': 'レイジ30%速度ブースト前提。DPS増分(×0.30)＋移動速度増分＋建物/生成/ランプ補正 →[生0.5＋÷コスト効率0.5]相対',
     '素出し適正': 'ポテンシャル:素出し適性(1-5,◎○△は5/3/1)×2 ＋遅いほど＋(120-移動速度) ＋安いほど＋(7-コスト) →全カード相対(1-10)',
     '序盤適性(エリクサー1倍)': 'ポテンシャル:1倍適性 ◎9/○6/△3 →1-10',
     '中盤適性(エリクサー2倍)': 'ポテンシャル:2倍適性 ◎9/○6/△3 →1-10',
