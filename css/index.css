@@ -90,17 +90,8 @@
   }
   .controls-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-  .builder-guide-strip {
-    display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: 8px;
-    padding: 7px 9px; border: 1px solid rgba(232,160,32,0.16); border-radius: 9px;
-    background: rgba(232,160,32,0.07); color: var(--text-muted); font-size: 11px; line-height: 1.45;
-  }
-  .builder-guide-strip strong { color: var(--text); font-size: 11px; white-space: nowrap; }
-  .builder-guide-strip a { color: var(--accent); font-weight: 700; text-decoration: none; white-space: nowrap; }
-  @media (hover: hover) { .builder-guide-strip a:hover { text-decoration: underline; } }
-
   .corner-guide {
-    position: fixed; right: 14px; bottom: 14px; z-index: 998;
+    position: fixed; right: 10px; bottom: 2px; z-index: 998;
     font-family: var(--font-body); color: var(--text);
   }
   .corner-guide summary {
@@ -916,9 +907,7 @@
     .assist-top-info .ati-main { font-size: 10px; }
     .assist-top-info .ati-sub { font-size: 10px; }
     .controls.assist-active { gap: 6px; }
-    .builder-guide-strip { grid-template-columns: 1fr auto auto; gap: 5px; padding: 6px 7px; font-size: 10px; }
-    .builder-guide-strip strong { display: none; }
-    .corner-guide { right: 10px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+    .corner-guide { right: 8px; bottom: calc(2px + env(safe-area-inset-bottom, 0px)); }
     .corner-guide summary { width: 32px; height: 32px; }
     .cg-panel { bottom: 39px; }
     .controls.assist-active .assist-panel { padding: 6px; gap: 5px; }
