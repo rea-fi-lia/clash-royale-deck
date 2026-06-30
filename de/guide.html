@@ -14,7 +14,7 @@
 <link rel="canonical" href="https://crdeckbuilders.com/de/guide.html">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="/css/content.css?v=260711">
+<link rel="stylesheet" href="/css/content.css?v=260712">
 <!-- CRVT --><style>@view-transition{navigation:auto}@keyframes cr-ol{to{transform:translateX(-26%);opacity:.5}}@keyframes cr-ir{from{transform:translateX(100%)}}@keyframes cr-or{to{transform:translateX(26%);opacity:.5}}@keyframes cr-il{from{transform:translateX(-100%)}}@media(max-width:768px){html:active-view-transition-type(crf)::view-transition-old(root){animation:cr-ol .26s ease both}html:active-view-transition-type(crf)::view-transition-new(root){animation:cr-ir .26s ease both}html:active-view-transition-type(crb)::view-transition-old(root){animation:cr-or .26s ease both}html:active-view-transition-type(crb)::view-transition-new(root){animation:cr-il .26s ease both}}</style><script>(function(){if(!("startViewTransition"in document)||!window.navigation)return;function ty(a){try{if(!a||!a.from)return null;var f=new URL(a.from.url).pathname,o=new URL(a.entry.url).pathname;var S=function(p){return p.indexOf("strategy.html")>-1};var I=function(p){return p.charAt(p.length-1)==="/"||p.indexOf("index.html")>-1};if(I(f)&&S(o))return"crf";if(S(f)&&I(o))return"crb"}catch(e){}return null}addEventListener("pageswap",function(e){if(e.viewTransition){var t=ty(e.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}});addEventListener("pagereveal",function(e){if(e.viewTransition){var t=ty(navigation.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}})})();</script>
 <!-- CRPIN -->
 <script>(function(){try{if(localStorage.getItem('cr_pin')==='off')document.documentElement.classList.add('nopin');}catch(e){}})();</script>
@@ -43,7 +43,7 @@
     <p class="lead">強いカードを8枚並べるだけでは、攻め筋がぼやけたり、守りの穴が残ったりします。CR Deck Buildersでは、勝ち筋、2枚の形、3枚目候補、苦しい相手への受けを順に見ながら、自分で納得してデッキを組めるようにしています。</p>
     <div class="hero-actions"><a class="btn primary" href="index.html">デッキを組む</a><a class="btn" href="faq.html">よくある質問を見る</a></div>
     <div class="toc" aria-label="目次">
-      <a href="#start">最初の1枚</a><a href="#pair">2枚の形</a><a href="#third">3枚目候補</a><a href="#threat">苦しい相手</a><a href="#finish">8枚の仕上げ</a>
+      <a href="#start">最初の1枚</a><a href="#pair">2枚の形</a><a href="#third">3枚目候補</a><a href="#direction">次の方向</a><a href="#threat">苦しい相手</a><a href="#finish">8枚の仕上げ</a>
     </div>
   </section>
 
@@ -74,15 +74,27 @@
     </div>
   </section>
 
+  <section id="direction" class="section">
+    <h2>4. 3枚そろったら「次はどこを伸ばす？」で方向を選ぶ</h2>
+    <p>4枚目からは、正解の1枚を押し付けるより、伸ばしたい方向をプレイヤーが選べた方が自分のデッキになります。3枚そろうとアシストに <strong>攻撃強化 / 防衛強化 / 回転力強化</strong> が出るので、今いちばん足したい方向を選ぶと、候補がその方向にゆるく絞られます。</p>
+    <div class="grid two">
+      <div class="card"><h3>攻撃強化</h3><p>タワーへ届く力や押し込む圧を足す方向。ユニットでも呪文でも、攻めの決定力につながる札を中心に出します。</p></div>
+      <div class="card"><h3>防衛強化</h3><p>受けを作りやすくする方向。対空、群れの処理、大型の受け、相手を止める札など、守りの穴に合わせて出します。</p></div>
+      <div class="card"><h3>回転力強化</h3><p>手札を回しやすくする方向。ただ軽いだけでなく、今のデッキを実際に軽くできるかで見ます。</p></div>
+    </div>
+    <p>回転力強化は、平均コストの今の値と合わせて考えます。たとえば平均が軽いデッキにそこそこ重い札を足しても回転は上がりません。逆に、重くなりそうな形なら、3コスト前後の札でも全体を軽くして回しやすくできます。だから同じカードでも、今のデッキ次第で回転への効き方は変わります。</p>
+    <p>方向はいつでも切り替えられますし、選ばなければ今までどおり自然な候補が出ます。攻め・受け・回しのどれを今優先したいかを、自分の意思で決めるための入口です。</p>
+  </section>
+
   <section id="threat" class="section">
-    <h2>4. 苦しい相手を先に想定すると、対策札が選びやすい</h2>
+    <h2>5. 苦しい相手を先に想定すると、対策札が選びやすい</h2>
     <p>デッキが弱く見える理由は、勝ち筋が弱いからとは限りません。空中大型が重い、小物で止まりやすい、タンク受けが薄い、速い攻めに遅れやすい、建物で受けられやすいなど、構造上の穴が残っていることがあります。</p>
     <p>「この形で苦しい相手」を先に言葉にすると、次の候補はかなり絞れます。対策札はただ防ぐカードではなく、守った後に自分の攻めへつながるカードを選ぶと、デッキ全体の流れがきれいになります。</p>
     <p>ただし、一見苦しく見える相手でも、デッキの洗練度や立ち回りで受け切れることがあります。苦手を完全に消すだけでなく、デッキの癖を把握し、どこまでをプレイヤースキルで埋めるかも大事な判断です。</p>
   </section>
 
   <section id="finish" class="section">
-    <h2>5. 8枚に近づいたら、平均コストと役割の抜けを確認する</h2>
+    <h2>6. 8枚に近づいたら、平均コストと役割の抜けを確認する</h2>
     <p>最後は平均コストだけでなく、手札回し、対空、範囲攻撃、小型呪文、大型呪文、建物、フィニッシャー、防衛からのカウンターを見ます。全部を完璧に入れる必要はありませんが、抜けている理由を自分で説明できると、デッキの癖として扱いやすくなります。</p>
     <p>デッキの癖を把握できていれば、多少の苦手はプレイヤースキルで埋められます。だから診断は「弱点を全部消すため」だけでなく、「自分がどこを腕で見るか」を決めるためにも使えます。</p>
     <p>8枚がそろったら、デッキ分析でバランスを確認し、人気デッキページで近い形や環境の流れを見ると、調整の方向が決めやすくなります。</p>
@@ -93,6 +105,6 @@
 </main>
 
 <div class="footer-signature"><span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span></div>
-<script defer src="/i18n.js?v=260711"></script>
+<script defer src="/i18n.js?v=260712"></script>
 </body>
 </html>

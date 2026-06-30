@@ -31,11 +31,15 @@ let assistMode = (() => { try { return localStorage.getItem('cr_assist_mode') ==
 let assistSuggestions = [];
 let assistVariant = 0;
 let assistChunk = 'cards';
+// 4枚目以降の方向チップ（攻撃強化/防衛強化/回転力強化）。null=未選択（全体から自然に出す）。
+let assistDirection = null;
+// エリクサー価値ベクトルの導出キャッシュ（カード名→9ベクトル＋sub）。データ再読込でクリア。
+let assistVectorCache = {};
 const ASSIST_DATA_BASE = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/';
 function dataFreshUrl(url) {
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + Date.now();
 }
-const assistData = { wincon: null, potential: null, tags: null, pairs: null, pairExt: null, ready: false, tried: false };
+const assistData = { wincon: null, potential: null, tags: null, pairs: null, pairExt: null, vectors: null, eval: null, ready: false, tried: false };
 
 function saveFavorites() {
   if (window.CRAuth && CRAuth.getUser && CRAuth.getUser()) {
@@ -357,14 +361,20 @@ function loadAssistData() {
     loadAssistJson('card-potential.json'),
     loadAssistJson('card-tags.json'),
     loadAssistJson('card-pair-synergy-v1.json'),
-    loadAssistJson('card-pair-extension-synergy-v1.json')
-  ]).then(([wincon, potential, tags, pairs, pairExt]) => {
+    loadAssistJson('card-pair-extension-synergy-v1.json'),
+    loadAssistJson('card-elixir-vectors-v1.json'),
+    loadAssistJson('card-eval.json')
+  ]).then(([wincon, potential, tags, pairs, pairExt, vectors, evalJ]) => {
     assistData.wincon = normalizeAssistCards(wincon);
     assistData.potential = normalizeAssistCards(potential);
     assistData.tags = normalizeAssistCards(tags);
     assistData.pairs = pairs && pairs.byCard ? pairs.byCard : null;
     assistData.pairExt = pairExt && pairExt.byPair ? pairExt.byPair : null;
-    assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags || assistData.pairs || assistData.pairExt);
+    // エリクサー価値ベクトル：監修JSONがあれば最優先。無ければ card-eval.json から同じ式でその場導出。
+    assistData.vectors = normalizeAssistCards(vectors);
+    assistData.eval = (evalJ && evalJ.cards) ? evalJ.cards : null;
+    assistVectorCache = {};
+    assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags || assistData.pairs || assistData.pairExt || assistData.vectors || assistData.eval);
     updateAssistPanel();
   }).catch(() => {});
 }
@@ -380,6 +390,180 @@ function assistTags(c) {
 }
 function assistTagHas(c, tag) {
   return assistTags(c).has(tag);
+}
+// ===== エリクサー価値ベクトル（9軸）：監修JSON優先・無ければ card-eval から同式で導出 =====
+// 9ベクトル：fire火力 / dur耐久 / clear処理 / ctrl制御 / area範囲 / reach到達 / def防衛 / cycle回転 / flex柔軟。
+// 「1エリクサーで“どんな局面をどれだけ片づけられるか”」を見る。HP/DPSの無い呪文も card-eval 側で価値が入っている。
+const ASSIST_VEC_KEYS = ['fire','dur','clear','ctrl','area','reach','def','cycle','flex'];
+function assistEvalRow(c) {
+  if (!assistData.eval) return null;
+  return assistData.eval[c.name] || assistData.eval[c.name + '⚡'] || assistData.eval[c.name + '👑'] || null;
+}
+function assistVector(c) {
+  if (!c) return null;
+  if (assistVectorCache[c.name]) return assistVectorCache[c.name];
+  // ① 監修JSON（card-elixir-vectors-v1.json）があれば最優先で使う
+  const row = assistData.vectors && (assistData.vectors[c.name] || assistData.vectors[c.name + '⚡'] || assistData.vectors[c.name + '👑']);
+  let vec = null;
+  if (row && typeof row === 'object') {
+    vec = { fire: +row.fire||0, dur: +row.dur||0, clear: +row.clear||0, ctrl: +row.ctrl||0, area: +row.area||0,
+            reach: +row.reach||0, def: +row.def||0, cycle: +row.cycle||0, flex: +row.flex||0, sub: row.sub || {} };
+  } else {
+    // ② 無ければ card-eval.json からその場導出（GASの elixirVectorDraft_ と同じ式）
+    vec = deriveElixirVector(c);
+  }
+  if (vec) assistVectorCache[c.name] = vec;
+  return vec;
+}
+// card-eval(17項目0-10)＋タグ＋コストから9ベクトル＋subを導出。GAS elixirVectorDraft_ と式をそろえる。
+function deriveElixirVector(c) {
+  const e = assistEvalRow(c);
+  const tags = assistTags(c);
+  const has = t => tags.has(t);
+  const ev = k => { const x = e ? e[k] : 0; return (typeof x === 'number' && isFinite(x)) ? x : 0; };
+  const cl = x => Math.max(0, Math.min(10, Math.round(x * 10) / 10));
+  const cost = c.cost || 5;
+  const canAir = assistIsTrueAir(c);
+  const splash = has('splash') || assistHas(c, ['範囲','スプラッシュ']);
+  const defBld = has('defBuilding') || (c.type === 'building' && assistHas(c, ['防衛']));
+  const minitank = has('minitank');
+  const reachHint = (has('bridgeSpam') || has('dash') || has('charge')) ? 2.5 : 0;
+  const rangeHint = assistHas(c, ['超長射程','遠距離','射程']) ? 2 : 0;
+  const tankProc = ev('タンク処理'), midProc = ev('中型タンク処理');
+  const airSingle = ev('対空単体処理'), grdSwarm = ev('地上群れ処理'), airSwarm = ev('対空群れ処理');
+  const wall = ev('壁性能'), spellRes = ev('呪文耐性');
+  const towerDmg = ev('タワーダメージ力'), towerFin = ev('タワーダメージ決定力'), bldDmg = ev('施設破壊力'), bldBreak = ev('施設突破力');
+  const solo = ev('素出し適正'), ph1 = ev('序盤適性(エリクサー1倍)'), ph2 = ev('中盤適性(エリクサー2倍)'), ph3 = ev('中盤適性(エリクサー3倍)');
+  const cheap = (7 - cost) / 6 * 10;
+  const fire = cl(0.42 * towerDmg + 0.33 * towerFin + 0.25 * bldDmg);
+  const dur = cl(0.62 * wall + 0.38 * spellRes);
+  const clear = cl(0.24 * tankProc + 0.18 * midProc + 0.18 * airSingle + 0.24 * grdSwarm + 0.16 * airSwarm);
+  const ctrl = cl((has('stun') ? 3.4 : 0) + (has('stop') ? 3.8 : 0) + (has('slow') ? 2.6 : 0) + (has('knockback') ? 2.4 : 0) + (has('pull') ? 3.2 : 0));
+  const area = splash ? cl(Math.max(6, Math.max(grdSwarm, airSwarm))) : cl(0.5 * Math.max(grdSwarm, airSwarm));
+  const reach = cl(0.45 * bldBreak + (canAir ? 2.5 : 0) + reachHint + rangeHint);
+  const def = cl(0.36 * wall + 0.30 * Math.max(airSingle, airSwarm) + 0.24 * Math.max(tankProc, midProc) + (defBld ? 2.5 : 0) + (minitank ? 1 : 0));
+  const cycle = cl(cheap);
+  const flex = cl(0.32 * solo + 0.28 * ((ph1 + ph2 + ph3) / 3) + (canAir ? 2.2 : 0) + 0.15 * clear);
+  const tagCtl = on => on ? cl(5 + (7 - cost) / 6 * 5) : 0;
+  const sub = {
+    small: cl(Math.max(grdSwarm, airSwarm)), mid: cl(midProc), swarm: cl(grdSwarm),
+    airClear: cl(Math.max(airSingle, airSwarm)), tank: cl(tankProc),
+    knock: tagCtl(has('knockback')), reset: tagCtl(has('stun') || has('stop')), stun: tagCtl(has('stun')), slow: tagCtl(has('slow')),
+    antiAir: cl(Math.max(airSingle, airSwarm)),
+    bigBlock: cl(0.6 * wall + 0.4 * Math.max(tankProc, midProc)),
+    fastBlock: cl((7 - cost) / 6 * 6 + 0.4 * Math.max(tankProc, midProc) + (defBld ? 2 : 0)),
+    bldBlock: defBld ? cl(6 + 0.4 * wall) : 0
+  };
+  return { fire, dur, clear, ctrl, area, reach, def, cycle, flex, sub };
+}
+function assistVecVal(c, key) {
+  const v = assistVector(c);
+  return v ? (+v[key] || 0) : 0;
+}
+function assistVecSub(c, key) {
+  const v = assistVector(c);
+  return v && v.sub ? (+v.sub[key] || 0) : 0;
+}
+// 回転価値（文脈つき）：単体の軽さ(cycle素点)に「このデッキを実際に軽くできるか」を足し引きする。
+//  オーナー討議2026-06-30：平均2.6で3コスを足すのは“軽くした”とは言えない＝弱める。
+//  逆に重くなりそうな形（重い主役持ちで軽い枠が薄い等）を軽くするなら、3コスでも回転を助ける扱いで強める。
+//  式：base(=単体の軽さ)を半分まで＋実際の平均移動量＋重さ傾向への効きで合算。baseline偏重を避ける。
+function assistCycleValueInContext(c, info) {
+  const base = assistVecVal(c, 'cycle');           // 0-10：そのカード単体の軽さ
+  if (!info || !info.cards.length) return base;
+  const before = info.avg;                          // 今の平均コスト
+  const after = assistCostProfile(info.cards.concat([c])).avg; // 足した後の平均
+  let relief = 0;
+  if (after < before - 0.02) relief += Math.min(4, (before - after) * 6); // 実際に平均を下げる量に比例して加点
+  else if (after > before + 0.02) relief -= Math.min(3, (after - before) * 6); // 重くするなら減点
+  // 「このままだと重くなりそう」な形では、平均以下のコスト札に回転の効きを足す（3コスでも可）。
+  const heavyTendency = before >= 3.4 || (info.wincons.some(w => (w.cost || 0) >= 5) && info.cycles.length < 2);
+  if (heavyTendency && (c.cost || 0) <= Math.max(3, before)) relief += 2;
+  return Math.max(0, Math.min(10, base * 0.5 + relief));
+}
+// 4枚目以降の「方向」チップに対する適合度（0-10ベース）。方向＝攻撃強化/防衛強化/回転力強化。
+function assistDirectionScore(c, dir, info) {
+  if (!dir) return 0;
+  if (dir === 'attack') {
+    return Math.max(assistVecVal(c, 'fire'), 0.7 * assistVecVal(c, 'reach') + 0.3 * assistVecVal(c, 'fire'));
+  }
+  if (dir === 'defense') {
+    return Math.max(assistVecVal(c, 'def'), 0.6 * assistVecVal(c, 'clear') + 0.4 * assistVecVal(c, 'dur'));
+  }
+  if (dir === 'cycle') {
+    let s = assistCycleValueInContext(c, info);
+    // 回転は「軽くて毎回腐りにくい」札が本命。単なるバフ/大型呪文・重い決め札はこの方向では下げる。
+    if (assistSpellSize(c) === 'big') s -= 4;
+    if (assistHas(c, ['レイジ','バフ']) && !assistTagHas(c, 'splash')) s -= 3;
+    if ((c.cost || 0) >= 5) s -= 3;
+    // 軽くて守りにも使える実用枠（小型処理/受け/対空)を少し後押し。
+    if ((c.cost || 0) <= 3 && (assistVecVal(c, 'def') >= 5 || assistVecSub(c, 'small') >= 5 || assistIsTrueAir(c))) s += 1.5;
+    return Math.max(0, Math.min(10, s));
+  }
+  return 0;
+}
+function assistDirectionLabel(dir) {
+  return dir === 'attack' ? '攻撃強化' : dir === 'defense' ? '防衛強化' : dir === 'cycle' ? '回転力強化' : '';
+}
+// 方向チップ選択時のカード理由（プレイヤー向け・自然文／スコアやデータ臭は出さない）。
+//  カードの強い価値（sub値含む）に応じて言い方を変え、候補ごとに具体的で重複しない理由を返す。
+function assistDirectionReason(c, dir, info) {
+  const v = assistVector(c);
+  if (!v) return '';
+  const sub = v.sub || {};
+  if (dir === 'attack') {
+    if (v.reach >= 6 && v.fire >= 6) return 'タワーまで届きやすく、押し込む圧を足せます。';
+    if (sub.bldBlock < 1 && v.fire >= 7) return 'タワーを大きく削れて、攻めの決定力が上がります。';
+    if (v.fire >= 6) return 'タワーを削る力を足して、攻めの圧を上げられます。';
+    if (v.reach >= 6) return '攻めを前に運びやすくして、火力を通しやすくします。';
+    if (v.ctrl >= 5) return '相手の受けを崩しつつ、攻めを通しやすくします。';
+    return '攻めの厚みを足せる1枚です。';
+  }
+  if (dir === 'defense') {
+    if (sub.antiAir >= 6 && (info.air.length < 2)) return '空中の攻めにも受けを作れて、守りが安定します。';
+    if (v.ctrl >= 5) return '相手を止めて時間を作り、受けを立て直しやすくします。';
+    if (sub.swarm >= 6 || sub.small >= 6) return '群れや小物をまとめてさばける受けになります。';
+    if (sub.tank >= 6) return '大型を前に置かれても溶かしやすくなります。';
+    if (v.def >= 6 && v.clear >= 6) return '受けを作りやすく、攻めてくる相手を捌きやすくなります。';
+    if (v.def >= 6) return '受けを作りやすくして、守りを安定させられます。';
+    if (v.clear >= 6) return '相手の攻めをさばく力を足せます。';
+    return '守りの安定に効く1枚です。';
+  }
+  if (dir === 'cycle') {
+    const ctx = assistCycleValueInContext(c, info);
+    const after = assistCostProfile(info.cards.concat([c])).avg;
+    if (after < info.avg - 0.05 && ctx >= 6) return '今より軽くなって、手札を回し直しやすくなります。';
+    if (ctx >= 6 && info.avg >= 3.4) return '重くなりすぎを抑えて、形を立て直しやすくします。';
+    if (ctx >= 6) return '軽さを足して、欲しいカードを引き直しやすくします。';
+    if ((c.cost || 0) <= 2) return '軽い枠として、回しながら守りにも使えます。';
+    return '回しやすさを保ちながら足せる1枚です。';
+  }
+  return '';
+}
+// デッキ全体の9ベクトル合計（各カードの価値を足す）。今どの価値が薄いかを見るのに使う。
+function assistDeckVectorSums(info) {
+  const sums = {}; ASSIST_VEC_KEYS.forEach(k => sums[k] = 0);
+  (info.cards || []).forEach(c => { const v = assistVector(c); if (v) ASSIST_VEC_KEYS.forEach(k => sums[k] += (+v[k] || 0)); });
+  return sums;
+}
+// このカードが「今のデッキで薄い価値」をどれだけ補うか。薄い軸を埋める札ほど加点（最大+18目安）。
+function assistVectorFit(c, info, kind) {
+  const v = assistVector(c);
+  if (!v || !info || !info.cards.length) return 0;
+  const sums = info.vectorSums || assistDeckVectorSums(info);
+  // 「薄い」基準：枚数で薄まらないよう1枚あたり平均で見る。平均が低い軸＝足りない価値。
+  const n = info.cards.length || 1;
+  let score = 0;
+  // 攻め・処理・対空(到達)・防衛・制御の主要5軸で、平均が低い軸を埋める価値を後押し。
+  const FOCUS = ['fire', 'clear', 'reach', 'def', 'ctrl'];
+  FOCUS.forEach(k => {
+    const per = sums[k] / n;            // 今の1枚あたり平均価値
+    const need = Math.max(0, 4.5 - per); // 平均4.5を下回るほど不足とみなす
+    const give = +v[k] || 0;            // この札が持つその価値
+    if (need > 0 && give >= 5) score += Math.min(6, need * (give / 10) * 3);
+  });
+  // discovery は「別方向」を出す枠なので、ベクトル充足の効きは弱める。
+  return Math.round(kind === 'discovery' ? score * 0.5 : score);
 }
 const ASSIST_WINCONS = new Set([
   'ウォールブレイカー','スケルトンバレル','エリクサーゴーレム','ディガー','ゴブリンバレル',
@@ -497,7 +681,9 @@ function assistDeckInfo() {
     specialOpen: deck[0] === null || deck[1] === null || deck[2] === null, // 特別枠(1〜3)のどれかが空き
     normalOpen: [3, 4, 5, 6, 7].some(i => deck[i] === null)          // 通常枠(4〜8)のどれかが空き
   };
-  return { cards, names, avg, cycleAvg, wincons, spells, smallSpells, air, splash, dps, buildings, cycles, main, secondaries, mainAxes, mainAttack, personaAxes, slots, style };
+  const info = { cards, names, avg, cycleAvg, wincons, spells, smallSpells, air, splash, dps, buildings, cycles, main, secondaries, mainAxes, mainAttack, personaAxes, slots, style };
+  info.vectorSums = assistDeckVectorSums(info); // 9ベクトルのデッキ合計を1回だけ算出（候補評価で使い回す）
+  return info;
 }
 function assistLegal(c, info) {
   if (info.names.has(c.name)) return false;
@@ -707,6 +893,15 @@ function assistScore(c, kind, info) {
   if (pairFit) score += kind === 'discovery' ? Math.round(pairFit * 0.55) : pairFit;
   const pairExtFit = assistPairExtensionFit(c, info);
   if (pairExtFit) score += kind === 'discovery' ? Math.round(pairExtFit * 0.5) : pairExtFit;
+  // エリクサー価値ベクトル：今のデッキに足りない価値を埋める1枚を後押し（控えめ＝既存ロジックを壊さない）。
+  score += assistVectorFit(c, info, kind);
+  // 4枚目以降「次はどこを伸ばす？」で方向を選んでいれば、その方向の価値が高い札へ寄せる。
+  if (assistDirection && info.cards.length >= 3) {
+    const dscore = assistDirectionScore(c, assistDirection, info); // 0-10
+    score += Math.round(dscore * 3.6);
+    // 方向にほとんど沿わない札は軽く後ろへ（方向選択を体感できるように。ゆるい絞り込みで固定はしない）。
+    if (dscore < 3) score -= 14;
+  }
   // スロット適合：特別枠(進化/ヒーロー/チャンピオン)が空いていれば、その強みを持つカードを後押し。
   // 枠が埋まっていれば加点しないだけ。シナジーが高ければ通常候補として残す（チャンピオンはタップ時に入れ替えUIへ）。
   if (info.slots) {
@@ -739,6 +934,11 @@ function assistReason(c, kind, info) {
   const size = assistSpellSize(c);
   const bp = assistBestPair(c, info);
   const bx = assistBestPairExtension(c, info);
+  // 方向チップを選んでいる時は、その方向に沿った自然な言い方を最優先で返す（データ臭は出さない）。
+  if (assistDirection && info.cards.length >= 3) {
+    const dr = assistDirectionReason(c, assistDirection, info);
+    if (dr) return dr;
+  }
   if (kind === 'natural') {
     if (!info.wincons.length) {
       if (w && w.class === '勝ち筋') return 'まず勝ち方の主役を作れます。';
@@ -927,6 +1127,14 @@ function assistChunkTabs(info) {
     + '<button type="button" class="assist-chunk' + (active === 'threats' ? ' active' : '') + '" data-assist-chunk="threats">苦しい相手' + (count ? '<span>' + count + '</span>' : '') + '</button>'
     + '</div>';
 }
+// 4枚目以降の方向チップ「次はどこを伸ばす？」。3枚以上そろってから出す（2枚シナジー/3枚目は既存ロジックに任せる）。
+//  攻撃強化 / 防衛強化 / 回転力強化。選ぶと候補がその方向へ寄る。もう一度押すと解除（自然候補へ戻る）。
+function assistDirectionChipsHtml(info) {
+  if (!info || info.cards.length < 3 || info.cards.length >= 8) return '';
+  const opts = [['attack', '攻撃強化'], ['defense', '防衛強化'], ['cycle', '回転力強化']];
+  const chips = opts.map(o => '<button type="button" class="assist-dir-chip' + (assistDirection === o[0] ? ' active' : '') + '" data-assist-dir="' + o[0] + '">' + esc(o[1]) + '</button>').join('');
+  return '<div class="assist-dir"><span class="assist-dir-q">次はどこを伸ばす？</span><div class="assist-dir-chips">' + chips + '</div></div>';
+}
 function updateAssistTopInfo(info) {
   const el = document.getElementById('assistTopInfo');
   if (!el) return;
@@ -999,7 +1207,7 @@ function updateAssistPanel() {
     ? '<div class="assist-persona is-set" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">あなた好み：' + esc(pSum) + '</span><span class="ap-edit">変更</span></div>'
     : '<div class="assist-persona" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">デッキの好みを設定すると、あなた向けに候補が絞れます</span><span class="ap-edit">設定</span></div>';
   const activeChunk = assistChunk === 'threats' ? 'threats' : 'cards';
-  const chunkHtml = activeChunk === 'threats' ? assistThreatHtml(info) : cardsHtml;
+  const chunkHtml = activeChunk === 'threats' ? assistThreatHtml(info) : (assistDirectionChipsHtml(info) + cardsHtml);
   const actionMain = activeChunk === 'threats'
     ? '<button class="assist-mini" id="assistBackCards" type="button">候補へ戻る</button>'
     : '<button class="assist-mini" id="assistRefresh" type="button">別候補</button>';
@@ -1068,6 +1276,15 @@ function updateAssistPanel() {
       updateAssistPanel();
     });
   });
+  // 方向チップ（攻撃強化/防衛強化/回転力強化）：選ぶと候補がその方向へ寄る。同じものをもう一度押すと解除。
+  panel.querySelectorAll('[data-assist-dir]').forEach(b => {
+    b.addEventListener('click', () => {
+      const dir = b.getAttribute('data-assist-dir');
+      assistDirection = (assistDirection === dir) ? null : dir;
+      assistVariant = 0;
+      updateAssistPanel();
+    });
+  });
   const topInfo = document.getElementById('assistTopInfo');
   if (topInfo) topInfo.onclick = () => {
     if (!assistMode) return;
@@ -1097,6 +1314,7 @@ function refreshAssistHighlights() {
 function setAssistMode(on) {
   assistMode = !!on;
   assistVariant = 0;
+  assistDirection = null; // ON/OFF切替で方向選択はリセット（毎回ニュートラルから）
   try { localStorage.setItem('cr_assist_mode', assistMode ? 'on' : 'off'); } catch(e) {}
   updateAssistPanel();
   render();

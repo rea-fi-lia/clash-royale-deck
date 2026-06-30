@@ -898,6 +898,161 @@ function exportWeightsV1() {
   Logger.log('card-weights.json exported: ' + out.count + ' cards');
 }
 
+/** =============== エリクサー価値ベクトル（9軸＋細分サブ値）ドラフト生成＋エクスポート（2026-06-30追加） ===============
+ * 設計思想（オーナー討議2026-06-30）：
+ *   「このカードは1エリクサーで“どんな局面をどれだけ片づけられるか”」を9つの価値ベクトルに圧縮する。
+ *   呪文のように HP/DPS が無くても価値の高い札（例：ローリングウッド＝小物処理・制御・ノックバック・回転・攻め支援）を、
+ *   生数値ではなく「エリクサー当たりの解決力」で測るのが狙い。
+ * ソースは card-eval.json（既に17項目を“生スコア×÷コスト効率”で全カード相対1-10化済み＝エリクサー効率の塊）。
+ *   ＝ここを土台にすれば、呪文の価値も既に正しく入っている（card-eval側で手当て済み）。
+ * 9ベクトル：火力 / 耐久 / 処理 / 制御 / 範囲 / 到達 / 防衛 / 回転 / 柔軟性。
+ *   回転価値はここでは「単体の軽さ」=文脈なしの素点。実際の“今のデッキを軽くできるか”はフロントで平均コスト文脈に対して再計算する。
+ * 細分サブ値：小物処理/中型処理/群れ処理/空中処理/タンク処理 ・ ノックバック/リセット/スタン/スロー ・ 対空/大型受け/速攻受け/建物受け。
+ * 使い方：buildElixirVectorSheet() を1回実行 → シート「エリクサー価値」に自動ドラフト＋そのまま card-elixir-vectors-v1.json も出力。
+ *   赤入れ後は exportElixirVectorsV1() だけ再実行すればフロントに即反映。列はヘッダー名で照合＝列を足しても壊れない。 */
+function buildElixirVectorSheet() {
+  var evalJ = ghReadJson_('card-eval.json');
+  if (!evalJ || !evalJ.cards) throw new Error('card-eval.json が読めない（先に buildCardEvalV1 を実行）');
+  var tagsJ = ghReadJson_('card-tags.json') || { cards: {} };
+  var stats = ghReadJson_('card-stats.json') || { cards: [] };
+  var byJp = {}; (stats.cards || []).forEach(function (c) { byJp[c.jp] = c; });
+  var EC = evalJ.cards, TC = tagsJ.cards || {};
+
+  var rows = [];
+  Object.keys(EC).forEach(function (nm) {
+    var base = nm.replace(/[⚡👑]+$/, '');
+    var v = elixirVectorDraft_(EC[nm], (TC[nm] || TC[base] || {}).tags || [], byJp[base] || {});
+    var cost = (byJp[base] && byJp[base].n) ? byJp[base].n.cost : '';
+    var memo = (nm === base) ? '自動ドラフト・要赤入れ' : '形態行：要赤入れ';
+    rows.push([nm, cost,
+      v.fire, v.dur, v.clear, v.ctrl, v.area, v.reach, v.def, v.cycle, v.flex,
+      v.sub.small, v.sub.mid, v.sub.swarm, v.sub.airClear, v.sub.tank,
+      v.sub.knock, v.sub.reset, v.sub.stun, v.sub.slow,
+      v.sub.antiAir, v.sub.bigBlock, v.sub.fastBlock, v.sub.bldBlock, memo]);
+  });
+
+  var head = ['カード名', 'コスト',
+    '火力価値', '耐久価値', '処理価値', '制御価値', '範囲価値', '到達価値', '防衛価値', '回転価値', '柔軟性価値',
+    '小物処理', '中型処理', '群れ処理', '空中処理', 'タンク処理',
+    'ノックバック', 'リセット', 'スタン', 'スロー',
+    '対空', '大型受け', '速攻受け', '建物受け', 'メモ'];
+  var id = prop('TAG_SHEET_ID', '1cjX3ptT0g0qjfwhoTBKbzRfXGZUNGLy_jspMSRCDPyU');
+  var ss = SpreadsheetApp.openById(id);
+  var sh = ss.getSheetByName('エリクサー価値') || ss.insertSheet('エリクサー価値');
+  sh.clear();
+  sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#e8eaf0');
+  if (rows.length) sh.getRange(2, 1, rows.length, head.length).setValues(rows);
+  sh.setFrozenRows(1); sh.setFrozenColumns(1);
+  // 価値の高低が一目で分かるよう 0-10 を白→緑のグラデで色付け（ベクトル列＋サブ値列）。
+  try {
+    var rng = sh.getRange(2, 3, Math.max(1, rows.length), head.length - 3);
+    var rule = SpreadsheetApp.newConditionalFormatRule()
+      .setGradientMinpointWithValue('#ffffff', SpreadsheetApp.InterpolationType.NUMBER, '0')
+      .setGradientMidpointWithValue('#d9ead3', SpreadsheetApp.InterpolationType.NUMBER, '5')
+      .setGradientMaxpointWithValue('#57bb8a', SpreadsheetApp.InterpolationType.NUMBER, '10')
+      .setRanges([rng]).build();
+    sh.setConditionalFormatRules([rule]);
+  } catch (e) {}
+  Logger.log('エリクサー価値 ' + rows.length + '行を生成。続けてエクスポートします');
+  exportElixirVectorsV1();
+}
+
+/** シート「エリクサー価値」→ card-elixir-vectors-v1.json（dataブランチ）。
+ *  ヘッダー名→ascii キーで照合＝列の増減/並び替えに強い。サブ値は sub:{} にネスト。 */
+function exportElixirVectorsV1() {
+  var id = prop('TAG_SHEET_ID', '1cjX3ptT0g0qjfwhoTBKbzRfXGZUNGLy_jspMSRCDPyU');
+  var sh = SpreadsheetApp.openById(id).getSheetByName('エリクサー価値');
+  if (!sh) throw new Error('シート「エリクサー価値」がありません（先に buildElixirVectorSheet）');
+  // 日本語ヘッダー → JSONキー対応（前方一致で解決）。topは9ベクトル、subは細分値。
+  var TOP = [['火力', 'fire'], ['耐久', 'dur'], ['処理', 'clear'], ['制御', 'ctrl'], ['範囲', 'area'],
+    ['到達', 'reach'], ['防衛', 'def'], ['回転', 'cycle'], ['柔軟', 'flex']];
+  var SUB = [['小物', 'small'], ['中型', 'mid'], ['群れ', 'swarm'], ['空中', 'airClear'], ['タンク', 'tank'],
+    ['ノックバック', 'knock'], ['リセット', 'reset'], ['スタン', 'stun'], ['スロー', 'slow'],
+    ['対空', 'antiAir'], ['大型受け', 'bigBlock'], ['速攻受け', 'fastBlock'], ['建物受け', 'bldBlock']];
+  var vals = sh.getDataRange().getValues();
+  var head = vals[0].map(function (h) { return String(h).trim(); });
+  function colByPrefix(label) { for (var i = 0; i < head.length; i++) { if (head[i].indexOf(label) === 0) return i; } return -1; }
+  var cName = colByPrefix('カード名');
+  var topCol = {}, subCol = {};
+  TOP.forEach(function (p) { topCol[p[1]] = colByPrefix(p[0]); });
+  SUB.forEach(function (p) { subCol[p[1]] = colByPrefix(p[0]); });
+  function num(v) { var n = parseFloat(v); return isFinite(n) ? Math.round(n * 10) / 10 : 0; }
+  var cards = {};
+  for (var r = 1; r < vals.length; r++) {
+    var nm = String(vals[r][cName] || '').trim(); if (!nm) continue;
+    var row = {};
+    TOP.forEach(function (p) { row[p[1]] = topCol[p[1]] >= 0 ? num(vals[r][topCol[p[1]]]) : 0; });
+    var sub = {};
+    SUB.forEach(function (p) { sub[p[1]] = subCol[p[1]] >= 0 ? num(vals[r][subCol[p[1]]]) : 0; });
+    row.sub = sub;
+    cards[nm] = row;
+  }
+  var out = {
+    updated: new Date().toISOString(),
+    source: 'エリクサー価値（9ベクトル・自動ドラフト＋オーナー監修）',
+    scale: '0-10',
+    note: '1エリクサー当たりの解決力。回転価値は単体の軽さ＝素点で、実デッキの平均コスト文脈での価値はフロントで再計算する。',
+    vectors: ['fire', 'dur', 'clear', 'ctrl', 'area', 'reach', 'def', 'cycle', 'flex'],
+    subs: ['small', 'mid', 'swarm', 'airClear', 'tank', 'knock', 'reset', 'stun', 'slow', 'antiAir', 'bigBlock', 'fastBlock', 'bldBlock'],
+    count: Object.keys(cards).length,
+    cards: cards
+  };
+  ghWriteJson_('card-elixir-vectors-v1.json', out);
+  Logger.log('card-elixir-vectors-v1.json exported: ' + out.count + ' cards');
+}
+
+/** 9ベクトル＋サブ値の自動ドラフト。card-eval(17項目0-10)＋タグ＋実数値から算出。
+ *  ※フロント(js/builder.js)の deriveElixirVector() と同じ式。片方を直したら必ず両方そろえる。 */
+function elixirVectorDraft_(e, tags, st) {
+  var T = {}; (tags || []).forEach(function (t) { T[t] = 1; });
+  function has(k) { return !!T[k]; }
+  function ev(k) { var x = e ? e[k] : 0; return (typeof x === 'number' && isFinite(x)) ? x : 0; }
+  function cl(x) { return Math.max(0, Math.min(10, Math.round(x * 10) / 10)); }
+  var n = st && st.n ? st.n : {};
+  var cost = n.cost || 5;
+  var canAir = !!n.air;
+  var splash = !!n.splash || has('splash');
+  var defBld = has('defBuilding');
+  var minitank = has('minitank');
+  var rng = (typeof n.range === 'number' && isFinite(n.range)) ? n.range : 0;
+  var rangeBonus = rng >= 5 ? 3 : rng >= 4 ? 2.2 : rng >= 3 ? 1.4 : 0;
+
+  var tankProc = ev('タンク処理'), midProc = ev('中型タンク処理');
+  var airSingle = ev('対空単体処理'), grdSwarm = ev('地上群れ処理'), airSwarm = ev('対空群れ処理');
+  var wall = ev('壁性能'), spellRes = ev('呪文耐性');
+  var towerDmg = ev('タワーダメージ力'), towerFin = ev('タワーダメージ決定力'), bldDmg = ev('施設破壊力'), bldBreak = ev('施設突破力');
+  var solo = ev('素出し適正'), ph1 = ev('序盤適性(エリクサー1倍)'), ph2 = ev('中盤適性(エリクサー2倍)'), ph3 = ev('中盤適性(エリクサー3倍)');
+  var cheap = (7 - cost) / 6 * 10; // cost1→10, cost7→0
+
+  var fire = cl(0.42 * towerDmg + 0.33 * towerFin + 0.25 * bldDmg);
+  var dur = cl(0.62 * wall + 0.38 * spellRes);
+  var clear = cl(0.24 * tankProc + 0.18 * midProc + 0.18 * airSingle + 0.24 * grdSwarm + 0.16 * airSwarm);
+  var ctrl = cl((has('stun') ? 3.4 : 0) + (has('stop') ? 3.8 : 0) + (has('slow') ? 2.6 : 0) + (has('knockback') ? 2.4 : 0) + (has('pull') ? 3.2 : 0));
+  var area = splash ? cl(Math.max(6, Math.max(grdSwarm, airSwarm))) : cl(0.5 * Math.max(grdSwarm, airSwarm));
+  var reach = cl(0.45 * bldBreak + (canAir ? 2.5 : 0) + ((has('bridgeSpam') || has('dash') || has('charge')) ? 2.5 : 0) + rangeBonus);
+  var def = cl(0.36 * wall + 0.30 * Math.max(airSingle, airSwarm) + 0.24 * Math.max(tankProc, midProc) + (defBld ? 2.5 : 0) + (minitank ? 1 : 0));
+  var cycle = cl(cheap);
+  var flex = cl(0.32 * solo + 0.28 * ((ph1 + ph2 + ph3) / 3) + ((canAir) ? 2.2 : 0) + 0.15 * clear);
+
+  function tagCtl(on) { return on ? cl(5 + (7 - cost) / 6 * 5) : 0; }
+  var sub = {
+    small: cl(Math.max(grdSwarm, airSwarm)),
+    mid: cl(midProc),
+    swarm: cl(grdSwarm),
+    airClear: cl(Math.max(airSingle, airSwarm)),
+    tank: cl(tankProc),
+    knock: tagCtl(has('knockback')),
+    reset: tagCtl(has('stun') || has('stop')),
+    stun: tagCtl(has('stun')),
+    slow: tagCtl(has('slow')),
+    antiAir: cl(Math.max(airSingle, airSwarm)),
+    bigBlock: cl(0.6 * wall + 0.4 * Math.max(tankProc, midProc)),
+    fastBlock: cl((7 - cost) / 6 * 6 + 0.4 * Math.max(tankProc, midProc) + (defBld ? 2 : 0)),
+    bldBlock: defBld ? cl(6 + 0.4 * wall) : 0
+  };
+  return { fire: fire, dur: dur, clear: clear, ctrl: ctrl, area: area, reach: reach, def: def, cycle: cycle, flex: flex, sub: sub };
+}
+
 /** =============== シート1（旧v1）→タグ表v2 全量合算（チェックタブ廃止版） ===============
  * シート1のオーナー記入（○・メモ）を全部v2へ取り込む。v2の「空セル」にしか書かない。
  * 曖昧だった列は card-stats の属性で機械判別して振り分け：
