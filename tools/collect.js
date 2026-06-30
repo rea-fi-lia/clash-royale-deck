@@ -1770,18 +1770,23 @@ async function updateDecks() {
       Object.keys(bandAgg[bk].cards).forEach(function (name) { var s = polSummary_(bandAgg[bk].cards[name]); if (s) cards[name] = Object.assign({ name: name }, s); });
       byBand[bk] = { games: bandAgg[bk].games, cards: cards };
     });
-    await ghWriteJson_(evPath,
-      { updated: new Date().toISOString(), windowDays: 7, trophyRange: { min: trophyEventMin, max: trophyEventMax },
-        count: events.length, duration: triple, events: events },
-      'chore: update trophy-battle-events-v1.json');
-    await ghWriteJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-v1.json'),
-      { updated: new Date().toISOString(), windowDays: 7, trophyRange: { min: trophyEventMin, max: trophyEventMax },
-        count: events.length, duration: triple, byCard: byCard, byBand: byBand },
-      'chore: update trophy-band-card-intel-v1.json');
+    var trophyUpdated = new Date().toISOString();
+    try {
+      await ghWriteJson_(evPath,
+        { updated: trophyUpdated, windowDays: 7, trophyRange: { min: trophyEventMin, max: trophyEventMax },
+          count: events.length, duration: triple, events: events },
+        'chore: update trophy-battle-events-v1.json');
+    } catch (eRaw) { console.log('trophy-events raw write error ' + ((eRaw && eRaw.message) || eRaw)); }
+    try {
+      await ghWriteJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-v1.json'),
+        { updated: trophyUpdated, windowDays: 7, trophyRange: { min: trophyEventMin, max: trophyEventMax },
+          count: events.length, duration: triple, byCard: byCard, byBand: byBand },
+        'chore: update trophy-band-card-intel-v1.json');
+    } catch (eBand) { console.log('trophy-band-card-intel write error ' + ((eBand && eBand.message) || eBand)); }
     var publicBand = {};
     Object.keys(byBand).forEach(function (bk) { publicBand[bk] = { games: byBand[bk].games, cards: publicPolMap_(byBand[bk].cards) }; });
     await ghWriteJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-public-v1.json'),
-      { updated: new Date().toISOString(), version: 1, visibility: 'public-display', windowDays: 7,
+      { updated: trophyUpdated, version: 1, visibility: 'public-display', windowDays: 7,
         trophyRange: { min: trophyEventMin, max: trophyEventMax }, count: events.length,
         byCard: publicPolMap_(byCard), byBand: publicBand },
       'chore: update trophy-band-card-intel-public-v1.json');
