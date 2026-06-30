@@ -927,11 +927,13 @@ function buildElixirVectorSheet() {
   function baseOf(nm) { return String(nm || '').replace(/[⚡👑]+$/, ''); }
   function formOf(nm) { return /⚡$/.test(nm) ? '進化' : /👑$/.test(nm) ? 'ヒーロー/特殊' : '通常'; }
   function num(v) { var n = parseFloat(v); return isFinite(n) ? Math.round(n * 10) / 10 : ''; }
-  function rangeNum(v) { if (typeof v === 'number') return v; var s = String(v || ''); var m = s.match(/\(([0-9.]+)\)/); return m ? parseFloat(m[1]) : parseFloat(s); }
+  function statNum(v) { if (typeof v === 'number') return v; var s = String(v || '').trim(); var m = s.match(/\((-?[0-9.]+)\)/); var n = parseFloat(m ? m[1] : s); return isFinite(n) ? Math.round(n * 10) / 10 : ''; }
+  function phaseNum(v) { if (typeof v === 'number') return v; var s = String(v || '').trim(); if (s === '◎') return 9; if (s === '○') return 6; if (s === '△') return 3; if (s === '—' || s === '-') return 0; return num(s); }
+  function soloNum(v) { if (typeof v === 'number') return v; var s = String(v || '').trim(); if (s === '◎') return 5; if (s === '○') return 3; if (s === '△') return 1; if (s === '—' || s === '-') return 0; return num(s); }
   function a1(n) { var s = ''; while (n > 0) { var r = (n - 1) % 26; s = String.fromCharCode(65 + r) + s; n = Math.floor((n - 1) / 26); } return s; }
-  function addTriplet(row, label, val, rowNo) {
+  function addTriplet(row, label, val, rowNo, key) {
     var c = row.length + 1;
-    row.push(num(val), '', '=IF(' + a1(c + 1) + rowNo + '="",' + a1(c) + rowNo + ',' + a1(c + 1) + rowNo + ')');
+    row.push(adjustedValueFormula_(num(val), key, rowNo), '', '=IF(' + a1(c + 1) + rowNo + '="",' + a1(c) + rowNo + ',' + a1(c + 1) + rowNo + ')');
   }
   function addAdjusted(row, raw, rowNo, mode) {
     var c = row.length + 1;
@@ -946,7 +948,41 @@ function buildElixirVectorSheet() {
   head = head.concat(['HP16', 'HP補正%', '補正HP16', 'DPS16', 'DPS補正%', '補正DPS16', '単発ダメ16', '攻撃速度', '発射速度補正%', '補正攻撃速度',
     '射程', '射程補正', '補正射程', '移動速度', '移動速度補正%', '補正移動速度', '体数', '攻撃対象', '主要タグ',
     'HP効率', 'DPS効率', '呪文ダメ効率', '呪文タワー効率', '1倍適性', '2倍適性', '3倍適性', '素出し適性', 'キラー',
-    'レイジ後DPS(+30%)', 'レイジ後移動速度(+30%)', '素材メモ']);
+    'レイジ後DPS(+30%)', 'レイジ後攻撃/生成間隔(+30%)', 'レイジ後移動速度(+30%)', '素材メモ']);
+
+  function cell(rowNo, label) { var idx = head.indexOf(label); return idx >= 0 ? a1(idx + 1) + rowNo : ''; }
+  function ratioExpr(rowNo, adjustedLabel, rawLabel) {
+    var adj = cell(rowNo, adjustedLabel), raw = cell(rowNo, rawLabel);
+    return 'IF(OR(' + raw + '="",' + raw + '=0,' + adj + '=""),1,' + adj + '/' + raw + ')';
+  }
+  function diffExpr(rowNo, adjustedLabel, rawLabel) {
+    var adj = cell(rowNo, adjustedLabel), raw = cell(rowNo, rawLabel);
+    return 'IF(OR(' + raw + '="",' + adj + '=""),0,' + adj + '-' + raw + ')';
+  }
+  function adjustedValueFormula_(base, key, rowNo) {
+    if (base === '') return '';
+    var hp = '(' + ratioExpr(rowNo, '補正HP16', 'HP16') + ')';
+    var dpsRaw = '(' + ratioExpr(rowNo, '補正DPS16', 'DPS16') + ')';
+    var speedFire = '(' + ratioExpr(rowNo, '攻撃速度', '補正攻撃速度') + ')';
+    var dps = '(' + dpsRaw + '*' + speedFire + ')';
+    var rangeDelta = '(' + diffExpr(rowNo, '補正射程', '射程') + ')';
+    var move = '(' + ratioExpr(rowNo, '補正移動速度', '移動速度') + ')';
+    var expr = String(base);
+    if (key === 'fire') expr = base + '*(0.25+0.75*' + dps + ')';
+    else if (key === 'dur') expr = base + '*' + hp;
+    else if (key === 'clear') expr = base + '*(0.25+0.75*' + dps + ')';
+    else if (key === 'area') expr = base + '*(0.35+0.65*' + dps + ')';
+    else if (key === 'reach') expr = base + '+' + rangeDelta + '*0.7+' + '((' + move + ')-1)*1.2';
+    else if (key === 'def') expr = base + '*(0.15+0.45*' + hp + '+0.40*' + dps + ')+' + rangeDelta + '*0.2';
+    else if (key === 'flex') expr = base + '+' + rangeDelta + '*0.2+((' + move + ')-1)*1.5';
+    else if (key === 'small' || key === 'mid' || key === 'swarm' || key === 'airClear' || key === 'tank' || key === 'antiAir' || key === 'tempo') expr = base + '*(0.25+0.75*' + dps + ')';
+    else if (key === 'bigBlock') expr = base + '*(0.55*' + hp + '+0.45*' + dps + ')';
+    else if (key === 'fastBlock') expr = base + '*(0.30*' + hp + '+0.45*' + dps + '+0.25*' + move + ')';
+    else if (key === 'bldBlock') expr = base + '*' + hp;
+    else if (key === 'range') expr = base + '+' + rangeDelta + '*1.2';
+    else if (key === 'rage') expr = base + '*(0.20+0.50*' + dps + '+0.30*' + move + ')';
+    return '=MAX(0,MIN(10,ROUND((' + expr + ')*10)/10))';
+  }
 
   var rows = [];
   Object.keys(EC).forEach(function (nm) {
@@ -954,19 +990,20 @@ function buildElixirVectorSheet() {
     var tags = ((TC[nm] || TC[base] || {}).tags || []), v = elixirVectorDraft_(EC[nm], tags, st);
     var rowNo = rows.length + 2;
     var row = [nm, formOf(nm), n.cost || '', n.type || '', '', '未確認', '', ''];
-    TOP.forEach(function (x) { addTriplet(row, x[0], v[x[1]], rowNo); });
-    SUB.forEach(function (x) { addTriplet(row, x[0], v.sub[x[1]], rowNo); });
+    TOP.forEach(function (x) { addTriplet(row, x[0], v[x[1]], rowNo, x[1]); });
+    SUB.forEach(function (x) { addTriplet(row, x[0], v.sub[x[1]], rowNo, x[1]); });
     addAdjusted(row, st.hp16 || '', rowNo, 'multiply');
     addAdjusted(row, st.dps16 || '', rowNo, 'multiply');
     row.push(st.dmg16 || '');
-    addAdjusted(row, n.hitSpeed || '', rowNo, 'divide');
-    addAdjusted(row, rangeNum(n.range) || '', rowNo, 'add');
-    addAdjusted(row, n.speed || '', rowNo, 'multiply');
-    row.push(n.count || 1, n.type === 'Building' ? '建物' : (n.air ? '両方' : '地上'), tags.join(' / '), p.hpEff || '', p.dpsEff || '', p.spellEff || '', p.towerEff || '',
-      ph[0] || '', ph[1] || '', ph[2] || '', p.solo || '', p.killer || '',
+    addAdjusted(row, statNum(n.hitSpeed) || '', rowNo, 'divide');
+    addAdjusted(row, statNum(n.range) || '', rowNo, 'add');
+    addAdjusted(row, statNum(n.speed) || '', rowNo, 'multiply');
+    row.push(n.count || 1, n.type === 'Building' ? '建物' : (n.air ? '両方' : '地上'), tags.join(' / '), num(p.hpEff), num(p.dpsEff), num(p.spellEff), num(p.towerEff),
+      phaseNum(ph[0]), phaseNum(ph[1]), phaseNum(ph[2]), soloNum(p.solo), p.killer || '',
       '=IF(' + a1(head.indexOf('補正DPS16') + 1) + rowNo + '="","",' + a1(head.indexOf('補正DPS16') + 1) + rowNo + '*1.3)',
+      '=IF(' + a1(head.indexOf('補正攻撃速度') + 1) + rowNo + '="","",' + a1(head.indexOf('補正攻撃速度') + 1) + rowNo + '/1.3)',
       '=IF(' + a1(head.indexOf('補正移動速度') + 1) + rowNo + '="","",' + a1(head.indexOf('補正移動速度') + 1) + rowNo + '*1.3)',
-      'HP/DPS/攻撃速度/射程/移動速度はバランス調整時の把握用。JSONは左側の最終列を出力。');
+      'HP/DPS/攻撃速度/射程/移動速度の補正は左側の自動/最終列へ連動。さらに変えたい時だけ各 調整 列で上書き。');
     rows.push(row);
   });
 
@@ -978,8 +1015,38 @@ function buildElixirVectorSheet() {
   if (rows.length) sh.getRange(2, 1, rows.length, head.length).setValues(rows);
   sh.setFrozenRows(1); sh.setFrozenColumns(8);
   try { sh.getRange(1, 1, sh.getLastRow(), sh.getLastColumn()).createFilter(); } catch (e) {}
+  try { buildElixirVectorUsageSheet(); } catch (e) { Logger.log('使い方タブ生成 skip: ' + e); }
   Logger.log('エリクサー価値 ' + rows.length + '行を生成。続けてエクスポートします');
   exportElixirVectorsV1();
+}
+
+/** シート「使い方」を作り直す。エリクサー価値タブの編集導線をシート内に残すための案内。 */
+function buildElixirVectorUsageSheet() {
+  var id = prop('TAG_SHEET_ID', '1cjX3ptT0g0qjfwhoTBKbzRfXGZUNGLy_jspMSRCDPyU');
+  var ss = SpreadsheetApp.openById(id);
+  var sh = ss.getSheetByName('使い方') || ss.insertSheet('使い方');
+  var rows = [
+    ['CRDB エリクサー価値の使い方', '', '', ''],
+    ['目的', 'カードを1エリクサー当たりの解決力として整理し、デッキ作成アシストの候補・苦しい相手・次に伸ばす方向へつなげます。', '', ''],
+    ['編集する場所', '基本は「エリクサー価値」タブの 補正% と 調整 列だけ編集します。式が読む素材列は数値だけに寄せます。最終列がJSONへ出ます。', '', ''],
+    ['見る素材', 'タグ: 対空/範囲/タンクキラー/建物受け/生成/バフ/ランプなど。ポテンシャル: HP効率/DPS効率/倍速適性/素出し/キラー。エリクサー価値側では必要分を数値化して見ます。', '', ''],
+    ['バランス調整', 'HP補正%・DPS補正%・発射速度補正%・射程補正・移動速度補正%で、次の調整を仮置きして確認します。+10%は0.1、-5%は-0.05。補正は左側の自動/最終列へ連動します。', '', ''],
+    ['レイジ前提', 'レイジは30%速度ブーストとして扱います。移動速度、発射速度、建物/生成系のテンポが伸びる前提で見ます。発射速度+30%は攻撃/生成間隔÷1.3として見ます。', '', ''],
+    ['公開手順', 'タグ/ポテンシャルを直したら exportTagSheetV2() → exportPotentialV1() → buildCardEvalV1() → buildElixirVectorSheet()。赤入れ後は exportElixirVectorsV1()。', '', ''],
+    ['Node導線', 'ローカルからは node tools/export-elixir-vectors-from-sheet.js --out /tmp/card-elixir-vectors-v1.json --publish --verify', '', ''],
+    ['フロント反映', 'サイト側は card-elixir-vectors-v1.json を優先して読みます。足りない時だけカード評価から同じ考え方で補います。', '', ''],
+    ['文言ルール', 'ユーザー向けには裏側の言い方を出さず、「受けを作りやすい」「攻めを通しやすい」「手札を回し直しやすい」のように自然に出します。', '', ''],
+    ['今後足す軸', '5枚目以降は 空受け/小物処理/中型処理/大型処理/射程支援/手数/速度で伸びる札/回転力 を細かく見ます。', '', '']
+  ];
+  sh.clear();
+  sh.getRange(1, 1, rows.length, 4).setValues(rows);
+  sh.getRange(1, 1, 1, 4).merge().setFontWeight('bold').setFontSize(14).setBackground('#e8eaf0');
+  sh.getRange(2, 1, rows.length - 1, 1).setFontWeight('bold').setBackground('#f5f6fa');
+  sh.getRange(2, 2, rows.length - 1, 3).mergeAcross();
+  sh.getRange(1, 1, rows.length, 4).setWrap(true).setVerticalAlignment('middle');
+  sh.setColumnWidths(1, 1, 140);
+  sh.setColumnWidths(2, 3, 260);
+  Logger.log('使い方タブを生成: ' + rows.length + '行');
 }
 
 /** シート「エリクサー価値」→ card-elixir-vectors-v1.json（dataブランチ）。
@@ -1416,7 +1483,7 @@ function buildCardEvalV1() {
   var TC = tagsJ.cards || {}, PC = potJ.cards || {};
   var SIEGE = { '迫撃砲': 1, '巨大クロスボウ': 1 };
   function mp(s){ return s==='◎'?9 : s==='○'?6 : s==='△'?3 : 0; }
-  function spd(s){ return typeof s==='number'? s : (parseFloat(s)||60); }
+  function spd(s){ if (typeof s==='number') return s; var m=String(s||'').match(/\(([0-9.]+)\)/); var n=num(m ? m[1] : s); return n || 60; }
   function num(v){ var n = parseFloat(v); return isFinite(n) ? n : 0; }
   function rangeNum(v){ if (typeof v === 'number') return v; var s = String(v || ''); var m = s.match(/\(([0-9.]+)\)/); return m ? num(m[1]) : num(s); }
   var cards = stats.cards.map(function (c) {

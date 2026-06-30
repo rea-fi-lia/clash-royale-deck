@@ -5,7 +5,7 @@
  *
  * 例:
  *   node tools/export-elixir-vectors-from-sheet.js --out /tmp/card-elixir-vectors-v1.json
- *   node tools/export-elixir-vectors-from-sheet.js --publish
+ *   node tools/export-elixir-vectors-from-sheet.js --out /tmp/card-elixir-vectors-v1.json --publish --verify
  *
  * 必要なもの:
  *   - GOOGLE_APPLICATION_CREDENTIALS（未指定なら ~/.config/crdb/google-service-account.json）
@@ -35,6 +35,12 @@ function b64url(input) {
 function round1(value) {
   const n = parseFloat(value);
   return Number.isFinite(n) ? Math.round(n * 10) / 10 : 0;
+}
+function scoreValue(value, cardName, label) {
+  const text = String(value ?? '').trim();
+  if (text.startsWith('#')) throw new Error(cardName + ' / ' + label + ' がシートエラーです: ' + text);
+  if (text && !Number.isFinite(parseFloat(text))) throw new Error(cardName + ' / ' + label + ' が数値ではありません: ' + text);
+  return round1(value);
 }
 function columnIndex(headers, label) {
   const exact = headers.indexOf(label + ' 最終');
@@ -75,7 +81,7 @@ async function googleToken(keyPath) {
 }
 async function readSheetValues(spreadsheetId, sheetTitle, keyPath) {
   const token = await googleToken(keyPath);
-  const range = encodeURIComponent(sheetTitle + '!A1:DJ300');
+  const range = encodeURIComponent(sheetTitle + '!A1:ZZ300');
   const url = 'https://sheets.googleapis.com/v4/spreadsheets/' + spreadsheetId + '/values/' + range + '?valueRenderOption=UNFORMATTED_VALUE';
   const data = await requestJson(url, { headers: { Authorization: 'Bearer ' + token } });
   return data.values || [];
@@ -94,9 +100,9 @@ function buildJson(values) {
     const name = String(row[nameCol] || '').trim();
     if (!name) continue;
     const card = {};
-    for (const [, key] of TOP) card[key] = round1(row[topCols[key]]);
+    for (const [jp, key] of TOP) card[key] = scoreValue(row[topCols[key]], name, jp);
     card.sub = {};
-    for (const [, key] of SUB) card.sub[key] = round1(row[subCols[key]]);
+    for (const [jp, key] of SUB) card.sub[key] = scoreValue(row[subCols[key]], name, jp);
     cards[name] = card;
   }
   const count = Object.keys(cards).length;
@@ -112,6 +118,11 @@ function buildJson(values) {
     cards
   };
 }
+function comparableJson(text) {
+  const obj = JSON.parse(text);
+  delete obj.updated;
+  return JSON.stringify(obj);
+}
 function githubToken() {
   if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
   if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
@@ -126,20 +137,43 @@ async function publishJson(out, filePath) {
   const api = 'https://api.github.com/repos/' + repo + '/contents/' + target;
   const headers = { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'User-Agent': 'crdb-elixir-export', 'Content-Type': 'application/json' };
   let sha = null;
+  let currentText = '';
   try {
     const cur = await requestJson(api + '?ref=' + encodeURIComponent(branch), { headers: { ...headers, Accept: 'application/vnd.github.object' } });
     sha = cur && cur.sha;
+    if (cur && cur.content) currentText = Buffer.from(String(cur.content).replace(/\s/g, ''), 'base64').toString('utf8');
   } catch (e) {
     if (!String(e.message).includes('-> 404 ')) throw e;
   }
+  const nextText = fs.readFileSync(filePath, 'utf8');
+  if (currentText) {
+    try {
+      if (comparableJson(currentText) === comparableJson(nextText)) return { repo, branch, target, commit: sha, skipped: true };
+    } catch (e) {}
+  }
   const body = {
     message: 'chore: update ' + target,
-    content: fs.readFileSync(filePath).toString('base64'),
+    content: Buffer.from(nextText).toString('base64'),
     branch
   };
   if (sha) body.sha = sha;
   const res = await requestJson(api, { method: 'PUT', headers, body: JSON.stringify(body) });
   return { repo, branch, target, commit: res && res.commit && res.commit.sha };
+}
+async function verifyPublished(pub) {
+  const repo = pub.repo || process.env.GITHUB_REPOSITORY || process.env.GITHUB_REPO || 'rea-fi-lia/clash-royale-deck';
+  const branch = pub.branch || process.env.GITHUB_BRANCH || process.env.DATA_BRANCH || 'data';
+  const target = pub.target || process.env.ELIXIR_VECTORS_PATH || 'card-elixir-vectors-v1.json';
+  const url = 'https://raw.githubusercontent.com/' + repo + '/' + branch + '/' + target + '?cb=' + Date.now();
+  const data = await requestJson(url);
+  const cards = data && data.cards ? data.cards : {};
+  const sampleName = Object.keys(cards)[0];
+  const sample = sampleName ? cards[sampleName] : null;
+  const missingVec = TOP.map(([, key]) => key).filter(key => !sample || sample[key] == null);
+  const missingSub = SUB.map(([, key]) => key).filter(key => !sample || !sample.sub || sample.sub[key] == null);
+  if (!data || data.count < 100 || Object.keys(cards).length < 100) throw new Error('verify failed: cards=' + (data && data.count));
+  if (missingVec.length || missingSub.length) throw new Error('verify failed: missing ' + missingVec.concat(missingSub).join(', '));
+  console.log('verified raw count=' + data.count + ' vectors=' + (data.vectors || []).length + ' subs=' + (data.subs || []).length + ' updated=' + (data.updated || '-'));
 }
 async function main() {
   const spreadsheetId = argValue('--spreadsheet', process.env.SPREADSHEET_ID || DEFAULT_SPREADSHEET_ID);
@@ -150,9 +184,11 @@ async function main() {
   const out = buildJson(values);
   fs.writeFileSync(outPath, JSON.stringify(out), 'utf8');
   console.log('wrote ' + outPath + ' cards=' + out.count + ' bytes=' + fs.statSync(outPath).size);
+  let pub = { repo: process.env.GITHUB_REPOSITORY || process.env.GITHUB_REPO || 'rea-fi-lia/clash-royale-deck', branch: process.env.GITHUB_BRANCH || process.env.DATA_BRANCH || 'data', target: process.env.ELIXIR_VECTORS_PATH || 'card-elixir-vectors-v1.json' };
   if (hasArg('--publish')) {
-    const pub = await publishJson(out, outPath);
-    console.log('published ' + pub.repo + '/' + pub.target + ' branch=' + pub.branch + ' commit=' + (pub.commit || '-'));
+    pub = await publishJson(out, outPath);
+    console.log((pub.skipped ? 'up-to-date ' : 'published ') + pub.repo + '/' + pub.target + ' branch=' + pub.branch + ' commit=' + (pub.commit || '-'));
   }
+  if (hasArg('--verify')) await verifyPublished(pub);
 }
 main().catch(err => { console.error(err.stack || err.message); process.exit(1); });

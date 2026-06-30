@@ -581,6 +581,90 @@ function assistVectorFit(c, info, kind) {
   // discovery は「別方向」を出す枠なので、ベクトル充足の効きは弱める。
   return Math.round(kind === 'discovery' ? score * 0.5 : score);
 }
+function assistSubAverage(info, key) {
+  const cards = (info && info.cards) || [];
+  if (!cards.length) return 0;
+  return cards.reduce((sum, c) => sum + assistVecSub(c, key), 0) / cards.length;
+}
+function assistAddStageNeed(needs, id, label, dir, severity) {
+  const s = Math.round(severity || 0);
+  if (s > 0) needs.push({ id, label, dir, severity: s });
+}
+function assistStageNeeds(info) {
+  if (!info || info.cards.length < 3) return [];
+  const n = info.cards.length || 1;
+  const sums = info.vectorSums || assistDeckVectorSums(info);
+  const avgVec = k => (sums[k] || 0) / n;
+  const avgSub = k => assistSubAverage(info, k);
+  const needs = [];
+  const late = info.cards.length >= 4;
+  assistAddStageNeed(needs, 'air', '空受け', 'defense', (2 - info.air.length) * 16 + Math.max(0, 4.4 - avgSub('antiAir')) * 4);
+  assistAddStageNeed(needs, 'tank', '大型処理', 'defense', (!info.dps.length ? 24 : 0) + Math.max(0, 4.6 - avgSub('tank')) * 4);
+  if (late) assistAddStageNeed(needs, 'small', '小物処理', 'defense', (!info.smallSpells.length ? 18 : 0) + (!info.splash.length ? 10 : 0) + Math.max(0, 4.4 - avgSub('small')) * 3);
+  if (late) assistAddStageNeed(needs, 'mid', '中型処理', 'defense', Math.max(0, 4.5 - avgSub('mid')) * 4 + (info.dps.length ? 0 : 8));
+  if (late) assistAddStageNeed(needs, 'fast', '速攻受け', 'defense', (info.buildings.length ? 0 : 12) + (info.avg >= 3.8 ? 10 : 0) + Math.max(0, 4.2 - avgSub('fastBlock')) * 3);
+  if (info.wincons.length) assistAddStageNeed(needs, 'range', '射程支援', 'attack', Math.max(0, 4.7 - avgSub('range')) * 4 + (info.mainAttack === 'mainPressure' ? 10 : 0));
+  if (late) assistAddStageNeed(needs, 'tempo', '手数', 'attack', Math.max(0, 4.6 - avgSub('tempo')) * 3 + (avgVec('clear') < 4.4 ? 8 : 0));
+  const hasSpeedCore = info.cards.some(c => c.name === 'レイジ' || c.name === 'ランバージャック' || assistHas(c, ['レイジ','速度','バフ']));
+  if (late || hasSpeedCore) assistAddStageNeed(needs, 'rage', '速度で伸びる札', 'attack', (hasSpeedCore ? 18 : 0) + Math.max(0, 4.2 - avgSub('rage')) * 3);
+  if (late) assistAddStageNeed(needs, 'cycle', '回転力', 'cycle', (info.avg >= 3.5 ? 18 : 0) + (info.cycleAvg >= 2.9 ? 12 : 0) + (info.cycles.length < 2 ? 8 : 0));
+  if (late && !info.spells.length) assistAddStageNeed(needs, 'spell', '呪文', 'defense', 26);
+  return needs.sort((a, b) => b.severity - a.severity).slice(0, 4);
+}
+function assistNeedCandidateValue(c, id, info) {
+  const v = assistVector(c) || {};
+  const sub = v.sub || {};
+  const val = k => +sub[k] || 0;
+  if (id === 'air') return Math.max(val('antiAir'), assistIsTrueAir(c) ? 7.5 : 0, assistTagHas(c, 'stun') ? 4 : 0);
+  if (id === 'tank') return Math.max(val('tank'), val('mid') * 0.7, assistTagHas(c, 'tankKiller') ? 8 : 0, assistTagHas(c, 'ramp') ? 7 : 0);
+  if (id === 'small') return Math.max(val('small'), val('swarm'), ASSIST_SMALL_SPELLS.has(c.name) ? 8.5 : 0, assistTagHas(c, 'splash') ? 6.5 : 0);
+  if (id === 'mid') return Math.max(val('mid'), val('tank') * 0.6, (+v.clear || 0) * 0.75);
+  if (id === 'fast') return Math.max(val('fastBlock'), val('bldBlock'), c.type === 'building' ? 8 : 0, assistCycleValueInContext(c, info) * 0.65);
+  if (id === 'range') return Math.max(val('range'), (+v.reach || 0), assistHas(c, ['遠距離','超長射程']) ? 8 : 0);
+  if (id === 'tempo') return Math.max(val('tempo'), (+v.clear || 0) * 0.7, assistHas(c, ['速射','高DPS']) ? 7 : 0);
+  if (id === 'rage') return Math.max(val('rage'), c.name === 'レイジ' ? 10 : 0, c.name === 'ランバージャック' ? 9 : 0, c.type === 'building' ? val('rage') : 0, assistTagHas(c, 'ramp') ? 8 : 0);
+  if (id === 'cycle') return assistCycleValueInContext(c, info);
+  if (id === 'spell') return ASSIST_SMALL_SPELLS.has(c.name) ? 9 : assistSpellSize(c) === 'small' ? 7.5 : assistSpellSize(c) === 'mid' ? 6.5 : assistIsSpell(c) ? 4 : 0;
+  return 0;
+}
+function assistStageNeedFit(c, info, kind) {
+  const needs = (info && info.stageNeeds) || assistStageNeeds(info);
+  if (!needs.length) return 0;
+  let total = 0;
+  needs.slice(0, 3).forEach((need, idx) => {
+    const give = assistNeedCandidateValue(c, need.id, info);
+    if (give < 4) return;
+    let bias = 1;
+    if (kind === 'stable' && need.dir === 'defense') bias = 1.15;
+    if (kind === 'natural' && need.dir === 'attack') bias = 1.08;
+    if (kind === 'discovery' && (need.id === 'range' || need.id === 'tempo' || need.id === 'rage')) bias = 1.15;
+    total += Math.min(20, (need.severity / 18) * give * bias * (idx === 0 ? 1 : 0.78));
+  });
+  return Math.round(kind === 'discovery' ? total * 0.75 : total);
+}
+function assistBestStageNeed(c, info) {
+  const needs = (info && info.stageNeeds) || assistStageNeeds(info);
+  let best = null;
+  needs.forEach(need => {
+    const fit = assistNeedCandidateValue(c, need.id, info);
+    if (fit >= 5 && (!best || fit * need.severity > best.fit * best.need.severity)) best = { need, fit };
+  });
+  return best;
+}
+function assistStageNeedReason(c, need, info) {
+  if (!need) return '';
+  if (need.id === 'air') return '空中の攻めにも受けを作れて、形が崩れにくくなります。';
+  if (need.id === 'tank') return '大型を前に置かれても処理しやすく、受けから攻めへつなげやすくなります。';
+  if (need.id === 'small') return '小物をまとめて処理しやすく、主役を通す道を作れます。';
+  if (need.id === 'mid') return '中型をさばく力を足して、受けの負担を減らせます。';
+  if (need.id === 'fast') return '速い攻めに受けを置きやすくなり、初手の遅れを減らせます。';
+  if (need.id === 'range') return '後ろから届く圧を足して、攻めを通しやすくします。';
+  if (need.id === 'tempo') return '手数を足して、相手の受けを追い込みやすくします。';
+  if (need.id === 'rage') return '速度を乗せた時の伸びを活かしやすく、攻め切る力を足せます。';
+  if (need.id === 'cycle') return assistCycleValueInContext(c, info) >= 6 ? '今より軽くなって、欲しい札へ戻りやすくなります。' : '回しやすさを保ちながら、形を整えられます。';
+  if (need.id === 'spell') return '呪文を1枚足して、攻めと受けの選択肢を広げられます。';
+  return '';
+}
 const ASSIST_WINCONS = new Set([
   'ウォールブレイカー','スケルトンバレル','エリクサーゴーレム','ディガー','ゴブリンバレル',
   'ホグライダー','攻城バーバリアン','ゴブリンドリル','迫撃砲','ジャイアント','エアバルーン',
@@ -699,6 +783,7 @@ function assistDeckInfo() {
   };
   const info = { cards, names, avg, cycleAvg, wincons, spells, smallSpells, air, splash, dps, buildings, cycles, main, secondaries, mainAxes, mainAttack, personaAxes, slots, style };
   info.vectorSums = assistDeckVectorSums(info); // 9ベクトルのデッキ合計を1回だけ算出（候補評価で使い回す）
+  info.stageNeeds = assistStageNeeds(info); // 5枚目以降の不足読み（対空/処理/射程/回転など）
   return info;
 }
 function assistLegal(c, info) {
@@ -911,6 +996,8 @@ function assistScore(c, kind, info) {
   if (pairExtFit) score += kind === 'discovery' ? Math.round(pairExtFit * 0.5) : pairExtFit;
   // エリクサー価値ベクトル：今のデッキに足りない価値を埋める1枚を後押し（控えめ＝既存ロジックを壊さない）。
   score += assistVectorFit(c, info, kind);
+  // 5枚目以降は、薄い役割をもう少し具体的に見る（空受け/小物処理/中型処理/射程/手数/回転など）。
+  score += assistStageNeedFit(c, info, kind);
   // 4枚目以降「次はどこを伸ばす？」で方向を選んでいれば、その方向の価値が高い札へ寄せる。
   if (assistDirection && info.cards.length >= 3) {
     const dscore = assistDirectionScore(c, assistDirection, info); // 0-10
@@ -954,6 +1041,13 @@ function assistReason(c, kind, info) {
   if (assistDirection && info.cards.length >= 3) {
     const dr = assistDirectionReason(c, assistDirection, info);
     if (dr) return dr;
+  }
+  if (info.cards.length >= 4) {
+    const nr = assistBestStageNeed(c, info);
+    if (nr && nr.fit >= 6) {
+      const text = assistStageNeedReason(c, nr.need, info);
+      if (text) return text;
+    }
   }
   if (kind === 'natural') {
     if (!info.wincons.length) {
@@ -1035,6 +1129,8 @@ function assistBadges(c, info) {
   if (p && p.solo === '◎') badges.push('単体でも動ける');
   const bp = info ? assistBestPair(c, info) : null;
   if (bp && (bp.score || 0) >= 12) badges.push('合わせやすい: ' + bp.other);
+  const nr = info ? assistBestStageNeed(c, info) : null;
+  if (nr && nr.fit >= 6.5) badges.push(nr.need.label);
   const v = info ? assistVector(c) : null;
   const sub = v && v.sub ? v.sub : {};
   if ((+sub.range || 0) >= 7) badges.push('射程で圧');
@@ -1154,7 +1250,9 @@ function assistDirectionChipsHtml(info) {
   if (!info || info.cards.length < 3 || info.cards.length >= 8) return '';
   const opts = [['attack', '攻撃強化'], ['defense', '防衛強化'], ['cycle', '回転力強化']];
   const chips = opts.map(o => '<button type="button" class="assist-dir-chip' + (assistDirection === o[0] ? ' active' : '') + '" data-assist-dir="' + o[0] + '">' + esc(o[1]) + '</button>').join('');
-  return '<div class="assist-dir"><span class="assist-dir-q">次はどこを伸ばす？</span><div class="assist-dir-chips">' + chips + '</div></div>';
+  const needs = (info.stageNeeds || []).slice(0, 2).map(n => n.label).join(' / ');
+  const hint = needs ? '<small class="assist-dir-hint">今は ' + esc(needs) + ' も見たい形</small>' : '';
+  return '<div class="assist-dir"><span class="assist-dir-q">次はどこを伸ばす？</span><div class="assist-dir-chips">' + chips + '</div>' + hint + '</div>';
 }
 function updateAssistTopInfo(info) {
   const el = document.getElementById('assistTopInfo');
@@ -1162,6 +1260,7 @@ function updateAssistTopInfo(info) {
   if (!assistMode || !info) { el.innerHTML = ''; return; }
   const rows = assistThreatRows(info);
   const threats = rows.length ? rows.map(r => r.title.replace('が重い', '').replace('が薄い', '').replace('に遅れやすい', '')).join(' / ') : '大きな穴は少なめ';
+  const needs = (info.stageNeeds || []).slice(0, 2).map(n => n.label).join(' / ');
   let main = '今の読み';
   let sub = '';
   if (info.cards.length >= 8) {
@@ -1175,7 +1274,7 @@ function updateAssistTopInfo(info) {
     sub = rows.length ? rows.map(r => r.title).join(' / ') : 'もう少し枚数が増えると読みやすいです';
   } else {
     main = info.cards.length + '/8枚';
-    sub = info.style + '｜苦: ' + threats;
+    sub = info.style + (needs ? '｜次: ' + needs : '') + '｜苦: ' + threats;
   }
   const go = assistChunk === 'threats' ? '候補へ' : '受けへ';
   el.innerHTML = '<span class="ati-main">' + esc(main) + '</span><span class="ati-sub">' + esc(sub) + '</span><span class="ati-go">' + esc(go) + '</span>';
