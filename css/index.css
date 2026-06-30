@@ -99,6 +99,34 @@
   .builder-guide-strip a { color: var(--accent); font-weight: 700; text-decoration: none; white-space: nowrap; }
   @media (hover: hover) { .builder-guide-strip a:hover { text-decoration: underline; } }
 
+  .corner-guide {
+    position: fixed; right: 14px; bottom: 14px; z-index: 998;
+    font-family: var(--font-body); color: var(--text);
+  }
+  .corner-guide summary {
+    list-style: none; width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(232,160,32,0.45); background: rgba(30,34,48,0.94);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.28); color: var(--accent); font-weight: 800;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .corner-guide summary::-webkit-details-marker { display: none; }
+  .corner-guide[open] summary { background: rgba(232,160,32,0.18); }
+  .cg-panel {
+    position: absolute; right: 0; bottom: 42px; width: min(260px, calc(100vw - 28px));
+    padding: 12px; border: 1px solid rgba(232,160,32,0.28); border-radius: 14px;
+    background: rgba(22,25,32,0.98); box-shadow: 0 18px 46px rgba(0,0,0,0.38);
+  }
+  .cg-panel b { display: block; font-size: 12px; color: var(--text); margin-bottom: 2px; }
+  .cg-panel p { margin: 0; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
+  .cg-links { display: grid; gap: 6px; margin-top: 9px; }
+  .cg-links a {
+    display: block; padding: 7px 9px; border-radius: 9px; border: 1px solid var(--border);
+    background: rgba(255,255,255,0.035); color: var(--accent); font-size: 12px; font-weight: 700;
+    text-decoration: none;
+  }
+  @media (hover: hover) { .cg-links a:hover { border-color: var(--accent); background: rgba(232,160,32,0.10); } }
+
   .search-wrap { position: relative; flex: 1; min-width: 140px; }
   .search-wrap svg { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); opacity: 0.4; pointer-events: none; }
   .search-clear {
@@ -890,6 +918,9 @@
     .controls.assist-active { gap: 6px; }
     .builder-guide-strip { grid-template-columns: 1fr auto auto; gap: 5px; padding: 6px 7px; font-size: 10px; }
     .builder-guide-strip strong { display: none; }
+    .corner-guide { right: 10px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+    .corner-guide summary { width: 32px; height: 32px; }
+    .cg-panel { bottom: 39px; }
     .controls.assist-active .assist-panel { padding: 6px; gap: 5px; }
     .assist-card { grid-template-columns: 36px 1fr auto; gap: 6px; padding: 5px 6px; }
     .assist-card img { width: 36px; height: 36px; }
