@@ -42,6 +42,15 @@
 <meta name="keywords" content="クラロワ,クラッシュロワイヤル,デッキ,デッキ作成,デッキ診断,デッキビルダー,人気デッキ,勝率,進化,ヒーロー,チャンピオン">
 <meta name="author" content="rea-fi-lia">
 <link rel="stylesheet" href="css/index.css?v=260719">
+<!-- MOBILE-FOOTER-FIX: 固定ON時のbody高さを可視VPに揃え＋フッター下の"ふとい帯"を解消（将来 css/index.css へ移設可） -->
+<style>
+@media (max-width: 720px){
+  /* base の body{min-height:100vh}(iOS=836) が固定ON時に解放されず836になるのを、inset:0駆動(=796)へ。解除側と統一＝切替ジャンプも解消 */
+  body.cr-builder { min-height: 0; }
+  /* フッター下の40px帯を解消。Safari下バー分の最小クリアランスは env で確保 */
+  body.cr-builder .footer-signature { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+}
+</style>
 
 <script type="application/ld+json">
 {
