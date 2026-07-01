@@ -192,5 +192,44 @@
 <!-- ログイン＆ユーザーデータ（Firebase）。ヘッダーにログインボタンが自動で付きます -->
 <script type="module" src="auth.js?v=260719"></script>
 <script defer src="i18n.js?v=260719"></script>
+<!-- DEBUG-OVERLAY-START (一時デバッグ・?debug=1 の時だけ表示。iOSフッター隙間の原因特定用・診断後に削除) -->
+<script>
+(function(){
+  try{
+    if(!/[?&]debug=1/.test(location.search)) return;
+    var sab=document.createElement('div');
+    sab.style.cssText='position:fixed;bottom:0;left:-9999px;padding-bottom:env(safe-area-inset-bottom);';
+    document.body.appendChild(sab);
+    var box=document.createElement('div');
+    box.style.cssText='position:fixed;top:0;left:0;z-index:2147483647;background:rgba(0,0,0,.82);color:#0f0;font:10px/1.35 monospace;padding:5px 6px;white-space:pre;pointer-events:none;border-bottom-right-radius:6px;';
+    document.body.appendChild(box);
+    function r(el){ if(!el) return null; var b=el.getBoundingClientRect(); return {t:Math.round(b.top),bt:Math.round(b.bottom),h:Math.round(b.height),sh:el.scrollHeight}; }
+    function upd(){
+      var vv=window.visualViewport;
+      var innerH=window.innerHeight;
+      var vvH=vv?Math.round(vv.height):'-';
+      var clientH=document.documentElement.clientHeight;
+      var cs=getComputedStyle(document.body);
+      var ar=r(document.querySelector('.app')), fr=r(document.querySelector('.footer-signature'));
+      var visH=vv?vv.height:innerH;
+      var gap=fr?Math.round(visH-fr.bt):'-';
+      var sabH=Math.round(sab.getBoundingClientRect().height);
+      box.textContent=
+        'nopin:'+document.documentElement.classList.contains('nopin')+'\n'+
+        'innerH:'+innerH+' vvH:'+vvH+' clientH:'+clientH+'\n'+
+        'body pos:'+cs.position+' h:'+cs.height+'\n'+
+        (ar?('app t:'+ar.t+' b:'+ar.bt+' h:'+ar.h+' sh:'+ar.sh+'\n'):'app:none\n')+
+        (fr?('foot t:'+fr.t+' b:'+fr.bt+' h:'+fr.h+'\n'):'foot:none\n')+
+        'GAP(visH-footB):'+gap+'\n'+
+        'safe-bottom:'+sabH;
+    }
+    upd();
+    ['scroll','resize','orientationchange'].forEach(function(e){window.addEventListener(e,upd,true);});
+    if(window.visualViewport){window.visualViewport.addEventListener('resize',upd);window.visualViewport.addEventListener('scroll',upd);}
+    setInterval(upd,500);
+  }catch(e){}
+})();
+</script>
+<!-- DEBUG-OVERLAY-END -->
 </body>
 </html>
