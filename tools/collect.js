@@ -224,19 +224,31 @@ function archForm_(jpArr, forms) {
   return 'その他';
 }
 
+var THREAT_BUCKET_VERSION = 2;
+var THREAT_BUCKET_IDS_V1 = { airBig:1, swarmBait:1, tankPush:1, fastPressure:1, buildingWall:1 };
 var THREAT_TITLES = {
   airBig: { title: '空中大型が重い', enemy: 'ラヴァ/バルーン系', need: '空受け', text: 'ラヴァやバルーン系を受ける札が少なめです。' },
   swarmBait: { title: '小物で止まりやすい', enemy: 'バレル/群れ系', need: '小物処理', text: 'バレルや群れで道をふさがれると攻めが止まりやすいです。' },
   tankPush: { title: 'タンク受けが薄い', enemy: '大型後衛系', need: '高火力', text: '大型を前に置かれた時、溶かす役がもう少し欲しい形です。' },
   fastPressure: { title: '速い攻めに遅れやすい', enemy: '橋前/速攻系', need: '軽い受け', text: 'ホグや橋前の速い攻めに、受けの初手が重くなりやすいです。' },
-  buildingWall: { title: '建物で受けられやすい', enemy: '建物受け', need: '道を開ける札', text: '主役を建物で止められた時の押し込みが少し欲しいです。' }
+  buildingWall: { title: '建物で受けられやすい', enemy: '建物受け', need: '道を開ける札', text: '主役を建物で止められた時の押し込みが少し欲しいです。' },
+  siegeLock: { title: '射程勝負で固められやすい', enemy: 'クロス/迫撃系', need: '射程処理', text: '遠くから削る形に対して、崩し方をもう少し用意したいです。' },
+  drillMiner: { title: '足元の削りが重い', enemy: 'ディガー/ドリル系', need: '軽い受け', text: 'タワー足元への細かい圧に、受けの手数を作りたい形です。' },
+  rangedSupport: { title: '後衛が残りやすい', enemy: '遠距離支援系', need: '後衛処理', text: '遠距離支援が残ると、攻めも守りも少し窮屈になりやすいです。' },
+  resetDemand: { title: '高火力で溶かされやすい', enemy: 'インフェルノ/スパーキー系', need: 'リセット/足止め', text: '高火力の処理役に対して、止める・ずらす手段を足したい形です。' },
+  graveyardControl: { title: 'タワー周りが荒れやすい', enemy: 'スケラ系', need: '面処理', text: 'タワー周りに出る細かい攻めへ、安定した処理を作りたいです。' }
 };
 var THREAT_BUCKET_CARDS = {
   airBig: { 'ラヴァハウンド':1, 'エアバルーン':1 },
   swarmBait: { 'ゴブリンバレル':1, 'ゴブリンドリル':1, 'スケルトンバレル':1, 'ウォールブレイカー':1, 'スケルトンラッシュ':1, 'ゴブリンギャング':1, 'スケルトン部隊':1 },
   tankPush: { 'ゴーレム':1, 'エレクトロジャイアント':1, 'ジャイアント':1, 'ゴブジャイアント':1, 'ロイヤルジャイアント':1, 'メガナイト':1, 'ペッカ':1, '巨大スケルトン':1, 'スパーキー':1 },
   fastPressure: { 'ホグライダー':1, 'ラムライダー':1, 'ロイヤルホグ':1, '攻城バーバリアン':1, 'エリートバーバリアン':1, 'プリンス':1, 'ウォールブレイカー':1, 'ディガー':1 },
-  buildingWall: { '大砲':1, '墓石':1, 'ゴブリンの檻':1, 'ゴブリンの小屋':1, 'ボムタワー':1, 'テスラ':1, '迫撃砲':1, 'オーブン':1, 'インフェルノタワー':1, 'バーバリアンの小屋':1, '巨大クロスボウ':1 }
+  buildingWall: { '大砲':1, '墓石':1, 'ゴブリンの檻':1, 'ゴブリンの小屋':1, 'ボムタワー':1, 'テスラ':1, '迫撃砲':1, 'オーブン':1, 'インフェルノタワー':1, 'バーバリアンの小屋':1, '巨大クロスボウ':1 },
+  siegeLock: { '巨大クロスボウ':1, '迫撃砲':1 },
+  drillMiner: { 'ディガー':1, 'ゴブリンドリル':1, 'ウォールブレイカー':1 },
+  rangedSupport: { 'ロケット砲士':1, 'マジックアーチャー':1, 'プリンセス':1, 'ホバリング砲':1, 'アーチャークイーン':1, 'マスケット銃士':1, '三銃士':1, '吹き矢ゴブリン':1 },
+  resetDemand: { 'インフェルノタワー':1, 'インフェルノドラゴン':1, 'スパーキー':1, 'ハンター':1, 'ミニペッカ':1, 'ペッカ':1 },
+  graveyardControl: { 'スケルトンラッシュ':1 }
 };
 function pairKey_(a, b) { return a < b ? a + '|' + b : b + '|' + a; }
 function addGw_(map, key, won, dom, tempo) {
@@ -777,7 +789,8 @@ async function updateDecks() {
     var t0 = (b.team && b.team[0]) || {}, c0 = (t0.cards && t0.cards[0]) || {};
     Object.keys(t0).forEach(function (k) { schemaSample.teamKeys[k] = (schemaSample.teamKeys[k] || 0) + 1; });
     Object.keys(c0).forEach(function (k) { schemaSample.cardKeys[k] = (schemaSample.cardKeys[k] || 0) + 1; });
-    ['elixirLeaked', 'kingTowerHitPoints', 'princessTowersHitPoints', 'trophyChange', 'startingTrophies', 'supportCards', 'globalRank'].forEach(function (f) { if (t0[f] != null) schemaSample.present[f] = (schemaSample.present[f] || 0) + 1; });
+    ['elixirLeaked', 'kingTowerHitPoints', 'princessTowersHitPoints', 'trophyChange', 'startingTrophies', 'supportCards', 'globalRank', 'kingTowerLevel', 'princessTowerLevel'].forEach(function (f) { if (t0[f] != null) schemaSample.present[f] = (schemaSample.present[f] || 0) + 1; });
+    ['level', 'maxLevel', 'evolutionLevel', 'starLevel'].forEach(function (f) { if (c0[f] != null) schemaSample.present['card.' + f] = (schemaSample.present['card.' + f] || 0) + 1; });
     ['battleTime', 'duration', 'durationSeconds', 'gameDuration', 'matchDuration', 'endTime'].forEach(function (f) { if (b[f] != null) schemaSample.present[f] = (schemaSample.present[f] || 0) + 1; });
     if (b.leagueNumber != null) schemaSample.present.leagueNumber = (schemaSample.present.leagueNumber || 0) + 1;
   }
@@ -816,14 +829,65 @@ async function updateDecks() {
     if (!Array.isArray(sc) || !sc.length) return null;
     return apiCardToJp(sc[0]) || sc[0].name || null;
   }
+  var CARD_LEVEL_DISPLAY_MAX = parseInt(prop('CARD_LEVEL_DISPLAY_MAX', '15'), 10) || 15;
+  function normalizedCardLevel_(c) {
+    if (!c || typeof c.level !== 'number') return null;
+    var maxLevel = typeof c.maxLevel === 'number' ? c.maxLevel : null;
+    if (maxLevel && maxLevel > 0 && maxLevel < CARD_LEVEL_DISPLAY_MAX) return c.level + (CARD_LEVEL_DISPLAY_MAX - maxLevel);
+    return c.level;
+  }
+  function avgKnown_(arr) {
+    var s = 0, n = 0;
+    (arr || []).forEach(function (v) { if (typeof v === 'number' && isFinite(v)) { s += v; n++; } });
+    return n ? { avg: Math.round((s / n) * 100) / 100, known: n } : { avg: null, known: 0 };
+  }
+  function cardLevelSummary_(p, d) {
+    var byName = {};
+    ((p && p.cards) || []).forEach(function (c) {
+      var name = apiCardToJp(c);
+      if (!name) return;
+      byName[name] = c;
+    });
+    var levels = [], raw = [], max = [];
+    (d.jp || []).forEach(function (name) {
+      var c = byName[name] || {};
+      var nl = normalizedCardLevel_(c);
+      levels.push(nl);
+      raw.push(typeof c.level === 'number' ? c.level : null);
+      max.push(typeof c.maxLevel === 'number' ? c.maxLevel : null);
+    });
+    var a = avgKnown_(levels), r = avgKnown_(raw);
+    return { avg: a.avg, known: a.known, levels: levels, rawAvg: r.avg, rawLevels: raw, maxLevels: max };
+  }
+  function supportLevel_(p) {
+    var sc = p && p.supportCards;
+    if (!Array.isArray(sc) || !sc.length) return null;
+    return normalizedCardLevel_(sc[0]);
+  }
+  function levelGap_(t0, d, o0, od) {
+    var tl = cardLevelSummary_(t0, d), ol = cardLevelSummary_(o0, od);
+    var cardAvgDelta = (tl.avg != null && ol.avg != null) ? Math.round((tl.avg - ol.avg) * 100) / 100 : null;
+    var supportT = supportLevel_(t0), supportO = supportLevel_(o0);
+    var supportDelta = (supportT != null && supportO != null) ? Math.round((supportT - supportO) * 100) / 100 : null;
+    return { cardAvgDelta: cardAvgDelta, knownCards: Math.min(tl.known || 0, ol.known || 0), supportDelta: supportDelta };
+  }
   function sideLite_(p, d, crowns) {
+    var lv = cardLevelSummary_(p, d);
     return {
       trophies: typeof p.startingTrophies === 'number' ? p.startingTrophies : null,
       deck: d.jp, forms: d.fm, crowns: crowns,
+      avgCardLevel: lv.avg,
+      knownCardLevels: lv.known,
+      cardLevels: lv.levels,
+      cardLevelRaw: lv.rawLevels,
+      cardMaxLevels: lv.maxLevels,
       kingTowerHitPoints: typeof p.kingTowerHitPoints === 'number' ? p.kingTowerHitPoints : null,
       princessTowersHitPoints: Array.isArray(p.princessTowersHitPoints) ? p.princessTowersHitPoints : null,
       elixirLeaked: typeof p.elixirLeaked === 'number' ? p.elixirLeaked : null,
-      towerTroop: supportName_(p)
+      towerTroop: supportName_(p),
+      towerTroopLevel: supportLevel_(p),
+      kingTowerLevel: typeof p.kingTowerLevel === 'number' ? p.kingTowerLevel : null,
+      princessTowerLevel: typeof p.princessTowerLevel === 'number' ? p.princessTowerLevel : null
     };
   }
   function trophyBattleEvent_(b, d, od, tc, oc) {
@@ -845,6 +909,7 @@ async function updateDecks() {
       trophyDiff: Math.abs(tt - ot),
       durationSeconds: dur,
       reachedTripleElixir: dur == null ? null : dur > 180,
+      levelGap: levelGap_(t0, d, o0, od),
       team: sideLite_(t0, d, tc),
       opponent: sideLite_(o0, od, oc),
       win: tc > oc
@@ -868,6 +933,7 @@ async function updateDecks() {
       eloRating: typeof meta.eloRating === 'number' ? meta.eloRating : null,
       trophyMid: (tt != null && ot != null) ? Math.round((tt + ot) / 2) : null,
       durationSeconds: durationSec_(b),
+      levelGap: levelGap_(t0, d, o0, od),
       team: sideLite_(t0, d, tc),
       opponent: sideLite_(o0, od, oc),
       win: tc > oc
@@ -1361,17 +1427,42 @@ async function updateDecks() {
         for (var i = 0; i < 6; i++) d[i] = (d[i] || 0) + (s[i] || 0);
       });
     }
+    function threatIdFromHistKey_(key) {
+      var sp = String(key || '').split('|');
+      return sp.length ? sp[sp.length - 1] : '';
+    }
+    function filterThreatHist_(src, onlyNew) {
+      var out = {};
+      Object.keys(src || {}).forEach(function (key) {
+        var isNew = !THREAT_BUCKET_IDS_V1[threatIdFromHistKey_(key)];
+        if ((onlyNew && isNew) || (!onlyNew && !isNew)) out[key] = src[key];
+      });
+      return out;
+    }
+    var threatBucketVersion = parseInt(th.threatBucketVersion || th.version || '1', 10) || 1;
     if (!th.seeded) {
       addGwHist_(th.pairAll, pairAllSeedNow);
       addGwHist_(th.pair, pairThreatSeedNow);
       addGwHist_(th.triple, tripleThreatSeedNow);
       th.seeded = true;
       th.seededAt = new Date().toISOString();
+      th.threatBucketVersion = THREAT_BUCKET_VERSION;
     } else {
+      var migratingThreatBuckets = threatBucketVersion < THREAT_BUCKET_VERSION;
+      if (migratingThreatBuckets) {
+        // v2で追加した仮想敵だけ、現在見えている対戦ログから追いseedする。
+        // 既存5分類は二重加算しないため、今回分の追加でも旧分類だけを足す。
+        addGwHist_(th.pair, filterThreatHist_(pairThreatSeedNow, true));
+        addGwHist_(th.triple, filterThreatHist_(tripleThreatSeedNow, true));
+        th.threatBucketVersion = THREAT_BUCKET_VERSION;
+        th.threatBucketSeededAt = new Date().toISOString();
+      }
       addGwHist_(th.pairAll, pairAllNow);
-      addGwHist_(th.pair, pairThreatNow);
-      addGwHist_(th.triple, tripleThreatNow);
+      addGwHist_(th.pair, migratingThreatBuckets ? filterThreatHist_(pairThreatNow, false) : pairThreatNow);
+      addGwHist_(th.triple, migratingThreatBuckets ? filterThreatHist_(tripleThreatNow, false) : tripleThreatNow);
     }
+    th.threatBucketVersion = Math.max(parseInt(th.threatBucketVersion || '1', 10) || 1, THREAT_BUCKET_VERSION);
+    th.threatBuckets = Object.keys(THREAT_TITLES);
     th.updated = new Date().toISOString();
     await writePrivateJson_(thPath, th, 'chore: update threathist');
     console.log('threathist ' + Object.keys(th.pairAll).length + ' pairs / ' + Object.keys(th.pair).length + ' pairThreats / ' + Object.keys(th.triple).length + ' tripleThreats');
@@ -1460,6 +1551,7 @@ async function updateDecks() {
           splash: hasTag_(name, 'splash'),
           tankKiller: hasTag_(name, 'tankKiller') || hasTag_(name, 'ramp'),
           tank: hasTag_(name, 'tgHp') || hasTag_(name, 'minitank') || cost >= 6,
+          swarm: hasTag_(name, 'swarm') || hasTag_(name, 'spawn') || hasTag_(name, 'spellBait'),
           bait: hasTag_(name, 'spellBait'),
           bridge: hasTag_(name, 'bridgeSpam') || hasTag_(name, 'dash'),
           control: hasTag_(name, 'stun') || hasTag_(name, 'stop') || hasTag_(name, 'pull') || hasTag_(name, 'slow') || hasTag_(name, 'knockback')
@@ -1650,8 +1742,13 @@ async function updateDecks() {
         // 決定力の裏付け（強い/薄い）。勝敗0/1より濃い信号なので、broad昇格の代替条件・hidden判定に足す。
         var winQuality = Math.max(dominanceEvidence, decisEvidence, tempoEvidence * 0.6);
         var hasWinQuality = dominanceLift != null || decisivenessLift != null || tempoLiftRaw != null; // 質データが無い月だけの間は昇格を止めない（後方互換）
+        // ★早期昇格: まだ3か月ぶん無い期間だけ、強い勝ち方の裏付けで安定性ゲートを前倒しする。
+        //   3か月以上貯まったら従来の月別安定性(liftStability)で動かす。
+        var earlyQualityBroad = activeMonths >= 2 && activeMonths < 3 && lift >= 1.45 && (winLift == null || winLift >= -0.006)
+          && winQuality >= 0.02 && collapseExcess <= 0.04 && concentration <= 0.55 && (pairDecks[pk] || 0) >= 6 && sampleConfidence >= 0.45 && utilityPenalty < 8;
         var kind = sampleConfidence < 0.35 || use < MIN_PAIR_USE * 2 ? 'provisional'
           : lift >= 1.45 && (winLift == null || winLift >= -0.006) && (!hasWinQuality || winQuality >= 0.005) && collapseExcess <= 0.05 && concentration <= 0.55 && (pairDecks[pk] || 0) >= 5 && liftStability >= 0.45 && utilityPenalty < 8 ? 'broadSynergy'
+          : earlyQualityBroad ? 'broadSynergy'
           : lift >= 1.45 && concentration > 0.70 ? 'templateCore'
           : lift <= 1.15 && utilityIndex > 0 ? 'utilityOrCommon'
           : ((winLift != null && winLift >= 0.015) || winQuality >= 0.035) && lift >= 1.12 ? 'hiddenWinLift'
@@ -1664,7 +1761,7 @@ async function updateDecks() {
           decisivenessLift: decisivenessLift == null ? null : round3_(decisivenessLift), decisivenessGames: decisGames, tempoLift: tempoLiftRaw == null ? null : round3_(tempoLiftRaw), tempoGames: tempoGames, collapseExcess: round3_(collapseExcess),
           deckVariants: pairDecks[pk] || 0, concentration: round3_(concentration),
           broadness: round3_(broadness), sampleConfidence: round3_(sampleConfidence),
-          activeMonths: activeMonths, liftStability: round3_(liftStability), currentLift: round2_(currentLift), trend: round3_(trend),
+          activeMonths: activeMonths, liftStability: round3_(liftStability), earlyQualityBroad: !!earlyQualityBroad, currentLift: round2_(currentLift), trend: round3_(trend),
           utilityIndex: round3_(utilityIndex), roleComplement: round3_(roleComp),
           kind: kind, score: synergyScore, components: components
         });
@@ -1698,7 +1795,7 @@ async function updateDecks() {
             roleComplement: '勝ち方/呪文/対空/範囲/建物などの役割補完',
             utilityPenalty: '単体使用率が高すぎる便利カードの過大評価補正'
           },
-          notes: ['表示の鮮度は1h/1d/3d、シナジー判定は月別sighist最大12か月で統計的に見る。', 'lift高・concentration低・月間安定・便利枠補正を抜けたpairほど本質シナジー。'],
+          notes: ['表示の鮮度は1h/1d/3d、シナジー判定は月別sighist最大12か月で統計的に見る。', 'lift高・concentration低・月間安定・便利枠補正を抜けたpairほど本質シナジー。', '3か月未満の育成期だけ、支配度/勝ち方/テンポの裏付けが強いpairは早期昇格できる。'],
           count: pairsOut.length, pairs: pairsOut.slice(0, 1000), byCard: byCard },
         'chore: update card-pair-synergy-v1.json');
       await writePublicJson_(ghSiblingPath_(ghPath, 'card-pair-synergy-public-v1.json'),
@@ -1912,6 +2009,35 @@ async function updateDecks() {
           if (C.spell && cost >= 4) s += 0.28;
           if (C.control) s += 0.12;
           if (C.secondary || C.bridge) s += 0.10;
+        } else if (threatId === 'siegeLock') {
+          if (name === 'アースクエイク') s += 0.42;
+          if (C.bigSpell || (C.spell && cost >= 4)) s += 0.34;
+          if (C.bridge || C.secondary) s += 0.22;
+          if (C.tank) s += 0.14;
+          if (C.control) s += 0.10;
+        } else if (threatId === 'drillMiner') {
+          if (C.cycle && cost <= 3) s += 0.34;
+          if (C.smallSpell) s += 0.28;
+          if (C.splash) s += 0.26;
+          if (C.building) s += 0.18;
+          if (C.control) s += 0.12;
+        } else if (threatId === 'rangedSupport') {
+          if (C.spell && cost >= 4) s += 0.38;
+          if (C.bridge || C.secondary) s += 0.24;
+          if (C.control) s += 0.18;
+          if (C.splash) s += 0.10;
+        } else if (threatId === 'resetDemand') {
+          if (C.control) s += 0.42;
+          if (C.smallSpell) s += 0.26;
+          if (C.cycle && cost <= 3) s += 0.14;
+          if (C.swarm || C.bait) s += 0.18;
+          if (C.spell && cost >= 4) s += 0.10;
+        } else if (threatId === 'graveyardControl') {
+          if (C.splash) s += 0.36;
+          if (C.smallSpell) s += 0.28;
+          if (C.spell && cost >= 4) s += 0.22;
+          if (C.control) s += 0.12;
+          if (C.cycle && cost <= 3) s += 0.10;
         }
         return clamp01_(s);
       }
@@ -1979,12 +2105,13 @@ async function updateDecks() {
       await writePrivateJson_(ghSiblingPath_(ghPath, 'card-threat-response-v1.json'),
         { updated: new Date().toISOString(), version: 1, source: 'latest ranked battlelog pair-vs-threat aggregate + role fit',
           minPairGames: MIN_THREAT_PAIR_GAMES, minResponseGames: MIN_THREAT_RESPONSE_GAMES,
+          threatBucketVersion: THREAT_BUCKET_VERSION, threatBuckets: Object.keys(THREAT_TITLES),
           notes: ['UI用に薄くした候補だけを持つ。内部値は載せない。', 'R2/Worker移行後はこの全体JSONをブラウザへ直接渡さない。'],
           count: threatRows.length, byPairCount: Object.keys(threatByPair).length, byPair: threatByPair },
         'chore: update card-threat-response-v1.json');
       await writePublicJson_(ghSiblingPath_(ghPath, 'card-threat-response-public-v1.json'),
         { updated: new Date().toISOString(), version: 1, visibility: 'public-display',
-          count: threatRows.length, byPair: publicThreatByPair_(threatRows) },
+          threatBucketVersion: THREAT_BUCKET_VERSION, count: threatRows.length, byPair: publicThreatByPair_(threatRows) },
         'chore: update card-threat-response-public-v1.json');
       console.log('card-threat-response ' + threatRows.length + ' rows / byPair ' + Object.keys(threatByPair).length);
     } catch (e2) { console.log('card-pair-synergy error ' + ((e2 && e2.message) || e2)); }

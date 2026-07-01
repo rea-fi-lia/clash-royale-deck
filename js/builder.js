@@ -1140,6 +1140,12 @@ function assistReason(c, kind, info) {
       if (text) return text;
     }
   }
+  if (bx && (bx.score || 0) >= 18) {
+    const pairName = TR(bx.a) + '＋' + TR(bx.b);
+    if (bx.kind === 'coveragePatch') return pairName + 'で苦しくなりやすい相手を受けやすくします。';
+    if (bx.kind === 'resultLift') return pairName + 'の勝ち筋を太くしやすい1枚です。';
+    return pairName + 'の攻め方や受け方をつなげやすい1枚です。';
+  }
   if (kind === 'natural') {
     if (!info.wincons.length) {
       if (w && w.class === '勝ち筋') return 'まず勝ち方の主役を作れます。';
@@ -1149,7 +1155,7 @@ function assistReason(c, kind, info) {
     if (bx && (bx.score || 0) >= 16) return TR(bx.a) + '＋' + TR(bx.b) + 'の形を通しやすくする1枚です。';
     if (size === 'small') return mainName + 'を通すための小型呪文。道を開けつつ少し圧もかけられます。';
     if (bp && (bp.score || 0) >= 12) return TR(bp.other) + 'と合わせると、今の形に自然に足せます。';
-    if (p && p.partner) return '今の構成と噛み合う相手があり、' + mainName + 'を伸ばせます。';
+    if (p && p.partner) return '今の構成に組み合わせ先があり、' + mainName + 'を伸ばせます。';
     if (assistIsTrueAir(c) || assistTagHas(c, 'splash')) return mainName + 'の後ろから守って撃てる支援役です。';
     return mainName + 'をそのまま伸ばしやすい候補です。';
   }
@@ -1174,7 +1180,7 @@ function assistDetail(c, kind, info) {
   const bx = assistBestPairExtension(c, info);
   if (bx && (bx.score || 0) >= 12) {
     const why = bx.kind === 'coveragePatch' ? 'この形で苦しくなりやすい相手への受けも補えます。'
-      : bx.kind === 'resultLift' ? '足した時に勝ちやすさが上がる傾向があります。'
+      : bx.kind === 'resultLift' ? '攻め切る形や守り切る形を作りやすくなります。'
       : 'この2枚の形を前に進めやすい候補です。';
     parts.push(TR(bx.a) + '＋' + TR(bx.b) + 'の形に足すと、攻め方や受け方をつなげやすくなります。' + why);
   }
@@ -1185,7 +1191,7 @@ function assistDetail(c, kind, info) {
       : '並べると役割がつながりやすい組み合わせです。';
     parts.push(TR(bp.other) + 'と合わせると、今の形を作りやすくなります。' + why);
   }
-  if (p && p.partner) parts.push('噛み合う相手: ' + p.partner + '。');
+  if (p && p.partner) parts.push('組み合わせたい相手: ' + p.partner + '。');
   if (p && p.scaling) parts.push('伸び方は「' + p.scaling + '」型です。');
   if (p && Array.isArray(p.phase)) {
     if (p.phase[1] === '◎' || p.phase[2] === '◎') parts.push('2倍/3倍タイムで価値が伸びます。');
@@ -1211,7 +1217,7 @@ function assistBadges(c, info) {
       : '';
     if (label) badges.push(label);
   }
-  if (p && p.partner) badges.push('噛み合い: ' + p.partner);
+  if (p && p.partner) badges.push('組み合わせ: ' + p.partner);
   if (p && p.scaling) badges.push(p.scaling);
   if (p && Array.isArray(p.phase)) {
     if (p.phase[1] === '◎' || p.phase[2] === '◎') badges.push('倍速向き');
@@ -1219,6 +1225,12 @@ function assistBadges(c, info) {
   }
   if (p && p.solo === '◎') badges.push('単体でも動ける');
   const bp = info ? assistBestPair(c, info) : null;
+  const bx = info ? assistBestPairExtension(c, info) : null;
+  if (bx && (bx.score || 0) >= 12) {
+    badges.push(bx.kind === 'coveragePatch' ? '苦手を受ける'
+      : bx.kind === 'resultLift' ? '勝ち筋を太く'
+      : '2枚を伸ばす');
+  }
   if (bp && (bp.score || 0) >= 12) badges.push('合わせやすい: ' + bp.other);
   const nr = info ? assistBestStageNeed(c, info) : null;
   if (nr && nr.fit >= 6.5) badges.push(nr.need.label);
@@ -1324,6 +1336,32 @@ function assistThreatScore(c, threat, info) {
     if (c.name === 'アースクエイク') score += 56;
     if (big || mid) score += 26;
     if (assistHas(c, ['超長射程','貫通','遠距離'])) score += 14;
+  } else if (threat.id === 'siegeLock') {
+    if (c.name === 'アースクエイク') score += 46;
+    if (big || mid) score += 30;
+    if (assistTagHas(c, 'bridgeSpam') || assistTagHas(c, 'dash') || assistIsSecondary(c)) score += 22;
+    if (assistHas(c, ['高HP','ミニタンク','タンク'])) score += 12;
+  } else if (threat.id === 'drillMiner') {
+    if (c.cost <= 3 && !assistIsSpell(c)) score += 30;
+    if (small) score += 28;
+    if (splash) score += 26;
+    if (building) score += 18;
+    if (control) score += 10;
+  } else if (threat.id === 'rangedSupport') {
+    if (mid || big) score += 34;
+    if (assistTagHas(c, 'bridgeSpam') || assistTagHas(c, 'dash') || assistIsSecondary(c)) score += 22;
+    if (control) score += 18;
+    if (assistHas(c, ['超長射程','貫通','遠距離'])) score += 12;
+  } else if (threat.id === 'resetDemand') {
+    if (control) score += 42;
+    if (small) score += 24;
+    if (c.cost <= 3 && !assistIsSpell(c)) score += 14;
+    if (assistTagHas(c, 'spellBait') || assistHas(c, ['大量召喚','盾'])) score += 16;
+  } else if (threat.id === 'graveyardControl') {
+    if (splash) score += 36;
+    if (small) score += 28;
+    if (mid || big) score += 20;
+    if (control) score += 12;
   }
   score += Math.max(0, assistScore(c, 'stable', info)) * 0.18;
   score += Math.max(0, assistPairExtensionFit(c, info)) * 0.45;
@@ -1350,6 +1388,11 @@ function assistThreatRows(info) {
   add('tankPush', 'タンク受けが薄い', (!info.dps.length ? 42 : 0) + (!info.buildings.length ? 18 : 0), '大型を前に置かれた時、溶かす役がもう少し欲しい形です。', '高火力');
   add('fastPressure', '速い攻めに遅れやすい', (info.avg >= 3.8 ? 18 : 0) + (!info.buildings.length ? 20 : 0) + (info.cycles.length < 2 ? 14 : 0), 'ホグや橋前の速い攻めに、受けの初手が重くなりやすいです。', '軽い受け');
   add('buildingWall', '建物で受けられやすい', (info.wincons.length ? 18 : 0) + (!info.spells.some(c => ['アースクエイク','ライトニング','ファイアボール','ポイズン'].includes(c.name)) ? 20 : 0), '主役を建物で止められた時の押し込みが少し欲しいです。', '道を開ける札');
+  add('siegeLock', '射程勝負で固められやすい', (info.wincons.length ? 12 : 0) + (!info.spells.some(c => ['アースクエイク','ライトニング','ファイアボール','ロケット'].includes(c.name)) ? 18 : 0) + (!info.secondaries.length ? 8 : 0), '遠くから削る形に対して、崩し方をもう少し用意したいです。', '射程処理');
+  add('drillMiner', '足元の削りが重い', (!info.smallSpells.length ? 26 : 0) + (!info.splash.length ? 16 : 0) + (info.cycles.length < 2 ? 12 : 0), 'タワー足元への細かい圧に、受けの手数を作りたい形です。', '軽い受け');
+  add('rangedSupport', '後衛が残りやすい', (!info.spells.some(c => c.cost >= 4) ? 20 : 0) + (!info.splash.length ? 10 : 0) + (!info.secondaries.length ? 8 : 0), '遠距離支援が残ると、攻めも守りも少し窮屈になりやすいです。', '後衛処理');
+  add('resetDemand', '高火力で溶かされやすい', (!info.cards.some(c => assistTagHas(c, 'stun') || assistTagHas(c, 'stop') || assistHas(c, ['気絶','停止'])) ? 24 : 0) + (!info.smallSpells.length ? 14 : 0), '高火力の処理役に対して、止める・ずらす手段を足したい形です。', 'リセット/足止め');
+  add('graveyardControl', 'タワー周りが荒れやすい', (!info.splash.length ? 22 : 0) + (!info.smallSpells.length ? 18 : 0) + (info.avg >= 3.8 ? 8 : 0), 'タワー周りに出る細かい攻めへ、安定した処理を作りたいです。', '面処理');
   return rows.sort((a, b) => b.severity - a.severity).slice(0, 2);
 }
 function assistThreatHtml(info) {
