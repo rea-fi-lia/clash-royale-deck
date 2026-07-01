@@ -48,7 +48,7 @@
   /* base の body{min-height:100vh}(iOS=836) が固定ON時に解放されず836になるのを、inset:0駆動(=796)へ。解除側と統一＝切替ジャンプも解消 */
   body.cr-builder { min-height: 0; }
   /* フッター下の40px帯を解消。Safari下バー分の最小クリアランスは env で確保 */
-  body.cr-builder .footer-signature { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+  body.cr-builder .footer-signature { padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px)); }
 }
 </style>
 
@@ -229,6 +229,7 @@
       var vv=window.visualViewport, innerH=window.innerHeight, vvH=vv?Math.round(vv.height):innerH, visH=vv?vv.height:innerH;
       var bcs=getComputedStyle(document.body), fcs=footEl?getComputedStyle(footEl):null;
       var br=r(document.body), ar=r(appEl), fr=r(footEl), cr=r(clEl);
+      var rr=r(q('.right')), c1=r(q('.card-list .card')||q('.card'));
       if(fr){var gb=visH-fr.bt; fBelow.style.top=fr.bt+'px'; fBelow.style.height=(gb>0?gb:0)+'px';}
       if(ar&&fr){var gm=fr.t-ar.bt; fMid.style.top=ar.bt+'px'; fMid.style.height=(gm>0?gm:0)+'px';}
       if(cr&&ar){var gc=ar.bt-cr.bt; fCl.style.top=cr.bt+'px'; fCl.style.height=(gc>0?gc:0)+'px';}
@@ -238,6 +239,7 @@
         'body css-h:'+bcs.height+' rectB:'+(br?br.bt:'-')+'\n'+
         'app b:'+(ar?ar.bt:'-')+' h:'+(ar?ar.h:'-')+' sh:'+(ar?ar.sh:'-')+'\n'+
         'cardlist b:'+(cr?cr.bt:'-')+' sh:'+(cr?cr.sh:'-')+'\n'+
+        'deckR b:'+(rr?rr.bt:'-')+' card1 t:'+(c1?c1.t:'-')+'\n'+
         'foot t:'+(fr?fr.t:'-')+' b:'+(fr?fr.bt:'-')+' h:'+(fr?fr.h:'-')+'\n'+
         'foot pad TB:'+(fcs?(fcs.paddingTop+'/'+fcs.paddingBottom):'-')+'\n'+
         '★belowFoot(magenta):'+(fr?Math.round(visH-fr.bt):'-')+'\n'+
