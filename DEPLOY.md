@@ -30,8 +30,8 @@ BUMP_V=1 ./deploy.sh "..."     # *.html の ?v= を当日へ一括更新して�
 - HTML は Cloudflare が常時最新配信（?v 不要・push 後すぐ反映）。大きく変えた直後だけ Cloudflare → Purge Everything を1回。
 
 ## R2移行中の注意
-- Worker/API/フロント切替が完了するまでは、`.github/workflows/collect.yml` の既定で `PRIVATE_GH_MIRROR=1` / `PUBLIC_GH_MIRROR=1` とし、R2へ保存しつつ旧dataブランチも更新する。これで旧本番表示が古い時刻で止まる事故を避ける。
-- `/api/health`, `/api/assist/bootstrap`, `/api/strategy?deck=...`, `/api/meta`, `/top3img` の本番確認後に、GitHub Repository Variablesで `PRIVATE_GH_MIRROR=0` / `PUBLIC_GH_MIRROR=0` を設定してdataブランチ出力を閉じる。
+- Worker/API/フロント切替は完了済み。`.github/workflows/collect.yml` の既定は `PRIVATE_GH_MIRROR=0` / `PUBLIC_GH_MIRROR=0` で、R2へ保存しつつdataブランチには `collect-freshness.json` だけ残す。
+- `/api/health`, `/api/assist/bootstrap`, `/api/strategy?deck=...`, `/api/meta`, `/top3img` を本番確認する。切り戻しが必要な時だけGitHub Repository Variablesで `PRIVATE_GH_MIRROR=1` / `PUBLIC_GH_MIRROR=1` を設定する。
 
 ## 関連（git 管理外）
 - **Cloudflare Worker**: `cd ../cr-deck-ogp-worker && npx wrangler deploy`

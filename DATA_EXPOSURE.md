@@ -9,7 +9,7 @@
 - `tools/collect.js` はR2設定がある時、private集計JSONをR2へ保存する。R2未設定時だけ従来どおりdataブランチへfallbackする。
 - `trophy-battle-events-v1.json` とは別に、再集計用のラン単位生試合liteをR2 `private/raw/ranked-battle-events-v1/YYYY-MM-DD/run-*.json` と `private/raw/trophy-battle-events-v1/YYYY-MM-DD/run-*.json` へ保存する。
 - `cr-deck-ogp-worker` に `/api/assist/bootstrap`, `/api/strategy`, `/api/meta` を追加。ビルダー/診断/ランキング表示はAPI優先。本番では旧公開JSONへ直接fallbackしない（ローカル開発時だけ許可。`?publicJsonFallback=1` は非本番ホストでのみ有効）。Worker側のraw fallbackも既定OFFで、移行/緊急時だけ `PUBLIC_JSON_FALLBACK=1` で許可する。
-- `PUBLIC_GH_MIRROR=0` かつR2設定ありなら、`writePublicJson_` は表示用JSONもR2へだけ書く。R2未設定時、または `PUBLIC_GH_MIRROR=1` の時だけdataブランチへミラーする。移行中のworkflow既定は `PRIVATE_GH_MIRROR=1` / `PUBLIC_GH_MIRROR=1` とし、Worker/API/フロント切替前に本番表示が古い時刻で止まる事故を避ける。切替確認後、Repository Variablesで両方 `0` に落として閉じる。
+- `PUBLIC_GH_MIRROR=0` かつR2設定ありなら、`writePublicJson_` は表示用JSONもR2へだけ書く。R2未設定時、または `PUBLIC_GH_MIRROR=1` の時だけdataブランチへミラーする。現在のworkflow既定は `PRIVATE_GH_MIRROR=0` / `PUBLIC_GH_MIRROR=0` で、dataブランチには鮮度マーカーだけを残す。緊急時だけRepository Variablesで両方 `1` に戻す。
 - `MIRROR_EXTERNAL_PUBLIC_TO_R2` / `MIRROR_EXTERNAL_PRIVATE_TO_R2` は、GAS/旧ツール由来JSONをdataブランチからR2へ吸い上げる移行用フラグ。既定は `PUBLIC_GH_MIRROR` / `PRIVATE_GH_MIRROR` に連動するため、ロックダウン後は古いdata版でR2を上書きしない。
 - `collect-freshness.json` はdataブランチへ残す。中身は更新時刻・件数・窓名だけの軽量マーカーで、毎時起動チェック用。分析JSON本体は含めない。
 - GAS/旧ツール製の元JSON（`card-eval.json`, `card-weights.json`, `card-elixir-vectors-v1.json`, `wincon-policy.json`, `synergy.json`, `band-meta.json`, `battle-feature-buckets.json`）もcollector末尾でR2へ退避する。`gas/Code.gs` の中央I/Oと `tools/export-elixir-vectors-from-sheet.js --publish` も、R2設定がある時はR2主保存で更新する。
@@ -60,8 +60,8 @@
 
 ## 次の移行先
 
-- GitHub Secretsに `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` を設定し、Variablesに必要なら `R2_BUCKET` / `R2_PRIVATE_PREFIX` を設定する。移行中はworkflow既定の `PRIVATE_GH_MIRROR=1` / `PUBLIC_GH_MIRROR=1` で両書きし、切替確認後にRepository Variablesで両方 `0` にする。
+- GitHub Secretsに `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` を設定し、Variablesに必要なら `R2_BUCKET` / `R2_PRIVATE_PREFIX` を設定する。通常運用はworkflow既定の `PRIVATE_GH_MIRROR=0` / `PUBLIC_GH_MIRROR=0` でR2だけへ保存する。
 - Cloudflare側にR2 bucket `crdb-data-private` を作り、Worker binding `CRDB_DATA` を張る。
 - 本番 `/api/*` が404の状態でフロントだけ先に出すと、raw fallback停止により表示が崩れる。安全順は、collector/workflow/tools/GAS/docsだけ先行push → `collect decks` でR2投入 → Worker deploy → `/api/health`, `/api/assist/bootstrap`, `/api/strategy?deck=...`, `/api/meta`, `/top3img` 確認 → 最後にフロントpush。
-- 移行確認後、Repository Variablesで `PRIVATE_GH_MIRROR=0` / `PUBLIC_GH_MIRROR=0` に落とし、dataブランチ上のprivate対象JSONを削除するかrepo private化し、公開はWorker APIだけに絞る。
+- 切り戻しが必要な時だけRepository Variablesで `PRIVATE_GH_MIRROR=1` / `PUBLIC_GH_MIRROR=1` を設定する。通常はdataブランチ上の分析JSONを削除し、公開はWorker APIだけに絞る。
 - 公開表示用JSONもR2へ揃うため、最終的にはdataブランチから公開JSONを消しても、Worker API経由で表示を維持できる。APIレスポンスまで削りたい場合は、次段階で「現在のデッキに必要な候補だけ返す」設計へ進める。

@@ -115,10 +115,10 @@ jobs:
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET: ${{ vars.R2_BUCKET || 'crdb-data-private' }}
           R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
-          # R2/Worker/APIへ完全切替するまでは data ブランチにも両書きして、旧フロントの表示停止を避ける。
-          # Worker検証＋フロントAPI化の反映後に、Repository Variablesで両方 0 に落として公開JSONを閉じる。
-          PRIVATE_GH_MIRROR: ${{ vars.PRIVATE_GH_MIRROR || '1' }}
-          PUBLIC_GH_MIRROR: ${{ vars.PUBLIC_GH_MIRROR || '1' }}
+          # R2/Worker/APIへ切替済み。dataブランチには collect-freshness.json だけ残し、分析JSONはR2へ閉じる。
+          # 緊急時だけRepository Variablesで PRIVATE_GH_MIRROR/PUBLIC_GH_MIRROR を 1 に戻す。
+          PRIVATE_GH_MIRROR: ${{ vars.PRIVATE_GH_MIRROR || '0' }}
+          PUBLIC_GH_MIRROR: ${{ vars.PUBLIC_GH_MIRROR || '0' }}
           TARGET_BRANCH: ${{ github.event.inputs.target_branch || 'data' }}
           TOP_PLAYERS: ${{ github.event.inputs.top_players || '1000' }}
           INTERVAL_HOURS: '1'
