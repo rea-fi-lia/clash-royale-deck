@@ -1338,6 +1338,28 @@ async function updateDecks() {
     await writePrivateJson_(shPath, sh, 'chore: update sighist');
     console.log('sighist ' + Object.keys(sh.sigs).length + ' sigs');
 
+    // ★仮想敵履歴: 最新runだけだと「苦しい相手/対策札」が時間帯で揺れるため、月別に累積して使う。
+    //   指標は [games,wins,dominanceSum,dominanceGames,tempoSum,tempoGames]。
+    var thPath = ghSiblingPath_(ghPath, 'threathist-' + mkey2 + '.json');
+    var th = (await readPrivateJson_(thPath)) || { pairAll: {}, pair: {}, triple: {} };
+    if (!th.pairAll) th.pairAll = {};
+    if (!th.pair) th.pair = {};
+    if (!th.triple) th.triple = {};
+    th.version = Math.max(parseInt(th.version || '1', 10) || 1, 1);
+    th.metrics = ['games', 'wins', 'dominanceSum', 'dominanceGames', 'tempoSum', 'tempoGames'];
+    function addGwHist_(dst, src) {
+      Object.keys(src || {}).forEach(function (key) {
+        var s = src[key] || [], d = dst[key] || (dst[key] = [0, 0, 0, 0, 0, 0]);
+        for (var i = 0; i < 6; i++) d[i] = (d[i] || 0) + (s[i] || 0);
+      });
+    }
+    addGwHist_(th.pairAll, pairAllNow);
+    addGwHist_(th.pair, pairThreatNow);
+    addGwHist_(th.triple, tripleThreatNow);
+    th.updated = new Date().toISOString();
+    await writePrivateJson_(thPath, th, 'chore: update threathist');
+    console.log('threathist ' + Object.keys(th.pairAll).length + ' pairs / ' + Object.keys(th.pair).length + ' pairThreats / ' + Object.keys(th.triple).length + ' tripleThreats');
+
     // ★2枚組シナジー（月別sighistを最大12か月ぶん利用）
     // P(A+B) / (P(A)*P(B)) で「使用率が高いだけ」を補正し、
     // top1デッキ集中度で「特定テンプレの一部」か「広い本質シナジー」かを分ける。
@@ -1357,6 +1379,20 @@ async function updateDecks() {
         if (shByMonth[pmk]) continue;
         var ps = await readPrivateJson_(ghSiblingPath_(ghPath, 'sighist-' + pmk + '.json'));
         if (ps && ps.cards && ps.sigs) shByMonth[pmk] = ps;
+      }
+      var threatPairAllAgg = {}, threatPairAgg = {}, threatTripleAgg = {};
+      function addGwAgg_(dst, src) {
+        Object.keys(src || {}).forEach(function (key) {
+          var s = src[key] || [], d = dst[key] || (dst[key] = [0, 0, 0, 0, 0, 0]);
+          for (var i = 0; i < 6; i++) d[i] = (d[i] || 0) + (s[i] || 0);
+        });
+      }
+      for (var ti = 0; ti < pairMonths.length; ti++) {
+        var tmk = pairMonths[ti];
+        var tsnap = tmk === mkey2 ? th : await readPrivateJson_(ghSiblingPath_(ghPath, 'threathist-' + tmk + '.json'));
+        if (tsnap && tsnap.pairAll) addGwAgg_(threatPairAllAgg, tsnap.pairAll);
+        if (tsnap && tsnap.pair) addGwAgg_(threatPairAgg, tsnap.pair);
+        if (tsnap && tsnap.triple) addGwAgg_(threatTripleAgg, tsnap.triple);
       }
       var tagJson = await readPrivateJson_(ghSiblingPath_(ghPath, 'card-tags.json')) || {};
       var winJson = await readPrivateJson_(ghSiblingPath_(ghPath, 'wincon-policy.json')) || {};
@@ -1663,7 +1699,7 @@ async function updateDecks() {
       function bestThreatRelief_(pk, tk) {
         var best = null;
         Object.keys(THREAT_TITLES).forEach(function (tid) {
-          var pairGw = pairThreatNow[pk + '|' + tid], tripleGw = tripleThreatNow[tk + '|' + tid];
+          var pairGw = threatPairAgg[pk + '|' + tid], tripleGw = threatTripleAgg[tk + '|' + tid];
           if (!pairGw || !tripleGw || pairGw[0] < MIN_THREAT_PAIR_GAMES || tripleGw[0] < MIN_THREAT_RESPONSE_GAMES) return;
           var pairWrT = gwWr_(pairGw), tripleWrT = gwWr_(tripleGw);
           if (pairWrT == null || tripleWrT == null) return;
@@ -1870,20 +1906,20 @@ async function updateDecks() {
           : 'softCover';
       }
       var tripleByPairThreat = {};
-      Object.keys(tripleThreatNow).forEach(function (tk4) {
+      Object.keys(threatTripleAgg).forEach(function (tk4) {
         var sp4 = tk4.split('|');
         if (sp4.length < 4) return;
         var pk4 = sp4[0] + '|' + sp4[1], card4 = sp4[2], tid4 = sp4[3];
         var arr4 = tripleByPairThreat[pk4 + '|' + tid4] || (tripleByPairThreat[pk4 + '|' + tid4] = []);
-        arr4.push({ card: card4, gw: tripleThreatNow[tk4] });
+        arr4.push({ card: card4, gw: threatTripleAgg[tk4] });
       });
       var threatRows = [];
-      Object.keys(pairThreatNow).forEach(function (ptk) {
+      Object.keys(threatPairAgg).forEach(function (ptk) {
         var sp = ptk.split('|');
         if (sp.length < 3) return;
         var pk = sp[0] + '|' + sp[1], tid = sp[2], metaT = THREAT_TITLES[tid];
         if (!metaT) return;
-        var pt = pairThreatNow[ptk], pa = pairAllNow[pk];
+        var pt = threatPairAgg[ptk], pa = threatPairAllAgg[pk];
         if (!pt || !pa || pt[0] < MIN_THREAT_PAIR_GAMES || pa[0] < MIN_THREAT_PAIR_GAMES) return;
         var pairWrNow = pa[1] / pa[0], threatWr = pt[1] / pt[0];
         var pairDomNow = pa[3] ? pa[2] / pa[3] : null, threatDom = pt[3] ? pt[2] / pt[3] : null;
