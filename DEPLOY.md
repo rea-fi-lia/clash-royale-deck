@@ -26,10 +26,14 @@ BUMP_V=1 ./deploy.sh "..."     # *.html の ?v= を当日へ一括更新して�
 ```
 
 ## 絶対ルール（PROJECT_HANDOFF §1）
-- **統計データ（decks.json / cardhist.json / card-*.json / matchups / sighist / synergy / band-meta）は `data` ブランチ専用。** main へは push しない（`.gitignore` で保護済み）。site はこれらを `raw.githubusercontent.com/.../data/<file>` から読む。
+- **統計データ（decks.json / cardhist.json / card-*.json / matchups / sighist / synergy / band-meta）は main へ push しない。** R2設定後はCloudflare R2 privateを主保存先にし、サイトはWorker API（`/api/assist/bootstrap`, `/api/strategy`, `/api/meta`）経由で読む。`data` ブランチ直読みは移行/緊急fallbackだけ。
 - HTML は Cloudflare が常時最新配信（?v 不要・push 後すぐ反映）。大きく変えた直後だけ Cloudflare → Purge Everything を1回。
+
+## R2移行中の注意
+- Worker/API/フロント切替が完了するまでは、`.github/workflows/collect.yml` の既定で `PRIVATE_GH_MIRROR=1` / `PUBLIC_GH_MIRROR=1` とし、R2へ保存しつつ旧dataブランチも更新する。これで旧本番表示が古い時刻で止まる事故を避ける。
+- `/api/health`, `/api/assist/bootstrap`, `/api/strategy?deck=...`, `/api/meta`, `/top3img` の本番確認後に、GitHub Repository Variablesで `PRIVATE_GH_MIRROR=0` / `PUBLIC_GH_MIRROR=0` を設定してdataブランチ出力を閉じる。
 
 ## 関連（git 管理外）
 - **Cloudflare Worker**: `cd ../cr-deck-ogp-worker && npx wrangler deploy`
 - **Firestore ルール**: `npx firebase-tools deploy --only firestore:rules --project crdeckbuilders`
-- **GAS（集計）**: script.google.com「ビルダー」へ手で差し替え（`gas/Code.gs` が控え）
+- **GAS（控え）**: script.google.com「ビルダー」へ手で差し替え（`gas/Code.gs` はR2設定時にR2主保存。通常の重い収集はActions側）

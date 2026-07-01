@@ -9,7 +9,8 @@
  *
  * 必要なもの:
  *   - GOOGLE_APPLICATION_CREDENTIALS（未指定なら ~/.config/crdb/google-service-account.json）
- *   - --publish 時は GITHUB_TOKEN / GH_TOKEN、または gh auth token
+ *   - --publish 時は R2_* secrets があれば Cloudflare R2 へ保存
+ *   - R2未設定時、または *_GH_MIRROR=1 時は GITHUB_TOKEN / GH_TOKEN、または gh auth token
  */
 const fs = require('fs');
 const os = require('os');
@@ -23,12 +24,21 @@ const DEFAULT_OUT = path.join(os.tmpdir(), 'card-elixir-vectors-v1.json');
 const SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly';
 const TOP = [['火力', 'fire'], ['耐久', 'dur'], ['処理', 'clear'], ['制御', 'ctrl'], ['範囲', 'area'], ['到達', 'reach'], ['防衛', 'def'], ['回転', 'cycle'], ['柔軟', 'flex']];
 const SUB = [['小物処理', 'small'], ['中型処理', 'mid'], ['群れ処理', 'swarm'], ['空中処理', 'airClear'], ['タンク処理', 'tank'], ['ノックバック', 'knock'], ['リセット', 'reset'], ['スタン', 'stun'], ['スロー', 'slow'], ['対空', 'antiAir'], ['大型受け', 'bigBlock'], ['速攻受け', 'fastBlock'], ['建物受け', 'bldBlock'], ['射程圧', 'range'], ['手数圧', 'tempo'], ['レイジ適性', 'rage']];
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '';
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || '';
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || '';
+const R2_BUCKET = process.env.R2_BUCKET || 'crdb-data-private';
+const R2_PRIVATE_PREFIX = process.env.R2_PRIVATE_PREFIX || 'private/';
+const R2_CONFIGURED = !!(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET);
+const PRIVATE_GH_MIRROR = String(process.env.PRIVATE_GH_MIRROR || '0') === '1';
+const PUBLIC_GH_MIRROR = String(process.env.PUBLIC_GH_MIRROR || (R2_CONFIGURED ? '0' : '1')) === '1';
 
 function argValue(name, fallback) {
   const idx = process.argv.indexOf(name);
   return idx >= 0 && process.argv[idx + 1] ? process.argv[idx + 1] : fallback;
 }
 function hasArg(name) { return process.argv.includes(name); }
+function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 function b64url(input) {
   return Buffer.from(input).toString('base64').replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 }
@@ -144,7 +154,86 @@ function githubToken() {
   if (process.env.GH_TOKEN) return process.env.GH_TOKEN;
   try { return execFileSync('gh', ['auth', 'token'], { encoding: 'utf8' }).trim(); } catch (e) { return ''; }
 }
-async function publishJson(out, filePath, targetOverride) {
+function r2ObjectKey(target) {
+  let prefix = String(R2_PRIVATE_PREFIX || '').replace(/^\/+/, '');
+  if (prefix && !prefix.endsWith('/')) prefix += '/';
+  return prefix + String(target || '').replace(/^\/+/, '');
+}
+function r2IsoStamp() {
+  return new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+}
+function r2Sha256Hex(value) {
+  return crypto.createHash('sha256').update(value || '').digest('hex');
+}
+function r2Hmac(key, msg, enc) {
+  return crypto.createHmac('sha256', key).update(msg).digest(enc);
+}
+function r2SigningKey(date) {
+  const kDate = r2Hmac(Buffer.from('AWS4' + R2_SECRET_ACCESS_KEY, 'utf8'), date);
+  const kRegion = r2Hmac(kDate, 'auto');
+  const kService = r2Hmac(kRegion, 's3');
+  return r2Hmac(kService, 'aws4_request');
+}
+function r2EncodeKey(key) {
+  return String(key || '').split('/').map(encodeURIComponent).join('/');
+}
+async function r2Request(method, target, body, contentType) {
+  if (!R2_CONFIGURED) return { status: 0, text: async () => '' };
+  const key = r2ObjectKey(target);
+  const host = R2_ACCOUNT_ID + '.r2.cloudflarestorage.com';
+  const pathname = '/' + encodeURIComponent(R2_BUCKET) + '/' + r2EncodeKey(key);
+  const payload = body == null ? '' : body;
+  const payloadHash = r2Sha256Hex(payload);
+  const amzDate = r2IsoStamp();
+  const date = amzDate.slice(0, 8);
+  const headers = {
+    host,
+    'x-amz-content-sha256': payloadHash,
+    'x-amz-date': amzDate
+  };
+  if (contentType) headers['content-type'] = contentType;
+  const signedHeaders = Object.keys(headers).sort().join(';');
+  const canonicalHeaders = Object.keys(headers).sort().map(h => h + ':' + headers[h] + '\n').join('');
+  const canonicalRequest = [method, pathname, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+  const scope = date + '/auto/s3/aws4_request';
+  const stringToSign = ['AWS4-HMAC-SHA256', amzDate, scope, r2Sha256Hex(canonicalRequest)].join('\n');
+  const signature = r2Hmac(r2SigningKey(date), stringToSign, 'hex');
+  headers.authorization = 'AWS4-HMAC-SHA256 Credential=' + R2_ACCESS_KEY_ID + '/' + scope + ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;
+  return fetch('https://' + host + pathname, { method, headers, body: body == null ? undefined : payload });
+}
+async function r2WriteJson(target, out) {
+  const body = JSON.stringify(out);
+  let lastErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await r2Request('PUT', target, body, 'application/json; charset=utf-8');
+      if (res.status >= 200 && res.status < 300) return true;
+      if (res.status >= 500) { lastErr = new Error('R2 write ' + target + ' ' + res.status); await sleep(400 * (attempt + 1)); continue; }
+      throw new Error('R2 write ' + target + ' ' + res.status + ' :: ' + (await res.text()).slice(0, 240));
+    } catch (e) {
+      lastErr = e;
+      await sleep(400 * (attempt + 1));
+    }
+  }
+  throw lastErr || new Error('R2 write ' + target + ' failed');
+}
+async function r2ReadJson(target) {
+  let lastErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await r2Request('GET', target, null, null);
+      if (res.status === 404 || res.status === 0) return null;
+      if (res.status >= 500) { lastErr = new Error('R2 read ' + target + ' ' + res.status); await sleep(400 * (attempt + 1)); continue; }
+      if (res.status !== 200) throw new Error('R2 read ' + target + ' ' + res.status + ' :: ' + (await res.text()).slice(0, 240));
+      return JSON.parse(await res.text());
+    } catch (e) {
+      lastErr = e;
+      await sleep(400 * (attempt + 1));
+    }
+  }
+  throw lastErr || new Error('R2 read ' + target + ' failed');
+}
+async function publishGitHubJson(out, filePath, targetOverride) {
   const token = githubToken();
   if (!token) throw new Error('--publish には GITHUB_TOKEN / GH_TOKEN、または gh auth が必要です');
   const repo = process.env.GITHUB_REPOSITORY || process.env.GITHUB_REPO || 'rea-fi-lia/clash-royale-deck';
@@ -176,12 +265,22 @@ async function publishJson(out, filePath, targetOverride) {
   const res = await requestJson(api, { method: 'PUT', headers, body: JSON.stringify(body) });
   return { repo, branch, target, commit: res && res.commit && res.commit.sha };
 }
+async function publishJson(out, filePath, targetOverride, opts = {}) {
+  const target = targetOverride || process.env.ELIXIR_VECTORS_PATH || 'card-elixir-vectors-v1.json';
+  const visibility = opts.visibility || 'private';
+  if (R2_CONFIGURED) {
+    await r2WriteJson(target, out);
+    const mirror = visibility === 'public' ? PUBLIC_GH_MIRROR : PRIVATE_GH_MIRROR;
+    const gh = mirror ? await publishGitHubJson(out, filePath, target) : null;
+    return { r2: true, bucket: R2_BUCKET, key: r2ObjectKey(target), target, gh };
+  }
+  return publishGitHubJson(out, filePath, target);
+}
 async function verifyPublished(pub) {
   const repo = pub.repo || process.env.GITHUB_REPOSITORY || process.env.GITHUB_REPO || 'rea-fi-lia/clash-royale-deck';
   const branch = pub.branch || process.env.GITHUB_BRANCH || process.env.DATA_BRANCH || 'data';
   const target = pub.target || process.env.ELIXIR_VECTORS_PATH || 'card-elixir-vectors-v1.json';
-  const url = 'https://raw.githubusercontent.com/' + repo + '/' + branch + '/' + target + '?cb=' + Date.now();
-  const data = await requestJson(url);
+  const data = pub.r2 ? await r2ReadJson(target) : await requestJson('https://raw.githubusercontent.com/' + repo + '/' + branch + '/' + target + '?cb=' + Date.now());
   const cards = data && data.cards ? data.cards : {};
   const sampleName = Object.keys(cards)[0];
   const sample = sampleName ? cards[sampleName] : null;
@@ -189,7 +288,13 @@ async function verifyPublished(pub) {
   const missingSub = SUB.map(([, key]) => key).filter(key => !sample || !sample.sub || sample.sub[key] == null);
   if (!data || data.count < 100 || Object.keys(cards).length < 100) throw new Error('verify failed: cards=' + (data && data.count));
   if (missingVec.length || missingSub.length) throw new Error('verify failed: missing ' + missingVec.concat(missingSub).join(', '));
-  console.log('verified raw count=' + data.count + ' vectors=' + (data.vectors || []).length + ' subs=' + (data.subs || []).length + ' updated=' + (data.updated || '-'));
+  console.log('verified ' + (pub.r2 ? ('R2 ' + pub.bucket + '/' + pub.key) : 'raw') + ' count=' + data.count + ' vectors=' + (data.vectors || []).length + ' subs=' + (data.subs || []).length + ' updated=' + (data.updated || '-'));
+}
+function publishSummary(pub) {
+  if (pub.r2) {
+    return 'published R2 ' + pub.bucket + '/' + pub.key + (pub.gh ? ' + GitHub mirror commit=' + (pub.gh.commit || '-') : '');
+  }
+  return (pub.skipped ? 'up-to-date ' : 'published ') + pub.repo + '/' + pub.target + ' branch=' + pub.branch + ' commit=' + (pub.commit || '-');
 }
 async function main() {
   const spreadsheetId = argValue('--spreadsheet', process.env.SPREADSHEET_ID || DEFAULT_SPREADSHEET_ID);
@@ -204,13 +309,13 @@ async function main() {
   fs.writeFileSync(publicPath, JSON.stringify(publicOut), 'utf8');
   console.log('wrote ' + outPath + ' cards=' + out.count + ' bytes=' + fs.statSync(outPath).size);
   console.log('wrote ' + publicPath + ' cards=' + publicOut.count + ' bytes=' + fs.statSync(publicPath).size);
-  let pub = { repo: process.env.GITHUB_REPOSITORY || process.env.GITHUB_REPO || 'rea-fi-lia/clash-royale-deck', branch: process.env.GITHUB_BRANCH || process.env.DATA_BRANCH || 'data', target: process.env.ELIXIR_VECTORS_PATH || 'card-elixir-vectors-v1.json' };
-  let publicPub = { repo: pub.repo, branch: pub.branch, target: process.env.ELIXIR_VECTORS_PUBLIC_PATH || 'card-elixir-vectors-public-v1.json' };
+  let pub = { repo: process.env.GITHUB_REPOSITORY || process.env.GITHUB_REPO || 'rea-fi-lia/clash-royale-deck', branch: process.env.GITHUB_BRANCH || process.env.DATA_BRANCH || 'data', target: process.env.ELIXIR_VECTORS_PATH || 'card-elixir-vectors-v1.json', r2: R2_CONFIGURED, bucket: R2_BUCKET, key: r2ObjectKey(process.env.ELIXIR_VECTORS_PATH || 'card-elixir-vectors-v1.json') };
+  let publicPub = { repo: pub.repo, branch: pub.branch, target: process.env.ELIXIR_VECTORS_PUBLIC_PATH || 'card-elixir-vectors-public-v1.json', r2: R2_CONFIGURED, bucket: R2_BUCKET, key: r2ObjectKey(process.env.ELIXIR_VECTORS_PUBLIC_PATH || 'card-elixir-vectors-public-v1.json') };
   if (hasArg('--publish')) {
-    pub = await publishJson(out, outPath);
-    console.log((pub.skipped ? 'up-to-date ' : 'published ') + pub.repo + '/' + pub.target + ' branch=' + pub.branch + ' commit=' + (pub.commit || '-'));
-    publicPub = await publishJson(publicOut, publicPath, publicPub.target);
-    console.log((publicPub.skipped ? 'up-to-date ' : 'published ') + publicPub.repo + '/' + publicPub.target + ' branch=' + publicPub.branch + ' commit=' + (publicPub.commit || '-'));
+    pub = await publishJson(out, outPath, pub.target, { visibility: 'private' });
+    console.log(publishSummary(pub));
+    publicPub = await publishJson(publicOut, publicPath, publicPub.target, { visibility: 'public' });
+    console.log(publishSummary(publicPub));
   }
   if (hasArg('--verify')) { await verifyPublished(pub); await verifyPublished(publicPub); }
 }

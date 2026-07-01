@@ -39,6 +39,15 @@ const ASSIST_DATA_BASE = 'https://raw.githubusercontent.com/rea-fi-lia/clash-roy
 function dataFreshUrl(url) {
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + Date.now();
 }
+function allowAssistPublicJsonFallback() {
+  try {
+    const h = location.hostname || '';
+    const local = location.protocol === 'file:' || h === 'localhost' || h === '127.0.0.1' || h.endsWith('.local');
+    if (local) return true;
+    const prod = h === 'crdeckbuilders.com' || h.endsWith('.crdeckbuilders.com');
+    return !prod && new URLSearchParams(location.search || '').get('publicJsonFallback') === '1';
+  } catch (e) { return false; }
+}
 const assistData = { wincon: null, potential: null, tags: null, pairs: null, pairExt: null, threatResp: null, vectors: null, eval: null, ready: false, tried: false };
 
 function saveFavorites() {
@@ -351,36 +360,54 @@ function normalizeAssistCards(j) {
   return j.byCard || null;
 }
 function loadAssistJson(name) {
+  if (!allowAssistPublicJsonFallback()) return Promise.resolve(null);
   return fetch(dataFreshUrl(ASSIST_DATA_BASE + name), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
 }
 function loadAssistJsonAny(names) {
   const list = Array.isArray(names) ? names : [names];
   return list.reduce((p, name) => p.then(j => j || loadAssistJson(name)), Promise.resolve(null));
 }
+function loadAssistBundle() {
+  return fetch(dataFreshUrl('/api/assist/bootstrap'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+}
+function applyAssistBundle(bundle) {
+  assistData.wincon = normalizeAssistCards(bundle && bundle.wincon);
+  assistData.potential = normalizeAssistCards(bundle && bundle.potential);
+  assistData.tags = normalizeAssistCards(bundle && bundle.tags);
+  assistData.pairs = bundle && bundle.pairs ? bundle.pairs : null;
+  assistData.pairExt = bundle && bundle.pairExt ? bundle.pairExt : null;
+  assistData.threatResp = bundle && bundle.threatResp ? bundle.threatResp : null;
+  assistData.vectors = normalizeAssistCards(bundle && bundle.vectors);
+  assistData.eval = null;
+  assistVectorCache = {};
+  assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags || assistData.pairs || assistData.pairExt || assistData.threatResp || assistData.vectors || assistData.eval);
+  updateAssistPanel();
+}
 function loadAssistData() {
   if (assistData.tried) return;
   assistData.tried = true;
-  Promise.all([
-    loadAssistJson('wincon-policy-public-v1.json'),
-    loadAssistJson('card-potential.json'),
-    loadAssistJson('card-tags.json'),
-    loadAssistJson('card-pair-synergy-public-v1.json'),
-    loadAssistJson('card-pair-extension-synergy-public-v1.json'),
-    loadAssistJson('card-threat-response-public-v1.json'),
-    loadAssistJson('card-elixir-vectors-public-v1.json')
-  ]).then(([wincon, potential, tags, pairs, pairExt, threatResp, vectors]) => {
-    assistData.wincon = normalizeAssistCards(wincon);
-    assistData.potential = normalizeAssistCards(potential);
-    assistData.tags = normalizeAssistCards(tags);
-    assistData.pairs = pairs && pairs.byCard ? pairs.byCard : null;
-    assistData.pairExt = pairExt && pairExt.byPair ? pairExt.byPair : null;
-    assistData.threatResp = threatResp && threatResp.byPair ? threatResp.byPair : null;
-    // エリクサー価値ベクトル：ブラウザは公開用JSONだけを読む。
-    assistData.vectors = normalizeAssistCards(vectors);
-    assistData.eval = null;
-    assistVectorCache = {};
-    assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags || assistData.pairs || assistData.pairExt || assistData.threatResp || assistData.vectors || assistData.eval);
-    updateAssistPanel();
+  loadAssistBundle().then(bundle => {
+    if (bundle && (bundle.wincon || bundle.potential || bundle.tags || bundle.pairs || bundle.pairExt || bundle.threatResp || bundle.vectors)) {
+      applyAssistBundle(bundle);
+      return null;
+    }
+    return Promise.all([
+      loadAssistJson('wincon-policy-public-v1.json'),
+      loadAssistJson('card-potential.json'),
+      loadAssistJson('card-tags.json'),
+      loadAssistJson('card-pair-synergy-public-v1.json'),
+      loadAssistJson('card-pair-extension-synergy-public-v1.json'),
+      loadAssistJson('card-threat-response-public-v1.json'),
+      loadAssistJson('card-elixir-vectors-public-v1.json')
+    ]).then(([wincon, potential, tags, pairs, pairExt, threatResp, vectors]) => applyAssistBundle({
+      wincon: wincon,
+      potential: potential,
+      tags: tags,
+      pairs: pairs && pairs.byCard ? pairs.byCard : null,
+      pairExt: pairExt && pairExt.byPair ? pairExt.byPair : null,
+      threatResp: threatResp && threatResp.byPair ? threatResp.byPair : null,
+      vectors: vectors
+    }));
   }).catch(() => {});
 }
 function assistWincon(c) {

@@ -64,21 +64,29 @@ jobs:
           }
           const repo = process.env.REPO;
           const token = process.env.GH_TOKEN;
-          const url = `https://api.github.com/repos/${repo}/contents/decks.json?ref=data`;
           const headers = {
             'Accept': 'application/vnd.github+json',
             'User-Agent': 'cr-deck-freshness-gate',
             'Authorization': `Bearer ${token}`
           };
+          async function readDataJson(path) {
+            const url = `https://api.github.com/repos/${repo}/contents/${encodeURIComponent(path)}?ref=data`;
+            const res = await fetch(url, { headers });
+            if (!res.ok) throw new Error(`GitHub contents ${path} ${res.status}`);
+            const body = await res.json();
+            return JSON.parse(Buffer.from(body.content || '', 'base64').toString('utf8'));
+          }
           (async () => {
             let run = true;
             let updated = '';
             let ageMin = null;
             try {
-              const res = await fetch(url, { headers });
-              if (!res.ok) throw new Error(`GitHub contents ${res.status}`);
-              const body = await res.json();
-              const json = JSON.parse(Buffer.from(body.content || '', 'base64').toString('utf8'));
+              let json;
+              try { json = await readDataJson('collect-freshness.json'); }
+              catch (markerErr) {
+                console.log(`freshness marker missing; fallback to decks.json: ${markerErr.message}`);
+                json = await readDataJson('decks.json');
+              }
               updated = json.updated || '';
               const ts = Date.parse(updated);
               if (Number.isFinite(ts)) {
@@ -102,6 +110,15 @@ jobs:
         env:
           CR_TOKEN: ${{ secrets.CR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET || 'crdb-data-private' }}
+          R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
+          # R2/Worker/APIへ完全切替するまでは data ブランチにも両書きして、旧フロントの表示停止を避ける。
+          # Worker検証＋フロントAPI化の反映後に、Repository Variablesで両方 0 に落として公開JSONを閉じる。
+          PRIVATE_GH_MIRROR: ${{ vars.PRIVATE_GH_MIRROR || '1' }}
+          PUBLIC_GH_MIRROR: ${{ vars.PUBLIC_GH_MIRROR || '1' }}
           TARGET_BRANCH: ${{ github.event.inputs.target_branch || 'data' }}
           TOP_PLAYERS: ${{ github.event.inputs.top_players || '1000' }}
           INTERVAL_HOURS: '1'

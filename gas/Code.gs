@@ -644,6 +644,12 @@ function ghSiblingPath_(mainPath, name) {
 }
 
 function ghReadJson_(path) {
+  if (r2Enabled_()) {
+    try {
+      var r2 = r2ReadJson_(path);
+      if (r2) return r2;
+    } catch (e) { Logger.log('R2 read fallback ' + path + ' :: ' + e.message); }
+  }
   var ghToken = prop('GITHUB_TOKEN'), repo = prop('GITHUB_REPO'), branch = prop('GITHUB_BRANCH', 'data');
   if (!ghToken || !repo) return null;
   // ★rawメディアタイプで取得。旧来のbase64型はファイルが1MBを超えるとcontentが空になり、
@@ -656,6 +662,10 @@ function ghReadJson_(path) {
 }
 
 function ghWriteJson_(path, obj) {
+  dataWriteJson_(path, obj);
+}
+
+function ghWriteJsonDirect_(path, obj) {
   var ghToken = prop('GITHUB_TOKEN'), repo = prop('GITHUB_REPO'), branch = prop('GITHUB_BRANCH', 'data');
   if (!ghToken || !repo) throw new Error('GITHUB_TOKEN / GITHUB_REPO 未設定');
   var headers = { Authorization: 'token ' + ghToken, Accept: 'application/vnd.github+json' };
@@ -676,32 +686,95 @@ function ghWriteJson_(path, obj) {
   if (code !== 200 && code !== 201) throw new Error('GitHub write ' + path + ' ' + code + ' :: ' + put.getContentText().slice(0, 200));
 }
 
+function r2Enabled_() {
+  return !!(prop('R2_ACCOUNT_ID') && prop('R2_ACCESS_KEY_ID') && prop('R2_SECRET_ACCESS_KEY') && prop('R2_BUCKET', 'crdb-data-private'));
+}
+function r2ObjectKey_(path) {
+  var prefix = String(prop('R2_PRIVATE_PREFIX', 'private/') || '').replace(/^\/+/, '');
+  if (prefix && prefix.charAt(prefix.length - 1) !== '/') prefix += '/';
+  return prefix + String(path || '').replace(/^\/+/, '');
+}
+function r2EncodeKey_(key) {
+  return String(key || '').split('/').map(encodeURIComponent).join('/');
+}
+function r2IsoStamp_() {
+  return new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+}
+function r2BytesToHex_(bytes) {
+  return bytes.map(function (b) { var v = b < 0 ? b + 256 : b; return ('0' + v.toString(16)).slice(-2); }).join('');
+}
+function r2Sha256Hex_(s) {
+  return r2BytesToHex_(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s || '', Utilities.Charset.UTF_8));
+}
+function r2Hmac_(key, msg) {
+  return Utilities.computeHmacSha256Signature(msg, key);
+}
+function r2SigningKey_(date) {
+  var secret = prop('R2_SECRET_ACCESS_KEY');
+  var kDate = r2Hmac_('AWS4' + secret, date);
+  var kRegion = r2Hmac_(kDate, 'auto');
+  var kService = r2Hmac_(kRegion, 's3');
+  return r2Hmac_(kService, 'aws4_request');
+}
+function r2Request_(method, path, payload, contentType) {
+  var accountId = prop('R2_ACCOUNT_ID');
+  var accessKey = prop('R2_ACCESS_KEY_ID');
+  var bucket = prop('R2_BUCKET', 'crdb-data-private');
+  var key = r2ObjectKey_(path);
+  var host = accountId + '.r2.cloudflarestorage.com';
+  var pathname = '/' + encodeURIComponent(bucket) + '/' + r2EncodeKey_(key);
+  var body = payload == null ? '' : payload;
+  var payloadHash = r2Sha256Hex_(body);
+  var amzDate = r2IsoStamp_();
+  var date = amzDate.slice(0, 8);
+  var headers = { host: host, 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate };
+  if (contentType) headers['content-type'] = contentType;
+  var names = Object.keys(headers).sort();
+  var signedHeaders = names.join(';');
+  var canonicalHeaders = names.map(function (h) { return h + ':' + headers[h] + '\n'; }).join('');
+  var canonicalRequest = [method, pathname, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+  var scope = date + '/auto/s3/aws4_request';
+  var stringToSign = ['AWS4-HMAC-SHA256', amzDate, scope, r2Sha256Hex_(canonicalRequest)].join('\n');
+  var signature = r2BytesToHex_(r2Hmac_(r2SigningKey_(date), stringToSign));
+  headers.Authorization = 'AWS4-HMAC-SHA256 Credential=' + accessKey + '/' + scope + ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;
+  var opts = { method: method.toLowerCase(), headers: headers, muteHttpExceptions: true };
+  if (payload != null) { opts.payload = body; opts.contentType = contentType || 'application/octet-stream'; }
+  return UrlFetchApp.fetch('https://' + host + pathname, opts);
+}
+function r2ReadJson_(path) {
+  if (!r2Enabled_()) return null;
+  var res = r2Request_('GET', path, null, null);
+  var code = res.getResponseCode();
+  if (code === 404) return null;
+  if (code !== 200) throw new Error('R2 read ' + path + ' ' + code + ' :: ' + res.getContentText().slice(0, 200));
+  try { return JSON.parse(res.getContentText()); } catch (e) { return null; }
+}
+function r2WriteJson_(path, obj) {
+  var res = r2Request_('PUT', path, JSON.stringify(obj), 'application/json; charset=utf-8');
+  var code = res.getResponseCode();
+  if (code < 200 || code >= 300) throw new Error('R2 write ' + path + ' ' + code + ' :: ' + res.getContentText().slice(0, 200));
+  Logger.log('R2 write ' + r2ObjectKey_(path));
+}
+function publicJsonPath_(path) {
+  var name = String(path || '').split('/').pop();
+  return /-public-v\d+\.json$/.test(name) || ['card-stats.json', 'card-tags.json', 'card-potential.json'].indexOf(name) >= 0;
+}
+function githubOnlyJsonPath_(path) {
+  var name = String(path || '').split('/').pop();
+  return name === 'card-ids.json' || name === 'collect-freshness.json';
+}
+function dataWriteJson_(path, obj) {
+  if (r2Enabled_() && !githubOnlyJsonPath_(path)) {
+    r2WriteJson_(path, obj);
+    var mirror = publicJsonPath_(path) ? prop('PUBLIC_GH_MIRROR', '0') === '1' : prop('PRIVATE_GH_MIRROR', '0') === '1';
+    if (!mirror) return;
+  }
+  ghWriteJsonDirect_(path, obj);
+}
+
 function commitToGithub(payload) {
-  var ghToken = prop('GITHUB_TOKEN');
-  var repo = prop('GITHUB_REPO');
   var path = prop('GITHUB_PATH', 'decks.json');
-  var branch = prop('GITHUB_BRANCH', 'data');
-  if (!ghToken || !repo) throw new Error('GITHUB_TOKEN / GITHUB_REPO 未設定');
-
-  var api = 'https://api.github.com/repos/' + repo + '/contents/' + path;
-  var headers = { Authorization: 'token ' + ghToken, Accept: 'application/vnd.github+json' };
-
-  var sha = null;
-  // ★objectメディアタイプ＝1MB超ファイルでもshaが取れる（base64型は1MB超でエラーになる）
-  var curHeaders = { Authorization: 'token ' + ghToken, Accept: 'application/vnd.github.object' };
-  var cur = UrlFetchApp.fetch(api + '?ref=' + branch, { method: 'get', headers: curHeaders, muteHttpExceptions: true });
-  if (cur.getResponseCode() === 200) sha = JSON.parse(cur.getContentText()).sha;
-
-  var content = Utilities.base64Encode(Utilities.newBlob(JSON.stringify(payload)).getBytes());
-  var body = { message: 'chore: update decks.json', content: content, branch: branch };
-  if (sha) body.sha = sha;
-
-  var put = UrlFetchApp.fetch(api, {
-    method: 'put', headers: headers, contentType: 'application/json',
-    payload: JSON.stringify(body), muteHttpExceptions: true
-  });
-  var code = put.getResponseCode();
-  if (code !== 200 && code !== 201) throw new Error('GitHub commit ' + code + ' :: ' + put.getContentText().slice(0, 300));
+  dataWriteJson_(path, payload);
 }
 
 function createTriggers() {

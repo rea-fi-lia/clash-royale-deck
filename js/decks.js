@@ -971,13 +971,35 @@ const DATA_BASE = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-dec
 function dataFreshUrl(url) {
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + Date.now();
 }
+function allowPublicJsonFallback() {
+  try {
+    const h = location.hostname || '';
+    const local = location.protocol === 'file:' || h === 'localhost' || h === '127.0.0.1' || h.endsWith('.local');
+    if (local) return true;
+    const prod = h === 'crdeckbuilders.com' || h.endsWith('.crdeckbuilders.com');
+    return !prod && new URLSearchParams(location.search || '').get('publicJsonFallback') === '1';
+  } catch (e) { return false; }
+}
 function fetchDataJsonAny(names) {
+  if (!allowPublicJsonFallback()) return Promise.resolve(null);
   return names.reduce((p, name) => p.then(j => j || fetch(dataFreshUrl(DATA_BASE + name), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)), Promise.resolve(null));
 }
-fetchDataJsonAny(['decks-public-v1.json'])
-  .then(j => { if (!j) throw 0; return j; })
-  .then(j => {
-    DECKS_JSON = j || null;
+// まず /api/meta（R2優先）を試し、ダメなら公開JSONへfallback。
+// これで公開JSONを止めても表示が崩れない（核データはブラウザへ直接渡さない）。
+let META_BUNDLE = null;
+let META_BUNDLE_P = null;
+function fetchMetaBundle() {
+  if (META_BUNDLE_P) return META_BUNDLE_P;
+  META_BUNDLE_P = fetch(dataFreshUrl('/api/meta'), { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : null).catch(() => null)
+    .then(m => { META_BUNDLE = m || null; return META_BUNDLE; });
+  return META_BUNDLE_P;
+}
+fetchMetaBundle()
+  .then(meta => (meta && meta.decks) ? meta.decks : fetchDataJsonAny(['decks-public-v1.json']))
+    .then(j => { if (!j) throw 0; return j; })
+    .then(j => {
+      DECKS_JSON = j || null;
     // 全窓共通のメタ情報
     _agg.top = (j && j.topPlayers) ? j.topPlayers : null;
     _agg.hrs = (j && j.intervalHours) ? j.intervalHours : 6;
@@ -990,11 +1012,13 @@ fetchDataJsonAny(['decks-public-v1.json'])
   })
   .catch(() => { ALL_DECKS = DECKS; TREND_DECKS = []; CARDS_DATA = CARDS_SAMPLE; initCardMeta(true); updateDeckTabDesc(); applyDecks(); });
 
-fetchDataJsonAny(['pol-card-intel-public-v1.json'])
+fetchMetaBundle()
+  .then(m => (m && m.polCardIntel) ? m.polCardIntel : fetchDataJsonAny(['pol-card-intel-public-v1.json']))
   .then(j => { POL_CARD_INTEL = (j && j.byOpponentCard) ? j : null; try { renderCrank(); } catch (e) {} })
   .catch(() => {});
 
-fetchDataJsonAny(['trophy-band-card-intel-public-v1.json'])
+fetchMetaBundle()
+  .then(m => (m && m.trophyBandIntel) ? m.trophyBandIntel : fetchDataJsonAny(['trophy-band-card-intel-public-v1.json']))
   .then(j => { TROPHY_BAND_INTEL = (j && (j.byCard || j.byBand)) ? j : null; try { renderCrank(); } catch (e) {} })
   .catch(() => {});
 

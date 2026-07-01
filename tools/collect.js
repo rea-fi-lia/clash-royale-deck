@@ -24,6 +24,15 @@
  *   WINDOW_DAYS         … ローリング期間（日）。既定 "3"
  *   INTERVAL_HOURS      … 参考値としてdecks.jsonに載せる（既定 "6"）
  *   WIN_MIN_GAMES_3D    … 勝率ランキングの最低試合数（既定 "30"）
+ *   R2_ACCOUNT_ID       … Cloudflare R2 account id（設定時だけprivate JSONをR2へ保存）
+ *   R2_ACCESS_KEY_ID    … R2 S3 API access key id
+ *   R2_SECRET_ACCESS_KEY… R2 S3 API secret access key
+ *   R2_BUCKET           … private保存先bucket（既定 "crdb-data-private"）
+ *   R2_PRIVATE_PREFIX   … bucket内prefix（既定 "private/"）
+ *   PRIVATE_GH_MIRROR   … "1" の時だけprivate JSONもdataブランチへミラー（workflow移行中既定は"1"）
+ *   PUBLIC_GH_MIRROR    … "1" の時だけ表示用JSONもdataブランチへミラー（workflow移行中既定は"1"）
+ *   MIRROR_EXTERNAL_PUBLIC_TO_R2  … GAS/旧ツール由来の表示用JSONをdataからR2へ吸い上げる（既定はPUBLIC_GH_MIRROR連動）
+ *   MIRROR_EXTERNAL_PRIVATE_TO_R2 … GAS/旧ツール由来の元JSONをdataからR2へ吸い上げる（既定はPRIVATE_GH_MIRROR連動）
  *
  * ★Phase 1（今）＝この忠実移植で 3日ローリングを再現し、data-test に出して GAS出力(data)と照合。
  * ★Phase 2（後）＝収集を1時間ごとにし、スナップショット(t付き)から 1h/1day/3day の3窓を導出。
@@ -34,6 +43,7 @@
 'use strict';
 
 const { spawnSync } = require('child_process');
+const crypto = require('crypto');
 
 const PROXY = 'https://proxy.royaleapi.dev/v1';
 const WINDOW_DAYS = parseInt(prop('WINDOW_DAYS', '3'), 10); // ローリング期間（日）。デッキ・カード共通。
@@ -52,6 +62,15 @@ const REPO = prop('GITHUB_REPO') || prop('GITHUB_REPOSITORY'); // "owner/repo"
 const BRANCH = prop('TARGET_BRANCH', 'data-test');
 // ★ DECKS_PATH（GITHUB_PATH は Actions 予約名＝env で渡しても内部値に上書きされるので使わない）
 const GH_PATH = prop('DECKS_PATH', 'decks.json');
+const R2_ACCOUNT_ID = prop('R2_ACCOUNT_ID');
+const R2_ACCESS_KEY_ID = prop('R2_ACCESS_KEY_ID');
+const R2_SECRET_ACCESS_KEY = prop('R2_SECRET_ACCESS_KEY');
+const R2_BUCKET = prop('R2_BUCKET', 'crdb-data-private');
+const R2_PRIVATE_PREFIX = prop('R2_PRIVATE_PREFIX', 'private/');
+const PRIVATE_GH_MIRROR = String(prop('PRIVATE_GH_MIRROR', '0')) === '1';
+const PUBLIC_GH_MIRROR = String(prop('PUBLIC_GH_MIRROR', (R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY) ? '0' : '1')) === '1';
+const MIRROR_EXTERNAL_PUBLIC_TO_R2 = String(prop('MIRROR_EXTERNAL_PUBLIC_TO_R2', PUBLIC_GH_MIRROR ? '1' : '0')) === '1';
+const MIRROR_EXTERNAL_PRIVATE_TO_R2 = String(prop('MIRROR_EXTERNAL_PRIVATE_TO_R2', PRIVATE_GH_MIRROR ? '1' : '0')) === '1';
 
 var SLUG2JP = {
   "skeletons": "スケルトン", "ice-spirit": "アイススピリット", "fire-spirit": "ファイアスピリット",
@@ -298,6 +317,159 @@ async function ghWriteJson_(path, obj, message) {
   if (put.status !== 200 && put.status !== 201) throw new Error('GitHub write ' + path + ' ' + put.status + ' :: ' + (await put.text()).slice(0, 200));
 }
 
+// ---- Cloudflare R2 private I/O（S3 API直叩き。公開したくない分析JSONと生試合アーカイブ用） ----
+function r2Enabled_() {
+  return !!(R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET);
+}
+function r2ObjectKey_(path) {
+  var prefix = String(R2_PRIVATE_PREFIX || '').replace(/^\/+/, '');
+  if (prefix && prefix.charAt(prefix.length - 1) !== '/') prefix += '/';
+  return prefix + String(path || '').replace(/^\/+/, '');
+}
+function r2IsoStamp_() {
+  return new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+}
+function r2Sha256Hex_(s) {
+  return crypto.createHash('sha256').update(s || '').digest('hex');
+}
+function r2Hmac_(key, msg, enc) {
+  return crypto.createHmac('sha256', key).update(msg).digest(enc);
+}
+function r2SigningKey_(date) {
+  var kDate = r2Hmac_(Buffer.from('AWS4' + R2_SECRET_ACCESS_KEY, 'utf8'), date);
+  var kRegion = r2Hmac_(kDate, 'auto');
+  var kService = r2Hmac_(kRegion, 's3');
+  return r2Hmac_(kService, 'aws4_request');
+}
+function r2EncodeKey_(key) {
+  return String(key || '').split('/').map(encodeURIComponent).join('/');
+}
+async function r2Request_(method, path, body, contentType) {
+  if (!r2Enabled_()) return { status: 0, text: async function () { return ''; } };
+  var key = r2ObjectKey_(path);
+  var host = R2_ACCOUNT_ID + '.r2.cloudflarestorage.com';
+  var pathname = '/' + encodeURIComponent(R2_BUCKET) + '/' + r2EncodeKey_(key);
+  var payload = body == null ? '' : body;
+  var payloadHash = r2Sha256Hex_(payload);
+  var amzDate = r2IsoStamp_();
+  var date = amzDate.slice(0, 8);
+  var headers = {
+    host: host,
+    'x-amz-content-sha256': payloadHash,
+    'x-amz-date': amzDate
+  };
+  if (contentType) headers['content-type'] = contentType;
+  var signedHeaders = Object.keys(headers).sort().join(';');
+  var canonicalHeaders = Object.keys(headers).sort().map(function (h) { return h + ':' + headers[h] + '\n'; }).join('');
+  var canonicalRequest = [method, pathname, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+  var scope = date + '/auto/s3/aws4_request';
+  var stringToSign = ['AWS4-HMAC-SHA256', amzDate, scope, r2Sha256Hex_(canonicalRequest)].join('\n');
+  var signature = r2Hmac_(r2SigningKey_(date), stringToSign, 'hex');
+  headers.authorization = 'AWS4-HMAC-SHA256 Credential=' + R2_ACCESS_KEY_ID + '/' + scope + ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;
+  return fetch('https://' + host + pathname, { method: method, headers: headers, body: body == null ? undefined : payload });
+}
+async function r2ReadJson_(path) {
+  if (!r2Enabled_()) return null;
+  var lastErr = null;
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      var res = await r2Request_('GET', path, null, null);
+      if (res.status === 404 || res.status === 0) return null;
+      if (res.status >= 500) { lastErr = new Error('R2 read ' + path + ' ' + res.status); await sleep(400 * (attempt + 1)); continue; }
+      if (res.status !== 200) throw new Error('R2 read ' + path + ' ' + res.status + ' :: ' + (await res.text()).slice(0, 200));
+      try { return JSON.parse(await res.text()); } catch (e) { return null; }
+    } catch (e) {
+      lastErr = e; await sleep(400 * (attempt + 1));
+    }
+  }
+  throw lastErr || new Error('R2 read ' + path + ' failed');
+}
+async function r2WriteJson_(path, obj) {
+  if (!r2Enabled_()) return false;
+  var body = JSON.stringify(obj);
+  var lastErr = null;
+  for (var attempt = 0; attempt < 3; attempt++) {
+    try {
+      var res = await r2Request_('PUT', path, body, 'application/json; charset=utf-8');
+      if (res.status >= 200 && res.status < 300) return true;
+      if (res.status >= 500) { lastErr = new Error('R2 write ' + path + ' ' + res.status); await sleep(400 * (attempt + 1)); continue; }
+      throw new Error('R2 write ' + path + ' ' + res.status + ' :: ' + (await res.text()).slice(0, 200));
+    } catch (e) {
+      lastErr = e; await sleep(400 * (attempt + 1));
+    }
+  }
+  throw lastErr || new Error('R2 write ' + path + ' failed');
+}
+async function readPrivateJson_(path) {
+  if (r2Enabled_()) {
+    try {
+      var r2 = await r2ReadJson_(path);
+      if (r2) return r2;
+    } catch (e) { console.log('R2 read fallback ' + path + ' :: ' + ((e && e.message) || e)); }
+  }
+  return ghReadJson_(path);
+}
+async function writePrivateJson_(path, obj, message) {
+  if (r2Enabled_()) {
+    await r2WriteJson_(path, obj);
+    console.log('R2 private write ' + r2ObjectKey_(path));
+    if (!PRIVATE_GH_MIRROR) return;
+  }
+  await ghWriteJson_(path, obj, message);
+}
+// 公開表示用JSON：R2設定後はR2を主保存先にする。
+// PUBLIC_GH_MIRROR=1 の時だけdataブランチにも出す（移行検証/緊急fallback用）。
+async function writePublicJson_(path, obj, message) {
+  if (r2Enabled_()) {
+    await r2WriteJson_(path, obj);
+    console.log('R2 public write ' + r2ObjectKey_(path));
+    if (!PUBLIC_GH_MIRROR) return;
+  }
+  await ghWriteJson_(path, obj, message);
+}
+// collectが生成しない表示用JSON（GAS/別ツール製）も、移行中はdataブランチからR2へミラーする。
+// ロックダウン後は古いdata版でR2を上書きしないよう、MIRROR_EXTERNAL_PUBLIC_TO_R2=1 の時だけ実行。
+async function mirrorExternalPublicToR2_() {
+  if (!r2Enabled_() || !MIRROR_EXTERNAL_PUBLIC_TO_R2) return;
+  var files = ['card-stats.json', 'card-tags.json', 'card-potential.json',
+    'wincon-policy-public-v1.json', 'card-elixir-vectors-public-v1.json'];
+  for (var i = 0; i < files.length; i++) {
+    try {
+      var p = ghSiblingPath_(GH_PATH, files[i]);
+      var j = await ghReadJson_(p);
+      if (j) { await r2WriteJson_(p, j); console.log('R2 external public mirror ' + r2ObjectKey_(p)); }
+    } catch (e) { console.log('R2 external public mirror error ' + files[i] + ' :: ' + ((e && e.message) || e)); }
+  }
+}
+// collectが直接生成しない「元データ/旧分析JSON」も、移行中はR2へ吸い上げる。
+// ロックダウン後は古いdata版でR2を上書きしないよう、MIRROR_EXTERNAL_PRIVATE_TO_R2=1 の時だけ実行。
+async function mirrorExternalPrivateToR2_() {
+  if (!r2Enabled_() || !MIRROR_EXTERNAL_PRIVATE_TO_R2) return;
+  var files = [
+    'card-eval.json', 'card-weights.json', 'card-elixir-vectors-v1.json',
+    'wincon-policy.json', 'synergy.json', 'band-meta.json', 'battle-feature-buckets.json'
+  ];
+  for (var i = 0; i < files.length; i++) {
+    try {
+      var p = ghSiblingPath_(GH_PATH, files[i]);
+      var j = await ghReadJson_(p);
+      if (j) { await r2WriteJson_(p, j); console.log('R2 external private mirror ' + r2ObjectKey_(p)); }
+    } catch (e) { console.log('R2 external private mirror skip ' + files[i] + ' :: ' + ((e && e.message) || e)); }
+  }
+}
+async function writePrivateRunArchive_(kind, obj) {
+  if (!r2Enabled_()) return false;
+  var now = new Date();
+  var day = now.toISOString().slice(0, 10);
+  var ts = now.toISOString().replace(/[:-]|\.\d{3}/g, '').replace('Z', 'Z');
+  var runId = prop('GITHUB_RUN_ID', '') || ts;
+  var key = 'raw/' + kind + '/' + day + '/run-' + runId + '-' + ts + '.json';
+  await r2WriteJson_(key, obj);
+  await r2WriteJson_('raw/' + kind + '/latest-run.json', Object.assign({ archiveKey: r2ObjectKey_(key) }, obj));
+  console.log('R2 raw archive ' + r2ObjectKey_(key));
+  return true;
+}
+
 // 窓内のスナップショットからカード単体を集計（Code.gs aggregateCards_ と同一）
 function aggregateCards_(snaps) {
   var keys = {}, n = snaps.length || 1;
@@ -495,7 +667,7 @@ async function updateDecks() {
         var page2 = await crGet('/locations/global/pathoflegend/players?limit=1000&after=' + encodeURIComponent(afterProbe), token);
         probe.pages.push(Object.assign({ page: 2, cursorAfter: page2.paging && page2.paging.cursors && page2.paging.cursors.after }, summarizeRankingItems_(page2.items || [])));
       }
-      await ghWriteJson_(ghSiblingPath_(GH_PATH, 'pol-ranking-probe-v1.json'), probe, 'chore: update pol-ranking-probe-v1.json');
+      await writePrivateJson_(ghSiblingPath_(GH_PATH, 'pol-ranking-probe-v1.json'), probe, 'chore: update pol-ranking-probe-v1.json');
       console.log('pol-ranking-probe pages=' + probe.pages.length + ' keys=' + (probe.pages[0] && probe.pages[0].keys || []).join(','));
     } catch (e) { console.log('pol-ranking-probe error ' + ((e && e.message) || e)); }
   }
@@ -520,7 +692,7 @@ async function updateDecks() {
   var headers = { Authorization: 'Bearer ' + token, Accept: 'application/json', 'User-Agent': UA };
   if (rankingSource === 'trophy' && !players.length) {
     var emptyWindow = { players: 0, uniquePlayers: 0, games: 0, decks: [], winDecks: [], trending: [], cards: [], meta: [] };
-    await ghWriteJson_(GH_PATH, {
+    await writePrivateJson_(GH_PATH, {
       updated: new Date().toISOString(),
       source: rankingSource,
       trophyRange: { min: trophyMin, max: trophyMax },
@@ -549,7 +721,7 @@ async function updateDecks() {
   // ---- 履歴を先に読む（対戦の二重カウント防止用 lastT を使うため） ----
   var ghPath = GH_PATH;
   var histPath = ghSiblingPath_(ghPath, 'cardhist.json');
-  var hist = await ghReadJson_(histPath);
+  var hist = await readPrivateJson_(histPath);
   if (!hist) {
     // ★上書き事故ガード：ファイルが「存在するのに読めない」場合は履歴を消さないよう実行を中断。
     if (await ghExists_(histPath)) throw new Error('cardhist.json が存在するのに読めない＝上書き防止のため中断（要調査）');
@@ -574,6 +746,8 @@ async function updateDecks() {
   var polEloNow = {};
   // ★10000〜14000トロフィー戦イベント（今回ぶん）。PoLとは別に、試合時点startingTrophiesで保存する。
   var trophyEventsNow = [];
+  // ★あとから再集計するための生試合lite（今回ぶん）。集計JSONとは別にR2へ永久アーカイブする。
+  var rawBattleEventsNow = [];
   // ★10000〜14000帯で当たった対戦相手のtag＝次回以降に少しずつ収集する母集団のseed候補。
   var oppSeedNow = {};
   function accPol_(sig, b, tc, oc) {
@@ -664,6 +838,29 @@ async function updateDecks() {
       win: tc > oc
     };
   }
+  function rawBattleEvent_(b, d, od, tc, oc, tag, ranked) {
+    var t0 = b.team[0], o0 = b.opponent[0];
+    var tt = typeof t0.startingTrophies === 'number' ? t0.startingTrophies : null;
+    var ot = typeof o0.startingTrophies === 'number' ? o0.startingTrophies : null;
+    var bucket = modeBucketOf(b.type || '', (b.gameMode && b.gameMode.name) || '');
+    var meta = rankMetaByTag[normTag_(tag)] || {};
+    var id = [b.battleTime || '', bucket, t0.crowns, o0.crowns, d.jp.slice().sort().join('.'), od.jp.slice().sort().join('.')].join('|');
+    return {
+      id: id,
+      battleTime: b.battleTime || '',
+      source: rankingSource,
+      type: b.type || '',
+      mode: bucket,
+      ranked: !!ranked,
+      rank: typeof meta.rank === 'number' ? meta.rank : null,
+      eloRating: typeof meta.eloRating === 'number' ? meta.eloRating : null,
+      trophyMid: (tt != null && ot != null) ? Math.round((tt + ot) / 2) : null,
+      durationSeconds: durationSec_(b),
+      team: sideLite_(t0, d, tc),
+      opponent: sideLite_(o0, od, oc),
+      win: tc > oc
+    };
+  }
   function classifyDeck(cards) {
     var jp = [], fm = [], ok = true;
     cards.forEach(function (c) {
@@ -746,6 +943,7 @@ async function updateDecks() {
       }
       if (seedMode) continue;                      // ★seed由来はtrophy event抽出のみ。PoLメタ母集団は汚さない
       if (!ranked) continue;                       // ★PoL集計はランク戦のみ
+      if (od) rawBattleEventsNow.push(rawBattleEvent_(b, d, od, tc, oc, tag, ranked));
       if (od && sameSig_(d.jp, od.jp)) continue;   // ★完全ミラー除外
       if (od) {
         addPairBattleStats_(d.jp, tc > oc, pairAllNow);
@@ -1073,7 +1271,7 @@ async function updateDecks() {
   // ★相性（matchups.json に月別累積）
   if (Object.keys(muNow).length) {
     var muPath = ghSiblingPath_(ghPath, 'matchups.json');
-    var mu = (await ghReadJson_(muPath)) || { months: {} };
+    var mu = (await readPrivateJson_(muPath)) || { months: {} };
     if (!mu.months) mu.months = {};
     var mk = new Date().toISOString().slice(0, 7);
     var bucket = mu.months[mk] || (mu.months[mk] = {});
@@ -1082,7 +1280,7 @@ async function updateDecks() {
       t[0] += muNow[k][0]; t[1] += muNow[k][1];
     });
     mu.updated = new Date().toISOString();
-    await ghWriteJson_(muPath, mu, 'chore: update matchups.json');
+    await writePrivateJson_(muPath, mu, 'chore: update matchups.json');
     console.log('matchups +' + Object.keys(muNow).length + ' pairs');
   }
 
@@ -1090,7 +1288,7 @@ async function updateDecks() {
   try {
     var mkey2 = new Date().toISOString().slice(0, 7);
     var shPath = ghSiblingPath_(ghPath, 'sighist-' + mkey2 + '.json');
-    var sh = (await ghReadJson_(shPath)) || { cards: [], sigs: {} };
+    var sh = (await readPrivateJson_(shPath)) || { cards: [], sigs: {} };
     if (!sh.cards) sh.cards = [];
     if (!sh.sigs) sh.sigs = {};
     var cidx = {};
@@ -1108,7 +1306,7 @@ async function updateDecks() {
       t[0] += v[0] || 0; t[1] += v[1] || 0; t[2] += v[2] || 0;
     });
     sh.updated = new Date().toISOString();
-    await ghWriteJson_(shPath, sh, 'chore: update sighist');
+    await writePrivateJson_(shPath, sh, 'chore: update sighist');
     console.log('sighist ' + Object.keys(sh.sigs).length + ' sigs');
 
     // ★2枚組シナジー（月別sighistを最大12か月ぶん利用）
@@ -1128,11 +1326,11 @@ async function updateDecks() {
       for (var mi = 0; mi < pairMonths.length; mi++) {
         var pmk = pairMonths[mi];
         if (shByMonth[pmk]) continue;
-        var ps = await ghReadJson_(ghSiblingPath_(ghPath, 'sighist-' + pmk + '.json'));
+        var ps = await readPrivateJson_(ghSiblingPath_(ghPath, 'sighist-' + pmk + '.json'));
         if (ps && ps.cards && ps.sigs) shByMonth[pmk] = ps;
       }
-      var tagJson = await ghReadJson_(ghSiblingPath_(ghPath, 'card-tags.json')) || {};
-      var winJson = await ghReadJson_(ghSiblingPath_(ghPath, 'wincon-policy.json')) || {};
+      var tagJson = await readPrivateJson_(ghSiblingPath_(ghPath, 'card-tags.json')) || {};
+      var winJson = await readPrivateJson_(ghSiblingPath_(ghPath, 'wincon-policy.json')) || {};
       var tagCards = tagJson.cards || {};
       var winCards = winJson.cards || {};
       var SPELL_NAMES = { 'ザップ':1, '巨大雪玉':1, 'ローリングバーバリアン':1, 'ローリングウッド':1, 'レイジ':1, 'ゴブリンの呪い':1, '矢の雨':1, 'トルネード':1, 'アースクエイク':1, 'ロイヤルデリバリー':1, 'ゴブリンバレル':1, 'クローン':1, 'ヴァイン':1, 'ボイド':1, 'ミラー':1, 'ファイアボール':1, 'フリーズ':1, 'ポイズン':1, 'スケルトンラッシュ':1, 'ロケット':1, 'ライトニング':1 };
@@ -1328,7 +1526,7 @@ async function updateDecks() {
           if (list.length < 40) list.push(row);
         });
       });
-      await ghWriteJson_(ghSiblingPath_(ghPath, 'card-pair-synergy-v1.json'),
+      await writePrivateJson_(ghSiblingPath_(ghPath, 'card-pair-synergy-v1.json'),
         { updated: new Date().toISOString(), source: 'sighist monthly digest', months: pairMonths.filter(function (m) { return !!shByMonth[m]; }),
           minUse: MIN_PAIR_USE, totalDeckUse: Math.round(totalUse * 10) / 10,
           scoring: {
@@ -1343,7 +1541,7 @@ async function updateDecks() {
           notes: ['表示の鮮度は1h/1d/3d、シナジー判定は月別sighist最大12か月で統計的に見る。', 'lift高・concentration低・月間安定・便利枠補正を抜けたpairほど本質シナジー。'],
           count: pairsOut.length, pairs: pairsOut.slice(0, 1000), byCard: byCard },
         'chore: update card-pair-synergy-v1.json');
-      await ghWriteJson_(ghSiblingPath_(ghPath, 'card-pair-synergy-public-v1.json'),
+      await writePublicJson_(ghSiblingPath_(ghPath, 'card-pair-synergy-public-v1.json'),
         { updated: new Date().toISOString(), version: 1, visibility: 'public-display',
           count: pairsOut.length, byCard: publicPairByCard_(pairsOut) },
         'chore: update card-pair-synergy-public-v1.json');
@@ -1439,7 +1637,7 @@ async function updateDecks() {
           basePairKind: e3.basePairKind, basePairScore: e3.basePairScore
         };
       }
-      await ghWriteJson_(ghSiblingPath_(ghPath, 'card-pair-extension-synergy-v1.json'),
+      await writePrivateJson_(ghSiblingPath_(ghPath, 'card-pair-extension-synergy-v1.json'),
         { updated: new Date().toISOString(), source: 'sighist monthly digest', months: pairMonths.filter(function (m) { return !!shByMonth[m]; }),
           minUse: MIN_EXT_USE, totalDeckUse: Math.round(totalUse * 10) / 10,
           scoring: {
@@ -1453,7 +1651,7 @@ async function updateDecks() {
           notes: ['3枚組テンプレではなく、2枚組A+Bに対する3枚目Cの候補。', 'UIでは「この2枚を通しやすくする1枚」「この形の弱点を埋める1枚」として使う。'],
           count: extOut.length, extensions: extOut.slice(0, 500).map(slimExt_), byPair: byPair },
         'chore: update card-pair-extension-synergy-v1.json');
-      await ghWriteJson_(ghSiblingPath_(ghPath, 'card-pair-extension-synergy-public-v1.json'),
+      await writePublicJson_(ghSiblingPath_(ghPath, 'card-pair-extension-synergy-public-v1.json'),
         { updated: new Date().toISOString(), version: 1, visibility: 'public-display',
           count: extOut.length, byPair: publicPairExtensionByPair_(extOut) },
         'chore: update card-pair-extension-synergy-public-v1.json');
@@ -1551,13 +1749,13 @@ async function updateDecks() {
         list.push({ threatId: r.threatId, title: r.title, enemy: r.enemy, need: r.need, text: r.text,
           severity: r.severity, responses: r.responses.map(function (x) { return { card: x.card, kind: x.kind }; }) });
       });
-      await ghWriteJson_(ghSiblingPath_(ghPath, 'card-threat-response-v1.json'),
+      await writePrivateJson_(ghSiblingPath_(ghPath, 'card-threat-response-v1.json'),
         { updated: new Date().toISOString(), version: 1, source: 'latest ranked battlelog pair-vs-threat aggregate + role fit',
           minPairGames: MIN_THREAT_PAIR_GAMES, minResponseGames: MIN_THREAT_RESPONSE_GAMES,
           notes: ['UI用に薄くした候補だけを持つ。内部値は載せない。', 'R2/Worker移行後はこの全体JSONをブラウザへ直接渡さない。'],
           count: threatRows.length, byPairCount: Object.keys(threatByPair).length, byPair: threatByPair },
         'chore: update card-threat-response-v1.json');
-      await ghWriteJson_(ghSiblingPath_(ghPath, 'card-threat-response-public-v1.json'),
+      await writePublicJson_(ghSiblingPath_(ghPath, 'card-threat-response-public-v1.json'),
         { updated: new Date().toISOString(), version: 1, visibility: 'public-display',
           count: threatRows.length, byPair: publicThreatByPair_(threatRows) },
         'chore: update card-threat-response-public-v1.json');
@@ -1598,7 +1796,7 @@ async function updateDecks() {
       };
     });
     var durationFields = ['duration', 'durationSeconds', 'gameDuration', 'matchDuration', 'endTime'].filter(function (f) { return !!schemaSample.present[f]; });
-    await ghWriteJson_(ghSiblingPath_(ghPath, 'pol-battle-intel-v1.json'),
+    await writePrivateJson_(ghSiblingPath_(ghPath, 'pol-battle-intel-v1.json'),
       { updated: new Date().toISOString(), windowDays: WINDOW_DAYS, source: 'pathOfLegend battlelog',
         schema: { hasTowerHp: !!(schemaSample.present.kingTowerHitPoints && schemaSample.present.princessTowersHitPoints), hasElixirLeaked: !!schemaSample.present.elixirLeaked, hasTrophyChange: !!schemaSample.present.trophyChange, hasSupportCards: !!schemaSample.present.supportCards, hasGlobalRank: !!schemaSample.present.globalRank, hasBattleTime: !!schemaSample.present.battleTime, hasDuration: durationFields.length > 0, durationFields: durationFields },
         presentCounts: schemaSample.present,
@@ -1630,7 +1828,7 @@ async function updateDecks() {
       bySelf[self].sort(function (a, b) { return a.dominanceAvg - b.dominanceAvg || b.games - a.games; });
       bySelf[self] = bySelf[self].slice(0, 80);
     });
-    await ghWriteJson_(ghSiblingPath_(ghPath, 'pol-matchup-intel-v1.json'),
+    await writePrivateJson_(ghSiblingPath_(ghPath, 'pol-matchup-intel-v1.json'),
       { updated: new Date().toISOString(), windowDays: WINDOW_DAYS, source: 'pathOfLegend battlelog',
         normalizers: POL_NORM, count: Object.keys(pairs).length, pairs: pairs, bySelf: bySelf },
       'chore: update pol-matchup-intel-v1.json');
@@ -1653,12 +1851,12 @@ async function updateDecks() {
       var s = polSummary_(cardAgg[name]); if (!s) return;
       byOpponentCard[name] = Object.assign({ name: name }, s);
     });
-    await ghWriteJson_(ghSiblingPath_(ghPath, 'pol-card-intel-v1.json'),
+    await writePrivateJson_(ghSiblingPath_(ghPath, 'pol-card-intel-v1.json'),
       { updated: new Date().toISOString(), windowDays: WINDOW_DAYS, source: 'pathOfLegend battlelog',
         perspective: 'tracked-player vs opponent card', normalizers: POL_NORM,
         count: Object.keys(byOpponentCard).length, byOpponentCard: byOpponentCard },
       'chore: update pol-card-intel-v1.json');
-    await ghWriteJson_(ghSiblingPath_(ghPath, 'pol-card-intel-public-v1.json'),
+    await writePublicJson_(ghSiblingPath_(ghPath, 'pol-card-intel-public-v1.json'),
       { updated: new Date().toISOString(), version: 1, visibility: 'public-display', windowDays: WINDOW_DAYS,
         count: Object.keys(byOpponentCard).length, byOpponentCard: publicPolMap_(byOpponentCard) },
       'chore: update pol-card-intel-public-v1.json');
@@ -1707,7 +1905,7 @@ async function updateDecks() {
         decks: decks
       }, polSummary_(a.all) || {});
     });
-    await ghWriteJson_(ghSiblingPath_(ghPath, 'pol-elo-intel-v1.json'),
+    await writePrivateJson_(ghSiblingPath_(ghPath, 'pol-elo-intel-v1.json'),
       { updated: new Date().toISOString(), windowDays: WINDOW_DAYS,
         source: 'global pathoflegend ranking battlelog', ratingField: 'eloRating',
         bandSize: parseInt(prop('ELO_BAND_SIZE', '200'), 10) || 200,
@@ -1719,7 +1917,7 @@ async function updateDecks() {
   // ★10000〜14000トロフィー戦イベントDB：試合時点startingTrophiesで抽出し、7日分の軽量eventを保持。
   try {
     var evPath = ghSiblingPath_(ghPath, 'trophy-battle-events-v1.json');
-    var oldEv = (await ghReadJson_(evPath)) || { events: [] };
+    var oldEv = (await readPrivateJson_(evPath)) || { events: [] };
     var seenEv = {}, events = [];
     (oldEv.events || []).concat(trophyEventsNow).forEach(function (e) {
       if (!e || !e.id || seenEv[e.id]) return;
@@ -1772,26 +1970,47 @@ async function updateDecks() {
     });
     var trophyUpdated = new Date().toISOString();
     try {
-      await ghWriteJson_(evPath,
+      await writePrivateJson_(evPath,
         { updated: trophyUpdated, windowDays: 7, trophyRange: { min: trophyEventMin, max: trophyEventMax },
           count: events.length, duration: triple, events: events },
         'chore: update trophy-battle-events-v1.json');
     } catch (eRaw) { console.log('trophy-events raw write error ' + ((eRaw && eRaw.message) || eRaw)); }
     try {
-      await ghWriteJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-v1.json'),
+      await writePrivateJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-v1.json'),
         { updated: trophyUpdated, windowDays: 7, trophyRange: { min: trophyEventMin, max: trophyEventMax },
           count: events.length, duration: triple, byCard: byCard, byBand: byBand },
         'chore: update trophy-band-card-intel-v1.json');
     } catch (eBand) { console.log('trophy-band-card-intel write error ' + ((eBand && eBand.message) || eBand)); }
     var publicBand = {};
     Object.keys(byBand).forEach(function (bk) { publicBand[bk] = { games: byBand[bk].games, cards: publicPolMap_(byBand[bk].cards) }; });
-    await ghWriteJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-public-v1.json'),
+    await writePublicJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-public-v1.json'),
       { updated: trophyUpdated, version: 1, visibility: 'public-display', windowDays: 7,
         trophyRange: { min: trophyEventMin, max: trophyEventMax }, count: events.length,
         byCard: publicPolMap_(byCard), byBand: publicBand },
       'chore: update trophy-band-card-intel-public-v1.json');
     console.log('trophy-events ' + events.length + ' events / cards ' + Object.keys(byCard).length);
   } catch (e) { console.log('trophy-events error ' + ((e && e.message) || e)); }
+
+  // ★生試合liteは集計JSONと分けてR2へラン単位で永久保存。R2未設定なら静かにスキップ（GitHubへは出さない）。
+  try {
+    function dedupeEvents_(rows) {
+      var seen = {}, out = [];
+      (rows || []).forEach(function (e) {
+        if (!e || !e.id || seen[e.id]) return;
+        seen[e.id] = 1; out.push(e);
+      });
+      return out;
+    }
+    var rawRanked = dedupeEvents_(rawBattleEventsNow);
+    if (rawRanked.length) await writePrivateRunArchive_('ranked-battle-events-v1', {
+      updated: new Date().toISOString(), source: rankingSource, window: 'latest-run', count: rawRanked.length, events: rawRanked
+    });
+    var rawTrophy = dedupeEvents_(trophyEventsNow);
+    if (rawTrophy.length) await writePrivateRunArchive_('trophy-battle-events-v1', {
+      updated: new Date().toISOString(), source: rankingSource, window: 'latest-run',
+      trophyRange: { min: trophyEventMin, max: trophyEventMax }, count: rawTrophy.length, events: rawTrophy
+    });
+  } catch (e) { console.log('R2 raw archive error ' + ((e && e.message) || e)); }
 
   // ★API棚卸し：観測した type/gameMode を bucket 分類して保存（混ぜず将来別集計の土台）
   try {
@@ -1800,14 +2019,14 @@ async function updateDecks() {
       var bucket = modeBucketOf(type, gm);
       return { type: type, gameMode: gm, count: typeSeen[k], bucket: bucket, useForMainMeta: bucket === 'ranked_pol' };
     }).sort(function (a, b) { return b.count - a.count; });
-    await ghWriteJson_(ghSiblingPath_(ghPath, 'api-tags-seen.json'),
+    await writePrivateJson_(ghSiblingPath_(ghPath, 'api-tags-seen.json'),
       { updated: new Date().toISOString(), window: 'latest-run', tags: tags }, 'chore: update api-tags-seen.json');
     console.log('api-tags-seen ' + tags.length + ' tags');
   } catch (e) { console.log('api-tags-seen error ' + ((e && e.message) || e)); }
 
   // ★battle-schema-sample：実フィールド構造（取れる値の確定）
   try {
-    await ghWriteJson_(ghSiblingPath_(ghPath, 'battle-schema-sample.json'),
+    await writePrivateJson_(ghSiblingPath_(ghPath, 'battle-schema-sample.json'),
       { updated: new Date().toISOString(), sampleSize: schemaSample.sampleSize,
         topLevelKeys: Object.keys(schemaSample.topLevelKeys), teamKeys: Object.keys(schemaSample.teamKeys),
         cardKeys: Object.keys(schemaSample.cardKeys), presentCounts: schemaSample.present },
@@ -1868,11 +2087,25 @@ async function updateDecks() {
     // ★窓別（1h / 1日 / 3日）＝フロントのセレクタで切替。既定は 3d。
     windows: windowsOut
   };
-  await ghWriteJson_(ghPath, decksPublicOut, 'chore: update decks.json');
-  await ghWriteJson_(ghSiblingPath_(ghPath, 'decks-public-v1.json'),
+  await writePrivateJson_(ghPath, decksPublicOut, 'chore: update decks.json');
+  await writePublicJson_(ghSiblingPath_(ghPath, 'decks-public-v1.json'),
     Object.assign({}, decksPublicOut, { version: 1, visibility: 'public-display' }),
     'chore: update decks-public-v1.json');
-  await ghWriteJson_(histPath, hist, 'chore: update cardhist.json'); // 履歴
+  await writePrivateJson_(histPath, hist, 'chore: update cardhist.json'); // 履歴
+
+  // ★dataブランチへ分析JSONを出さない運用でも、Actionsの鮮度判定だけはできるようにする軽量マーカー。
+  // 中身は時刻と件数だけで、デッキ/カード/分析結果は含めない。
+  try {
+    await ghWriteJson_(ghSiblingPath_(ghPath, 'collect-freshness.json'),
+      { updated: decksPublicOut.updated, visibility: 'freshness-marker', intervalHours: intervalHours,
+        source: rankingSource, topPlayers: players.length, windows: Object.keys(windowsOut) },
+      'chore: update collect freshness marker');
+  } catch (e) { console.log('collect freshness marker error ' + ((e && e.message) || e)); }
+
+  // ★collectが作らない表示用JSON（GAS/別ツール製）もR2へミラー＝分析に関わる表示JSONを全てR2にも揃える。
+  await mirrorExternalPublicToR2_();
+  // ★GAS/旧ツール製の元データ・旧分析JSONもR2へ退避。削除/非公開化前の保険。
+  await mirrorExternalPrivateToR2_();
 
   console.log('✅ done. players3d=' + players3d + ' decks=' + W3D.decks.length + ' winDecks=' + W3D.winDecks.length);
 }

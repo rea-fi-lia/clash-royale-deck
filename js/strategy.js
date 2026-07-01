@@ -14,14 +14,27 @@ const WINCONS = ['ラヴァハウンド', 'ゴーレム', 'エレクトロジャ
 
 const RAW = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/';
 function dataFreshUrl(path) {
-  const url = RAW + path;
+  const url = (/^(https?:)?\/\//.test(path) || String(path).charAt(0) === '/') ? path : RAW + path;
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + Date.now();
+}
+function allowPublicJsonFallback() {
+  try {
+    const h = location.hostname || '';
+    const local = location.protocol === 'file:' || h === 'localhost' || h === '127.0.0.1' || h.endsWith('.local');
+    if (local) return true;
+    const prod = h === 'crdeckbuilders.com' || h.endsWith('.crdeckbuilders.com');
+    return !prod && new URLSearchParams(location.search || '').get('publicJsonFallback') === '1';
+  } catch (e) { return false; }
+}
+function fetchPublicStrategyJson(name) {
+  if (!allowPublicJsonFallback()) return Promise.resolve(null);
+  return fetch(dataFreshUrl(name), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
 }
 const SPELL_ZONES = ['ログ圏内', 'ザップ圏内', '矢の雨圏内', 'ファイボ圏内', 'ポイズン圏内', 'ライトニング圏内', 'ロケット圏内'];
 function _t(k, v) { return window.CRI18N ? CRI18N.t(k, v) : k; }
 function _tr(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
 
-let STATS = null, TAGS = null, POT = null, VECTORS = null, DECK = null, WINCON = null;
+let STATS = null, TAGS = null, POT = null, VECTORS = null, DECK = null, WINCON = null, STRATEGY_INTEL = null;
 
 function parseDeck() {
   const q = new URLSearchParams(location.search);
@@ -291,7 +304,7 @@ function capAdvice(l) {
   return _tr(M[l] || '立ち回りでカバーしよう');
 }
 
-// ★相性表：核JSON直読みは止め、Worker API化後に復帰する。
+// ★相性表：核JSONは直接読まず、Worker APIでこのデッキに必要な範囲だけ受け取る。
 function selfArchs(deck) {
   // WINCONS順＝オーナー監修の優先度。デッキ内の勝ち筋を形態サフィックス付きで返す
   const out = [];
@@ -299,7 +312,21 @@ function selfArchs(deck) {
   return out;
 }
 function matchupHtml(deck) {
-  return '';
+  const rows = (STRATEGY_INTEL && STRATEGY_INTEL.matchups) || [];
+  if (!rows.length) return '';
+  const html = rows.slice(0, 6).map(function (r) {
+    const dom = typeof r.dominanceAvg === 'number' ? r.dominanceAvg : 0;
+    const cls = dom >= 0.08 ? 'mu-good' : dom <= -0.08 ? 'mu-bad' : 'mu-even';
+    const text = dom <= -0.12 ? _tr('押し込まれやすい') : dom < 0 ? _tr('やや苦しい') : _tr('互角に近い');
+    const notes = [];
+    if (typeof r.wr === 'number') notes.push(_tr('勝率') + ' ' + r.wr + '%');
+    if (typeof r.collapseLossRate === 'number') notes.push(_tr('崩れる負け') + ' ' + r.collapseLossRate + '%');
+    notes.push(_tr('実戦') + (r.games || 0) + _tr('戦'));
+    return '<div class="mu-row"><span class="mu-opp">' + _tr(r.opponent || '相手') + '<small>' + text + '</small></span>'
+      + '<span class="mu-wr ' + cls + '">' + signedNum(dom * 100, 1) + '</span></div>'
+      + '<div class="sr-note">' + notes.join(' / ') + '</div>';
+  }).join('');
+  return '<div class="dg-cap"><div class="cap-head">🛡️ ' + _tr('苦しい相手') + '</div>' + html + '</div>';
 }
 
 // ★Fugu実戦読み（第一歩）：構造上の第二軸候補＋Actionsで貯めたPoL支配度を診断に出す。
@@ -309,7 +336,7 @@ function deckSigForPol(deck) {
   return names.join('|') + '#' + special.join('|');
 }
 function polRecordForDeck(deck) {
-  return null;
+  return (STRATEGY_INTEL && STRATEGY_INTEL.pol) || null;
 }
 function signedNum(v, digits) {
   if (typeof v !== 'number' || !isFinite(v)) return '—';
@@ -340,7 +367,7 @@ function fuguIntelHtml(deck, ctx) {
   let html = '<div class="dg-cap"><div class="cap-head">🧠 ' + _tr('Fugu実戦読み') + '（β）</div>'
     + '<div class="dg-row dg-ok"><span class="dg-ico">🎯</span><div class="dg-body"><div class="dg-title">' + _tr('勝ち筋軸') + '</div>'
     + '<div class="dg-detail">' + _tr('主軸') + '：<b>' + axis.main + '</b>'
-    + (axis.second ? ' ／ ' + _tr('第二軸候補') + '：<b>' + axis.second + '</b>' + (axis.source ? ' <small>（' + axis.source + '）</small>' : '') : ' ／ ' + _tr('第二軸候補は実戦データを蓄積中'))
+    + (axis.second ? ' ／ ' + _tr('第二軸候補') + '：<b>' + axis.second + '</b>' + (axis.source ? ' <small>（' + axis.source + '）</small>' : '') : ' ／ ' + _tr('第二軸候補は実戦の記録が増えるほど見えやすくなります'))
     + '</div></div></div>';
   if (rec && rec.data && rec.data.games) {
     const d = rec.data, dom = typeof d.dominanceAvg === 'number' ? d.dominanceAvg : 0;
@@ -360,7 +387,7 @@ function fuguIntelHtml(deck, ctx) {
       + '<span class="mu-wr ' + cls + '">' + signedNum(dom * 100, 1) + '<small>' + d.games + _tr('戦') + '</small></span></div>'
       + '<div class="sr-note">' + notes.join(' / ') + (rec.exact ? '' : ' / ' + _tr('同じ8枚の形態違いを含む近似')) + '</div>';
   } else {
-    html += '<div class="sr-note">' + _tr('PoL支配度はActions集計後、この枠に自動表示されます。') + '</div>';
+    html += '<div class="sr-note">' + _tr('実戦の傾向は、近い構成が増えるほどここに出ます。') + '</div>';
   }
   return html + '</div>';
 }
@@ -522,7 +549,7 @@ const GICON = { good: '◎', ok: '○', warn: '⚠', bad: '❌', info: 'ℹ️' 
 //   ★ユーザー向け文言に内部用語（収集元・外部名など裏側がわかる語）は出さない。
 function winOf(c) { if (!WINCON) return null; return WINCON[c.name + mark(c)] || WINCON[c.name] || null; }
 function polOf(deck) {
-  return null;
+  return STRATEGY_INTEL && STRATEGY_INTEL.pol && STRATEGY_INTEL.pol.data ? STRATEGY_INTEL.pol.data : null;
 }
 function winClassGroup(sc, cls) {
   return sc.filter(function (x) { return x.w && x.w.class === cls; }).sort(function (a, b) {
@@ -606,7 +633,7 @@ function diagnoseHtml(deck) {
   // 3) 強み・弱み（カード評価ベース） 4) 苦手な相手（相性）＝既存のデータ表示を流用
   try { h += capabilityHtml(deck); } catch (e) {}
   try { h += matchupHtml(deck); } catch (e) {}
-  h += '<p class="note" style="margin-top:14px">' + _tr('※ 数値は参考値です。同じ構成の実戦データが貯まるほど精度が上がります。') + '</p>';
+  h += '<p class="note" style="margin-top:14px">' + _tr('※ 数値は参考値です。同じ構成の実戦記録が増えるほど精度が上がります。') + '</p>';
   return h;
 }
 
@@ -713,15 +740,30 @@ async function init() {
   if (empty) empty.style.display = 'none';
   wrap.innerHTML = '<div class="coming-soon"><div class="big">🔬</div>' + _tr('診断中…') + '</div>';
   try {
-    const [st, tg, pt, wp, vec, dk] = await Promise.all([
-      fetch(dataFreshUrl('card-stats.json'), { cache: 'no-store' }).then(r => r.json()),
-      fetch(dataFreshUrl('card-tags.json'), { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(dataFreshUrl('card-potential.json'), { cache: 'no-store' }).then(r => r.json()).catch(() => null),
-      fetch(dataFreshUrl('wincon-policy-public-v1.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(dataFreshUrl('card-elixir-vectors-public-v1.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null),
-      fetch(dataFreshUrl('decks-public-v1.json'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null)
-    ]);
-    STATS = {}; (st.cards || []).forEach(c => STATS[c.jp] = c);
+    const apiUrl = '/api/strategy?deck=' + encodeURIComponent(DECK.map(c => c.name).join(',')) + '&f=' + DECK.map(c => c.f).join('');
+    const api = await fetch(dataFreshUrl(apiUrl), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+    let st, tg, pt, wp, vec, dk;
+    if (api && api.cards) {
+      STRATEGY_INTEL = api;
+      st = api.cards.stats;
+      tg = api.cards.tags ? { cards: api.cards.tags } : null;
+      pt = api.cards.potential ? { cards: api.cards.potential } : null;
+      wp = api.cards.wincon ? { cards: api.cards.wincon } : null;
+      vec = api.cards.vectors ? { cards: api.cards.vectors } : null;
+      dk = api.cards.publicDecks;
+    } else {
+      if (!allowPublicJsonFallback()) throw new Error('strategy api unavailable');
+      STRATEGY_INTEL = null;
+      [st, tg, pt, wp, vec, dk] = await Promise.all([
+        fetchPublicStrategyJson('card-stats.json'),
+        fetchPublicStrategyJson('card-tags.json'),
+        fetchPublicStrategyJson('card-potential.json'),
+        fetchPublicStrategyJson('wincon-policy-public-v1.json'),
+        fetchPublicStrategyJson('card-elixir-vectors-public-v1.json'),
+        fetchPublicStrategyJson('decks-public-v1.json')
+      ]);
+    }
+    STATS = {}; ((st && st.cards) || []).forEach(c => STATS[c.jp] = c);
     TAGS = (tg && tg.cards) || {};
     POT = (pt && pt.cards) || null;
     VECTORS = (vec && vec.cards) || null;
