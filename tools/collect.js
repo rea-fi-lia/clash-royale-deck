@@ -1291,6 +1291,8 @@ async function updateDecks() {
     var sh = (await readPrivateJson_(shPath)) || { cards: [], sigs: {} };
     if (!sh.cards) sh.cards = [];
     if (!sh.sigs) sh.sigs = {};
+    sh.version = Math.max(parseInt(sh.version || '1', 10) || 1, 2);
+    sh.sigMetrics = ['use', 'games', 'wins', 'dominanceSum', 'dominanceGames', 'cleanWin', 'stableWin', 'fragileWin', 'pressureLoss', 'closeLoss', 'collapseLoss'];
     var cidx = {};
     sh.cards.forEach(function (n, i) { cidx[n] = i; });
     Object.keys(dkNow).forEach(function (sig) {
@@ -1301,9 +1303,19 @@ async function updateDecks() {
       });
       pairs.sort(function (a, b) { return a.x - b.x; });
       var key = pairs.map(function (q) { return q.x; }).join('.') + '|' + pairs.map(function (q) { return q.f; }).join('');
-      var v = dkNow[sig];
+      var v = dkNow[sig], p = polNow[sig] || [];
       var t = sh.sigs[key] || (sh.sigs[key] = [0, 0, 0]);
       t[0] += v[0] || 0; t[1] += v[1] || 0; t[2] += v[2] || 0;
+      if (p[0]) {
+        t[3] = (t[3] || 0) + (p[1] || 0);
+        t[4] = (t[4] || 0) + (p[0] || 0);
+        t[5] = (t[5] || 0) + (p[9] || 0);
+        t[6] = (t[6] || 0) + (p[10] || 0);
+        t[7] = (t[7] || 0) + (p[11] || 0);
+        t[8] = (t[8] || 0) + (p[12] || 0);
+        t[9] = (t[9] || 0) + (p[13] || 0);
+        t[10] = (t[10] || 0) + (p[14] || 0);
+      }
     });
     sh.updated = new Date().toISOString();
     await writePrivateJson_(shPath, sh, 'chore: update sighist');
