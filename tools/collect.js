@@ -747,6 +747,7 @@ async function updateDecks() {
   var muNow = {};       // ' 自分arch|相手arch' → [試合数, 勝ち数]（今回ぶん）
   // ★苦しい相手×対策札（今回ぶん）：pair全体 / pair×相手型 / pair+C×相手型 を貯め、UI用JSONへ落とす。
   var pairAllNow = {}, pairThreatNow = {}, tripleThreatNow = {};
+  var pairAllSeedNow = {}, pairThreatSeedNow = {}, tripleThreatSeedNow = {};
   // ★PoL試合内容（今回ぶん）：sig → [g, domSum, crownSum, hpSum, hpN, leakSum, leakN, troSum, troN, cleanWin, stableWin, fragileWin, pressureLoss, closeLoss, collapseLoss]
   var polNow = {};
   // ★PoL対面別試合内容（今回ぶん）：'自分arch|相手arch' → pol配列。勝率だけでなく支配度/崩壊負け率まで貯める。
@@ -939,11 +940,18 @@ async function updateDecks() {
       if (!seedMode && ranked && !gotPop) { if (tally(pop, d, null)) { gotPop = true; if (tag) runPlayerSig[tag] = sigKey(d); } }
       var bt = b.battleTime || '';
       if (bt && bt > maxT) maxT = bt;
-      if (seenT && bt && bt <= seenT) continue;    // ★前回処理済み＝二重カウントしない
       var tc = b.team[0].crowns, oc = b.opponent[0].crowns;
       if (typeof tc !== 'number' || typeof oc !== 'number' || tc === oc) continue;
       var oppCards = b.opponent[0].cards || [];
       var od = (oppCards.length === 8) ? classifyDeck(oppCards) : null;
+      if (!seedMode && ranked && od && !sameSig_(d.jp, od.jp)) {
+        var seedDom = battleDominanceFromSides_(b.team[0], b.opponent[0], tc, oc);
+        var seedTempo = (typeof b.team[0].elixirLeaked === 'number' && typeof b.opponent[0].elixirLeaked === 'number')
+          ? (b.opponent[0].elixirLeaked - b.team[0].elixirLeaked) : null;
+        addPairBattleStats_(d.jp, tc > oc, pairAllSeedNow, seedDom, seedTempo);
+        addThreatBattleStats_(d.jp, threatBucketsOfCards_(od.jp), tc > oc, pairThreatSeedNow, tripleThreatSeedNow, seedDom, seedTempo);
+      }
+      if (seenT && bt && bt <= seenT) continue;    // ★前回処理済み＝二重カウントしない
       if (od) {
         var tev = trophyBattleEvent_(b, d, od, tc, oc);
         if (tev) trophyEventsNow.push(tev);
@@ -1353,9 +1361,17 @@ async function updateDecks() {
         for (var i = 0; i < 6; i++) d[i] = (d[i] || 0) + (s[i] || 0);
       });
     }
-    addGwHist_(th.pairAll, pairAllNow);
-    addGwHist_(th.pair, pairThreatNow);
-    addGwHist_(th.triple, tripleThreatNow);
+    if (!th.seeded) {
+      addGwHist_(th.pairAll, pairAllSeedNow);
+      addGwHist_(th.pair, pairThreatSeedNow);
+      addGwHist_(th.triple, tripleThreatSeedNow);
+      th.seeded = true;
+      th.seededAt = new Date().toISOString();
+    } else {
+      addGwHist_(th.pairAll, pairAllNow);
+      addGwHist_(th.pair, pairThreatNow);
+      addGwHist_(th.triple, tripleThreatNow);
+    }
     th.updated = new Date().toISOString();
     await writePrivateJson_(thPath, th, 'chore: update threathist');
     console.log('threathist ' + Object.keys(th.pairAll).length + ' pairs / ' + Object.keys(th.pair).length + ' pairThreats / ' + Object.keys(th.triple).length + ' tripleThreats');
