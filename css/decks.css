@@ -114,7 +114,7 @@
   .crank-tab.active { background:rgba(232,160,32,0.14); border-color:var(--accent); color:var(--accent); }
   .crank-search { position:relative; margin:-4px 0 12px; }
   .crank-search input { width:100%; background:var(--surface); border:1px solid var(--border-hi); border-radius:999px;
-    padding:10px 42px 10px 14px; color:var(--text); font-size:13px; outline:none; font-family:inherit; }
+    padding:10px 42px 10px 14px; color:var(--text); font-size:16px; outline:none; font-family:inherit; }
   .crank-search input:focus { border-color:var(--accent); }
   .crank-clear { position:absolute; right:5px; top:50%; transform:translateY(-50%); width:32px; height:32px;
     border-radius:50%; border:none; background:transparent; color:var(--text-muted); cursor:pointer;

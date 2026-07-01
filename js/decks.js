@@ -77,6 +77,7 @@ function passFilters(d) {
 function applyDecks() {
   const note = document.getElementById('ownedNote');
   const list = currentList();
+  list.forEach((d, i) => { d._rank = i + 1; });
   const shown = list.filter(passFilters);
   renderDecks(shown);
   // 急上昇がまだ空（前回スナップショット未蓄積）のときは集計中を表示
@@ -223,6 +224,7 @@ function renderDecks(decks) {
   const wrap = document.getElementById('deckList');
   wrap.innerHTML = '';
   decks.forEach((d, idx) => {
+    const rank = (d._rank != null) ? d._rank : (idx + 1);
     const avg = (d.slots.reduce((s,n)=> s + (CARD_INFO[n]?CARD_INFO[n].c:0), 0) / d.slots.length).toFixed(1);
     let headHtml;
     const avgLbl = _tr('平均コスト');
@@ -277,7 +279,7 @@ function renderDecks(decks) {
     const el = document.createElement('div');
     el.className = 'deck-card';
     el.innerHTML =
-      '<div class="deck-card-head"><span class="deck-rank">#'+(idx+1)+'</span>'+
+      '<div class="deck-card-head"><span class="deck-rank">#'+rank+'</span>'+
       '<div class="deck-stat-line">'+headHtml+'</div></div>'+
       '<div class="deck-cards-grid">'+mini+'</div>'+
       '<a class="load-btn" href="'+url+'">' + _tr('▶ このデッキを作成ツールで開く') + '</a>';
@@ -430,6 +432,7 @@ function renderCrank() {
       ? _t('crank.hintUseMe')
       : _t('crank.hintUse', { win: win });
   }
+  list.forEach((c, i) => { c._rank = i + 1; });
   if (_crankQuery) list = list.filter(c => cardMatches(c.name, _crankQuery));
   if (note) note.textContent = me
     ? _t('crank.noteMe', { n: ME_COUNT || 0 })
@@ -449,6 +452,7 @@ function renderCrank() {
   const maxRise = Math.max(0.1, ...CARDS_DATA.map(c => c.rise || 0));
   wrap.innerHTML = list.map((c, i) => {
     const sel = _mmSel.has(_ckey(c));
+    const rank = (c._rank != null) ? c._rank : (i + 1);
     const winTxt = (c.win != null ? c.win + '%' : '—');
     const useTxt = (c.use != null ? c.use + '%' : '—');
     let big, sub, barPct, barCol, statCls;
@@ -463,7 +467,7 @@ function renderCrank() {
       barPct = Math.round((c.use || 0) / maxUse * 100); barCol = '#3a8ef0'; statCls = 'use';
     }
     return '<div class="crank-row' + (sel ? ' sel' : '') + '" data-n="' + String(_ckey(c)).replace(/"/g, '&quot;') + '">'
-      + '<span class="crank-rank">' + (i + 1) + '</span>'
+      + '<span class="crank-rank">' + rank + '</span>'
       + '<span class="crank-ico"><span class="pip">' + _cardCost(c.name) + '</span>'
         + (_cardImgF(c) ? '<img src="' + _cardImgF(c) + '" alt="' + c.name + '" loading="lazy">' : '')
         + (_fmark(c) ? '<span class="fbadge">' + _fmark(c) + '</span>' : '') + '</span>'
@@ -1052,16 +1056,21 @@ function applyWindow(key) {
   try { renderMetaMap(); } catch (e) {}
 }
 // 窓セレクタ（1時間/1日/3日）を集計タブの上に設置。windowsが無いデータ（旧JSON）では出さない。
-function buildWindowSelector() {
-  if (!DECKS_JSON || !DECKS_JSON.windows) return;
-  if (document.querySelector('.win-seg')) return;
-  const tabs = document.getElementById('deckTabs');
+function _buildOneWindowSelector(anchorId, keys) {
+  const tabs = document.getElementById(anchorId);
   if (!tabs || !tabs.parentNode) return;
+  if (tabs.previousElementSibling && tabs.previousElementSibling.classList.contains('win-seg')) return;
   const seg = document.createElement('div');
   seg.className = 'win-seg';
-  const keys = WIN_KEYS.filter(k => DECKS_JSON.windows && DECKS_JSON.windows[k]);
   seg.innerHTML = '<span class="win-seg-lbl">' + _tr('集計期間') + '</span>'
     + keys.map(k => '<button type="button" data-win="' + k + '"' + (k === CUR_WINDOW ? ' class="active"' : '') + '>' + winLabel(k) + '</button>').join('');
   tabs.parentNode.insertBefore(seg, tabs);
   seg.querySelectorAll('[data-win]').forEach(b => b.addEventListener('click', () => applyWindow(b.dataset.win)));
+}
+function buildWindowSelector() {
+  if (!DECKS_JSON || !DECKS_JSON.windows) return;
+  const keys = WIN_KEYS.filter(k => DECKS_JSON.windows && DECKS_JSON.windows[k]);
+  if (!keys.length) return;
+  _buildOneWindowSelector('deckTabs', keys);
+  _buildOneWindowSelector('crankTabs', keys);
 }

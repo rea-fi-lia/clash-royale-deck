@@ -15,11 +15,15 @@ on:
         description: '集計するトップランカー数'
         required: false
         default: '1000'
+      dispatch_source:
+        description: '内部起動元（worker-cron等）'
+        required: false
+        default: ''
   schedule:
-    # GitHub Actions のscheduleは遅延/欠落があり得るため、1時間に3回「起動チェック」を置く。
-    # 下の freshness gate が decks.json の鮮度を見て、古い時だけcollectorを実行する。
-    # これにより通常は毎時1回更新、17分が欠落した時だけ37/57分がバックアップになる。
-    - cron: '17 * * * *'
+    # 本命の毎時 :15 起動は Cloudflare Worker Cron から workflow_dispatch する。
+    # GitHub Actions のscheduleは遅延/欠落があり得るため、ここでは保険の「起動チェック」だけを置く。
+    # 下の freshness gate が collect-freshness.json の鮮度を見て、古い時だけcollectorを実行する。
+    # Worker Cron や15分台が欠落した時だけ37/57分がバックアップになる。
     - cron: '37 * * * *'
     - cron: '57 * * * *'
 
@@ -49,16 +53,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
           EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_SOURCE: ${{ github.event.inputs.dispatch_source || '' }}
         run: |
           node <<'NODE'
           const fs = require('fs');
           const out = process.env.GITHUB_OUTPUT;
           const eventName = process.env.EVENT_NAME || '';
+          const dispatchSource = process.env.DISPATCH_SOURCE || '';
           function setOutput(key, value) {
             fs.appendFileSync(out, `${key}=${value}\n`);
           }
-          if (eventName !== 'schedule') {
-            console.log(`manual/event=${eventName}; run collector`);
+          if (eventName !== 'schedule' && dispatchSource !== 'worker-cron') {
+            console.log(`manual/event=${eventName}; source=${dispatchSource || 'manual'}; run collector`);
             setOutput('run_collect', 'true');
             process.exit(0);
           }

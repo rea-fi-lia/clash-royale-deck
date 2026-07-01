@@ -34,6 +34,6 @@ BUMP_V=1 ./deploy.sh "..."     # *.html の ?v= を当日へ一括更新して�
 - `/api/health`, `/api/assist/bootstrap`, `/api/assist/context?deck=...`, `/api/strategy?deck=...`, `/api/meta`, `/top3img` を本番確認する。切り戻しが必要な時だけGitHub Repository Variablesで `PRIVATE_GH_MIRROR=1` / `PUBLIC_GH_MIRROR=1` を設定する。
 
 ## 関連（git 管理外）
-- **Cloudflare Worker**: `cd ../cr-deck-ogp-worker && npx wrangler deploy`
+- **Cloudflare Worker**: `cd ../cr-deck-ogp-worker && npx wrangler deploy`。毎時`:15`の収集起動保険もこのWorkerのCron Triggerが担当するため、初回だけ `npx wrangler secret put GH_WORKFLOW_DISPATCH_TOKEN`（対象repo限定・Actions: write）を登録する。
 - **Firestore ルール**: `npx firebase-tools deploy --only firestore:rules --project crdeckbuilders`
 - **GAS（控え）**: script.google.com「ビルダー」へ手で差し替え（`gas/Code.gs` はR2設定時にR2主保存。通常の重い収集はActions側）
