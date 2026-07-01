@@ -239,10 +239,11 @@ var THREAT_BUCKET_CARDS = {
   buildingWall: { '大砲':1, '墓石':1, 'ゴブリンの檻':1, 'ゴブリンの小屋':1, 'ボムタワー':1, 'テスラ':1, '迫撃砲':1, 'オーブン':1, 'インフェルノタワー':1, 'バーバリアンの小屋':1, '巨大クロスボウ':1 }
 };
 function pairKey_(a, b) { return a < b ? a + '|' + b : b + '|' + a; }
-function addGw_(map, key, won, dom) {
+function addGw_(map, key, won, dom, tempo) {
   var a = map[key] || (map[key] = [0, 0]);
   a[0]++; if (won) a[1]++;
   if (typeof dom === 'number' && isFinite(dom)) { a[2] = (a[2] || 0) + dom; a[3] = (a[3] || 0) + 1; }
+  if (typeof tempo === 'number' && isFinite(tempo)) { a[4] = (a[4] || 0) + tempo; a[5] = (a[5] || 0) + 1; }
 }
 function threatBucketsOfCards_(jpArr) {
   var out = [], seen = {};
@@ -253,20 +254,20 @@ function threatBucketsOfCards_(jpArr) {
   Object.keys(THREAT_TITLES).forEach(function (id) { if (seen[id]) out.push(id); });
   return out;
 }
-function addPairBattleStats_(cards, won, pairAll, dom) {
+function addPairBattleStats_(cards, won, pairAll, dom, tempo) {
   var arr = cards.slice().sort();
-  for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < arr.length; j++) addGw_(pairAll, arr[i] + '|' + arr[j], won, dom);
+  for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < arr.length; j++) addGw_(pairAll, arr[i] + '|' + arr[j], won, dom, tempo);
 }
-function addThreatBattleStats_(cards, threatIds, won, pairThreat, tripleThreat, dom) {
+function addThreatBattleStats_(cards, threatIds, won, pairThreat, tripleThreat, dom, tempo) {
   if (!threatIds || !threatIds.length) return;
   var arr = cards.slice().sort();
   for (var i = 0; i < arr.length; i++) for (var j = i + 1; j < arr.length; j++) {
     var pk = arr[i] + '|' + arr[j];
-    threatIds.forEach(function (tid) { addGw_(pairThreat, pk + '|' + tid, won, dom); });
+    threatIds.forEach(function (tid) { addGw_(pairThreat, pk + '|' + tid, won, dom, tempo); });
     for (var k = 0; k < arr.length; k++) {
       if (k === i || k === j) continue;
       var base = pk + '|' + arr[k] + '|';
-      threatIds.forEach(function (tid) { addGw_(tripleThreat, base + tid, won, dom); });
+      threatIds.forEach(function (tid) { addGw_(tripleThreat, base + tid, won, dom, tempo); });
     }
   }
 }
@@ -956,9 +957,11 @@ async function updateDecks() {
       if (od) rawBattleEventsNow.push(rawBattleEvent_(b, d, od, tc, oc, tag, ranked));
       if (od && sameSig_(d.jp, od.jp)) continue;   // ★完全ミラー除外
       var battleDom = battleDominanceFromSides_(b.team[0], b.opponent[0], tc, oc);
+      var battleTempo = (typeof b.team[0].elixirLeaked === 'number' && typeof b.opponent[0].elixirLeaked === 'number')
+        ? (b.opponent[0].elixirLeaked - b.team[0].elixirLeaked) : null;
       if (od) {
-        addPairBattleStats_(d.jp, tc > oc, pairAllNow, battleDom);
-        addThreatBattleStats_(d.jp, threatBucketsOfCards_(od.jp), tc > oc, pairThreatNow, tripleThreatNow, battleDom);
+        addPairBattleStats_(d.jp, tc > oc, pairAllNow, battleDom, battleTempo);
+        addThreatBattleStats_(d.jp, threatBucketsOfCards_(od.jp), tc > oc, pairThreatNow, tripleThreatNow, battleDom, battleTempo);
       }
       tally(win, d, tc > oc, tc, oc);
       accPol_(sigKey(d), b, tc, oc);               // ★PoL試合内容（支配度/エリ漏れ/勝ち方）を貯める
@@ -1652,6 +1655,33 @@ async function updateDecks() {
         'chore: update card-pair-synergy-public-v1.json');
       console.log('card-pair-synergy ' + pairsOut.length + ' pairs');
 
+      var MIN_THREAT_PAIR_GAMES = parseInt(prop('THREAT_PAIR_MIN_GAMES', '8'), 10);
+      var MIN_THREAT_RESPONSE_GAMES = parseInt(prop('THREAT_RESPONSE_MIN_GAMES', '4'), 10);
+      function gwWr_(gw) { return gw && gw[0] ? gw[1] / gw[0] : null; }
+      function gwDom_(gw) { return gw && gw[3] ? gw[2] / gw[3] : null; }
+      function gwTempo_(gw) { return gw && gw[5] ? gw[4] / gw[5] : null; }
+      function bestThreatRelief_(pk, tk) {
+        var best = null;
+        Object.keys(THREAT_TITLES).forEach(function (tid) {
+          var pairGw = pairThreatNow[pk + '|' + tid], tripleGw = tripleThreatNow[tk + '|' + tid];
+          if (!pairGw || !tripleGw || pairGw[0] < MIN_THREAT_PAIR_GAMES || tripleGw[0] < MIN_THREAT_RESPONSE_GAMES) return;
+          var pairWrT = gwWr_(pairGw), tripleWrT = gwWr_(tripleGw);
+          if (pairWrT == null || tripleWrT == null) return;
+          var relief = tripleWrT - pairWrT;
+          var pairDomT = gwDom_(pairGw), tripleDomT = gwDom_(tripleGw);
+          var domRelief = (pairDomT != null && tripleDomT != null) ? tripleDomT - pairDomT : 0;
+          var pairTempoT = gwTempo_(pairGw), tripleTempoT = gwTempo_(tripleGw);
+          var tempoRelief = (pairTempoT != null && tripleTempoT != null) ? (tripleTempoT - pairTempoT) / POL_NORM.leak : 0;
+          if (relief < -0.025 && domRelief < 0.035 && tempoRelief < 0.025) return;
+          var conf = Math.sqrt(tripleGw[0] / (tripleGw[0] + 18)) * Math.sqrt(pairGw[0] / (pairGw[0] + 28));
+          var score = clampRange_((Math.max(0, relief) * 155 + Math.max(0, domRelief) * 92 + Math.max(0, tempoRelief) * 58) * conf, 0, 11);
+          if (!best || score > best.score) best = {
+            threatId: tid, score: score, games: tripleGw[0], relief: relief, domRelief: domRelief, tempoRelief: tempoRelief
+          };
+        });
+        return best;
+      }
+
       var MIN_EXT_USE = parseInt(prop('PAIR_EXT_MIN_USE', '8'), 10);
       var extOut = [];
       Object.keys(tripleUse).forEach(function (tk) {
@@ -1702,6 +1732,8 @@ async function updateDecks() {
         var extTrend = priorExtLift ? (currentExtLift - priorExtLift) / priorExtLift : 0;
         var sampleConfidence3 = clamp01_(Math.sqrt(use3 / (use3 + 22)) * (games3 ? Math.sqrt(games3 / (games3 + 55)) : 0.70));
         var roleExt = pairRoleExtension_(a3, b3, c3);
+        var threatRelief = bestThreatRelief_(pk3, tk);
+        var threatReliefScore = threatRelief ? threatRelief.score : 0;
         var basePair = pairScoreByKey[pk3] || null;
         var pairQualityScore = Math.min(16, Math.max(0, basePair ? (basePair.score || 0) : 0) * 0.20);
         var candUseRate = candUse / totalUse;
@@ -1720,12 +1752,13 @@ async function updateDecks() {
         var roleExtScore = roleExt * 20;
         var stabilityScore3 = extStability * 10;
         var trendScore3 = Math.max(-7, Math.min(7, extTrend * 9));
-        var extScore = round2_(conditionalScore + winExtScore + dominanceExtScore + extDecisivenessScore + extTempoScore + diversityScore + confidenceScore3 + roleExtScore + stabilityScore3 + trendScore3 + pairQualityScore - commonPenalty - templatePenalty3 - extFragilityPenalty);
+        var extScore = round2_(conditionalScore + winExtScore + dominanceExtScore + extDecisivenessScore + extTempoScore + threatReliefScore + diversityScore + confidenceScore3 + roleExtScore + stabilityScore3 + trendScore3 + pairQualityScore - commonPenalty - templatePenalty3 - extFragilityPenalty);
         if (extScore < 10) return;
         var winQuality3 = Math.max(dominanceEvidence3, extDecisEvidence, extTempoEvidence * 0.6);
         var extKind = sampleConfidence3 < 0.34 || use3 < MIN_EXT_USE * 2 ? 'provisional'
           : conditionalLift >= 1.35 && (pairExtWinLift == null || pairExtWinLift >= -0.006 || winQuality3 >= 0.030) && extCollapseExcess <= 0.06 && concentration3 <= 0.66 && roleExt >= 0.16 ? 'pairEnabler'
           : ((pairExtWinLift != null && pairExtWinLift >= 0.015) || winQuality3 >= 0.040) && conditionalLift >= 1.08 ? 'resultLift'
+          : threatReliefScore >= 5.5 && conditionalLift >= 1.02 ? 'coveragePatch'
           : roleExt >= 0.24 && conditionalLift >= 1.05 ? 'coveragePatch'
           : conditionalLift >= 1.35 && concentration3 > 0.72 ? 'templateExtension'
           : 'softExtension';
@@ -1741,10 +1774,11 @@ async function updateDecks() {
           deckVariants: tripleDecks[tk] || 0, concentration: round3_(concentration3), diversity: round3_(diversity3),
           sampleConfidence: round3_(sampleConfidence3), activeMonths: activeExtMonths, liftStability: round3_(extStability),
           currentLift: round2_(currentExtLift), trend: round3_(extTrend), roleExtension: round3_(roleExt),
+          threatRelief: threatRelief ? { threatId: threatRelief.threatId, fit: round2_(threatReliefScore), games: threatRelief.games, relief: round3_(threatRelief.relief), domRelief: round3_(threatRelief.domRelief), tempoRelief: round3_(threatRelief.tempoRelief) } : null,
           basePairKind: basePair ? basePair.kind : '', basePairScore: basePair ? basePair.score : null,
           kind: extKind, score: extScore,
           components: {
-            conditionalLift: round2_(conditionalScore), winLift: round2_(winExtScore), dominanceLift: round2_(dominanceExtScore), decisivenessLift: round2_(extDecisivenessScore), tempoLift: round2_(extTempoScore), diversity: round2_(diversityScore),
+            conditionalLift: round2_(conditionalScore), winLift: round2_(winExtScore), dominanceLift: round2_(dominanceExtScore), decisivenessLift: round2_(extDecisivenessScore), tempoLift: round2_(extTempoScore), threatRelief: round2_(threatReliefScore), diversity: round2_(diversityScore),
             confidence: round2_(confidenceScore3), roleExtension: round2_(roleExtScore), stability: round2_(stabilityScore3),
             trend: round2_(trendScore3), pairQuality: round2_(pairQualityScore), commonPenalty: round2_(commonPenalty), templatePenalty: round2_(templatePenalty3), fragilityPenalty: round2_(extFragilityPenalty)
           }
@@ -1769,6 +1803,7 @@ async function updateDecks() {
           pairExtDominanceLift: e3.pairExtDominanceLift, dominanceGames: e3.dominanceGames,
           extDecisivenessLift: e3.extDecisivenessLift, tempoLift: e3.tempoLift, tempoGames: e3.tempoGames, collapseExcess: e3.collapseExcess,
           deckVariants: e3.deckVariants, concentration: e3.concentration, roleExtension: e3.roleExtension,
+          threatRelief: e3.threatRelief,
           basePairKind: e3.basePairKind, basePairScore: e3.basePairScore
         };
       }
@@ -1776,11 +1811,12 @@ async function updateDecks() {
         { updated: new Date().toISOString(), source: 'sighist monthly digest', months: pairMonths.filter(function (m) { return !!shByMonth[m]; }),
           minUse: MIN_EXT_USE, totalDeckUse: Math.round(totalUse * 10) / 10,
           scoring: {
-            score: 'conditionalLift + pairExtWinLift + pairExtDominanceLift + extDecisivenessLift + tempoLift + diversity + sampleConfidence + roleExtension + liftStability + trend + basePairQuality - commonPenalty - templatePenalty - fragilityPenalty',
+            score: 'conditionalLift + pairExtWinLift + pairExtDominanceLift + extDecisivenessLift + tempoLift + threatRelief + diversity + sampleConfidence + roleExtension + liftStability + trend + basePairQuality - commonPenalty - templatePenalty - fragilityPenalty',
             conditionalLift: 'P(C|A+B)/P(C)。2枚組A+Bに対してCがどれだけ足されやすいかを見る',
             pairExtWinLift: 'A+B+C勝率 - A+B勝率。3枚全体ではなく、2枚に足した時の上乗せを見る',
             pairExtDominanceLift: 'A+B+C平均支配度 - A+B平均支配度。2枚に足した時の勝ち方の上乗せを見る',
             tempoLift: 'A+B+C漏れ差 - A+B漏れ差(正規化)。足したCで手札を回し直しやすくなるかを補助的に見る',
+            threatRelief: 'A+Bが苦しくなりやすい相手に対して、Cを足した時の勝ちやすさ/支配/漏れ差の改善を見る',
             extDecisivenessLift: 'A+B+Cの勝ち方の質 - A+Bの質。3枚目Cが勝ち方まで底上げするかを勝敗より濃く見る',
             diversity: '最大1テンプレ集中を避ける補正。高いほどいろいろな形に足されている',
             roleExtension: 'A+Bの勝ち方・受け方をCがどれだけ通しやすく/埋めやすくするか',
@@ -1833,8 +1869,6 @@ async function updateDecks() {
           : role >= 0.50 ? 'structurePatch'
           : 'softCover';
       }
-      var MIN_THREAT_PAIR_GAMES = parseInt(prop('THREAT_PAIR_MIN_GAMES', '8'), 10);
-      var MIN_THREAT_RESPONSE_GAMES = parseInt(prop('THREAT_RESPONSE_MIN_GAMES', '4'), 10);
       var tripleByPairThreat = {};
       Object.keys(tripleThreatNow).forEach(function (tk4) {
         var sp4 = tk4.split('|');
