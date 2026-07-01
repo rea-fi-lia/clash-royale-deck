@@ -1368,6 +1368,23 @@ async function updateDecks() {
         sumMap[key] = (sumMap[key] || 0) + (sum || 0);
         gamesMap[key] = (gamesMap[key] || 0) + games;
       }
+      // ★勝ち方の質（決定力）: sighist v2の勝ち方分布[cleanWin..collapseLoss]をペア単位で貯める。
+      //   追加取得ゼロ＝同じ試合から「圧勝で勝ったか/辛勝か/崩壊負けか」を絞り出し、
+      //   勝敗0/1より濃い信号で「本物のシナジー」と「薄い勝ち・脆い形」を見分ける。
+      function addQualAgg_(map, key, wq) {
+        if (!wq || !wq.g) return;
+        var a = map[key] || (map[key] = { g: 0, clean: 0, stable: 0, fragile: 0, pressure: 0, close: 0, collapse: 0 });
+        a.g += wq.g; a.clean += wq.clean; a.stable += wq.stable; a.fragile += wq.fragile;
+        a.pressure += wq.pressure; a.close += wq.close; a.collapse += wq.collapse;
+      }
+      // 決定力指数: 圧勝(+1)〜崩壊負け(-1)の連続量。勝率が同じでも「勝ち方/負け方の質」を数値化する。
+      function decisiveness_(a) {
+        if (!a || !a.g) return null;
+        return (a.clean * 1 + a.stable * 0.45 + a.fragile * 0.08
+          - a.pressure * 0.15 - a.close * 0.45 - a.collapse * 1) / a.g;
+      }
+      // 崩壊負け率（この形が「一方的に溶ける」リスク）。高いほど脆い＝候補から静かに減点する。
+      function collapseRate_(a) { return (a && a.g) ? a.collapse / a.g : null; }
       function tagsFor_(name) { var r = tagCards[name] || {}; return r.tags || []; }
       function hasTag_(name, tag) { return tagsFor_(name).indexOf(tag) >= 0; }
       function winClass_(name) { var r = winCards[name] || {}; return r.class || ''; }
@@ -1437,7 +1454,7 @@ async function updateDecks() {
       }
       function mean_(arr) { return arr.length ? arr.reduce(function (s, v) { return s + v; }, 0) / arr.length : 0; }
       function std_(arr) { if (arr.length < 2) return 0; var m = mean_(arr); return Math.sqrt(mean_(arr.map(function (v) { return Math.pow(v - m, 2); }))); }
-      var totalUse = 0, cardUse = {}, cardGames = {}, cardWins = {}, cardDomSum = {}, cardDomGames = {}, pairUse = {}, pairGames = {}, pairWins = {}, pairDomSum = {}, pairDomGames = {}, pairDecks = {}, pairTop = {}, tripleUse = {}, tripleGames = {}, tripleWins = {}, tripleDomSum = {}, tripleDomGames = {}, tripleDecks = {}, tripleTop = {}, monthAgg = {};
+      var totalUse = 0, cardUse = {}, cardGames = {}, cardWins = {}, cardDomSum = {}, cardDomGames = {}, pairUse = {}, pairGames = {}, pairWins = {}, pairDomSum = {}, pairDomGames = {}, pairDecks = {}, pairTop = {}, tripleUse = {}, tripleGames = {}, tripleWins = {}, tripleDomSum = {}, tripleDomGames = {}, tripleDecks = {}, tripleTop = {}, monthAgg = {}, cardQual = {}, pairQual = {}, tripleQual = {};
       Object.keys(shByMonth).forEach(function (mk2) {
         var ss = shByMonth[mk2], cardsL = ss.cards || [], sigsL = ss.sigs || {};
         var ms = monthAgg[mk2] || (monthAgg[mk2] = { totalUse: 0, cardUse: {}, pairUse: {}, tripleUse: {} });
@@ -1447,6 +1464,8 @@ async function updateDecks() {
           ids.forEach(function (id) { var n = cardsL[id]; if (n && names.indexOf(n) < 0) names.push(n); });
           if (names.length < 2) return;
           var v = sigsL[key] || [], use = v[0] || v[1] || 0, games = v[1] || 0, wins = v[2] || 0, domSum = v[3] || 0, domGames = v[4] || 0;
+          // ★勝ち方分布（v2のみ）: cleanWin..collapseLoss。旧月(length<11)は全0＝決定力補正は自然に無効化。
+          var wq = { g: domGames, clean: v[5] || 0, stable: v[6] || 0, fragile: v[7] || 0, pressure: v[8] || 0, close: v[9] || 0, collapse: v[10] || 0 };
           if (!use) return;
           totalUse += use;
           ms.totalUse += use;
@@ -1455,6 +1474,7 @@ async function updateDecks() {
             cardGames[n] = (cardGames[n] || 0) + games;
             cardWins[n] = (cardWins[n] || 0) + wins;
             addDomAgg_(cardDomSum, cardDomGames, n, domSum, domGames);
+            addQualAgg_(cardQual, n, wq);
             ms.cardUse[n] = (ms.cardUse[n] || 0) + use;
           });
           for (var ai = 0; ai < names.length; ai++) for (var bi = ai + 1; bi < names.length; bi++) {
@@ -1463,6 +1483,7 @@ async function updateDecks() {
             pairGames[pk] = (pairGames[pk] || 0) + games;
             pairWins[pk] = (pairWins[pk] || 0) + wins;
             addDomAgg_(pairDomSum, pairDomGames, pk, domSum, domGames);
+            addQualAgg_(pairQual, pk, wq);
             pairDecks[pk] = (pairDecks[pk] || 0) + 1;
             pairTop[pk] = Math.max(pairTop[pk] || 0, use);
             ms.pairUse[pk] = (ms.pairUse[pk] || 0) + use;
@@ -1473,6 +1494,7 @@ async function updateDecks() {
               tripleGames[tk] = (tripleGames[tk] || 0) + games;
               tripleWins[tk] = (tripleWins[tk] || 0) + wins;
               addDomAgg_(tripleDomSum, tripleDomGames, tk, domSum, domGames);
+              addQualAgg_(tripleQual, tk, wq);
               tripleDecks[tk] = (tripleDecks[tk] || 0) + 1;
               tripleTop[tk] = Math.max(tripleTop[tk] || 0, use);
               ms.tripleUse[tk] = (ms.tripleUse[tk] || 0) + use;
@@ -1499,6 +1521,19 @@ async function updateDecks() {
         var dominanceLift = (pairDomAvg != null && baseDomAvg != null) ? pairDomAvg - baseDomAvg : null;
         var dominanceConfidence = dominanceLift == null ? 0 : clamp01_(Math.sqrt((pairDomGames[pk] || 0) / ((pairDomGames[pk] || 0) + 45)));
         var dominanceEvidence = dominanceLift == null ? 0 : dominanceLift * dominanceConfidence;
+        // ★決定力リフト: pairの勝ち方の質 - 単体2枚の平均。勝率が同じでも「圧勝で通すか/薄く勝つか」を見分ける。
+        var pairDecis = decisiveness_(pairQual[pk]);
+        var aDecis = decisiveness_(cardQual[a]), bDecis = decisiveness_(cardQual[b]);
+        var baseDecis = (aDecis != null && bDecis != null) ? (aDecis + bDecis) / 2 : null;
+        var decisivenessLift = (pairDecis != null && baseDecis != null) ? pairDecis - baseDecis : null;
+        var decisGames = (pairQual[pk] && pairQual[pk].g) || 0;
+        var decisConfidence = decisivenessLift == null ? 0 : clamp01_(Math.sqrt(decisGames / (decisGames + 45)));
+        var decisEvidence = decisivenessLift == null ? 0 : decisivenessLift * decisConfidence;
+        // ★脆さ: この形の崩壊負け率が単体平均より高いほど「一方的に溶ける」リスク＝静かに減点する。
+        var pairCollapse = collapseRate_(pairQual[pk]);
+        var aCollapse = collapseRate_(cardQual[a]), bCollapse = collapseRate_(cardQual[b]);
+        var baseCollapse = (aCollapse != null && bCollapse != null) ? (aCollapse + bCollapse) / 2 : null;
+        var collapseExcess = (pairCollapse != null && baseCollapse != null) ? Math.max(0, pairCollapse - baseCollapse) : 0;
         var concentration = use ? (pairTop[pk] || 0) / use : 1;
         var broadness = 1 - Math.min(1, Math.max(0, concentration - 0.35) / 0.65);
         var monthlyLifts = [], monthlyUses = [];
@@ -1529,24 +1564,31 @@ async function updateDecks() {
         var stabilityScore = liftStability * 12;
         var trendScore = Math.max(-8, Math.min(8, trend * 10));
         var dominanceScore = dominanceLift == null ? 0 : clampRange_(dominanceLift * 68 * dominanceConfidence, -10, 13);
+        var decisivenessScore = decisivenessLift == null ? 0 : clampRange_(decisivenessLift * 34 * decisConfidence, -8, 10);
+        var fragilityPenalty = collapseExcess * decisConfidence * 46;
         var components = {
           lift: round2_(liftScore), winLift: round2_(winLiftScore), broadness: round2_(broadnessScore),
           confidence: round2_(confidenceScore), roleComplement: round2_(roleScore),
           stability: round2_(stabilityScore), trend: round2_(trendScore), dominanceLift: round2_(dominanceScore),
+          decisivenessLift: round2_(decisivenessScore), fragilityPenalty: round2_(fragilityPenalty),
           utilityPenalty: round2_(utilityPenalty), templatePenalty: round2_(templateLockPenalty)
         };
-        var synergyScore = round2_(liftScore + winLiftScore + dominanceScore + broadnessScore + confidenceScore + roleScore + stabilityScore + trendScore - utilityPenalty - templateLockPenalty);
+        var synergyScore = round2_(liftScore + winLiftScore + dominanceScore + decisivenessScore + broadnessScore + confidenceScore + roleScore + stabilityScore + trendScore - utilityPenalty - templateLockPenalty - fragilityPenalty);
+        // 決定力の裏付け（強い/薄い）。勝敗0/1より濃い信号なので、broad昇格の代替条件・hidden判定に足す。
+        var winQuality = Math.max(dominanceEvidence, decisEvidence);
+        var hasWinQuality = dominanceLift != null || decisivenessLift != null; // 質データが無い月だけの間は昇格を止めない（後方互換）
         var kind = sampleConfidence < 0.35 || use < MIN_PAIR_USE * 2 ? 'provisional'
-          : lift >= 1.45 && (winLift == null || winLift >= -0.006) && (dominanceLift == null || dominanceEvidence >= 0.005) && concentration <= 0.55 && (pairDecks[pk] || 0) >= 5 && liftStability >= 0.45 && utilityPenalty < 8 ? 'broadSynergy'
+          : lift >= 1.45 && (winLift == null || winLift >= -0.006) && (!hasWinQuality || winQuality >= 0.005) && collapseExcess <= 0.05 && concentration <= 0.55 && (pairDecks[pk] || 0) >= 5 && liftStability >= 0.45 && utilityPenalty < 8 ? 'broadSynergy'
           : lift >= 1.45 && concentration > 0.70 ? 'templateCore'
           : lift <= 1.15 && utilityIndex > 0 ? 'utilityOrCommon'
-          : ((winLift != null && winLift >= 0.015) || dominanceEvidence >= 0.035) && lift >= 1.12 ? 'hiddenWinLift'
+          : ((winLift != null && winLift >= 0.015) || winQuality >= 0.035) && lift >= 1.12 ? 'hiddenWinLift'
           : 'softSynergy';
         pairsOut.push({
           a: a, b: b, use: Math.round(use * 10) / 10, expected: Math.round(exp * 10) / 10,
           lift: Math.round(lift * 100) / 100, games: games, wr: wr == null ? null : Math.round(wr * 1000) / 10,
           winLift: winLift == null ? null : Math.round(winLift * 1000) / 10,
           dominanceAvg: pairDomAvg == null ? null : round3_(pairDomAvg), dominanceLift: dominanceLift == null ? null : round3_(dominanceLift), dominanceGames: pairDomGames[pk] || 0,
+          decisivenessLift: decisivenessLift == null ? null : round3_(decisivenessLift), decisivenessGames: decisGames, collapseExcess: round3_(collapseExcess),
           deckVariants: pairDecks[pk] || 0, concentration: round3_(concentration),
           broadness: round3_(broadness), sampleConfidence: round3_(sampleConfidence),
           activeMonths: activeMonths, liftStability: round3_(liftStability), currentLift: round2_(currentLift), trend: round3_(trend),
@@ -1571,10 +1613,12 @@ async function updateDecks() {
         { updated: new Date().toISOString(), source: 'sighist monthly digest', months: pairMonths.filter(function (m) { return !!shByMonth[m]; }),
           minUse: MIN_PAIR_USE, totalDeckUse: Math.round(totalUse * 10) / 10,
           scoring: {
-            score: 'lift + winLift + dominanceLift + broadness + sampleConfidence + roleComplement + liftStability + trend - utilityPenalty - templatePenalty',
+            score: 'lift + winLift + dominanceLift + decisivenessLift + broadness + sampleConfidence + roleComplement + liftStability + trend - utilityPenalty - templatePenalty - fragilityPenalty',
             lift: 'P(A+B)/(P(A)*P(B))。単純共起ではなく期待共起との差を見る',
             winLift: 'pair勝率 - 単体2枚の平均勝率',
             dominanceLift: 'pair平均支配度 - 単体2枚の平均支配度。薄い勝ち/負けを補正する',
+            decisivenessLift: 'pairの勝ち方の質(圧勝〜崩壊負けの連続量) - 単体2枚の平均。勝敗より濃い信号で本物のシナジーを早く見分ける',
+            fragilityPenalty: 'この形の崩壊負け率が単体平均より高いほど減点。一方的に溶ける脆い形を下げる',
             concentration: 'pair総使用のうち最大1テンプレが占める比率。高いほどテンプレ依存',
             liftStability: '月別liftの安定度。短期だけ跳ねたpairを下げる',
             roleComplement: '勝ち方/呪文/対空/範囲/建物などの役割補完',
@@ -1607,6 +1651,14 @@ async function updateDecks() {
         var pairExtDominanceLift = (tripleDomAvg != null && pairDomAvg3 != null) ? tripleDomAvg - pairDomAvg3 : null;
         var dominanceConfidence3 = pairExtDominanceLift == null ? 0 : clamp01_(Math.sqrt((tripleDomGames[tk] || 0) / ((tripleDomGames[tk] || 0) + 36)));
         var dominanceEvidence3 = pairExtDominanceLift == null ? 0 : pairExtDominanceLift * dominanceConfidence3;
+        // ★3枚目の決定力リフト: A+B+Cの勝ち方の質 - A+Bの質。2枚に足したCが「勝ち方まで底上げするか」を見る。
+        var tripleDecis = decisiveness_(tripleQual[tk]), pairDecis3 = decisiveness_(pairQual[pk3]);
+        var extDecisivenessLift = (tripleDecis != null && pairDecis3 != null) ? tripleDecis - pairDecis3 : null;
+        var extDecisGames = (tripleQual[tk] && tripleQual[tk].g) || 0;
+        var extDecisConfidence = extDecisivenessLift == null ? 0 : clamp01_(Math.sqrt(extDecisGames / (extDecisGames + 36)));
+        var extDecisEvidence = extDecisivenessLift == null ? 0 : extDecisivenessLift * extDecisConfidence;
+        var tripleCollapse = collapseRate_(tripleQual[tk]), pairCollapse3 = collapseRate_(pairQual[pk3]);
+        var extCollapseExcess = (tripleCollapse != null && pairCollapse3 != null) ? Math.max(0, tripleCollapse - pairCollapse3) : 0;
         var concentration3 = use3 ? (tripleTop[tk] || 0) / use3 : 1;
         var diversity3 = 1 - Math.min(1, Math.max(0, concentration3 - 0.35) / 0.65);
         var monthlyExtLifts = [];
@@ -1634,16 +1686,19 @@ async function updateDecks() {
         var conditionalScore = Math.min(58, Math.log(Math.max(1, conditionalLift)) * 32);
         var winExtScore = pairExtWinLift == null ? 0 : pairExtWinLift * 150;
         var dominanceExtScore = pairExtDominanceLift == null ? 0 : clampRange_(pairExtDominanceLift * 76 * dominanceConfidence3, -10, 15);
+        var extDecisivenessScore = extDecisivenessLift == null ? 0 : clampRange_(extDecisivenessLift * 38 * extDecisConfidence, -8, 12);
+        var extFragilityPenalty = extCollapseExcess * extDecisConfidence * 46;
         var diversityScore = diversity3 * 12;
         var confidenceScore3 = sampleConfidence3 * 12;
         var roleExtScore = roleExt * 20;
         var stabilityScore3 = extStability * 10;
         var trendScore3 = Math.max(-7, Math.min(7, extTrend * 9));
-        var extScore = round2_(conditionalScore + winExtScore + dominanceExtScore + diversityScore + confidenceScore3 + roleExtScore + stabilityScore3 + trendScore3 + pairQualityScore - commonPenalty - templatePenalty3);
+        var extScore = round2_(conditionalScore + winExtScore + dominanceExtScore + extDecisivenessScore + diversityScore + confidenceScore3 + roleExtScore + stabilityScore3 + trendScore3 + pairQualityScore - commonPenalty - templatePenalty3 - extFragilityPenalty);
         if (extScore < 10) return;
+        var winQuality3 = Math.max(dominanceEvidence3, extDecisEvidence);
         var extKind = sampleConfidence3 < 0.34 || use3 < MIN_EXT_USE * 2 ? 'provisional'
-          : conditionalLift >= 1.35 && (pairExtWinLift == null || pairExtWinLift >= -0.006 || dominanceEvidence3 >= 0.030) && concentration3 <= 0.66 && roleExt >= 0.16 ? 'pairEnabler'
-          : ((pairExtWinLift != null && pairExtWinLift >= 0.015) || dominanceEvidence3 >= 0.040) && conditionalLift >= 1.08 ? 'resultLift'
+          : conditionalLift >= 1.35 && (pairExtWinLift == null || pairExtWinLift >= -0.006 || winQuality3 >= 0.030) && extCollapseExcess <= 0.06 && concentration3 <= 0.66 && roleExt >= 0.16 ? 'pairEnabler'
+          : ((pairExtWinLift != null && pairExtWinLift >= 0.015) || winQuality3 >= 0.040) && conditionalLift >= 1.08 ? 'resultLift'
           : roleExt >= 0.24 && conditionalLift >= 1.05 ? 'coveragePatch'
           : conditionalLift >= 1.35 && concentration3 > 0.72 ? 'templateExtension'
           : 'softExtension';
@@ -1655,15 +1710,16 @@ async function updateDecks() {
           pairExtWinLift: pairExtWinLift == null ? null : Math.round(pairExtWinLift * 1000) / 10,
           dominanceAvg: tripleDomAvg == null ? null : round3_(tripleDomAvg), pairDominanceAvg: pairDomAvg3 == null ? null : round3_(pairDomAvg3),
           pairExtDominanceLift: pairExtDominanceLift == null ? null : round3_(pairExtDominanceLift), dominanceGames: tripleDomGames[tk] || 0,
+          extDecisivenessLift: extDecisivenessLift == null ? null : round3_(extDecisivenessLift), decisivenessGames: extDecisGames, collapseExcess: round3_(extCollapseExcess),
           deckVariants: tripleDecks[tk] || 0, concentration: round3_(concentration3), diversity: round3_(diversity3),
           sampleConfidence: round3_(sampleConfidence3), activeMonths: activeExtMonths, liftStability: round3_(extStability),
           currentLift: round2_(currentExtLift), trend: round3_(extTrend), roleExtension: round3_(roleExt),
           basePairKind: basePair ? basePair.kind : '', basePairScore: basePair ? basePair.score : null,
           kind: extKind, score: extScore,
           components: {
-            conditionalLift: round2_(conditionalScore), winLift: round2_(winExtScore), dominanceLift: round2_(dominanceExtScore), diversity: round2_(diversityScore),
+            conditionalLift: round2_(conditionalScore), winLift: round2_(winExtScore), dominanceLift: round2_(dominanceExtScore), decisivenessLift: round2_(extDecisivenessScore), diversity: round2_(diversityScore),
             confidence: round2_(confidenceScore3), roleExtension: round2_(roleExtScore), stability: round2_(stabilityScore3),
-            trend: round2_(trendScore3), pairQuality: round2_(pairQualityScore), commonPenalty: round2_(commonPenalty), templatePenalty: round2_(templatePenalty3)
+            trend: round2_(trendScore3), pairQuality: round2_(pairQualityScore), commonPenalty: round2_(commonPenalty), templatePenalty: round2_(templatePenalty3), fragilityPenalty: round2_(extFragilityPenalty)
           }
         });
       });
@@ -1684,6 +1740,7 @@ async function updateDecks() {
           a: e3.a, b: e3.b, c: e3.c, kind: e3.kind, score: e3.score, use: e3.use, pairUse: e3.pairUse,
           conditionalLift: e3.conditionalLift, games: e3.games, pairExtWinLift: e3.pairExtWinLift,
           pairExtDominanceLift: e3.pairExtDominanceLift, dominanceGames: e3.dominanceGames,
+          extDecisivenessLift: e3.extDecisivenessLift, collapseExcess: e3.collapseExcess,
           deckVariants: e3.deckVariants, concentration: e3.concentration, roleExtension: e3.roleExtension,
           basePairKind: e3.basePairKind, basePairScore: e3.basePairScore
         };
@@ -1692,10 +1749,11 @@ async function updateDecks() {
         { updated: new Date().toISOString(), source: 'sighist monthly digest', months: pairMonths.filter(function (m) { return !!shByMonth[m]; }),
           minUse: MIN_EXT_USE, totalDeckUse: Math.round(totalUse * 10) / 10,
           scoring: {
-            score: 'conditionalLift + pairExtWinLift + pairExtDominanceLift + diversity + sampleConfidence + roleExtension + liftStability + trend + basePairQuality - commonPenalty - templatePenalty',
+            score: 'conditionalLift + pairExtWinLift + pairExtDominanceLift + extDecisivenessLift + diversity + sampleConfidence + roleExtension + liftStability + trend + basePairQuality - commonPenalty - templatePenalty - fragilityPenalty',
             conditionalLift: 'P(C|A+B)/P(C)。2枚組A+Bに対してCがどれだけ足されやすいかを見る',
             pairExtWinLift: 'A+B+C勝率 - A+B勝率。3枚全体ではなく、2枚に足した時の上乗せを見る',
             pairExtDominanceLift: 'A+B+C平均支配度 - A+B平均支配度。2枚に足した時の勝ち方の上乗せを見る',
+            extDecisivenessLift: 'A+B+Cの勝ち方の質 - A+Bの質。3枚目Cが勝ち方まで底上げするかを勝敗より濃く見る',
             diversity: '最大1テンプレ集中を避ける補正。高いほどいろいろな形に足されている',
             roleExtension: 'A+Bの勝ち方・受け方をCがどれだけ通しやすく/埋めやすくするか',
             commonPenalty: '単体使用率が高すぎる便利カードの過大評価補正'
