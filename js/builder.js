@@ -35,6 +35,11 @@ let assistChunk = 'cards';
 let assistDirection = null;
 // エリクサー価値ベクトルの導出キャッシュ（カード名→9ベクトル＋sub）。データ再読込でクリア。
 let assistVectorCache = {};
+// 組み合わせ/苦しい相手の読みは、全量ではなく「今のデッキ周辺」だけWorkerから取る。
+let assistContextCache = {};
+let assistContextKey = '';
+let assistContextPending = '';
+let assistFullSynergy = false;
 const ASSIST_DATA_BASE = 'https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/';
 function dataFreshUrl(url) {
   return url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cb=' + Date.now();
@@ -370,7 +375,55 @@ function loadAssistJsonAny(names) {
 function loadAssistBundle() {
   return fetch(dataFreshUrl('/api/assist/bootstrap'), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
 }
+function assistDeckContextKey(info) {
+  return info && info.cards && info.cards.length ? info.cards.map(c => c.name).join('|') : '';
+}
+function loadAssistContextBundle(info) {
+  const names = info && info.cards ? info.cards.map(c => c.name) : [];
+  if (!names.length) return Promise.resolve(null);
+  const url = '/api/assist/context?deck=' + encodeURIComponent(names.join(','));
+  return fetch(dataFreshUrl(url), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+}
+function applyAssistContext(key, bundle) {
+  assistData.pairs = bundle && bundle.pairs ? bundle.pairs : {};
+  assistData.pairExt = bundle && bundle.pairExt ? bundle.pairExt : {};
+  assistData.threatResp = bundle && bundle.threatResp ? bundle.threatResp : {};
+  assistContextKey = key || '';
+}
+function clearAssistContext() {
+  assistData.pairs = null;
+  assistData.pairExt = null;
+  assistData.threatResp = null;
+  assistContextKey = '';
+  assistContextPending = '';
+}
+function ensureAssistContext(info) {
+  if (assistFullSynergy) return false;
+  const key = assistDeckContextKey(info);
+  if (!key) { if (assistContextKey || assistContextPending) clearAssistContext(); return false; }
+  if (assistContextKey === key) return false;
+  if (assistContextCache[key]) { applyAssistContext(key, assistContextCache[key]); return false; }
+  if (assistContextPending === key) return true;
+  assistData.pairs = null;
+  assistData.pairExt = null;
+  assistData.threatResp = null;
+  assistContextKey = '';
+  assistContextPending = key;
+  loadAssistContextBundle(info).then(bundle => {
+    if (assistContextPending === key) assistContextPending = '';
+    if (!bundle) return;
+    assistContextCache[key] = bundle;
+    const curKey = assistDeckContextKey(assistDeckInfo());
+    if (!assistFullSynergy && curKey === key) {
+      applyAssistContext(key, bundle);
+      updateAssistPanel();
+    }
+  }).catch(() => { if (assistContextPending === key) assistContextPending = ''; });
+  return true;
+}
 function applyAssistBundle(bundle) {
+  const hasSynergy = !!(bundle && (bundle.pairs || bundle.pairExt || bundle.threatResp));
+  assistFullSynergy = hasSynergy && bundle.scope !== 'base';
   assistData.wincon = normalizeAssistCards(bundle && bundle.wincon);
   assistData.potential = normalizeAssistCards(bundle && bundle.potential);
   assistData.tags = normalizeAssistCards(bundle && bundle.tags);
@@ -380,6 +433,9 @@ function applyAssistBundle(bundle) {
   assistData.vectors = normalizeAssistCards(bundle && bundle.vectors);
   assistData.eval = null;
   assistVectorCache = {};
+  assistContextCache = {};
+  assistContextKey = '';
+  assistContextPending = '';
   assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags || assistData.pairs || assistData.pairExt || assistData.threatResp || assistData.vectors || assistData.eval);
   updateAssistPanel();
 }
@@ -1367,6 +1423,7 @@ function updateAssistPanel() {
   btn.innerHTML = assistMode ? '<span>アシストON</span>' : '<span>アシスト</span>';
   if (!assistMode) { panel.innerHTML = ''; assistSuggestions = []; updateAssistTopInfo(null); refreshAssistHighlights(); return; }
   const info = assistDeckInfo();
+  const contextLoading = ensureAssistContext(info);
   assistSuggestions = buildAssistSuggestions();
   updateAssistTopInfo(info);
   if (info.cards.length >= 8) {
@@ -1396,6 +1453,7 @@ function updateAssistPanel() {
   const personaLine = pSum
     ? '<div class="assist-persona is-set" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">あなた好み：' + esc(pSum) + '</span><span class="ap-edit">変更</span></div>'
     : '<div class="assist-persona" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">デッキの好みを設定すると、あなた向けに候補が絞れます</span><span class="ap-edit">設定</span></div>';
+  const contextLine = contextLoading ? '<div class="assist-context-loading">読みを整えています…</div>' : '';
   const activeChunk = assistChunk === 'threats' ? 'threats' : 'cards';
   const chunkHtml = activeChunk === 'threats' ? assistThreatHtml(info) : (assistDirectionChipsHtml(info) + cardsHtml);
   const actionMain = activeChunk === 'threats'
@@ -1403,6 +1461,7 @@ function updateAssistPanel() {
     : '<button class="assist-mini" id="assistRefresh" type="button">別候補</button>';
   panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の1枚<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + esc(costState) + '</div></div>'
     + personaLine
+    + contextLine
     + assistChunkTabs(info)
     + chunkHtml
     + '<div class="assist-actions">' + actionMain + '<button class="assist-mini" id="assistOff" type="button">通常検索</button></div>'

@@ -8,7 +8,8 @@
 
 - `tools/collect.js` はR2設定がある時、private集計JSONをR2へ保存する。R2未設定時だけ従来どおりdataブランチへfallbackする。
 - `trophy-battle-events-v1.json` とは別に、再集計用のラン単位生試合liteをR2 `private/raw/ranked-battle-events-v1/YYYY-MM-DD/run-*.json` と `private/raw/trophy-battle-events-v1/YYYY-MM-DD/run-*.json` へ保存する。
-- `cr-deck-ogp-worker` に `/api/assist/bootstrap`, `/api/strategy`, `/api/meta` を追加。ビルダー/診断/ランキング表示はAPI優先。本番では旧公開JSONへ直接fallbackしない（ローカル開発時だけ許可。`?publicJsonFallback=1` は非本番ホストでのみ有効）。Worker側のraw fallbackも既定OFFで、移行/緊急時だけ `PUBLIC_JSON_FALLBACK=1` で許可する。
+- `cr-deck-ogp-worker` に `/api/assist/bootstrap`, `/api/assist/context`, `/api/strategy`, `/api/meta` を追加。ビルダー/診断/ランキング表示はAPI優先。本番では旧公開JSONへ直接fallbackしない（ローカル開発時だけ許可。`?publicJsonFallback=1` は非本番ホストでのみ有効）。Worker側のraw fallbackも既定OFFで、移行/緊急時だけ `PUBLIC_JSON_FALLBACK=1` で許可する。
+- `/api/assist/bootstrap` は全カードの軽い定義だけ返す。巨大な2枚シナジー/3枚目シナジー/苦しい相手表は `/api/assist/context?deck=...` で選択中デッキに関係する行だけ返し、ブラウザに全量を渡さない。
 - `PUBLIC_GH_MIRROR=0` かつR2設定ありなら、`writePublicJson_` は表示用JSONもR2へだけ書く。R2未設定時、または `PUBLIC_GH_MIRROR=1` の時だけdataブランチへミラーする。現在のworkflow既定は `PRIVATE_GH_MIRROR=0` / `PUBLIC_GH_MIRROR=0` で、dataブランチには鮮度マーカーだけを残す。緊急時だけRepository Variablesで両方 `1` に戻す。
 - `MIRROR_EXTERNAL_PUBLIC_TO_R2` / `MIRROR_EXTERNAL_PRIVATE_TO_R2` は、GAS/旧ツール由来JSONをdataブランチからR2へ吸い上げる移行用フラグ。既定は `PUBLIC_GH_MIRROR` / `PRIVATE_GH_MIRROR` に連動するため、ロックダウン後は古いdata版でR2を上書きしない。
 - `collect-freshness.json` はdataブランチへ残す。中身は更新時刻・件数・窓名だけの軽量マーカーで、毎時起動チェック用。分析JSON本体は含めない。
@@ -19,7 +20,7 @@
 
 候補・カード名・粗い並びだけに薄くした表示用JSON。最終運用ではブラウザから直接読ませず、Worker APIへ畳み込む。**分析に関わる表示用JSONはすべてR2へ保存**し、Worker APIはR2優先で読む。これにより、dataブランチ上の公開JSONを削除しても、表示はR2＋APIから同じものを返せる。
 
-- ビルダー：`/api/assist/bootstrap`（R2優先。本番ブラウザは旧公開JSON直読みなし）
+- ビルダー：`/api/assist/bootstrap`（軽いカード定義）＋`/api/assist/context?deck=...`（選択中デッキ周辺の組み合わせ読み）。どちらもR2優先。本番ブラウザは旧公開JSON直読みなし。
 - 診断：`/api/strategy?deck=...&f=...`（深い材料はR2のみ。表示用カードJSONもR2優先）
 - ランキング/メタ：`/api/meta`（R2優先。本番ブラウザは旧公開JSON直読みなし）
 - Top3画像：`/top3img` は `decks.json` をR2優先で読む。raw fallbackはWorker変数 `PUBLIC_JSON_FALLBACK=1` の時だけ。
@@ -64,4 +65,4 @@
 - Cloudflare側にR2 bucket `crdb-data-private` を作り、Worker binding `CRDB_DATA` を張る。
 - 本番 `/api/*` が404の状態でフロントだけ先に出すと、raw fallback停止により表示が崩れる。安全順は、collector/workflow/tools/GAS/docsだけ先行push → `collect decks` でR2投入 → Worker deploy → `/api/health`, `/api/assist/bootstrap`, `/api/strategy?deck=...`, `/api/meta`, `/top3img` 確認 → 最後にフロントpush。
 - 切り戻しが必要な時だけRepository Variablesで `PRIVATE_GH_MIRROR=1` / `PUBLIC_GH_MIRROR=1` を設定する。通常はdataブランチ上の分析JSONを削除し、公開はWorker APIだけに絞る。
-- 公開表示用JSONもR2へ揃うため、最終的にはdataブランチから公開JSONを消しても、Worker API経由で表示を維持できる。APIレスポンスまで削りたい場合は、次段階で「現在のデッキに必要な候補だけ返す」設計へ進める。
+- 公開表示用JSONもR2へ揃うため、dataブランチから公開JSONを消しても、Worker API経由で表示を維持できる。アシストの組み合わせ表は現在のデッキ周辺だけ返す段階まで移行済み。次段階は「候補計算そのものをWorker側へ寄せ、ブラウザには候補・理由・注意点だけ返す」設計へ進める。
