@@ -205,6 +205,16 @@
     cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
   .assist-dir-chip.active { border-color: rgba(232,160,32,0.52); color: var(--accent); background: rgba(232,160,32,0.11); }
+  .assist-spell { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 1px 0 2px; }
+  .assist-spell-q { font-size: 11px; font-weight: 800; color: var(--text-muted); flex: 0 0 auto; }
+  .assist-spell-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+  .assist-spell-hint { flex: 1 1 100%; color: var(--text-muted); font-size: 10px; line-height: 1.25; opacity: .9; }
+  .assist-spell-chip {
+    border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px; min-width: 24px;
+    background: rgba(255,255,255,0.035); color: var(--text-muted); font-size: 11px; font-weight: 800;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .assist-spell-chip.active { border-color: rgba(232,160,32,0.52); color: var(--accent); background: rgba(232,160,32,0.11); }
   .assist-cards { display: grid; gap: 5px; }
   .assist-card {
     display: grid; grid-template-columns: 42px 1fr auto; gap: 7px; align-items: center;

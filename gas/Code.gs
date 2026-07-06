@@ -828,7 +828,8 @@ function exportTagSheetV2() {
 }
 
 /** =============== ポテンシャル係数 エクスポート（2026-06-12追加） ===============
- * 「ポテンシャル」タブ（14列）を読んで card-potential.json をdataブランチへ出力。
+ * 「ポテンシャル」タブを読んで card-potential.json をdataブランチへ出力。
+ * 列は名前で探すので、勝ち筋フラグ/被ダメ許容などの追記列があれば自動で拾う（無ければ無視）。
  * 分析UIは card-tags.json（タグ表v2）と card-potential.json の両方を読む設計。 */
 function exportPotentialV1() {
   var id = PropertiesService.getScriptProperties().getProperty('TAG_SHEET_ID') || '1cjX3ptT0g0qjfwhoTBKbzRfXGZUNGLy_jspMSRCDPyU';
@@ -839,6 +840,11 @@ function exportPotentialV1() {
   function col(name){ for (var i=0;i<head.length;i++){ if (head[i].indexOf(name)===0) return i; } return -1; }
   var cName=col('カード名'), cHp=col('HP効率'), cDps=col('DPS効率'), cSp=col('呪文ダメ効率'), cCt=col('呪文タワー効率');
   var c1=col('1倍適性'), c2=col('2倍適性'), c3=col('3倍適性'), cKi=col('キラー'), cSc=col('スケーリング型'), cPa=col('噛み合う相手'), cSo=col('素出し適性'), cSep=col('セパレート適性'), cMe=col('メモ');
+  // 追記列（勝ち筋の見える化・被ダメ許容・勝負所の式）。存在する時だけ読む（col()は無ければ-1）。
+  var cWc=col('勝ち筋'), cWc2=col('第2勝ち筋'), cWc3=col('補助勝ち筋'), cWcCombo=col('組んだら勝ち筋'),
+      cChip=col('削り役'), cBrk=col('突破補助'), cSpS=col('呪文勝ち筋補助'), cDefS=col('防衛起点'), cCnt=col('カウンター起点'),
+      cTol=col('被ダメ許容'), cT1=col('1倍向き'), cT2=col('2倍向き'), cT3=col('延長向き');
+  function flagOf(v){ var s=String(v==null?'':v).trim(); return (s==='〇'||s==='◯'||s==='○'||s==='●'||s==='✓'||s==='v'||s==='V'||s==='1'||s==='TRUE'||s==='true'); }
   function numOf(v){ var n=parseFloat(v); return isFinite(n)?n:null; }
   function strOf(v){ return String(v==null?'':v).trim(); }
   var cards={};
@@ -850,10 +856,115 @@ function exportPotentialV1() {
       killer:(cKi>=0?strOf(vals[r][cKi]):''), scaling:strOf(vals[r][cSc]), partner:strOf(vals[r][cPa]), solo:strOf(vals[r][cSo]), sep:(cSep>=0?strOf(vals[r][cSep]):'')
     };
     var memo=strOf(vals[r][cMe]); if(memo) cards[nm].memo=memo;
+    // 勝ち筋の見える化（〇の付いた区分だけ配列に）。既存1倍/2倍/3倍(phase)は参考外＝別に式の勝負所列があれば拾う。
+    var flags=[];
+    if (cWc>=0 && flagOf(vals[r][cWc])) flags.push('勝ち筋');
+    if (cWc2>=0 && flagOf(vals[r][cWc2])) flags.push('第2勝ち筋');
+    if (cWc3>=0 && flagOf(vals[r][cWc3])) flags.push('補助勝ち筋');
+    if (flags.length) cards[nm].winconFlags=flags;
+    if (cWcCombo>=0 && flagOf(vals[r][cWcCombo])) cards[nm].comboWincon=true;
+    if (cChip>=0 && flagOf(vals[r][cChip])) cards[nm].damageRole=true;
+    if (cBrk>=0 && flagOf(vals[r][cBrk])) cards[nm].breakthroughSupport=true;
+    if (cSpS>=0 && flagOf(vals[r][cSpS])) cards[nm].spellWinconSupport=true;
+    if (cDefS>=0 && flagOf(vals[r][cDefS])) cards[nm].defenseStarter=true;
+    if (cCnt>=0 && flagOf(vals[r][cCnt])) cards[nm].counterStarter=true;
+    if (cTol>=0){ var tol=numOf(vals[r][cTol]); if(tol!=null) cards[nm].tolerance=tol; }
+    // 勝負所は式列（数値）のみ採用。1倍/2倍/3倍適性(phase)は適当な手入力なので分析には使わない。
+    if (cT1>=0){ var t1=numOf(vals[r][cT1]); if(t1!=null) cards[nm].timingEarly=t1; }
+    if (cT2>=0){ var t2=numOf(vals[r][cT2]); if(t2!=null) cards[nm].timingMid=t2; }
+    if (cT3>=0){ var t3=numOf(vals[r][cT3]); if(t3!=null) cards[nm].timingOvertime=t3; }
   }
   var out={ updated:new Date().toISOString(), source:'ポテンシャル', count:Object.keys(cards).length, cards:cards };
   ghWriteJson_('card-potential.json', out);
   Logger.log('card-potential.json exported: '+out.count+' cards');
+}
+
+/** =============== ポテンシャルに勝ち筋フラグを流し込む（source-of-truth種まき） ===============
+ * wincon-policy.json（オーナー分類済み）を読んで「ポテンシャル」タブへ〇を書き込む。
+ * ・列が無ければ メモ の後ろに追加する（勝ち筋/第2勝ち筋/補助勝ち筋/組んだら勝ち筋/削り役/突破補助/
+ *   呪文勝ち筋補助/防衛起点/カウンター起点/被ダメ許容/1倍向き(式)/2倍向き(式)/延長向き(式)）。
+ * ・被ダメ許容と各「向き(式)」列は“数値でオーナーが監修する枠”。空セルにだけ既定の式を足場として入れ、
+ *   すでに手入力（数値でもオーナー修正の式でも）があるセルは一切触らない＝直接編集をいつでも維持できる。
+ * ・何度実行してもOK（フラグ列は全消し→貼り直し。数値列は空セルのみ式で補完し、既存値は保持）。カード名はベース名(⚡👑除去)で突合。 */
+function seedPotentialWinconFlags() {
+  var id = PropertiesService.getScriptProperties().getProperty('TAG_SHEET_ID') || '1cjX3ptT0g0qjfwhoTBKbzRfXGZUNGLy_jspMSRCDPyU';
+  var sh = SpreadsheetApp.openById(id).getSheetByName('ポテンシャル');
+  if (!sh) throw new Error('シート「ポテンシャル」が見つかりません');
+  var wp = ghReadJson_('wincon-policy.json');
+  if (!wp || !wp.cards) throw new Error('wincon-policy.json を読めません（GITHUB_TOKEN/REPO/BRANCH か R2 設定を確認）');
+  var pol = wp.cards;
+  function has(arr, xs){ return (arr||[]).some(function(a){ return xs.indexOf(a) >= 0; }); }
+  function atHas(at, xs){ return xs.some(function(x){ return String(at||'').indexOf(x) >= 0; }); }
+  var FLAG_COLS = ['勝ち筋','第2勝ち筋','補助勝ち筋','組んだら勝ち筋','削り役','突破補助','呪文勝ち筋補助','防衛起点','カウンター起点'];
+  var NUM_COLS = ['被ダメ許容','1倍向き(式)','2倍向き(式)','延長向き(式)'];
+  function flagsFor(name){
+    var c = pol[name]; if (!c) return null;
+    var ax = c.axes || [], at = c.attackType || '', isSpell = c.sourceType === 'spell';
+    return {
+      '勝ち筋': c['class'] === '勝ち筋',
+      '第2勝ち筋': c['class'] === '第2勝ち筋',
+      '補助勝ち筋': c['class'] === '補助勝ち筋',
+      '組んだら勝ち筋': c['class'] === '変数カード' || has(ax, ['variable','copy','contextDependent']),
+      '削り役': atHas(at, ['chip']) || has(ax, ['chipDamage','towerChipIfConnected','bridgePoke']),
+      '突破補助': atHas(at, ['siege','directPressure']) || has(ax, ['siege','directDamage']),
+      '呪文勝ち筋補助': (isSpell && (c['class'] === '第2勝ち筋' || c['class'] === '補助勝ち筋')) || atHas(at, ['spellFinish']) || has(ax, ['spellFinish']),
+      '防衛起点': c['class'] === '防衛札' || has(ax, ['defense','groundDefense','airDefense','survivability']),
+      'カウンター起点': has(ax, ['kite','lanePull','pull','tempoControl','freeze','reset','surround']) || atHas(at, ['kite','cycleDefense'])
+    };
+  }
+  var vals = sh.getDataRange().getValues();
+  var head = vals[0].map(function(h){ return String(h).trim(); });
+  function colIdx(name){ for (var i=0;i<head.length;i++){ if (head[i] === name) return i; } return -1; }
+  // 足りない列を メモ の後ろ（無ければ末尾）に追加
+  var want = FLAG_COLS.concat(NUM_COLS);
+  var missing = want.filter(function(n){ return colIdx(n) < 0; });
+  if (missing.length) {
+    var lastCol = sh.getLastColumn();
+    sh.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
+    vals = sh.getDataRange().getValues(); head = vals[0].map(function(h){ return String(h).trim(); });
+  }
+  var cName = colIdx('カード名');
+  function baseOf(nm){ return String(nm||'').replace(/[\u26a1\ud83d\udc51]+$/, '').trim(); }
+  // 数値式列(NUM_COLS)の“足場”式。行番号だけ差し替えて空セルに入れる（0〜10へ丸め）。
+  // A列が空の行は空文字を返すので、余白行にゴミが出ない。既存の手入力/手直し式があるセルは上書きしない。
+  var A1 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  function colA1(idx){ var s=''; idx=idx+1; while(idx>0){ var m=(idx-1)%26; s=A1.charAt(m)+s; idx=Math.floor((idx-1)/26); } return s; }
+  var LB=colA1(colIdx('コスト')), LC=colA1(colIdx('タイプ')), LD=colA1(colIdx('HP効率(÷コスト)')>=0?colIdx('HP効率(÷コスト)'):colIdx('HP効率')), LE=colA1(colIdx('DPS効率(÷コスト)')>=0?colIdx('DPS効率(÷コスト)'):colIdx('DPS効率')), LG=colA1(colIdx('呪文タワー効率')), LL=colA1(colIdx('素出し適性')), LM=colA1(colIdx('セパレート適性')), LA=colA1(cName);
+  var LO=colA1(colIdx('勝ち筋')), LP=colA1(colIdx('第2勝ち筋')), LQ=colA1(colIdx('補助勝ち筋')), LS=colA1(colIdx('削り役')), LT=colA1(colIdx('突破補助')), LU=colA1(colIdx('呪文勝ち筋補助')), LV=colA1(colIdx('防衛起点')), LW=colA1(colIdx('カウンター起点'));
+  function numFormula(name, r){
+    var A=LA+r, B=LB+r, C=LC+r, D=LD+r, E=LE+r, G=LG+r, L=LL+r, M=LM+r, O=LO+r, P=LP+r, Q=LQ+r, S=LS+r, T=LT+r, U=LU+r, V=LV+r, W=LW+r;
+    if (name === '被ダメ許容')
+      return '=IF($'+A+'="","",ROUND(MAX(0,MIN(10,0.003*$'+D+'+0.004*$'+E+'+IF($'+C+'="Building",-1,0)+IF($'+B+'>=6,1.2,IF($'+B+'>=5,0.6,IF($'+B+'<=2,-0.4,0)))+IF($'+O+'="〇",0.7,0)+IF($'+P+'="〇",0.3,0)+IF($'+V+'="〇",-0.4,0)+IF($'+W+'="〇",0.5,0))),1))';
+    if (name === '1倍向き(式)')
+      return '=IF($'+A+'="","",ROUND(MAX(0,MIN(10,(7-$'+B+')/6*5+IF($'+L+'="◎",2,IF($'+L+'="○",1.2,IF($'+L+'="△",0.5,0)))+IF($'+C+'="Spell",1,0)+IF($'+V+'="〇",1.2,0)+IF($'+W+'="〇",0.8,0)-IF($'+B+'>=6,1.2,IF($'+B+'>=5,0.5,0)))),1))';
+    if (name === '2倍向き(式)')
+      return '=IF($'+A+'="","",ROUND(MAX(0,MIN(10,0.002*$'+D+'+0.003*$'+E+'+IF($'+O+'="〇",1.2,0)+IF($'+P+'="〇",0.9,0)+IF($'+Q+'="〇",0.6,0)+IF($'+S+'="〇",0.6,0)+IF($'+T+'="〇",0.8,0)+IF($'+M+'="○",0.4,0)+IF($'+B+'>=4,0.5,0))),1))';
+    if (name === '延長向き(式)')
+      return '=IF($'+A+'="","",ROUND(MAX(0,MIN(10,0.0025*$'+D+'+0.003*$'+E+'+0.01*$'+G+'+IF($'+O+'="〇",1.6,0)+IF($'+P+'="〇",1,0)+IF($'+Q+'="〇",0.5,0)+IF($'+S+'="〇",0.7,0)+IF($'+U+'="〇",1.2,0)+IF($'+B+'>=5,0.8,0)-IF($'+B+'<=2,0.4,0))),1))';
+    return '';
+  }
+  var seeded = 0, filledFormula = 0;
+  for (var r = 1; r < vals.length; r++) {
+    var nm = baseOf(vals[r][cName]); if (!nm) continue;
+    var f = flagsFor(nm);
+    // フラグ列は毎回リセットして貼り直し（分類変更に追従）。
+    for (var k = 0; k < FLAG_COLS.length; k++) {
+      var ci = colIdx(FLAG_COLS[k]); if (ci < 0) continue;
+      var on = f && f[FLAG_COLS[k]];
+      sh.getRange(r + 1, ci + 1).setValue(on ? '\u3007' : '');
+    }
+    // 数値式列は“空セルだけ”式で足場を入れる（オーナーが数値/式で上書き済みなら保持）。
+    for (var j = 0; j < NUM_COLS.length; j++) {
+      var nj = colIdx(NUM_COLS[j]); if (nj < 0) continue;
+      var cur = vals[r][nj];
+      if (cur === '' || cur === null || typeof cur === 'undefined') {
+        var fml = numFormula(NUM_COLS[j], r + 1);
+        if (fml) { sh.getRange(r + 1, nj + 1).setFormula(fml); filledFormula++; }
+      }
+    }
+    if (f) seeded++;
+  }
+  Logger.log('seedPotentialWinconFlags: ' + seeded + ' cards flagged / ' + filledFormula + ' formula cells seeded / policy ' + Object.keys(pol).length);
 }
 
 
@@ -1105,7 +1216,7 @@ function buildElixirVectorUsageSheet() {
     ['見る素材', 'タグ: 対空/範囲/タンクキラー/建物受け/生成/バフ/ランプなど。ポテンシャル: HP効率/DPS効率/倍速適性/素出し/キラー。エリクサー価値側では必要分を数値化して見ます。', '', ''],
     ['バランス調整', 'HP補正%・DPS補正%・発射速度補正%・射程補正・移動速度補正%で、次の調整を仮置きして確認します。+10%は0.1、-5%は-0.05。補正は左側の自動/最終列へ連動します。', '', ''],
     ['レイジ前提', 'レイジは30%速度ブーストとして扱います。移動速度、発射速度、建物/生成系のテンポが伸びる前提で見ます。発射速度+30%は攻撃/生成間隔÷1.3として見ます。', '', ''],
-    ['公開手順', 'タグ/ポテンシャルを直したら exportTagSheetV2() → exportPotentialV1() → buildCardEvalV1() → buildElixirVectorSheet()。赤入れ後は exportElixirVectorsV1()。', '', ''],
+    ['公開手順', 'タグ/ポテンシャルを直したら exportTagSheetV2() → exportPotentialV1() → buildCardEvalV1() → buildElixirVectorSheet()。赤入れ後は exportElixirVectorsV1()。勝ち筋フラグは seedPotentialWinconFlags() でwincon-policyから流し込めます（数値の被ダメ許容/向き列は手監修）。', '', ''],
     ['Node導線', 'ローカルからは node tools/export-elixir-vectors-from-sheet.js --out /tmp/card-elixir-vectors-v1.json --publish --verify', '', ''],
     ['フロント反映', 'サイト側は card-elixir-vectors-public-v1.json だけを直接読みます。深い材料はR2/Workerへ移す方針です。', '', ''],
     ['文言ルール', 'ユーザー向けには裏側の言い方を出さず、「受けを作りやすい」「攻めを通しやすい」「手札を回し直しやすい」のように自然に出します。', '', ''],
@@ -1204,7 +1315,7 @@ function elixirVectorDraft_(e, tags, st) {
   var airSingle = ev('対空単体処理'), grdSwarm = ev('地上群れ処理'), airSwarm = ev('対空群れ処理');
   var wall = ev('壁性能'), spellRes = ev('呪文耐性');
   var towerDmg = ev('タワーダメージ力'), towerFin = ev('タワーダメージ決定力'), bldDmg = ev('施設破壊力'), bldBreak = ev('施設突破力');
-  var solo = ev('素出し適正'), ph1 = ev('序盤適性(エリクサー1倍)'), ph2 = ev('中盤適性(エリクサー2倍)'), ph3 = ev('中盤適性(エリクサー3倍)');
+  var solo = ev('素出し適正'); // 1倍/2倍/3倍適性は仮置き扱いのためベクトル導出に使わない（フロントの deriveElixirVector と一致させる）
   var rangePress = ev('射程圧'), tempoPress = ev('手数圧'), rageFit = ev('レイジ適性');
   var cheap = (7 - cost) / 6 * 10; // cost1→10, cost7→0
 
@@ -1216,7 +1327,7 @@ function elixirVectorDraft_(e, tags, st) {
   var reach = cl(0.40 * bldBreak + 0.18 * rangePress + (canAir ? 2.2 : 0) + ((has('bridgeSpam') || has('dash') || has('charge')) ? 2.3 : 0) + rangeBonus);
   var def = cl(0.34 * wall + 0.28 * Math.max(airSingle, airSwarm) + 0.23 * Math.max(tankProc, midProc) + 0.08 * rangePress + (defBld ? 2.5 : 0) + (minitank ? 1 : 0));
   var cycle = cl(cheap);
-  var flex = cl(0.28 * solo + 0.24 * ((ph1 + ph2 + ph3) / 3) + ((canAir) ? 2.0 : 0) + 0.13 * clear + 0.13 * rangePress + 0.12 * tempoPress + 0.10 * rageFit);
+  var flex = cl(0.30 * solo + ((canAir) ? 2.0 : 0) + 0.18 * clear + 0.17 * rangePress + 0.17 * tempoPress + 0.10 * rageFit + 0.08 * def);
 
   function tagCtl(on) { return on ? cl(5 + (7 - cost) / 6 * 5) : 0; }
   var sub = {

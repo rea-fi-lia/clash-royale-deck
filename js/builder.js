@@ -31,6 +31,7 @@ let assistMode = (() => { try { return localStorage.getItem('cr_assist_mode') ==
 let assistSuggestions = [];
 let assistVariant = 0;
 let assistChunk = 'cards';
+let assistSpellTarget = (() => { try { const v = localStorage.getItem('cr_assist_spell_target'); return v === null || v === '' ? null : Math.max(0, Math.min(4, parseInt(v, 10))); } catch(e) { return null; } })();
 // 4枚目以降の方向チップ（攻撃強化/防衛強化/回転力強化）。null=未選択（全体から自然に出す）。
 let assistDirection = null;
 // エリクサー価値ベクトルの導出キャッシュ（カード名→9ベクトル＋sub）。データ再読込でクリア。
@@ -521,7 +522,7 @@ function deriveElixirVector(c) {
   const airSingle = ev('対空単体処理'), grdSwarm = ev('地上群れ処理'), airSwarm = ev('対空群れ処理');
   const wall = ev('壁性能'), spellRes = ev('呪文耐性');
   const towerDmg = ev('タワーダメージ力'), towerFin = ev('タワーダメージ決定力'), bldDmg = ev('施設破壊力'), bldBreak = ev('施設突破力');
-  const solo = ev('素出し適正'), ph1 = ev('序盤適性(エリクサー1倍)'), ph2 = ev('中盤適性(エリクサー2倍)'), ph3 = ev('中盤適性(エリクサー3倍)');
+  const solo = ev('素出し適正');
   const rangePress = ev('射程圧'), tempoPress = ev('手数圧'), rageFit = ev('レイジ適性');
   const cheap = (7 - cost) / 6 * 10;
   const fire = cl(0.38 * towerDmg + 0.30 * towerFin + 0.22 * bldDmg + 0.10 * tempoPress);
@@ -532,7 +533,8 @@ function deriveElixirVector(c) {
   const reach = cl(0.40 * bldBreak + 0.18 * rangePress + (canAir ? 2.2 : 0) + reachHint + rangeHint);
   const def = cl(0.34 * wall + 0.28 * Math.max(airSingle, airSwarm) + 0.23 * Math.max(tankProc, midProc) + 0.08 * rangePress + (defBld ? 2.5 : 0) + (minitank ? 1 : 0));
   const cycle = cl(cheap);
-  const flex = cl(0.28 * solo + 0.24 * ((ph1 + ph2 + ph3) / 3) + (canAir ? 2.0 : 0) + 0.13 * clear + 0.13 * rangePress + 0.12 * tempoPress + 0.10 * rageFit);
+  // 1倍/2倍/3倍の既存シート列は仮置き扱い。柔軟価値はカード特性からだけ導出する。
+  const flex = cl(0.30 * solo + (canAir ? 2.0 : 0) + 0.18 * clear + 0.17 * rangePress + 0.17 * tempoPress + 0.10 * rageFit + 0.08 * def);
   const tagCtl = on => on ? cl(5 + (7 - cost) / 6 * 5) : 0;
   const sub = {
     small: cl(Math.max(grdSwarm, airSwarm)), mid: cl(midProc), swarm: cl(grdSwarm),
@@ -553,6 +555,124 @@ function assistVecVal(c, key) {
 function assistVecSub(c, key) {
   const v = assistVector(c);
   return v && v.sub ? (+v.sub[key] || 0) : 0;
+}
+function assistClamp10(x) { return Math.max(0, Math.min(10, Math.round(x * 10) / 10)); }
+function assistCardTiming(c) {
+  // シート（ポテンシャル）に式ベースの勝負所があれば、それを最優先の“大元”として使う。無い軸だけ下の推定で補う。
+  const pv = assistPotential(c);
+  const v = assistVector(c) || {};
+  const sub = v.sub || {};
+  const cost = c && c.cost ? c.cost : 5;
+  const cheap = Math.max(0, (7 - cost) / 6 * 10);
+  const heavy = Math.max(0, (cost - 3) / 4 * 10);
+  const isSpell = assistIsSpell(c);
+  const bigSpell = assistSpellSize(c) === 'big';
+  const main = assistIsMainWincon(c);
+  const siege = assistTagHas(c, 'siege') || (assistWincon(c) && assistWincon(c).attackType === 'siege');
+  const tank = assistTagHas(c, 'tgHp') || assistTagHas(c, 'minitank') || assistHas(c, ['タンク']);
+  const one = assistClamp10(
+    0.28 * (v.cycle || 0) + 0.20 * (v.flex || 0) + 0.20 * (v.def || 0)
+    + 0.14 * (v.clear || 0) + 0.10 * (sub.fastBlock || 0) + 0.08 * cheap
+    - (cost >= 6 ? 1.8 : cost >= 5 ? 0.8 : 0)
+  );
+  const two = assistClamp10(
+    0.22 * (v.fire || 0) + 0.18 * (v.reach || 0) + 0.18 * (v.def || 0)
+    + 0.14 * (v.dur || 0) + 0.11 * (v.ctrl || 0) + 0.10 * (v.flex || 0) + 0.07 * (sub.tempo || 0)
+    + (main ? 0.7 : 0) + (tank ? 0.4 : 0)
+  );
+  const three = assistClamp10(
+    0.27 * (v.fire || 0) + 0.18 * (v.dur || 0) + 0.16 * (v.ctrl || 0)
+    + 0.14 * (v.reach || 0) + 0.10 * (v.area || 0) + 0.08 * (v.def || 0) + 0.07 * heavy
+    + (bigSpell ? 0.9 : 0) + (siege ? 0.7 : 0) + (main && cost >= 5 ? 0.8 : 0)
+  );
+  const num = x => (typeof x === 'number' && isFinite(x)) ? assistClamp10(x) : null;
+  const so = pv ? num(pv.timingEarly) : null, st = pv ? num(pv.timingMid) : null, sv = pv ? num(pv.timingOvertime) : null;
+  return { one: so == null ? one : so, two: st == null ? two : st, three: sv == null ? three : sv };
+}
+function assistTimingLabel(t) {
+  if (!t) return '';
+  if (t.three >= 7.1 && t.three >= t.one + 1.2) return '延長で伸びる';
+  if (t.two >= 7.0 && t.two >= t.one + 0.8) return '2倍から形を作る';
+  if (t.one >= 6.8) return '序盤から動ける';
+  return '';
+}
+function assistDeckTiming(info) {
+  const cards = (info && info.cards) || [];
+  if (!cards.length) return { one: 0, two: 0, three: 0, label: '' };
+  const sum = cards.reduce((a, c) => {
+    const t = assistCardTiming(c);
+    a.one += t.one; a.two += t.two; a.three += t.three;
+    return a;
+  }, { one: 0, two: 0, three: 0 });
+  const out = {
+    one: Math.round(sum.one / cards.length * 10) / 10,
+    two: Math.round(sum.two / cards.length * 10) / 10,
+    three: Math.round(sum.three / cards.length * 10) / 10
+  };
+  out.label = assistTimingLabel(out) || (out.three >= out.one ? '後半寄り' : '序盤寄り');
+  return out;
+}
+function assistCardTolerance(c) {
+  // シート（ポテンシャル）の被ダメ許容が数値で入っていれば、それを大元として使う。無ければカード特性から推定。
+  const pv = assistPotential(c);
+  if (pv && typeof pv.tolerance === 'number' && isFinite(pv.tolerance)) return assistClamp10(pv.tolerance);
+  const v = assistVector(c) || {};
+  const sub = v.sub || {};
+  const cost = c && c.cost ? c.cost : 5;
+  const w = assistWincon(c) || {};
+  const tank = assistTagHas(c, 'tgHp') || assistTagHas(c, 'minitank') || assistHas(c, ['タンク']);
+  const counter = 0.28 * (v.dur || 0) + 0.23 * (v.fire || 0) + 0.16 * (v.def || 0) + 0.12 * (v.reach || 0)
+    + 0.09 * (v.ctrl || 0) + 0.07 * (sub.bigBlock || 0) + 0.05 * (sub.tank || 0);
+  let s = counter + (cost >= 6 ? 1.4 : cost >= 5 ? 0.8 : cost <= 2 ? -0.5 : 0);
+  if (tank) s += 0.8;
+  if (w.attackType === 'mainPressure') s += 0.9;
+  if (w.attackType === 'siege') s -= 0.8;
+  if (c.type === 'building' || assistTagHas(c, 'defBuilding')) s -= 1.0;
+  if (assistSpellSize(c) === 'big') s += 0.4;
+  return assistClamp10(s);
+}
+function assistToleranceLabel(x) {
+  if (x >= 7.1) return '受けて返す';
+  if (x >= 4.7) return '少し受けて返す';
+  return '被弾を抑える';
+}
+function assistDeckTolerance(info) {
+  const cards = (info && info.cards) || [];
+  if (!cards.length) return { value: 0, label: '' };
+  const avgCard = cards.reduce((s, c) => s + assistCardTolerance(c), 0) / cards.length;
+  let s = avgCard * 0.62 + Math.max(0, ((info.avg || 0) - 2.8) / 2.0 * 10) * 0.18;
+  if (info.mainAttack === 'mainPressure') s += 1.0;
+  if (info.mainAttack === 'siege') s -= 0.8;
+  if (info.buildings && info.buildings.length) s -= 0.5;
+  if (info.personaAxes) s += (info.personaAxes.risk || 0) * 1.2;
+  const value = assistClamp10(s);
+  return { value, label: assistToleranceLabel(value) };
+}
+function assistToleranceFit(c, info, kind) {
+  if (!info || !info.cards.length || !info.personaAxes) return 0;
+  const want = info.personaAxes.risk || 0;
+  if (Math.abs(want) < 0.2) return 0;
+  const tol = assistCardTolerance(c);
+  const centered = (tol - 5) / 5;
+  const fit = want > 0 ? centered : -centered;
+  return Math.round(fit * Math.min(14, 7 + info.cards.length) * (kind === 'discovery' ? 0.55 : 1));
+}
+function assistSpellTargetFit(c, info, kind) {
+  if (assistSpellTarget == null || !info) return 0;
+  const target = Math.max(0, Math.min(4, assistSpellTarget));
+  const isSpell = assistIsSpell(c);
+  const before = info.spells.length;
+  const after = before + (isSpell ? 1 : 0);
+  const remaining = 8 - (info.cards.length + 1);
+  let score = 0;
+  if (after > target) score -= 42 + (after - target) * 18;
+  else if (after < target) {
+    if (isSpell) score += 26 + Math.min(16, (target - before) * 8);
+    else if (after + remaining < target) score -= 40;
+    else if (info.cards.length >= 5) score -= 8;
+  } else if (isSpell) score += 12;
+  if (kind === 'discovery') score = Math.round(score * 0.65);
+  return score;
 }
 // 回転価値（文脈つき）：単体の軽さ(cycle素点)に「このデッキを実際に軽くできるか」を足し引きする。
 //  オーナー討議2026-06-30：平均2.6で3コスを足すのは“軽くした”とは言えない＝弱める。
@@ -696,7 +816,9 @@ function assistStageNeeds(info) {
   const hasSpeedCore = info.cards.some(c => c.name === 'レイジ' || c.name === 'ランバージャック' || assistHas(c, ['レイジ','速度','バフ']));
   if (late || hasSpeedCore) assistAddStageNeed(needs, 'rage', '速度で伸びる札', 'attack', (hasSpeedCore ? 18 : 0) + Math.max(0, 4.2 - avgSub('rage')) * 3);
   if (late) assistAddStageNeed(needs, 'cycle', '回転力', 'cycle', (info.avg >= 3.5 ? 18 : 0) + (info.cycleAvg >= 2.9 ? 12 : 0) + (info.cycles.length < 2 ? 8 : 0));
-  if (late && !info.spells.length) assistAddStageNeed(needs, 'spell', '呪文', 'defense', 26);
+  if (late && assistSpellTarget != null && info.spells.length < assistSpellTarget) {
+    assistAddStageNeed(needs, 'spell', '呪文目安', 'defense', (assistSpellTarget - info.spells.length) * 18);
+  }
   return needs.sort((a, b) => b.severity - a.severity).slice(0, 4);
 }
 function assistNeedCandidateValue(c, id, info) {
@@ -750,7 +872,7 @@ function assistStageNeedReason(c, need, info) {
   if (need.id === 'tempo') return '手数を足して、相手の受けを追い込みやすくします。';
   if (need.id === 'rage') return '速度を乗せた時の伸びを活かしやすく、攻め切る力を足せます。';
   if (need.id === 'cycle') return assistCycleValueInContext(c, info) >= 6 ? '今より軽くなって、欲しい札へ戻りやすくなります。' : '回しやすさを保ちながら、形を整えられます。';
-  if (need.id === 'spell') return '呪文を1枚足して、攻めと受けの選択肢を広げられます。';
+  if (need.id === 'spell') return '目安に合わせて、呪文枠をここで足せます。';
   return '';
 }
 const ASSIST_WINCONS = new Set([
@@ -869,17 +991,17 @@ function assistDeckInfo() {
     specialOpen: deck[0] === null || deck[1] === null || deck[2] === null, // 特別枠(1〜3)のどれかが空き
     normalOpen: [3, 4, 5, 6, 7].some(i => deck[i] === null)          // 通常枠(4〜8)のどれかが空き
   };
-  const info = { cards, names, avg, cycleAvg, wincons, spells, smallSpells, air, splash, dps, buildings, cycles, main, secondaries, mainAxes, mainAttack, personaAxes, slots, style };
+  const info = { cards, names, avg, cycleAvg, wincons, spells, smallSpells, air, splash, dps, buildings, cycles, main, secondaries, mainAxes, mainAttack, personaAxes, slots, style, spellTarget: assistSpellTarget };
   info.vectorSums = assistDeckVectorSums(info); // 9ベクトルのデッキ合計を1回だけ算出（候補評価で使い回す）
+  info.timing = assistDeckTiming(info); // 既存の1倍/2倍/3倍列ではなく、カード特性から勝負所を読む
+  info.tolerance = assistDeckTolerance(info); // 被ダメ許容：受け切る/少し受けて返す/大きく返す寄りを数値化
   info.stageNeeds = assistStageNeeds(info); // 5枚目以降の不足読み（対空/処理/射程/回転など）
   return info;
 }
 function assistLegal(c, info) {
   if (info.names.has(c.name)) return false;
   if (info.cards.length >= 8) return false;
-  // 呪文は最大3枚まで。逆に最後の1枚で呪文0なら、必ず呪文を候補にする。
-  if (assistIsSpell(c) && info.spells.length >= 3) return false;
-  if ((8 - info.cards.length) <= 1 && info.spells.length < 1 && !assistIsSpell(c)) return false;
+  // 呪文枚数はプレイヤーの好み。禁止/強制はせず、目安が設定されている時だけスコアで寄せる。
   return true;
 }
 function assistTextHit(text, needles) {
@@ -914,7 +1036,9 @@ function assistPotentialFit(c, info) {
   if (p.scaling && assistTextHit(trait, String(p.scaling).split(/[・/／,、\s()（）]+/))) score += 12;
   if (p.solo === '◎' && info.cards.length <= 2) score += 8;
   if (p.solo === '△' && info.cards.length <= 1) score -= 8;
-  if (Array.isArray(p.phase) && (p.phase[1] === '◎' || p.phase[2] === '◎') && info.avg >= 3.8) score += 8;
+  const timing = assistCardTiming(c);
+  if (info.avg >= 3.8 && timing.three >= 6.7 && timing.three >= timing.one + 0.8) score += 7;
+  if (info.cards.length <= 2 && timing.one >= 7.0) score += 4;
   return score;
 }
 function assistPairRows(c, info) {
@@ -1050,8 +1174,7 @@ function assistScore(c, kind, info) {
       const thin = c.cost <= 1 ? 0.45 : 1; // スピリット系は減衰
       score += airBase * thin;
     }
-    // 呪文ゼロ → 小型呪文を中心に1枚だけ推す（大型呪文を穴埋め扱いで押し付けない）
-    if (!info.spells.length && isSpell) score += (size === 'small' ? 50 : size === 'mid' ? 28 : 8) + (info.cards.length >= 5 ? 24 : 0);
+    // 呪文枚数は好み。ゼロだから自動で推すのではなく、処理価値や目安設定で自然に上げる。
     // 範囲処理・地上DPSは呪文以外のユニット役で埋める
     if (!info.splash.length && !isSpell && (assistTagHas(c, 'splash') || assistHas(c, ['範囲','小型処理']))) score += 38;
     if (!info.dps.length && !isSpell && (assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp') || assistHas(c, ['高DPS','高火力','集中加熱']))) score += 32;
@@ -1081,6 +1204,7 @@ function assistScore(c, kind, info) {
   }
   score += assistPotentialFit(c, info);
   score += assistWinconBonus(c, kind, info);
+  score += assistSpellTargetFit(c, info, kind);
   const pairFit = assistPairFit(c, info);
   if (pairFit) score += kind === 'discovery' ? Math.round(pairFit * 0.55) : pairFit;
   const pairExtFit = assistPairExtensionFit(c, info);
@@ -1108,6 +1232,7 @@ function assistScore(c, kind, info) {
   if (info.personaAxes) {
     const fit = personaCardFit(c, info.personaAxes);
     score += kind === 'discovery' ? Math.round(fit * 0.4) : fit;
+    score += assistToleranceFit(c, info, kind);
   }
   // 同じ役割が既に厚いなら重複ペナルティ（どの候補でも効かせる）
   if (!isSpell) {
@@ -1117,7 +1242,7 @@ function assistScore(c, kind, info) {
   // 主勝ち筋が既にあるのに別の主勝ち筋を勧めない（natural/stable）
   if (kind !== 'discovery' && info.wincons.length && t === 'wincon') score -= 30;
   if (info.avg >= 4.4 && c.cost >= 5 && info.cards.length >= 5) score -= 28;
-  if (info.spells.length >= 2 && isSpell) score -= 22;
+  if (assistSpellTarget != null && info.spells.length >= assistSpellTarget && isSpell) score -= 18;
   if (info.cards.length >= 6 && !info.wincons.length && t !== 'wincon') score -= 45;
   return score;
 }
@@ -1161,7 +1286,7 @@ function assistReason(c, kind, info) {
   }
   if (kind === 'stable') {
     if (info.air.length < 2 && assistIsTrueAir(c)) return '対空が薄いので、空中の攻めへの受けが安定します。';
-    if (!info.spells.length && assistIsSpell(c)) return '呪文が無いので、小物処理や押し込みが安定します。';
+    if (assistSpellTarget != null && info.spells.length < assistSpellTarget && assistIsSpell(c)) return '目安に合わせつつ、小物処理や押し込みの選択肢を足せます。';
     if (!info.splash.length && (assistTagHas(c, 'splash') || assistHas(c, ['範囲','小型処理']))) return '範囲処理を足して、小物で崩されにくくします。';
     if (!info.dps.length && (assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp'))) return '相手のタンクを溶かす役がいないので、守りが安定します。';
     if (info.avg >= 4.0 && c.cost <= 2) return '重めなので、回転を少し整える候補です。';
@@ -1193,10 +1318,8 @@ function assistDetail(c, kind, info) {
   }
   if (p && p.partner) parts.push('組み合わせたい相手: ' + p.partner + '。');
   if (p && p.scaling) parts.push('伸び方は「' + p.scaling + '」型です。');
-  if (p && Array.isArray(p.phase)) {
-    if (p.phase[1] === '◎' || p.phase[2] === '◎') parts.push('2倍/3倍タイムで価値が伸びます。');
-    else if (p.phase[0] === '◎') parts.push('序盤から無理なく使えます。');
-  }
+  const timingLabel = assistTimingLabel(assistCardTiming(c));
+  if (timingLabel) parts.push(timingLabel + '1枚です。');
   // 注意点（穴が残る）を正直に添える＝押し付けない
   if (kind === 'natural' && info.air.length < 1 && !assistIsTrueAir(c)) parts.push('ただし対空は増えないので、次は空受けを足したいです。');
   if (kind === 'discovery' && w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) parts.push('単体ではなく、組み合わせるとタワーダメージにつながります。');
@@ -1219,10 +1342,10 @@ function assistBadges(c, info) {
   }
   if (p && p.partner) badges.push('組み合わせ: ' + p.partner);
   if (p && p.scaling) badges.push(p.scaling);
-  if (p && Array.isArray(p.phase)) {
-    if (p.phase[1] === '◎' || p.phase[2] === '◎') badges.push('倍速向き');
-    else if (p.phase[0] === '◎') badges.push('序盤OK');
-  }
+  const timingLabel = assistTimingLabel(assistCardTiming(c));
+  if (timingLabel) badges.push(timingLabel);
+  const tol = assistCardTolerance(c);
+  if (tol >= 7.2) badges.push('受けて返す');
   if (p && p.solo === '◎') badges.push('単体でも動ける');
   const bp = info ? assistBestPair(c, info) : null;
   const bx = info ? assistBestPairExtension(c, info) : null;
@@ -1424,6 +1547,20 @@ function assistDirectionChipsHtml(info) {
   const hint = needs ? '<small class="assist-dir-hint">今は ' + esc(needs) + ' も見たい形</small>' : '';
   return '<div class="assist-dir"><span class="assist-dir-q">次はどこを伸ばす？</span><div class="assist-dir-chips">' + chips + '</div>' + hint + '</div>';
 }
+// 呪文の枚数はプレイヤーの好み。正解ではないので警告や強制はしない（0や4も選べる）。
+//  「任意」＝寄せない。数字を選ぶとその枚数を目安に候補を少しだけ寄せる（assistSpellTargetFit）。
+//  ユーザーは最初に決めたいことが多いので、1枚目より前（0枚時）から表示する。
+function assistSpellTargetChipsHtml(info) {
+  if (!info || info.cards.length >= 8) return '';
+  const cur = info.spells.length;
+  const opts = [['any', '任意'], ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4']];
+  const active = assistSpellTarget == null ? 'any' : String(assistSpellTarget);
+  const chips = opts.map(o => '<button type="button" class="assist-spell-chip' + (active === o[0] ? ' active' : '') + '" data-assist-spell-target="' + o[0] + '">' + esc(o[1]) + '</button>').join('');
+  const hint = assistSpellTarget == null
+    ? '<small class="assist-spell-hint">正解はなく、好みで選べます</small>'
+    : '<small class="assist-spell-hint">今 呪文' + cur + '枚。目安に寄せて候補を出します</small>';
+  return '<div class="assist-spell"><span class="assist-spell-q">呪文の枚数</span><div class="assist-spell-chips">' + chips + '</div>' + hint + '</div>';
+}
 function updateAssistTopInfo(info) {
   const el = document.getElementById('assistTopInfo');
   if (!el) return;
@@ -1444,7 +1581,11 @@ function updateAssistTopInfo(info) {
     sub = rows.length ? rows.map(r => r.title).join(' / ') : 'もう少し枚数が増えると読みやすいです';
   } else {
     main = info.cards.length + '/8枚';
-    sub = info.style + (needs ? '｜次: ' + needs : '') + '｜苦: ' + threats;
+    // 勝負所（延長で伸びる等）と被ダメ許容（少し受けて返す等）を軽く添える。カード特性から読む＝既存の1倍/2倍/3倍列は使わない。
+    const read = info.cards.length >= 3
+      ? [info.timing && info.timing.label, info.tolerance && info.tolerance.label].filter(Boolean).join('・')
+      : '';
+    sub = info.style + (read ? '｜' + read : '') + (needs ? '｜次: ' + needs : '') + '｜苦: ' + threats;
   }
   const go = assistChunk === 'threats' ? '候補へ' : '受けへ';
   el.innerHTML = '<span class="ati-main">' + esc(main) + '</span><span class="ati-sub">' + esc(sub) + '</span><span class="ati-go">' + esc(go) + '</span>';
@@ -1498,7 +1639,7 @@ function updateAssistPanel() {
     : '<div class="assist-persona" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">デッキの好みを設定すると、あなた向けに候補が絞れます</span><span class="ap-edit">設定</span></div>';
   const contextLine = contextLoading ? '<div class="assist-context-loading">読みを整えています…</div>' : '';
   const activeChunk = assistChunk === 'threats' ? 'threats' : 'cards';
-  const chunkHtml = activeChunk === 'threats' ? assistThreatHtml(info) : (assistDirectionChipsHtml(info) + cardsHtml);
+  const chunkHtml = activeChunk === 'threats' ? assistThreatHtml(info) : (assistSpellTargetChipsHtml(info) + assistDirectionChipsHtml(info) + cardsHtml);
   const actionMain = activeChunk === 'threats'
     ? '<button class="assist-mini" id="assistBackCards" type="button">候補へ戻る</button>'
     : '<button class="assist-mini" id="assistRefresh" type="button">別候補</button>';
@@ -1573,6 +1714,16 @@ function updateAssistPanel() {
     b.addEventListener('click', () => {
       const dir = b.getAttribute('data-assist-dir');
       assistDirection = (assistDirection === dir) ? null : dir;
+      assistVariant = 0;
+      updateAssistPanel();
+    });
+  });
+  // 呪文の枚数チップ（任意/0〜4）：好みの目安。設定した時だけ候補を寄せる（警告や強制はしない）。
+  panel.querySelectorAll('[data-assist-spell-target]').forEach(b => {
+    b.addEventListener('click', () => {
+      const v = b.getAttribute('data-assist-spell-target');
+      assistSpellTarget = (v === 'any') ? null : Math.max(0, Math.min(4, parseInt(v, 10)));
+      try { localStorage.setItem('cr_assist_spell_target', assistSpellTarget == null ? '' : String(assistSpellTarget)); } catch(e) {}
       assistVariant = 0;
       updateAssistPanel();
     });
