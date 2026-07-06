@@ -205,6 +205,34 @@
     cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
   .assist-dir-chip.active { border-color: rgba(232,160,32,0.52); color: var(--accent); background: rgba(232,160,32,0.11); }
+  /* 4枚目以降「伸ばす方向」ブロック（攻撃/防衛/回転を同時表示、各ブロックに別候補） */
+  .assist-dir-blocks { display: grid; gap: 6px; margin-top: 2px; }
+  .assist-dir-blocks-q { font-size: 11px; font-weight: 800; color: var(--text-muted); }
+  .assist-dir-block { border: 1px solid rgba(255,255,255,0.10); border-radius: 9px; padding: 6px 7px; background: rgba(255,255,255,0.035); }
+  .assist-dir-block .adb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .assist-dir-block .adb-title { font-size: 11px; font-weight: 800; color: var(--accent); }
+  .assist-dir-block .adb-refresh {
+    flex: 0 0 auto; font-size: 10px; font-weight: 700; color: var(--text-muted);
+    background: none; border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; cursor: pointer;
+  }
+  @media (hover: hover) { .assist-dir-block .adb-refresh:hover { color: var(--accent); border-color: rgba(232,160,32,0.5); } }
+  .assist-dir-block .adb-empty { font-size: 11px; color: var(--text-muted); line-height: 1.4; margin-top: 3px; }
+  .assist-dir-card { display: flex; align-items: center; gap: 8px; margin-top: 5px; cursor: pointer; }
+  .assist-dir-card img { width: 36px; height: 36px; object-fit: contain; flex: 0 0 auto; }
+  .assist-dir-card > span:first-child:empty { width: 36px; height: 36px; flex: 0 0 auto; }
+  .assist-dir-card .adc-body { min-width: 0; display: flex; flex-direction: column; flex: 1 1 auto; }
+  .assist-dir-card .adc-name { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .assist-dir-card .adc-reason { font-size: 11px; color: var(--text-muted); line-height: 1.35; margin-top: 1px; }
+  .assist-dir-card .adc-badges { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 3px; }
+  .assist-dir-card .adc-badges span { font-size: 9px; color: var(--text-muted); border: 1px solid var(--border); border-radius: 999px; padding: 1px 5px; }
+  .assist-dir-card .adc-add { color: var(--accent); font-size: 16px; padding: 0 2px; flex: 0 0 auto; }
+  /* 明確シナジー（今のデッキ内のはっきり噛み合う2枚組）の可視化 */
+  .assist-clear-syn { display: flex; flex-direction: column; gap: 3px; margin: 1px 0 2px; }
+  .assist-clear-syn .acs-q { font-size: 11px; font-weight: 800; color: var(--text-muted); }
+  .assist-clear-syn .acs-items { display: flex; gap: 5px; flex-wrap: wrap; }
+  .assist-clear-syn .acs-item { font-size: 11px; font-weight: 700; border-radius: 999px; padding: 2px 8px; border: 1px solid var(--border); }
+  .assist-clear-syn .acs-item.clear { color: var(--accent); border-color: rgba(232,160,32,0.5); background: rgba(232,160,32,0.10); }
+  .assist-clear-syn .acs-item.type { color: var(--text); border-color: var(--border-hi); background: rgba(255,255,255,0.04); }
   .assist-spell { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 1px 0 2px; }
   .assist-spell-q { font-size: 11px; font-weight: 800; color: var(--text-muted); flex: 0 0 auto; }
   .assist-spell-chips { display: flex; gap: 5px; flex-wrap: wrap; }

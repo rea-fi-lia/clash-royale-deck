@@ -34,6 +34,11 @@ let assistChunk = 'cards';
 let assistSpellTarget = (() => { try { const v = localStorage.getItem('cr_assist_spell_target'); return v === null || v === '' ? null : Math.max(0, Math.min(4, parseInt(v, 10))); } catch(e) { return null; } })();
 // 4枚目以降の方向チップ（攻撃強化/防衛強化/回転力強化）。null=未選択（全体から自然に出す）。
 let assistDirection = null;
+// 4枚目以降の「伸ばす方向」ブロック（攻撃/防衛/回転を同時表示）ごとの別候補ローテーション位置。
+//  それぞれ独立して回せるようにする（1つの「別候補」で全部が動く問題への対応）。
+let assistDirVariant = { attack: 0, defense: 0, cycle: 0 };
+// 方向ブロックで今出している候補名→方向ラベル（クリック追加時のトースト表示に使う）。
+let assistDirLabelByName = {};
 // エリクサー価値ベクトルの導出キャッシュ（カード名→9ベクトル＋sub）。データ再読込でクリア。
 let assistVectorCache = {};
 // 組み合わせ/苦しい相手の読みは、全量ではなく「今のデッキ周辺」だけWorkerから取る。
@@ -54,7 +59,7 @@ function allowAssistPublicJsonFallback() {
     return !prod && new URLSearchParams(location.search || '').get('publicJsonFallback') === '1';
   } catch (e) { return false; }
 }
-const assistData = { wincon: null, potential: null, tags: null, pairs: null, pairExt: null, threatResp: null, vectors: null, eval: null, ready: false, tried: false };
+const assistData = { wincon: null, potential: null, tags: null, pairs: null, deckPairs: null, pairExt: null, threatResp: null, vectors: null, eval: null, ready: false, tried: false };
 
 function saveFavorites() {
   if (window.CRAuth && CRAuth.getUser && CRAuth.getUser()) {
@@ -387,12 +392,14 @@ function loadAssistContextBundle(info) {
 }
 function applyAssistContext(key, bundle) {
   assistData.pairs = bundle && bundle.pairs ? bundle.pairs : {};
+  assistData.deckPairs = bundle && bundle.deckPairs ? bundle.deckPairs : [];
   assistData.pairExt = bundle && bundle.pairExt ? bundle.pairExt : {};
   assistData.threatResp = bundle && bundle.threatResp ? bundle.threatResp : {};
   assistContextKey = key || '';
 }
 function clearAssistContext() {
   assistData.pairs = null;
+  assistData.deckPairs = null;
   assistData.pairExt = null;
   assistData.threatResp = null;
   assistContextKey = '';
@@ -406,6 +413,7 @@ function ensureAssistContext(info) {
   if (assistContextCache[key]) { applyAssistContext(key, assistContextCache[key]); return false; }
   if (assistContextPending === key) return true;
   assistData.pairs = null;
+  assistData.deckPairs = null;
   assistData.pairExt = null;
   assistData.threatResp = null;
   assistContextKey = '';
@@ -429,6 +437,7 @@ function applyAssistBundle(bundle) {
   assistData.potential = normalizeAssistCards(bundle && bundle.potential);
   assistData.tags = normalizeAssistCards(bundle && bundle.tags);
   assistData.pairs = bundle && bundle.pairs ? bundle.pairs : null;
+  assistData.deckPairs = bundle && bundle.deckPairs ? bundle.deckPairs : null;
   assistData.pairExt = bundle && bundle.pairExt ? bundle.pairExt : null;
   assistData.threatResp = bundle && bundle.threatResp ? bundle.threatResp : null;
   assistData.vectors = normalizeAssistCards(bundle && bundle.vectors);
@@ -1041,23 +1050,104 @@ function assistPotentialFit(c, info) {
   if (info.cards.length <= 2 && timing.one >= 7.0) score += 4;
   return score;
 }
+// 2枚シナジーの「明確さ」を kind＋段階値(str)で評価する。
+//  以前は公開fitが0〜40で頭打ち（ほぼ全部40）だったため、fitでは強弱が出ず
+//  hiddenWinLift/templateCoreが軒並み「明確」に化けていた（＝明確シナジーが薄まる）。
+//  そこで噛み合いの強さを段階値 str(0〜100) として持たせ、これを主信号に切り分ける。
+//  str＝lift/勝ち方/月間安定/サンプル/テンプレ依存/広さ（+あれば支配度・決定力）の合成。
+//  ・broadSynergy＝いろいろな形で効く本命 → 明確
+//  ・hiddenWinLift＝勝ち方が良くなる隠れた噛み合い → 強ければ明確／基本は発見
+//  ・templateCore＝型がはっきり出る → 強ければ明確／基本は型
+//  ・softSynergy＝軽い相性、provisional＝薄い（サンプル不足）
+function assistPairKindWeight(kind) {
+  return kind === 'broadSynergy' ? 1
+    : kind === 'hiddenWinLift' ? 0.82
+    : kind === 'templateCore' ? 0.66
+    : kind === 'softSynergy' ? 0.34
+    : kind === 'provisional' ? 0.12
+    : 0.3;
+}
+// 段階値strを取り出す（新データはstrを持つ。無い場合はnull＝控えめに判定）。
+function assistPairStrVal(r) {
+  if (!r) return null;
+  const v = Number(r.str);
+  return (r.str != null && isFinite(v)) ? v : null;
+}
+// 明確さ判定。strがあれば本当の強さで切り分け、無い旧データ/未反映時は控えめ（明確に化けさせない）。
+//  第2引数は段階値str（0〜100 または null）。閾値は実データ分位で調整（明確は上位のみ）。
+function assistPairTier(kind, str) {
+  const has = str != null && isFinite(Number(str));
+  const v = has ? Number(str) : null;
+  if (kind === 'broadSynergy') return 'clear'; // 最も厳しい昇格を抜けた本命は常に明確
+  if (kind === 'hiddenWinLift') return has ? (v >= 66 ? 'clear' : 'discovery') : 'discovery';
+  if (kind === 'templateCore') return has ? (v >= 60 ? 'clear' : 'type') : 'type';
+  if (kind === 'softSynergy') return 'light';
+  return 'thin';
+}
+function assistTierRank(tier) {
+  return tier === 'clear' ? 4 : tier === 'type' ? 3 : tier === 'discovery' ? 2 : tier === 'light' ? 1 : 0;
+}
 function assistPairRows(c, info) {
   if (!assistData.pairs || !c || !info || !info.names) return [];
   const rows = assistData.pairs[c.name] || [];
   return rows.filter(r => info.names.has(r.other) && r.kind !== 'utilityOrCommon')
-    .map(r => Object.assign({}, r, { score: Number(r.fit != null ? r.fit : r.score) || 0 }));
+    .map(r => {
+      const score = Number(r.fit != null ? r.fit : r.score) || 0;
+      const str = assistPairStrVal(r);
+      const tier = assistPairTier(r.kind, str);
+      // 実効強さ：段階値strがあれば0〜40換算、無ければ従来fit。kind重みを掛けて並び順の軸にする。
+      const eff = str != null ? str * 0.4 : score;
+      return Object.assign({}, r, { score, str, tier, weighted: eff * assistPairKindWeight(r.kind) });
+    });
 }
 function assistPairFit(c, info) {
   const rows = assistPairRows(c, info);
   if (!rows.length) return 0;
-  const vals = rows.map(r => Math.max(0, Number(r.score) || 0)).sort((a, b) => b - a);
+  // 段階値str×kind重みの実効強さで評価＝軽い相性(soft)が明確シナジーと同点に見える問題を解消。
+  const vals = rows.map(r => Math.max(0, Number(r.weighted) || 0)).sort((a, b) => b - a);
   const max = vals[0] || 0;
   const avg2 = vals.length >= 2 ? (vals[0] + vals[1]) / 2 : max;
-  return Math.round(Math.min(30, max * 0.65 + avg2 * 0.35));
+  let out = max * 0.65 + avg2 * 0.35;
+  // 明確な噛み合いが1つでもあれば少し前に出す（明確シナジーを候補上位へ）。
+  if (rows.some(r => r.tier === 'clear')) out += 4;
+  return Math.round(Math.min(34, out));
 }
 function assistBestPair(c, info) {
-  const rows = assistPairRows(c, info).slice().sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0));
+  const rows = assistPairRows(c, info).slice().sort((a, b) =>
+    (assistTierRank(b.tier) - assistTierRank(a.tier)) || ((Number(b.weighted) || 0) - (Number(a.weighted) || 0)));
   return rows[0] || null;
+}
+// 今のデッキ内で「明確／型」に達している2枚組を返す（明確シナジーの可視化に使う）。
+//  Workerが返すデッキ内ペア(deckPairs)を優先。無い場合は候補↔デッキのpairsから拾える範囲で補う。
+function assistDeckSynergyPairs(info) {
+  if (!info || !info.cards || info.cards.length < 2) return [];
+  const out = [], seen = new Set();
+  const push = (a, b, kind, fit, str) => {
+    if (kind === 'utilityOrCommon') return;
+    const key = assistPairKey(a, b);
+    if (seen.has(key)) return;
+    const score = Number(fit) || 0;
+    const tier = assistPairTier(kind, str);
+    if (assistTierRank(tier) < assistTierRank('type')) return; // 明確・型のみ
+    seen.add(key);
+    const eff = (str != null && isFinite(Number(str))) ? Number(str) * 0.4 : score;
+    out.push({ a, b, tier, weighted: eff * assistPairKindWeight(kind) });
+  };
+  if (Array.isArray(assistData.deckPairs) && assistData.deckPairs.length) {
+    assistData.deckPairs.forEach(p => {
+      if (!p || !info.names.has(p.a) || !info.names.has(p.b)) return;
+      push(p.a, p.b, p.kind, p.fit != null ? p.fit : p.score, assistPairStrVal(p));
+    });
+  } else if (assistData.pairs) {
+    for (let i = 0; i < info.cards.length; i++) {
+      const a = info.cards[i];
+      (assistData.pairs[a.name] || []).forEach(r => {
+        if (!info.names.has(r.other)) return;
+        push(a.name, r.other, r.kind, r.fit != null ? r.fit : r.score, assistPairStrVal(r));
+      });
+    }
+  }
+  return out.sort((x, y) => (assistTierRank(y.tier) - assistTierRank(x.tier)) || (y.weighted - x.weighted)).slice(0, 3);
 }
 function assistPairKey(a, b) {
   return a < b ? a + '|' + b : b + '|' + a;
@@ -1279,7 +1369,9 @@ function assistReason(c, kind, info) {
     const mainName = info.wincons.length ? TR(info.wincons[0].name) : '主軸';
     if (bx && (bx.score || 0) >= 16) return TR(bx.a) + '＋' + TR(bx.b) + 'の形を通しやすくする1枚です。';
     if (size === 'small') return mainName + 'を通すための小型呪文。道を開けつつ少し圧もかけられます。';
-    if (bp && (bp.score || 0) >= 12) return TR(bp.other) + 'と合わせると、今の形に自然に足せます。';
+    if (bp && bp.tier === 'clear') return TR(bp.other) + 'とはっきり噛み合う1枚です。攻め方も受け方もつながります。';
+    if (bp && bp.tier === 'type') return TR(bp.other) + 'と組むと形がきれいにまとまる1枚です。';
+    if (bp && (bp.weighted || 0) >= 12) return TR(bp.other) + 'と合わせると、今の形に自然に足せます。';
     if (p && p.partner) return '今の構成に組み合わせ先があり、' + mainName + 'を伸ばせます。';
     if (assistIsTrueAir(c) || assistTagHas(c, 'splash')) return mainName + 'の後ろから守って撃てる支援役です。';
     return mainName + 'をそのまま伸ばしやすい候補です。';
@@ -1292,6 +1384,7 @@ function assistReason(c, kind, info) {
     if (info.avg >= 4.0 && c.cost <= 2) return '重めなので、回転を少し整える候補です。';
     return '今の穴を埋めて、事故を減らす候補です。';
   }
+  if (bp && bp.tier === 'discovery') return TR(bp.other) + 'と合わせると勝ち方が良くなりやすい、隠れた相性の1枚です。';
   if (w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) return 'もう一つの圧を足して、相手の受け方を迷わせます。';
   if (assistIsSecondary(c)) return 'もう一つの圧を足して、相手の受け方を迷わせます。';
   return '少し違う攻め方や面白さを足せる候補です。';
@@ -1309,10 +1402,10 @@ function assistDetail(c, kind, info) {
       : 'この2枚の形を前に進めやすい候補です。';
     parts.push(TR(bx.a) + '＋' + TR(bx.b) + 'の形に足すと、攻め方や受け方をつなげやすくなります。' + why);
   }
-  if (bp && (bp.score || 0) >= 8) {
-    const why = bp.kind === 'broadSynergy' ? 'いろいろな形に合わせやすい組み合わせです。'
-      : bp.kind === 'templateCore' ? '形がはっきり出やすい組み合わせです。'
-      : bp.kind === 'hiddenWinLift' ? '合わせると攻め方や守り方が安定しやすいです。'
+  if (bp && (assistTierRank(bp.tier) >= assistTierRank('discovery') || (bp.weighted || 0) >= 8)) {
+    const why = bp.tier === 'clear' ? 'いろいろな形ではっきり効きやすい組み合わせです。'
+      : bp.tier === 'type' ? '形がはっきり出やすい組み合わせです。'
+      : bp.tier === 'discovery' ? '合わせると勝ち方が良くなりやすい隠れた相性です。'
       : '並べると役割がつながりやすい組み合わせです。';
     parts.push(TR(bp.other) + 'と合わせると、今の形を作りやすくなります。' + why);
   }
@@ -1354,7 +1447,10 @@ function assistBadges(c, info) {
       : bx.kind === 'resultLift' ? '勝ち筋を太く'
       : '2枚を伸ばす');
   }
-  if (bp && (bp.score || 0) >= 12) badges.push('合わせやすい: ' + bp.other);
+  if (bp && bp.tier === 'clear') badges.push('明確: ' + TR(bp.other));
+  else if (bp && bp.tier === 'type') badges.push('型: ' + TR(bp.other));
+  else if (bp && bp.tier === 'discovery') badges.push('隠れ相性: ' + TR(bp.other));
+  else if (bp && (bp.weighted || 0) >= 12) badges.push('合わせやすい: ' + TR(bp.other));
   const nr = info ? assistBestStageNeed(c, info) : null;
   if (nr && nr.fit >= 6.5) badges.push(nr.need.label);
   const v = info ? assistVector(c) : null;
@@ -1385,6 +1481,108 @@ function buildAssistSuggestions() {
   if (info.cards.length >= 8) return [];
   const used = new Set();
   return ['natural','stable','discovery'].map(k => pickAssistCandidate(k, used, info)).filter(Boolean);
+}
+// =============================================================
+//  4枚目以降「伸ばす方向」候補（攻撃強化 / 防衛強化 / 回転力強化）
+//   ・3方向を同時に表示し、それぞれ独立した「別候補」で回せる。
+//   ・4枚目は既存の2枚組シナジーに対する“3枚目”として効く札も加点（pairExt）。
+//   ・ユニット/呪文/建物を絞りすぎない＝方向適性が高ければ種類は問わない。
+// =============================================================
+const ASSIST_DIRS = ['attack', 'defense', 'cycle'];
+// 方向候補のスコア：方向適性を主軸に、既存の噛み合い(2枚/3枚目)・穴埋め・コスト・好みを合成。
+function assistDirectionCandidateScore(c, dir, info) {
+  const dscore = assistDirectionScore(c, dir, info); // 0-10
+  if (dscore <= 0) return -999;
+  let score = dscore * 12; // 方向適性が主役（並び順を支配＝各ブロックの先頭がその方向らしくなる）
+  // 既存2枚組シナジー（kind重み付き）：この方向でも噛み合う札を前に（ボーナス、支配はしない）。
+  score += assistPairFit(c, info) * 0.3;
+  // 4枚目の肝：今ある2枚組に対する“3枚目シナジー”になり得る札を加点（ボーナス）。
+  score += assistPairExtensionFit(c, info) * 0.45;
+  // 場面の穴埋め（対空/処理/射程/回転など）を方向に合わせて軽く反映。
+  const needKind = dir === 'defense' ? 'stable' : dir === 'attack' ? 'natural' : 'discovery';
+  score += assistStageNeedFit(c, info, needKind) * 0.5;
+  score += assistCostFit(c, info, 'stable') * 0.4;
+  score += assistPotentialFit(c, info) * 0.3;
+  score += assistSpellTargetFit(c, info, 'stable');
+  if (info.personaAxes) score += personaCardFit(c, info.personaAxes) * 0.3;
+  // 方向にほぼ沿わない札は後ろへ（ブロックの意味は保ちつつ、別候補の選択肢は残す）。
+  if (dscore < 2.6) score -= 30;
+  // すでに厚い役割の重複はこの方向でも軽く抑える。
+  if (!assistIsSpell(c)) {
+    if (dir === 'defense' && info.air.length >= 2 && assistIsTrueAir(c)) score -= 12;
+    if (dir === 'attack' && info.dps.length >= 2 && (assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp'))) score -= 8;
+  }
+  return Math.round(score);
+}
+// 方向候補の理由：まず既存ペアへの噛み合いを優先し、無ければ方向の自然文。データ臭は出さない。
+function assistFourthReason(c, dir, info) {
+  const bx = assistBestPairExtension(c, info);
+  const dirWord = dir === 'attack' ? '攻め' : dir === 'defense' ? '受け' : '回し';
+  if (bx && (bx.score || 0) >= 20) {
+    return TR(bx.a) + '＋' + TR(bx.b) + 'に足すと噛み合い、' + dirWord + 'にも効く1枚です。';
+  }
+  const bp = assistBestPair(c, info);
+  if (bp && bp.tier === 'clear') return TR(bp.other) + 'とはっきり噛み合い、' + dirWord + 'を強められます。';
+  return assistDirectionReason(c, dir, info) || (dirWord + 'を強められる1枚です。');
+}
+// 指定方向の候補ランキング（その方向に効く札を全件。別候補で回すため全件返す）。
+//  各方向は独立した固定リストを持つ＝あるブロックの別候補が他ブロックを動かさない（独立ローテーション）。
+//  方向適性が並び順を支配するので、各ブロックの先頭は基本的にその方向らしい別々の札になる。
+function assistDirectionCandidates(info, dir) {
+  if (!info || info.cards.length < 3 || info.cards.length >= 8) return [];
+  const ranked = [];
+  CARDS.forEach(c => {
+    if (!assistLegal(c, info)) return;
+    const score = assistDirectionCandidateScore(c, dir, info);
+    if (score > 0) ranked.push({ card: c, score });
+  });
+  ranked.sort((a, b) => b.score - a.score || a.card.cost - b.card.cost);
+  return ranked;
+}
+// 3方向ぶんの表示用データを作る。各カードは「最も効く1方向」に固定で割り当て（所有）、
+//  各ブロックは自分の所有リストだけを別候補位置(assistDirVariant[dir])で1枚ずつ回す。
+//  所有は各方向スコアの大小だけで決まり、別候補位置には一切依存しない。そのため——
+//   ・「別候補」を押したブロックだけが必ず変わり、他の2ブロックは絶対に動かない（完全独立）。
+//   ・所有は排他なので3ブロックのカードは重複しない（＝同じ候補が並ばない）。
+//  所有が空になった方向だけ、自方向の全候補にフォールバックする（稀な退避策）。
+function assistDirectionBlocks(info) {
+  assistDirLabelByName = {};
+  if (!info || info.cards.length < 3 || info.cards.length >= 8) {
+    return ASSIST_DIRS.map(dir => ({ dir, card: null, total: 0 }));
+  }
+  // 各方向の候補ランキングと、方向別スコア表を一度だけ作る。
+  const rankedByDir = {}, scoreByDir = {};
+  ASSIST_DIRS.forEach(dir => {
+    const ranked = assistDirectionCandidates(info, dir);
+    rankedByDir[dir] = ranked;
+    const m = {};
+    ranked.forEach(r => { m[r.card.name] = r.score; });
+    scoreByDir[dir] = m;
+  });
+  // カードごとに最有効な方向を1つ決める（別候補位置に依存しない固定の割り当て）。
+  //  同点は attack>defense>cycle の固定優先。これで所有が安定し、ブロック間の独立が保たれる。
+  const ownerOf = {}, allNames = new Set();
+  ASSIST_DIRS.forEach(dir => rankedByDir[dir].forEach(r => allNames.add(r.card.name)));
+  allNames.forEach(name => {
+    let best = null, bestScore = -Infinity;
+    ASSIST_DIRS.forEach(dir => {
+      const sc = scoreByDir[dir][name];
+      if (sc == null) return;
+      if (sc > bestScore) { bestScore = sc; best = dir; }
+    });
+    if (best) ownerOf[name] = best;
+  });
+  // 各方向の所有リスト＝その方向が最有効なカードだけ。空の方向だけ全候補で代替。
+  return ASSIST_DIRS.map(dir => {
+    let list = rankedByDir[dir].filter(r => ownerOf[r.card.name] === dir);
+    if (!list.length) list = rankedByDir[dir];
+    if (!list.length) return { dir, card: null, total: 0 };
+    const total = list.length;
+    const idx = ((assistDirVariant[dir] || 0) % total + total) % total;
+    const pick = list[idx];
+    assistDirLabelByName[pick.card.name] = assistDirectionLabel(dir);
+    return { dir, card: pick.card, total, reason: assistFourthReason(pick.card, dir, info), badges: assistBadges(pick.card, info) };
+  });
 }
 function assistKindLabel(kind) {
   return kind === 'natural' ? '自然候補' : kind === 'stable' ? '安定候補' : '発見候補';
@@ -1547,6 +1745,43 @@ function assistDirectionChipsHtml(info) {
   const hint = needs ? '<small class="assist-dir-hint">今は ' + esc(needs) + ' も見たい形</small>' : '';
   return '<div class="assist-dir"><span class="assist-dir-q">次はどこを伸ばす？</span><div class="assist-dir-chips">' + chips + '</div>' + hint + '</div>';
 }
+// 4枚目以降「伸ばす方向」ブロック（攻撃強化/防衛強化/回転力強化を同時表示）。
+//  各ブロックに独立した「別候補」があり、そのブロックだけ次の候補へローテーションする。
+//  カードはユニット/呪文/建物を問わず、その方向に効く1枚を出す。
+function assistDirectionBlocksHtml(info) {
+  if (!info || info.cards.length < 3 || info.cards.length >= 8) return '';
+  const blocks = assistDirectionBlocks(info);
+  if (!blocks.some(b => b.card)) return '';
+  const cardsHtml = blocks.map(b => {
+    const head = '<div class="adb-head"><span class="adb-title">' + esc(assistDirectionLabel(b.dir)) + '</span>'
+      + (b.total > 1 ? '<button type="button" class="adb-refresh" data-assist-dir-refresh="' + b.dir + '">別候補</button>' : '') + '</div>';
+    if (!b.card) return '<div class="assist-dir-block"><div class="adb-head"><span class="adb-title">' + esc(assistDirectionLabel(b.dir)) + '</span></div><div class="adb-empty">今は無理に足さなくて大丈夫です。</div></div>';
+    const c = b.card;
+    const badges = (b.badges || []).slice(0, 2).map(x => '<span>' + esc(x) + '</span>').join('');
+    return '<div class="assist-dir-block">' + head
+      + '<div class="assist-dir-card" role="button" tabindex="0" data-assist-card="' + esc(c.name) + '">'
+      + (c.img ? '<img src="' + esc(c.img) + '" alt="" loading="lazy">' : '<span></span>')
+      + '<span class="adc-body"><span class="adc-name">' + esc(TR(c.name)) + '</span>'
+      + '<span class="adc-reason">' + esc(b.reason) + '</span>'
+      + (badges ? '<span class="adc-badges">' + badges + '</span>' : '') + '</span>'
+      + '<span class="adc-add">＋</span></div></div>';
+  }).join('');
+  return '<div class="assist-dir-blocks"><div class="assist-dir-blocks-q">' + esc((info.cards.length + 1) + '枚目を伸ばす方向') + '</div>' + cardsHtml + '</div>';
+}
+// 今のデッキ内の「明確／型」な2枚組を見せる（明確シナジーの可視化）。プレイヤー向けの自然文で。
+function assistClearSynergyHtml(info) {
+  if (!info || info.cards.length < 2) return '';
+  const pairs = assistDeckSynergyPairs(info);
+  if (!pairs.length) return '';
+  const items = pairs.map(p => {
+    const cls = p.tier === 'clear' ? 'clear' : 'type';
+    const mark = p.tier === 'clear' ? '◎' : '○';
+    return '<span class="acs-item ' + cls + '">' + mark + ' ' + esc(TR(p.a)) + '＋' + esc(TR(p.b)) + '</span>';
+  }).join('');
+  const hasClear = pairs.some(p => p.tier === 'clear');
+  const label = hasClear ? '今のデッキではっきり噛み合う組み合わせ' : '今のデッキで形がまとまる組み合わせ';
+  return '<div class="assist-clear-syn"><span class="acs-q">' + esc(label) + '</span><div class="acs-items">' + items + '</div></div>';
+}
 // 呪文の枚数はプレイヤーの好み。正解ではないので警告や強制はしない（0や4も選べる）。
 //  「任意」＝寄せない。数字を選ぶとその枚数を目安に候補を少しだけ寄せる（assistSpellTargetFit）。
 //  ユーザーは最初に決めたいことが多いので、1枚目より前（0枚時）から表示する。
@@ -1639,7 +1874,11 @@ function updateAssistPanel() {
     : '<div class="assist-persona" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">デッキの好みを設定すると、あなた向けに候補が絞れます</span><span class="ap-edit">設定</span></div>';
   const contextLine = contextLoading ? '<div class="assist-context-loading">読みを整えています…</div>' : '';
   const activeChunk = assistChunk === 'threats' ? 'threats' : 'cards';
-  const chunkHtml = activeChunk === 'threats' ? assistThreatHtml(info) : (assistSpellTargetChipsHtml(info) + assistDirectionChipsHtml(info) + cardsHtml);
+  const dir3 = info.cards.length >= 3 ? assistDirectionBlocksHtml(info) : '';
+  const clearSyn = assistClearSynergyHtml(info);
+  const chunkHtml = activeChunk === 'threats'
+    ? assistThreatHtml(info)
+    : (clearSyn + assistSpellTargetChipsHtml(info) + (dir3 ? '' : assistDirectionChipsHtml(info)) + cardsHtml + dir3);
   const actionMain = activeChunk === 'threats'
     ? '<button class="assist-mini" id="assistBackCards" type="button">候補へ戻る</button>'
     : '<button class="assist-mini" id="assistRefresh" type="button">別候補</button>';
@@ -1669,7 +1908,9 @@ function updateAssistPanel() {
       const c = CARDS.find(x => x.name === b.getAttribute('data-assist-card'));
       if (!c) return;
       addAssistToDeck(c);
-      showToast(assistKindLabel((assistSuggestions.find(s => s.card.name === c.name) || {}).kind || 'natural') + '：' + c.name);
+      const dirLabel = assistDirLabelByName[c.name];
+      const label = dirLabel || assistKindLabel((assistSuggestions.find(s => s.card.name === c.name) || {}).kind || 'natural');
+      showToast(label + '：' + TR(c.name));
       updateAssistPanel();
     };
     b.addEventListener('touchstart', (e) => {
@@ -1718,6 +1959,16 @@ function updateAssistPanel() {
       updateAssistPanel();
     });
   });
+  // 各「伸ばす方向」ブロックの別候補：そのブロックだけ次の候補へ回す（他ブロックは動かさない）。
+  panel.querySelectorAll('[data-assist-dir-refresh]').forEach(b => {
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dir = b.getAttribute('data-assist-dir-refresh');
+      if (!dir) return;
+      assistDirVariant[dir] = (assistDirVariant[dir] || 0) + 1;
+      updateAssistPanel();
+    });
+  });
   // 呪文の枚数チップ（任意/0〜4）：好みの目安。設定した時だけ候補を寄せる（警告や強制はしない）。
   panel.querySelectorAll('[data-assist-spell-target]').forEach(b => {
     b.addEventListener('click', () => {
@@ -1757,6 +2008,7 @@ function refreshAssistHighlights() {
 function setAssistMode(on) {
   assistMode = !!on;
   assistVariant = 0;
+  assistDirVariant = { attack: 0, defense: 0, cycle: 0 }; // 方向ブロックの別候補位置もリセット
   assistDirection = null; // ON/OFF切替で方向選択はリセット（毎回ニュートラルから）
   try { localStorage.setItem('cr_assist_mode', assistMode ? 'on' : 'off'); } catch(e) {}
   updateAssistPanel();

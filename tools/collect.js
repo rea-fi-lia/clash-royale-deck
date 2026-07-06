@@ -598,6 +598,32 @@ function publicFit_(v, max) {
   if (max != null) out = Math.min(max, out);
   return Math.max(0, out);
 }
+// pairの「噛み合いの明確さ」を0-100の段階値で出す。公開fitはmax頭打ちで強弱が出ないため、
+//  こちらで lift/勝ち方/月間安定/サンプル/テンプレ依存/広さ（+あれば支配度・決定力）を合成して段階を作る。
+//  これで「明確シナジー」を頭打ち値ではなく本当の強さで切り分けられる。
+function pairClarityStr_(o) {
+  var c01 = function (x) { return Math.max(0, Math.min(1, x)); };
+  var lift = Number(o.lift) || 0;
+  var winRaw = o.winLift == null ? 0 : Number(o.winLift);
+  var stab = Number(o.liftStability) || 0;
+  var sc = Number(o.sampleConfidence) || 0;
+  var conc = o.concentration == null ? 1 : Number(o.concentration);
+  var broad = Number(o.broadness) || 0;
+  var dom = o.dominanceLift == null ? null : Number(o.dominanceLift);
+  var dec = o.decisivenessLift == null ? null : Number(o.decisivenessLift);
+  var liftPart = c01(Math.log(Math.max(1, lift)) / Math.log(4)); // 期待比1〜4倍で0〜1
+  var winPart = c01(0.5 + winRaw * 16);                          // 勝率リフト±0.03程度で振れる
+  var concPart = c01((0.72 - conc) / 0.72);                      // テンプレ依存が低いほど高い
+  var base = 0.30 * liftPart + 0.24 * winPart + 0.16 * stab + 0.10 * sc + 0.10 * concPart + 0.10 * broad;
+  var q = [];
+  if (dom != null) q.push(c01(0.5 + dom * 5));                   // 支配度リフト（あれば）
+  if (dec != null) q.push(c01(0.5 + dec * 4));                   // 決定力リフト（あれば）
+  if (q.length) {
+    var qa = q.reduce(function (a, b) { return a + b; }, 0) / q.length;
+    base = base * 0.88 + qa * 0.12;                              // 勝ち方の質の裏付けがあれば少し寄せる
+  }
+  return Math.round(100 * c01(base));
+}
 function publicPairByCard_(pairsOut) {
   var byCard = {};
   (pairsOut || []).slice(0, 3000).forEach(function (p) {
@@ -605,7 +631,11 @@ function publicPairByCard_(pairsOut) {
     [p.a, p.b].forEach(function (n) {
       var other = n === p.a ? p.b : p.a;
       var list = byCard[n] || (byCard[n] = []);
-      if (list.length < 40) list.push({ other: other, kind: p.kind, fit: publicFit_(p.score, 40) });
+      if (list.length >= 40) return;
+      // strは push時に生の指標から算出済み（保存winLiftは×100スケールなのでここで再計算しない）。
+      var row = { other: other, kind: p.kind, fit: publicFit_(p.score, 40) };
+      if (p.str != null) row.str = p.str; // 無ければ付けない＝表示側が控えめに判定する
+      list.push(row);
     });
   });
   return byCard;
@@ -1763,7 +1793,7 @@ async function updateDecks() {
           broadness: round3_(broadness), sampleConfidence: round3_(sampleConfidence),
           activeMonths: activeMonths, liftStability: round3_(liftStability), earlyQualityBroad: !!earlyQualityBroad, currentLift: round2_(currentLift), trend: round3_(trend),
           utilityIndex: round3_(utilityIndex), roleComplement: round3_(roleComp),
-          kind: kind, score: synergyScore, components: components
+          kind: kind, score: synergyScore, str: pairClarityStr_({ lift: lift, winLift: winLift, liftStability: liftStability, sampleConfidence: sampleConfidence, concentration: concentration, broadness: broadness, dominanceLift: dominanceLift, decisivenessLift: decisivenessLift }), components: components
         });
       });
       pairsOut.sort(function (x, y) { return y.score - x.score || y.use - x.use; });
