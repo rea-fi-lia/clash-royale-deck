@@ -32,6 +32,9 @@ let assistSuggestions = [];
 let assistVariant = 0;
 let assistChunk = 'cards';
 let assistSpellTarget = (() => { try { const v = localStorage.getItem('cr_assist_spell_target'); return v === null || v === '' ? null : Math.max(0, Math.min(4, parseInt(v, 10))); } catch(e) { return null; } })();
+// デッキ開発メモ：プレイヤーの自然文を「固定分類」ではなく、軽い意図ベクトルとして候補へ反映する。
+//  将来AI APIを入れる時も、このベクトルを共通の受け皿にする。
+let assistDevNote = (() => { try { return String(localStorage.getItem('cr_assist_dev_note') || '').slice(0, 180); } catch(e) { return ''; } })();
 // 4枚目以降の方向チップ（攻撃強化/防衛強化/回転力強化）。null=未選択（全体から自然に出す）。
 let assistDirection = null;
 // 4枚目以降の「伸ばす方向」ブロック（攻撃/防衛/回転を同時表示）ごとの別候補ローテーション位置。
@@ -733,6 +736,109 @@ function assistDirectionScore(c, dir, info) {
 function assistDirectionLabel(dir) {
   return dir === 'attack' ? '攻撃強化' : dir === 'defense' ? '防衛強化' : dir === 'cycle' ? '回転力強化' : '';
 }
+const ASSIST_SIEGE_BUILDINGS = new Set(['巨大クロスボウ', '迫撃砲']);
+const ASSIST_ATTACK_BUILDINGS = new Set(['ゴブリンドリル']);
+function assistIsSiegeBuilding(c) { return c && ASSIST_SIEGE_BUILDINGS.has(c.name); }
+function assistIsDefenseBuilding(c) {
+  return c && c.type === 'building' && !ASSIST_SIEGE_BUILDINGS.has(c.name) && !ASSIST_ATTACK_BUILDINGS.has(c.name);
+}
+function assistDevNorm(text) {
+  return String(text || '').toLowerCase()
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0))
+    .replace(/[！-／：-＠［-｀｛-～]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+const ASSIST_DEV_RULES = [
+  { label: '攻めを伸ばす', axes: { attack: 1, pressure: 0.8 }, words: ['攻め', '攻撃', '圧', '押し込み', 'タワー削り', '削りたい', '削る', '火力', '決定力', '通したい', '突破'] },
+  { label: '守りを整える', axes: { defense: 1, stable: 0.7 }, words: ['守り', '防衛', '受け', '安定', '安心', '固く', '守れる', '守りたい', '防ぎたい', '受け切る'] },
+  { label: '軽く回す', axes: { cycle: 1, cheap: 0.9 }, words: ['軽い', '軽く', '回転', 'サイクル', '高回転', '回したい', '早く回す', 'テンポ', '手数', '低コスト'] },
+  { label: '重めに組む', axes: { heavy: 1, late: 0.8 }, words: ['重い', '重め', '後半', '終盤', '延長', '粘る', 'どっしり', '大型軸', '重厚'] },
+  { label: '対空を厚く', axes: { air: 1, defense: 0.4 }, words: ['対空', '空', '空中', 'バルーン', 'ラヴァ', 'ドラゴン', '飛行', 'エア'] },
+  { label: '大型を見る', axes: { antiTank: 1, defense: 0.5 }, words: ['大型', 'タンク', 'ゴレ', 'ゴーレム', 'ジャイ', 'ロイジャイ', 'ペッカ', 'メガナイト', '溶かす', '高dps'] },
+  { label: '小物処理', axes: { splash: 1, clear: 0.8 }, words: ['小物', '群れ', 'スケルトン', 'スケ', 'ゴブリン', 'コウモリ', '枯渇対策', 'まとめて', '範囲', 'スプラッシュ'] },
+  { label: '呪文を足す', axes: { spell: 1 }, words: ['呪文', 'スペル', 'spell', '火球', 'ファボ', 'ファイボ', 'ポイズン', 'ライトニング', 'ロケット', 'ザップ', 'ログ', 'ウッド'] },
+  { label: '小型呪文', axes: { smallSpell: 1, spell: 0.5, cycle: 0.3 }, words: ['小型呪文', '小呪文', '軽い呪文', 'ザップ', '雪玉', 'ログ', 'ウッド', 'ババ樽', '矢の雨'] },
+  { label: '大型呪文', axes: { bigSpell: 1, spell: 0.5, attack: 0.3 }, words: ['大型呪文', '大呪文', '重い呪文', 'ライトニング', 'ロケット', '決め呪文'] },
+  { label: '防衛施設を見る', axes: { building: 1, defense: 0.4 }, words: ['建物', '施設', '防衛施設', '大砲', 'テスラ', '檻', 'ボムタワー', 'インフェルノタワー'] },
+  { label: '施設少なめ', axes: { noBuilding: 1 }, words: ['建物なし', '施設なし', '防衛施設なし', '建物いらない', '施設いらない', '建物抜き'] },
+  { label: '攻城で組む', axes: { siege: 1, attack: 0.6 }, words: ['クロス', 'xボウ', 'xbow', '迫撃', 'モーター', 'モルタル', '攻城', 'シージ'] },
+  { label: '枯渇っぽく', axes: { bait: 1, pressure: 0.5, cycle: 0.3 }, words: ['枯渇', 'ベイト', 'bait', '呪文を使わせる', 'スペルを使わせる'] },
+  { label: '橋前の圧', axes: { bridge: 1, attack: 0.6, pressure: 0.5 }, words: ['橋前', 'ブリッジ', 'bridge', '奇襲', '速攻', '速い攻め', '奇襲したい'] },
+  { label: '射程を足す', axes: { range: 1, attack: 0.4, defense: 0.2 }, words: ['射程', '遠距離', '後衛', '後ろから', '届く', '長射程'] },
+  { label: '第2の圧', axes: { secondWincon: 1, attack: 0.4 }, words: ['第2', '第二', 'サブ', '別軸', 'もう一つ', 'もう1つ', '勝ち筋増やす', '勝ち筋を増やす'] },
+  { label: 'コントロール', axes: { control: 1, defense: 0.4 }, words: ['コントロール', '遅延', '止める', 'トルネ', 'フリーズ', 'リセット', '足止め'] },
+  { label: '丸くする', axes: { safe: 1, stable: 0.7 }, words: ['丸い', '無難', '事故', '事故らない', '安定候補', 'バランス', '穴を埋める', '弱点を埋める'] },
+  { label: '尖らせる', axes: { risky: 1, pressure: 0.4 }, words: ['尖る', '尖らせる', '面白い', 'ロマン', '変わった', '意外', '発見', '新しい', '遊び'] },
+  { label: 'カウンター重視', axes: { counter: 1, defense: 0.5, attack: 0.3 }, words: ['カウンター', '返し', '受けて返す', '反撃', '切り返し'] }
+];
+function assistDevelopmentIntent() {
+  const note = assistDevNote || '';
+  const s = assistDevNorm(note);
+  const axes = {}, labels = [], seen = new Set();
+  if (!s) return { active: false, note: '', axes, labels: [] };
+  ASSIST_DEV_RULES.forEach(rule => {
+    const hit = (rule.words || []).some(w => s.includes(assistDevNorm(w)));
+    if (!hit) return;
+    Object.keys(rule.axes || {}).forEach(k => { axes[k] = Math.max(-2, Math.min(2, (axes[k] || 0) + rule.axes[k])); });
+    if (!seen.has(rule.label)) { seen.add(rule.label); labels.push(rule.label); }
+  });
+  // 「〜はいらない/少なめ」系は特に後から増やしやすいよう独立補正にしておく。
+  if (/(呪文|スペル).*(なし|いらない|少なめ|少なく|抜き)/.test(s)) { axes.noSpell = Math.max(axes.noSpell || 0, 1); labels.push('呪文少なめ'); }
+  if (/(重い|大型).*(嫌|いや|苦手|避け|なし)/.test(s)) { axes.avoidHeavy = Math.max(axes.avoidHeavy || 0, 1); axes.cycle = Math.max(axes.cycle || 0, 0.6); labels.push('重さ控えめ'); }
+  if (/(守り|防衛|受け).*(薄い|不安|弱い|足りない)/.test(s)) { axes.defense = Math.max(axes.defense || 0, 1.2); labels.push('守り補強'); }
+  if (/(攻め|火力|削り).*(足りない|薄い|弱い|欲しい)/.test(s)) { axes.attack = Math.max(axes.attack || 0, 1.2); labels.push('攻め補強'); }
+  return { active: Object.keys(axes).length > 0, note, axes, labels: labels.slice(0, 5) };
+}
+function assistDevelopmentFit(c, info, kind) {
+  const intent = (info && info.developmentIntent) || assistDevelopmentIntent();
+  if (!intent.active) return 0;
+  const a = intent.axes || {};
+  let s = 0;
+  if (a.attack) s += a.attack * assistDirectionScore(c, 'attack', info) * 1.5;
+  if (a.defense) s += a.defense * assistDirectionScore(c, 'defense', info) * 1.45;
+  if (a.cycle) s += a.cycle * assistDirectionScore(c, 'cycle', info) * 1.6;
+  if (a.air) s += a.air * (assistIsTrueAir(c) ? 14 : Math.max(0, assistVecSub(c, 'antiAir')) * 1.3);
+  if (a.antiTank) s += a.antiTank * Math.max(assistVecSub(c, 'tank'), assistVecVal(c, 'def'), assistVecVal(c, 'clear')) * 1.35;
+  if (a.splash || a.clear) s += Math.max(a.splash || 0, a.clear || 0) * Math.max(assistVecSub(c, 'small'), assistVecSub(c, 'swarm'), assistVecVal(c, 'clear')) * 1.35;
+  if (a.spell) s += a.spell * (assistIsSpell(c) ? 13 : -2);
+  if (a.smallSpell) s += a.smallSpell * (assistSpellSize(c) === 'small' ? 15 : assistIsSpell(c) ? 2 : -2);
+  if (a.bigSpell) s += a.bigSpell * (assistSpellSize(c) === 'big' ? 15 : assistSpellSize(c) === 'mid' ? 5 : -2);
+  if (a.noSpell && assistIsSpell(c)) s -= 22 * a.noSpell;
+  if (a.building) s += a.building * (assistIsDefenseBuilding(c) ? 13 : assistIsSiegeBuilding(c) ? 6 : 0);
+  if (a.noBuilding && c.type === 'building') s -= assistIsSiegeBuilding(c) || ASSIST_ATTACK_BUILDINGS.has(c.name) ? 10 : 24;
+  if (a.siege) s += a.siege * (assistIsSiegeBuilding(c) ? 18 : ASSIST_ATTACK_BUILDINGS.has(c.name) ? 8 : 0);
+  if (a.bait) s += a.bait * (assistTagHas(c, 'spellBait') || assistHas(c, ['バレル','プリンセス','吹き矢','ゴブリン','スケルトンバレル']) ? 14 : 0);
+  if (a.bridge) s += a.bridge * (assistTagHas(c, 'bridgeSpam') || assistTagHas(c, 'dash') || assistHas(c, ['突撃','ダッシュ','奇襲','アサシン','ラム']) ? 14 : 0);
+  if (a.range) s += a.range * Math.max(assistVecSub(c, 'range'), assistVecVal(c, 'reach')) * 1.25;
+  if (a.secondWincon) s += a.secondWincon * (assistIsSecondary(c) || assistTypeOf(c) === 'wincon' ? 14 : 0);
+  if (a.control) s += a.control * Math.max(assistVecVal(c, 'ctrl'), assistVecVal(c, 'def')) * 1.25;
+  if (a.safe || a.stable) s += Math.max(a.safe || 0, a.stable || 0) * (kind === 'stable' ? 8 : 2);
+  if (a.risky) s += a.risky * (kind === 'discovery' ? 10 : 0) + (assistIsSecondary(c) ? 5 : 0);
+  if (a.counter) s += a.counter * (assistDirectionScore(c, 'defense', info) * 0.9 + assistDirectionScore(c, 'attack', info) * 0.45);
+  if (a.heavy) s += a.heavy * ((c.cost || 0) >= 5 ? 10 : -1);
+  if (a.late) s += a.late * Math.max(0, assistCardTiming(c).three - 4.5) * 2;
+  if (a.cheap) s += a.cheap * ((c.cost || 0) <= 3 ? 8 : -4);
+  if (a.avoidHeavy && (c.cost || 0) >= 5) s -= 18 * a.avoidHeavy;
+  // 自然文は補助。シナジーや穴埋めを壊さないよう、上限を低めにする。
+  return Math.round(Math.max(-32, Math.min(36, s)));
+}
+function assistDevelopmentReason(c, info, kind) {
+  const intent = (info && info.developmentIntent) || assistDevelopmentIntent();
+  if (!intent.active || assistDevelopmentFit(c, info, kind) < 14) return '';
+  const a = intent.axes || {};
+  if (a.air && assistIsTrueAir(c)) return 'デッキ開発メモに合わせて、空中への受けを厚くできます。';
+  if (a.cycle && assistDirectionScore(c, 'cycle', info) >= 5.5) return 'デッキ開発メモに合わせて、回しやすさを足せます。';
+  if (a.defense && assistDirectionScore(c, 'defense', info) >= 6) return 'デッキ開発メモに合わせて、守りを整えやすい1枚です。';
+  if (a.attack && assistDirectionScore(c, 'attack', info) >= 6) return 'デッキ開発メモに合わせて、攻めの圧を伸ばせます。';
+  if (a.siege && assistIsSiegeBuilding(c)) return 'デッキ開発メモに合わせて、攻城系の勝ち方を作れます。';
+  if (a.secondWincon && (assistIsSecondary(c) || assistTypeOf(c) === 'wincon')) return 'デッキ開発メモに合わせて、もう一つの圧を足せます。';
+  return 'デッキ開発メモの方向に寄せやすい候補です。';
+}
+function assistDevelopmentSummary(intent) {
+  intent = intent || assistDevelopmentIntent();
+  return intent.active ? intent.labels.slice(0, 3).join(' / ') : '';
+}
 // 方向チップ選択時のカード理由（プレイヤー向け・自然文／スコアやデータ臭は出さない）。
 //  カードの強い価値（sub値含む）に応じて言い方を変え、候補ごとに具体的で重複しない理由を返す。
 function assistDirectionReason(c, dir, info) {
@@ -978,6 +1084,7 @@ function assistDeckInfo() {
   const splash = cards.filter(c => assistTagHas(c, 'splash') || assistHas(c, ['範囲','小型処理','スプラッシュ']));
   const dps = cards.filter(c => assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp') || assistHas(c, ['高DPS','高火力','集中加熱']));
   const buildings = cards.filter(c => c.type === 'building');
+  const defenseBuildings = cards.filter(c => assistIsDefenseBuilding(c));
   const cycles = cards.filter(c => c.cost <= 2 || assistHas(c, ['サイクル']));
   const main = wincons[0] || cards.find(assistIsSecondary) || cards[0] || null;
   const secondaries = cards.filter(c => assistIsSecondary(c) && !assistIsMainWincon(c));
@@ -1000,7 +1107,8 @@ function assistDeckInfo() {
     specialOpen: deck[0] === null || deck[1] === null || deck[2] === null, // 特別枠(1〜3)のどれかが空き
     normalOpen: [3, 4, 5, 6, 7].some(i => deck[i] === null)          // 通常枠(4〜8)のどれかが空き
   };
-  const info = { cards, names, avg, cycleAvg, wincons, spells, smallSpells, air, splash, dps, buildings, cycles, main, secondaries, mainAxes, mainAttack, personaAxes, slots, style, spellTarget: assistSpellTarget };
+  const info = { cards, names, avg, cycleAvg, wincons, spells, smallSpells, air, splash, dps, buildings, defenseBuildings, cycles, main, secondaries, mainAxes, mainAttack, personaAxes, slots, style, spellTarget: assistSpellTarget };
+  info.developmentIntent = assistDevelopmentIntent();
   info.vectorSums = assistDeckVectorSums(info); // 9ベクトルのデッキ合計を1回だけ算出（候補評価で使い回す）
   info.timing = assistDeckTiming(info); // 既存の1倍/2倍/3倍列ではなく、カード特性から勝負所を読む
   info.tolerance = assistDeckTolerance(info); // 被ダメ許容：受け切る/少し受けて返す/大きく返す寄りを数値化
@@ -1303,6 +1411,8 @@ function assistScore(c, kind, info) {
   score += assistVectorFit(c, info, kind);
   // 5枚目以降は、薄い役割をもう少し具体的に見る（空受け/小物処理/中型処理/射程/手数/回転など）。
   score += assistStageNeedFit(c, info, kind);
+  // デッキ開発メモ：プレイヤーの自然文をゆるい補正として反映。固定しすぎないため上限は関数側で抑える。
+  score += assistDevelopmentFit(c, info, kind);
   // 4枚目以降「次はどこを伸ばす？」で方向を選んでいれば、その方向の価値が高い札へ寄せる。
   if (assistDirection && info.cards.length >= 3) {
     const dscore = assistDirectionScore(c, assistDirection, info); // 0-10
@@ -1329,6 +1439,11 @@ function assistScore(c, kind, info) {
     if (info.air.length >= 2 && assistIsTrueAir(c)) score -= 16;
     if (info.dps.length >= 2 && (assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp'))) score -= 12;
   }
+  // 防衛施設2枚は基本なし。禁止ではないが、アシストでは1枚運用を強めに優先する。
+  // クロス/迫撃は攻城勝ち筋、ゴブリンドリルは攻撃建物なのでここでは防衛施設扱いしない。
+  if (assistIsDefenseBuilding(c) && info.defenseBuildings && info.defenseBuildings.length >= 1) {
+    score -= info.defenseBuildings.length >= 2 ? 70 : 38;
+  }
   // 主勝ち筋が既にあるのに別の主勝ち筋を勧めない（natural/stable）
   if (kind !== 'discovery' && info.wincons.length && t === 'wincon') score -= 30;
   if (info.avg >= 4.4 && c.cost >= 5 && info.cards.length >= 5) score -= 28;
@@ -1348,6 +1463,8 @@ function assistReason(c, kind, info) {
     const dr = assistDirectionReason(c, assistDirection, info);
     if (dr) return dr;
   }
+  const devReason = assistDevelopmentReason(c, info, kind);
+  if (devReason) return devReason;
   if (info.cards.length >= 4) {
     const nr = assistBestStageNeed(c, info);
     if (nr && nr.fit >= 6) {
@@ -1453,6 +1570,8 @@ function assistBadges(c, info) {
   else if (bp && (bp.weighted || 0) >= 12) badges.push('合わせやすい: ' + TR(bp.other));
   const nr = info ? assistBestStageNeed(c, info) : null;
   if (nr && nr.fit >= 6.5) badges.push(nr.need.label);
+  const dev = info ? assistDevelopmentSummary(info.developmentIntent) : '';
+  if (dev && assistDevelopmentFit(c, info, 'natural') >= 12) badges.push('開発: ' + dev.split(' / ')[0]);
   const v = info ? assistVector(c) : null;
   const sub = v && v.sub ? v.sub : {};
   if ((+sub.range || 0) >= 7) badges.push('射程で圧');
@@ -1504,6 +1623,7 @@ function assistDirectionCandidateScore(c, dir, info) {
   score += assistCostFit(c, info, 'stable') * 0.4;
   score += assistPotentialFit(c, info) * 0.3;
   score += assistSpellTargetFit(c, info, 'stable');
+  score += assistDevelopmentFit(c, info, needKind) * 0.55;
   if (info.personaAxes) score += personaCardFit(c, info.personaAxes) * 0.3;
   // 方向にほぼ沿わない札は後ろへ（ブロックの意味は保ちつつ、別候補の選択肢は残す）。
   if (dscore < 2.6) score -= 30;
@@ -1512,6 +1632,7 @@ function assistDirectionCandidateScore(c, dir, info) {
     if (dir === 'defense' && info.air.length >= 2 && assistIsTrueAir(c)) score -= 12;
     if (dir === 'attack' && info.dps.length >= 2 && (assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp'))) score -= 8;
   }
+  if (assistIsDefenseBuilding(c) && info.defenseBuildings && info.defenseBuildings.length >= 1) score -= 34;
   return Math.round(score);
 }
 // 方向候補の理由：まず既存ペアへの噛み合いを優先し、無ければ方向の自然文。データ臭は出さない。
@@ -1796,6 +1917,21 @@ function assistSpellTargetChipsHtml(info) {
     : '<small class="assist-spell-hint">今 呪文' + cur + '枚。目安に寄せて候補を出します</small>';
   return '<div class="assist-spell"><span class="assist-spell-q">呪文の枚数</span><div class="assist-spell-chips">' + chips + '</div>' + hint + '</div>';
 }
+function assistDevelopmentHtml(info) {
+  if (!info || info.cards.length >= 8) return '';
+  const intent = info.developmentIntent || assistDevelopmentIntent();
+  const summary = assistDevelopmentSummary(intent);
+  const chips = summary ? '<div class="assist-dev-chips">' + summary.split(' / ').map(x => '<span>' + esc(x) + '</span>').join('') + '</div>' : '';
+  const hint = summary
+    ? 'この方向を少し強めて候補を出しています。'
+    : '例：対空不安 / 軽く回したい / 枯渇っぽく / クロス軸 / 受けて返す';
+  return '<div class="assist-dev"><div class="assist-dev-head"><span>デッキ開発</span><small>' + esc(hint) + '</small></div>'
+    + '<textarea id="assistDevNote" maxlength="180" rows="2" placeholder="どんな方向で組みたい？">' + esc(assistDevNote || '') + '</textarea>'
+    + '<div class="assist-dev-actions">' + chips
+    + '<button type="button" class="assist-mini" id="assistDevApply">反映</button>'
+    + (assistDevNote ? '<button type="button" class="assist-mini" id="assistDevClear">クリア</button>' : '')
+    + '</div></div>';
+}
 function updateAssistTopInfo(info) {
   const el = document.getElementById('assistTopInfo');
   if (!el) return;
@@ -1873,6 +2009,7 @@ function updateAssistPanel() {
     ? '<div class="assist-persona is-set" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">あなた好み：' + esc(pSum) + '</span><span class="ap-edit">変更</span></div>'
     : '<div class="assist-persona" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">デッキの好みを設定すると、あなた向けに候補が絞れます</span><span class="ap-edit">設定</span></div>';
   const contextLine = contextLoading ? '<div class="assist-context-loading">読みを整えています…</div>' : '';
+  const devLine = assistDevelopmentHtml(info);
   const activeChunk = assistChunk === 'threats' ? 'threats' : 'cards';
   const dir3 = info.cards.length >= 3 ? assistDirectionBlocksHtml(info) : '';
   const clearSyn = assistClearSynergyHtml(info);
@@ -1885,6 +2022,7 @@ function updateAssistPanel() {
   panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の1枚<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + esc(costState) + '</div></div>'
     + personaLine
     + contextLine
+    + devLine
     + assistChunkTabs(info)
     + chunkHtml
     + '<div class="assist-actions">' + actionMain + '<button class="assist-mini" id="assistOff" type="button">通常検索</button></div>'
@@ -1950,6 +2088,23 @@ function updateAssistPanel() {
       updateAssistPanel();
     });
   });
+  const devApply = document.getElementById('assistDevApply');
+  const devInput = document.getElementById('assistDevNote');
+  if (devApply && devInput) devApply.onclick = () => {
+    assistDevNote = String(devInput.value || '').slice(0, 180);
+    try { localStorage.setItem('cr_assist_dev_note', assistDevNote); } catch(e) {}
+    assistVariant = 0;
+    assistDirVariant = { attack: 0, defense: 0, cycle: 0 };
+    updateAssistPanel();
+  };
+  const devClear = document.getElementById('assistDevClear');
+  if (devClear) devClear.onclick = () => {
+    assistDevNote = '';
+    try { localStorage.removeItem('cr_assist_dev_note'); } catch(e) {}
+    assistVariant = 0;
+    assistDirVariant = { attack: 0, defense: 0, cycle: 0 };
+    updateAssistPanel();
+  };
   // 方向チップ（攻撃強化/防衛強化/回転力強化）：選ぶと候補がその方向へ寄る。同じものをもう一度押すと解除。
   panel.querySelectorAll('[data-assist-dir]').forEach(b => {
     b.addEventListener('click', () => {

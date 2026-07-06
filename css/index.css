@@ -308,6 +308,19 @@
   .assist-persona .ap-text { flex: 1 1 auto; min-width: 0; font-size: 11px; color: var(--text-muted); line-height: 1.35; }
   .assist-persona.is-set .ap-text { color: var(--text); font-weight: 700; }
   .assist-persona .ap-edit { flex: 0 0 auto; font-size: 11px; font-weight: 700; color: var(--accent); }
+  .assist-dev { border: 1px solid rgba(255,255,255,0.10); border-radius: 10px; padding: 7px; background: rgba(255,255,255,0.035); display: grid; gap: 5px; }
+  .assist-dev-head { display: flex; align-items: baseline; gap: 7px; flex-wrap: wrap; }
+  .assist-dev-head span { font-size: 12px; font-weight: 900; color: var(--accent); }
+  .assist-dev-head small { font-size: 10px; color: var(--text-muted); line-height: 1.3; }
+  .assist-dev textarea {
+    width: 100%; min-height: 42px; resize: vertical; box-sizing: border-box;
+    border: 1px solid var(--border); border-radius: 8px; padding: 6px 7px;
+    background: rgba(0,0,0,0.18); color: var(--text); font: inherit; font-size: 12px; line-height: 1.35;
+  }
+  .assist-dev textarea:focus { outline: none; border-color: rgba(232,160,32,0.55); box-shadow: 0 0 0 2px rgba(232,160,32,0.12); }
+  .assist-dev-actions { display: flex; align-items: center; gap: 5px; justify-content: flex-end; flex-wrap: wrap; }
+  .assist-dev-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-right: auto; }
+  .assist-dev-chips span { font-size: 10px; color: var(--accent); border: 1px solid rgba(232,160,32,0.34); background: rgba(232,160,32,0.08); border-radius: 999px; padding: 1px 6px; }
   .assist-context-loading { margin-top: -2px; color: var(--text-muted); font-size: 10px; line-height: 1.2; opacity: .72; }
   /* 好み設定ダイアログ */
   .persona-box { width: min(440px, 94vw); max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
