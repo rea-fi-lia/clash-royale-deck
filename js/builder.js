@@ -67,6 +67,8 @@ function allowAssistPublicJsonFallback() {
   } catch (e) { return false; }
 }
 const assistData = { wincon: null, potential: null, tags: null, pairs: null, deckPairs: null, pairExt: null, threatResp: null, templateCore: null, vectors: null, eval: null, ready: false, tried: false };
+const ASSIST_ALT_POOL = 12;
+const ASSIST_TEMPLATE_CORE_POOL = 9;
 
 function saveFavorites() {
   if (window.CRAuth && CRAuth.getUser && CRAuth.getUser()) {
@@ -1066,11 +1068,16 @@ function assistTypeOf(c) {
 }
 function assistIsMainWincon(c) {
   const w = assistWincon(c);
-  return (w && w.class === '勝ち筋') || ASSIST_WINCONS.has(c.name);
+  const pv = assistPotential(c);
+  const flags = (pv && pv.winconFlags) || [];
+  return (w && w.class === '勝ち筋') || flags.includes('勝ち筋') || ASSIST_WINCONS.has(c.name);
 }
 function assistIsSecondary(c) {
   const w = assistWincon(c);
-  return (w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) || ASSIST_SECONDARY.has(c.name);
+  const pv = assistPotential(c);
+  const flags = (pv && pv.winconFlags) || [];
+  return (w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋'))
+    || flags.includes('第2勝ち筋') || flags.includes('補助勝ち筋') || ASSIST_SECONDARY.has(c.name);
 }
 function assistCostProfile(cards) {
   const arr = (cards || []).filter(Boolean).map(c => c.cost || 0).sort((a, b) => a - b);
@@ -1297,15 +1304,23 @@ function assistBestPairExtension(c, info) {
 }
 function assistWinconBonus(c, kind, info) {
   const w = assistWincon(c);
-  if (!w) return 0;
+  const pv = assistPotential(c);
+  if (!w && !pv) return 0;
   let score = 0;
   // 主勝ち筋がまだ無いときだけ、natural で主勝ち筋度を強く評価。
   // すでに主勝ち筋がある場合に2枚目の主役を勧めるのは方針に反するので加点しない。
-  if (kind === 'natural') score += (w.mainWinconScore || 0) * (!info.wincons.length ? 8 : 0);
-  if (kind === 'discovery') score += (w.secondaryWinconScore || 0) * 3 + (w.finishingScore || 0) * 1.5;
-  if (kind === 'stable' && w.class === '防衛札') score += 30;
-  if (w.class === 'サイクル札' && (info.avg >= 3.8 || info.cards.length >= 4)) score += 14;
-  if (w.ownerReviewed === false) score -= 6;
+  if (w && kind === 'natural') score += (w.mainWinconScore || 0) * (!info.wincons.length ? 8 : 0);
+  if (w && kind === 'discovery') score += (w.secondaryWinconScore || 0) * 3 + (w.finishingScore || 0) * 1.5;
+  if (w && kind === 'stable' && w.class === '防衛札') score += 30;
+  if (w && w.class === 'サイクル札' && (info.avg >= 3.8 || info.cards.length >= 4)) score += 14;
+  if (pv) {
+    const flags = pv.winconFlags || [];
+    if (kind === 'discovery' && (flags.includes('第2勝ち筋') || flags.includes('補助勝ち筋'))) score += 18;
+    if (kind === 'natural' && pv.comboWincon) score += info.wincons.length ? 10 : 16;
+    if (kind === 'stable' && pv.defenseStarter) score += 14;
+    if (pv.counterStarter && info.cards.length >= 3) score += kind === 'stable' ? 10 : 6;
+  }
+  if (w && w.ownerReviewed === false) score -= 6;
   return score;
 }
 // 主勝ち筋の「型」が次に欲しがる性質を返す（natural候補の方向付け）。
@@ -1590,6 +1605,31 @@ function assistBadges(c, info) {
   if (tags.has('tankKiller')) badges.push('高火力');
   return [...new Set(badges)].slice(0, 3);
 }
+function assistRotateStep(span, seed) {
+  if (span <= 1) return 1;
+  const seeds = [7, 5, 3, 11, 13, 17];
+  for (let i = 0; i < seeds.length; i++) {
+    const step = seeds[(i + seed) % seeds.length];
+    if (step % span !== 0 && assistGcd(step, span) === 1) return step;
+  }
+  return 1;
+}
+function assistGcd(a, b) {
+  a = Math.abs(a); b = Math.abs(b);
+  while (b) { const t = b; b = a % b; a = t; }
+  return a || 1;
+}
+function assistAltIndex(variant, total, seed) {
+  if (total <= 1) return 0;
+  const v = Math.max(0, Number(variant) || 0);
+  if (!v) return 0;
+  const span = total - 1;
+  const step = assistRotateStep(span, seed || 0);
+  return 1 + (((v - 1) * step + (seed || 0)) % span);
+}
+function assistSlicePool(list, max) {
+  return (Array.isArray(list) ? list : []).slice(0, Math.max(1, max || ASSIST_ALT_POOL));
+}
 function pickAssistCandidate(kind, used, info) {
   const ranked = [];
   CARDS.forEach(c => {
@@ -1598,7 +1638,9 @@ function pickAssistCandidate(kind, used, info) {
     if (score > 0) ranked.push({ card: c, score });
   });
   ranked.sort((a, b) => b.score - a.score || a.card.cost - b.card.cost);
-  const pick = ranked[Math.min(assistVariant, Math.max(0, ranked.length - 1)) % Math.min(3, Math.max(1, ranked.length))];
+  const pool = assistSlicePool(ranked, ASSIST_ALT_POOL);
+  const seed = kind === 'natural' ? 0 : kind === 'stable' ? 2 : 4;
+  const pick = pool[assistAltIndex(assistVariant, pool.length, seed)];
   if (!pick) return null;
   used.add(pick.card.name);
   return { kind, card: pick.card, score: pick.score, reason: assistReason(pick.card, kind, info), detail: assistDetail(pick.card, kind, info), badges: assistBadges(pick.card, info) };
@@ -1706,9 +1748,10 @@ function assistDirectionBlocks(info) {
     let list = rankedByDir[dir].filter(r => ownerOf[r.card.name] === dir);
     if (!list.length) list = rankedByDir[dir];
     if (!list.length) return { dir, card: null, total: 0 };
-    const total = list.length;
-    const idx = ((assistDirVariant[dir] || 0) % total + total) % total;
-    const pick = list[idx];
+    const pool = assistSlicePool(list, ASSIST_ALT_POOL);
+    const total = pool.length;
+    const seed = dir === 'attack' ? 0 : dir === 'defense' ? 2 : 4;
+    const pick = pool[assistAltIndex(assistDirVariant[dir] || 0, total, seed)];
     assistDirLabelByName[pick.card.name] = assistDirectionLabel(dir);
     return { dir, card: pick.card, total, reason: assistFourthReason(pick.card, dir, info), badges: assistBadges(pick.card, info) };
   });
@@ -1938,9 +1981,9 @@ function assistTemplateCoreHtml(info) {
   const slots = [0, 1, 2].map(i => {
     const owned = rows.filter((_, idx) => idx % 3 === i);
     if (!owned.length) return { i, card: null, total: 0 };
-    const total = owned.length;
-    const idx = ((assistCoreVariant[i] || 0) % total + total) % total;
-    const row = owned[idx];
+    const pool = assistSlicePool(owned, ASSIST_TEMPLATE_CORE_POOL);
+    const total = pool.length;
+    const row = pool[assistAltIndex(assistCoreVariant[i] || 0, total, i)];
     assistCoreLabelByName[row.card.name] = '6枚目の核候補';
     return { i, card: row.card, total, reason: assistTemplateCoreReason(row.card, info, row), badges: assistBadges(row.card, info) };
   });
@@ -2229,7 +2272,7 @@ function updateAssistPanel() {
     updateAssistPanel();
   };
   const r = document.getElementById('assistRefresh');
-  if (r) r.onclick = () => { assistVariant = (assistVariant + 1) % 3; updateAssistPanel(); };
+  if (r) r.onclick = () => { assistVariant = (assistVariant + 1) % ASSIST_ALT_POOL; updateAssistPanel(); };
   const bc = document.getElementById('assistBackCards');
   if (bc) bc.onclick = () => { assistChunk = 'cards'; updateAssistPanel(); };
   const off = document.getElementById('assistOff');
@@ -3955,7 +3998,8 @@ const OWNED_ALIAS = {
   'メガミニオン':'メガガーゴイル','ミニオン':'ガーゴイル','スピアゴブリン':'槍ゴブリン','バーバリアンハット':'バーバリアンの小屋',
   '炉':'オーブン','フライングマシン':'ホバリング砲','ゴブリンデモリッシャー':'ダイナマイトゴブリン','ホッグライダー':'ホグライダー',
   'バンディット':'アサシン ユーノ','エレクトロドラゴン':'ライトニングドラゴン','マイティマイナー':'マイティディガー',
-  'ゴールデンナイト':'ゴールドナイト','ベイビードラゴン':'ベビードラゴン','ロイヤルデリバリー':'ロイヤルデリバリー'
+  'ゴールデンナイト':'ゴールドナイト','ベイビードラゴン':'ベビードラゴン','ロイヤルデリバリー':'ロイヤルデリバリー',
+  'スサノオ':'ローニン','浪人スサノオ':'ローニン','susanoo':'ローニン','susano':'ローニン','ronin':'ローニン'
 };
 function _buildOwnedMaps() {
   const slugMap = {}, nameMap = {};

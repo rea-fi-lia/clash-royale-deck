@@ -661,6 +661,7 @@ async function writeTemplateCoreFromSighist_(ghPath, reason) {
   var minFiveUse = parseInt(prop('TEMPLATE_CORE_FIVE_MIN_USE', '3'), 10);
   var minCandUse = parseInt(prop('TEMPLATE_CORE_CAND_MIN_USE', '2'), 10);
   var maxKeys = parseInt(prop('TEMPLATE_CORE_MAX_KEYS', '12000'), 10);
+  var rowsPerKey = parseInt(prop('TEMPLATE_CORE_ROWS_PER_KEY', '9'), 10) || 9;
   var fiveGroups = [];
   Object.keys(templateFive).forEach(function (k5) {
     var bucket = templateFive[k5];
@@ -687,11 +688,10 @@ async function writeTemplateCoreFromSighist_(ghPath, reason) {
         - (topShare > 0.86 ? (topShare - 0.86) * 18 : 0);
       rows.push({ card: card, kind: 'templateCore', fit: publicFit_(fit, 100), use: Math.round(r.use * 10) / 10,
         games: r.games || 0, wr: wr == null ? null : Math.round(wr * 1000) / 10,
-        lift: templateCoreRound2_(lift), share: templateCoreRound2_(cond), variants: variants,
-        text: variants >= 3 ? '過去の完成形で、この5枚から形をまとめやすい核候補です。' : '近い完成形に寄せる時の核候補です。' });
+        lift: templateCoreRound2_(lift), share: templateCoreRound2_(cond), variants: variants });
     });
     rows.sort(function (a, b) { return (b.fit - a.fit) || (b.use - a.use); });
-    if (rows.length) fiveGroups.push({ key: k5, fit: rows[0].fit, use: bucket.use, rows: rows.slice(0, 5) });
+    if (rows.length) fiveGroups.push({ key: k5, fit: rows[0].fit, use: bucket.use, rows: rows.slice(0, rowsPerKey) });
   });
   fiveGroups.sort(function (a, b) { return (b.fit - a.fit) || (b.use - a.use); });
   var byFive = {};
@@ -700,7 +700,7 @@ async function writeTemplateCoreFromSighist_(ghPath, reason) {
   await writePublicJson_(ghSiblingPath_(ghPath, 'card-template-core-public-v1.json'),
     { updated: new Date().toISOString(), version: 1, visibility: 'public-display', source: 'sighist monthly digest', generatedFrom: reason || 'sighist',
       months: templateMonthsOut, historyMonths: templateMonthsOut.length, totalUse: Math.round(templateTotalUse * 10) / 10,
-      count: Object.keys(byFive).length, byFive: byFive },
+      rowsPerKey: rowsPerKey, count: Object.keys(byFive).length, byFive: byFive },
     'chore: update card-template-core-public-v1.json');
   console.log('card-template-core ' + Object.keys(byFive).length + ' five-card keys' + (reason ? ' (' + reason + ')' : ''));
   return Object.keys(byFive).length;
@@ -2016,6 +2016,7 @@ async function updateDecks() {
       var MIN_TEMPLATE_FIVE_USE = parseInt(prop('TEMPLATE_CORE_FIVE_MIN_USE', '3'), 10);
       var MIN_TEMPLATE_CAND_USE = parseInt(prop('TEMPLATE_CORE_CAND_MIN_USE', '2'), 10);
       var MAX_TEMPLATE_KEYS = parseInt(prop('TEMPLATE_CORE_MAX_KEYS', '12000'), 10);
+      var TEMPLATE_ROWS_PER_KEY = parseInt(prop('TEMPLATE_CORE_ROWS_PER_KEY', '9'), 10) || 9;
       var fiveGroups = [];
       Object.keys(templateFive).forEach(function (k5) {
         var bucket = templateFive[k5];
@@ -2042,11 +2043,10 @@ async function updateDecks() {
             - (topShare > 0.86 ? (topShare - 0.86) * 18 : 0);
           rows.push({ card: card, kind: 'templateCore', fit: publicFit_(fit, 100), use: Math.round(r.use * 10) / 10,
             games: r.games || 0, wr: wr == null ? null : Math.round(wr * 1000) / 10,
-            lift: round2_(lift), share: round2_(cond), variants: variants,
-            text: variants >= 3 ? '過去の完成形で、この5枚から形をまとめやすい核候補です。' : '近い完成形に寄せる時の核候補です。' });
+            lift: round2_(lift), share: round2_(cond), variants: variants });
         });
         rows.sort(function (a, b) { return (b.fit - a.fit) || (b.use - a.use); });
-        if (rows.length) fiveGroups.push({ key: k5, fit: rows[0].fit, use: bucket.use, rows: rows.slice(0, 5) });
+        if (rows.length) fiveGroups.push({ key: k5, fit: rows[0].fit, use: bucket.use, rows: rows.slice(0, TEMPLATE_ROWS_PER_KEY) });
       });
       fiveGroups.sort(function (a, b) { return (b.fit - a.fit) || (b.use - a.use); });
       var byFive = {};
@@ -2054,7 +2054,7 @@ async function updateDecks() {
       var templateMonthsOut = templateMonths.filter(function (m) { return !!templateMonthsSeen[m]; });
       await writePublicJson_(ghSiblingPath_(ghPath, 'card-template-core-public-v1.json'),
         { updated: new Date().toISOString(), version: 1, visibility: 'public-display', source: 'sighist monthly digest',
-          months: templateMonthsOut, historyMonths: templateMonthsOut.length, totalUse: Math.round(templateTotalUse * 10) / 10,
+          months: templateMonthsOut, historyMonths: templateMonthsOut.length, rowsPerKey: TEMPLATE_ROWS_PER_KEY, totalUse: Math.round(templateTotalUse * 10) / 10,
           count: Object.keys(byFive).length, byFive: byFive },
         'chore: update card-template-core-public-v1.json');
       console.log('card-template-core ' + Object.keys(byFive).length + ' five-card keys');
