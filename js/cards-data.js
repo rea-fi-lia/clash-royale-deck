@@ -115,7 +115,7 @@ const CARDS = [
   {name:"ボスアサシン", champion:true, yomi:"ボスアサシン ボスバンディット ボスバン", cost:6, type:"troop", role:"チャンピオン", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/boss-bandit.png"},
   {name:"アーチャークイーン", champion:true, yomi:"アーチャークイーン AQ アチャクイ クイーン",    cost:5, type:"troop",    role:"チャンピオン・高火力", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/archer-queen.png"},
   {name:"ゴブリンマシン", yomi:"ゴブリンマシン ゴブマシン マシン",    cost:5, type:"troop",    role:"ロケット移動砲台", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/goblin-machine.png"},
-  {name:"ローニン", yomi:"ローニン ろーにん 浪人 スサノオ 浪人スサノオ Susanoo Susano Ronin",    cost:5, type:"troop",    role:"受け流し近接反撃アタッカー", img:"https://cdn.royaleapi.com/static/img/cards-150/ronin.png"},
+  {name:"ローニン", displayName:"浪人スサノオ", yomi:"ローニン ろーにん 浪人 スサノオ 浪人スサノオ Susanoo Susano Ronin",    cost:5, type:"troop",    role:"受け流し近接反撃アタッカー", img:"https://cdn.royaleapi.com/static/img/cards-150/ronin.png"},
   {name:"スケルトンラッシュ", yomi:"スケルトンラッシュ スケラ グレイブヤード グレヤ 墓場",    cost:5, type:"spell",    role:"スケルトン大量召喚", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/graveyard.png"},
   {name:"インフェルノタワー", yomi:"インフェルノタワー インタワ IT",    cost:5, type:"building", role:"単体集中加熱", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/inferno-tower.png"},
 

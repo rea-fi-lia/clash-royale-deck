@@ -469,7 +469,7 @@ function renderCrank() {
     return '<div class="crank-row' + (sel ? ' sel' : '') + '" data-n="' + String(_ckey(c)).replace(/"/g, '&quot;') + '">'
       + '<span class="crank-rank">' + rank + '</span>'
       + '<span class="crank-ico"><span class="pip">' + _cardCost(c.name) + '</span>'
-        + (_cardImgF(c) ? '<img src="' + _cardImgF(c) + '" alt="' + c.name + '" loading="lazy">' : '')
+        + (_cardImgF(c) ? '<img src="' + _cardImgF(c) + '" alt="' + _tr(c.name) + '" loading="lazy">' : '')
         + (_fmark(c) ? '<span class="fbadge">' + _fmark(c) + '</span>' : '') + '</span>'
       + '<span class="crank-name">' + _tr(c.name) + (_fmark(c) ? ' <span class="fmark">' + _fmark(c) + '</span>' : '') + '</span>'
       + _cardPracticalIntel(c)
@@ -641,8 +641,8 @@ function renderMetaMap() {
   const ptHtml = (c, rx, ry, lab) => {
     const x = clamp(pad + rx * (100 - 2 * pad));
     const y = clamp((100 - pad) - ry * (100 - 2 * pad));
-    return '<div class="mm-pt" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%" title="' + c.name + _fmark(c) + ' 使用' + (c.use || 0) + '% / 勝率' + (c.win || 0) + '%">'
-      + (_cardImgF(c) ? '<img src="' + _cardImgF(c) + '" alt="' + c.name + '">' : '')
+    return '<div class="mm-pt" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%" title="' + _tr(c.name) + _fmark(c) + ' 使用' + (c.use || 0) + '% / 勝率' + (c.win || 0) + '%">'
+      + (_cardImgF(c) ? '<img src="' + _cardImgF(c) + '" alt="' + _tr(c.name) + '">' : '')
       + (_fmark(c) ? '<span class="fbadge">' + _fmark(c) + '</span>' : '')
       + (lab ? '<span class="lab">' + _tr(c.name) + (_fmark(c) ? '<i class="fm">' + _fmark(c) + '</i>' : '') + '</span>' : '') + '</div>';
   };

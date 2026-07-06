@@ -591,6 +591,7 @@
   };
 
   // カード名（日本語 → 公式英名）。動的描画されるので限定監視で随時置換。
+  const CARD_JA_DISPLAY = { "ローニン": "浪人スサノオ" };
   const CARD_EN = {
     "スケルトン": "Skeletons", "アイススピリット": "Ice Spirit", "ファイアスピリット": "Fire Spirit", "エレクトロスピリット": "Electro Spirit", "ヒールスピリット": "Heal Spirit",
     "ゴブリン": "Goblins", "ボンバー": "Bomber", "槍ゴブリン": "Spear Goblins", "コウモリの群れ": "Bats", "アイスゴーレム": "Ice Golem", "ウォールブレイカー": "Wall Breakers",
@@ -609,6 +610,7 @@
     "バーバリアン": "Barbarians", "ガーゴイルの群れ": "Minion Horde", "ジャイアント": "Giant", "ウィザード": "Wizard", "エアバルーン": "Balloon", "ネクロマンサー": "Witch", "ボウラー": "Bowler",
     "執行人ファルチェ": "Executioner", "60式ムート": "Cannon Cart", "ロイヤルホグ": "Royal Hogs", "アウトロー": "Rascals", "ライトニングドラゴン": "Electro Dragon", "プリンス": "Prince",
     "ラムライダー": "Ram Rider", "リトルプリンス": "Little Prince", "モンク": "Monk", "ゴブリンシュタイン": "Goblinstein", "ボスアサシン": "Boss Bandit", "アーチャークイーン": "Archer Queen",
+    "ローニン": "Ronin",
     "ゴブリンマシン": "Goblin Machine", "スケルトンラッシュ": "Graveyard", "インフェルノタワー": "Inferno Tower", "ロイヤルジャイアント": "Royal Giant", "エリートバーバリアン": "Elite Barbarians",
     "巨大スケルトン": "Giant Skeleton", "ゴブジャイアント": "Goblin Giant", "スパーキー": "Sparky", "スピリットエンプレス": "Spirit Empress", "ロケット": "Rocket", "ライトニング": "Lightning",
     "エリクサーポンプ": "Elixir Collector", "バーバリアンの小屋": "Barbarian Hut", "巨大クロスボウ": "X-Bow", "ペッカ": "P.E.K.K.A", "ラヴァハウンド": "Lava Hound", "エレクトロジャイアント": "Electro Giant",
@@ -636,7 +638,7 @@
   const origText = new WeakMap();
 
   function tr(src) {
-    if (lang === 'ja') return src;
+    if (lang === 'ja') return CARD_JA_DISPLAY[src] || src;
     const d = DICT[lang];
     if (d && d[src] != null) return d[src];
     if (DICT.en && DICT.en[src] != null) return DICT.en[src]; // 未訳は英語へフォールバック（カード名や未訳UI）

@@ -93,8 +93,11 @@ function toggleFav(name, e) {
 
 // i18nヘルパー：T=プレースホルダ補間翻訳（名前/数字入りの動的文字列用）、TR=単純翻訳（カード名など）。
 // 固定文はi18nのbody監視が挿入時に自動翻訳するので、ここでは動的文字列だけT/TRで包む。
+const CARD_DISPLAY_NAMES = { 'ローニン': '浪人スサノオ' };
+function cardDisplayName(s) { return CARD_DISPLAY_NAMES[s] || s; }
+function cardName(c) { return cardDisplayName(c && c.name ? c.name : c); }
 function T(key, vars, fb) { return window.CRI18N ? CRI18N.t(key, vars) : (fb != null ? fb : key); }
-function TR(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
+function TR(s) { return (!window.CRI18N || CRI18N.lang === 'ja') ? cardDisplayName(s) : CRI18N.tr(s); }
 // 言語切替時：数値入りの動的表示（平均コストの枚数など）を現在言語で作り直す
 window.addEventListener('crlangchange', () => { try { showDeckStats(deck); updateActionButtons(); updateAssistPanel(); } catch (e) {} });
 
@@ -2196,7 +2199,7 @@ function updateAssistPanel() {
       const c = CARDS.find(x => x.name === b.getAttribute('data-threat-card'));
       if (!c) return;
       addAssistToDeck(c);
-      showToast('受ける1枚：' + c.name);
+      showToast('受ける1枚：' + TR(c.name));
       assistChunk = 'cards';
       updateAssistPanel();
     });
@@ -2568,7 +2571,7 @@ function render() {
       <button class="fav-btn ${faved ? 'active' : ''}${justFaved === c.name ? ' pop' : ''}" title="${faved ? 'お気に入り解除' : 'お気に入り追加'}" onclick="toggleFav('${c.name}', event)">${heartSvg}</button>
       <div class="card-top">
         <div class="cost-pip pip-${Math.min(c.cost,9)}">${c.cost}</div>
-        <div class="card-name">${c.name}</div>
+        <div class="card-name">${esc(cardName(c))}</div>
       </div>
       <span class="type-tag ${tagClass}">${tagText}</span>
       <div class="card-bottom">
@@ -2711,9 +2714,9 @@ function openImageReplaceDialog(card, idxs, opts) {
     ov.innerHTML = `<div class="swap-box">
       <div class="swap-title">入れ替える？</div>
       <div class="swap-fromto">
-        <div class="ft-card dim"><div class="ft-cap">いま</div>${old && old.img ? `<img src="${old.img}" alt="">` : ''}<div class="ft-name">${old ? old.name : ''}</div></div>
+        <div class="ft-card dim"><div class="ft-cap">いま</div>${old && old.img ? `<img src="${old.img}" alt="">` : ''}<div class="ft-name">${old ? TR(old.name) : ''}</div></div>
         <div class="ft-arrow">➜</div>
-        <div class="ft-card hot" id="ftConfirm"><div class="ft-cap">これに</div>${cardImg}<div class="ft-name">${card.name}</div></div>
+        <div class="ft-card hot" id="ftConfirm"><div class="ft-cap">これに</div>${cardImg}<div class="ft-name">${TR(card.name)}</div></div>
       </div>
     </div>`;
     ov.querySelector('#ftConfirm').onclick = () => doReplace(idxs[0]);
@@ -2724,7 +2727,7 @@ function openImageReplaceDialog(card, idxs, opts) {
       const img = slotCardImg(d, i); // その枠に表示される姿（進化/ヒーロー）
       return `<div class="swap-opt" data-idx="${i}">
         ${img ? `<img src="${img}" alt="">` : ''}
-        <div class="swap-opt-name">${d ? d.name : ''}</div>
+        <div class="swap-opt-name">${d ? TR(d.name) : ''}</div>
         <div class="swap-opt-slot">${T('slot.n', { n: i + 1 })}</div>
       </div>`;
     };
@@ -2732,7 +2735,7 @@ function openImageReplaceDialog(card, idxs, opts) {
       <div class="swap-title">${T('swap.withWhich', { name: TR(card.name) })}</div>
       <div class="swap-choose">
         ${sideHtml(idxs[0])}
-        <div class="swap-center"><div class="ft-cap">入れる</div>${cardImg}<div class="ft-name">${card.name}</div></div>
+        <div class="swap-center"><div class="ft-cap">入れる</div>${cardImg}<div class="ft-name">${TR(card.name)}</div></div>
         ${sideHtml(idxs[1])}
       </div>
     </div>`;
@@ -2750,7 +2753,7 @@ function openChampSwapDialog(card) {
     const d = deck[i];
     return `<div class="swap-opt" data-idx="${i}">
       ${d.img ? `<img src="${d.img}" alt="">` : ''}
-      <div class="swap-opt-name">${d.name}</div>
+      <div class="swap-opt-name">${TR(d.name)}</div>
       <div class="swap-opt-slot">${T('slot.n', { n: i + 1 })}</div>
     </div>`;
   }).join('');
@@ -2963,14 +2966,14 @@ function initTouchDnD() {
     if (e.target.closest('.fav-btn')) return; // ハートタップ時はドラッグしない
     const card = e.target.closest('.card');
     if (!card || card.classList.contains('in-deck')) return;
-    const cardName = card.querySelector('.card-name').textContent.trim();
+    const cardName = card.dataset.name || card.querySelector('.card-name').textContent.trim();
     const srcCard = CARDS.find(c => c.name === cardName);
     if (!srcCard) return;
     const t = e.touches[0];
     touchStartX = t.clientX; touchStartY = t.clientY; _touchMoved = false;
     if (document.documentElement.classList.contains('nopin')) return; // ピンOFF=ドラッグ無効（タップは有効・_touchMovedリセット後にreturn＝スクロール後のタップ取りこぼし無し）
     longPressTimer = setTimeout(() => {
-      startDrag(srcCard, null, srcCard.img, srcCard.name, srcCard.cost, touchStartX, touchStartY, card);
+      startDrag(srcCard, null, srcCard.img, TR(srcCard.name), srcCard.cost, touchStartX, touchStartY, card);
     }, LONG_PRESS_MS);
   }, {passive:true});
 
@@ -3000,7 +3003,7 @@ function initTouchDnD() {
     touchStartX = t.clientX; touchStartY = t.clientY; _touchMoved = false;
     if (document.documentElement.classList.contains('nopin')) return; // ピンOFF=ドラッグ無効（タップで外すは有効・_touchMovedリセット後にreturn）
     longPressTimer = setTimeout(() => {
-      startDrag(null, idx, c.img, c.name, c.cost, touchStartX, touchStartY, slot);
+      startDrag(null, idx, c.img, TR(c.name), c.cost, touchStartX, touchStartY, slot);
     }, LONG_PRESS_DECK_MS);
   }, {passive:true});
 

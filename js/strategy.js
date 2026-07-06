@@ -33,6 +33,9 @@ function fetchPublicStrategyJson(name) {
 const SPELL_ZONES = ['ログ圏内', 'ザップ圏内', '矢の雨圏内', 'ファイボ圏内', 'ポイズン圏内', 'ライトニング圏内', 'ロケット圏内'];
 function _t(k, v) { return window.CRI18N ? CRI18N.t(k, v) : k; }
 function _tr(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
+const CARD_DISPLAY_NAMES = { 'ローニン': '浪人スサノオ' };
+function cardDisplayName(name) { return window.CRI18N ? CRI18N.tr(name) : (CARD_DISPLAY_NAMES[name] || name); }
+function cardLabel(c) { return cardDisplayName(c && c.name ? c.name : c) + (c && c.name ? mark(c) : ''); }
 
 let STATS = null, TAGS = null, POT = null, VECTORS = null, DECK = null, WINCON = null, STRATEGY_INTEL = null;
 
@@ -59,7 +62,7 @@ function inZone(c, z) { const s = statOf(c); return s && (s.tags || []).indexOf(
 function isSpell(c) { const s = statOf(c); return s && s.n && s.n.type === 'Spell'; }
 function chip(c) {
   const img = c.f === 'e' ? c.info.iv : c.f === 'h' ? c.info.ih : c.info.i;
-  return '<span class="dg-chip"><img src="' + img + '" alt="' + c.name + '"><span>' + c.name + '</span>' + mark(c) + '</span>';
+  return '<span class="dg-chip"><img src="' + img + '" alt="' + cardDisplayName(c.name) + '"><span>' + cardDisplayName(c.name) + '</span>' + mark(c) + '</span>';
 }
 function C(n, k) { if (k > n) return 0; let r = 1; for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1); return Math.round(r); }
 
@@ -277,7 +280,7 @@ function capabilityHtml(deck) {
   const bars = axData.map(a => {
     const pct = Math.max(4, Math.round(a.score / 10 * 100));
     const cls = a.score >= 6.5 ? 'cap-hi' : a.score >= 3.5 ? 'cap-mid' : 'cap-lo';
-    const carry = a.carry ? '<span class="cap-carry">' + a.carry.name + mark(a.carry) + '</span>' : '';
+    const carry = a.carry ? '<span class="cap-carry">' + cardLabel(a.carry) + '</span>' : '';
     return '<div class="cap-row"><span class="cap-l">' + a.l + '</span>'
       + '<span class="cap-bar"><span class="cap-fill ' + cls + '" style="width:' + pct + '%"></span></span>'
       + '<span class="cap-v">' + a.score.toFixed(1) + '</span>' + carry + '</div>';
@@ -308,7 +311,7 @@ function capAdvice(l) {
 function selfArchs(deck) {
   // WINCONS順＝オーナー監修の優先度。デッキ内の勝ち筋を形態サフィックス付きで返す
   const out = [];
-  WINCONS.forEach(w => { const c = deck.find(x => x.name === w); if (c) out.push(c.name + mark(c)); });
+  WINCONS.forEach(w => { const c = deck.find(x => x.name === w); if (c) out.push(cardLabel(c)); });
   return out;
 }
 function matchupHtml(deck) {
@@ -344,8 +347,8 @@ function signedNum(v, digits) {
   return (n > 0 ? '+' : '') + n.toFixed(digits == null ? 1 : digits);
 }
 function secondAxisHint(deck, ctx) {
-  const wins = (ctx && ctx.wins ? ctx.wins : []).map(c => c.name + mark(c));
-  const names = {}; deck.forEach(c => names[c.name] = c.name + mark(c));
+  const wins = (ctx && ctx.wins ? ctx.wins : []).map(c => cardLabel(c));
+  const names = {}; deck.forEach(c => names[c.name] = cardLabel(c));
   if (wins[1]) return { main: wins[0], second: wins[1], source: _tr('勝ち筋カード') };
   const pairs = [
     [['ディガー', 'ポイズン'], 'ディガー＋ポイズン', '継続削り'],
@@ -358,7 +361,7 @@ function secondAxisHint(deck, ctx) {
     if (pairs[i][0].every(n => names[n])) return { main: wins[0] || pairs[i][1], second: pairs[i][1], source: _tr(pairs[i][2]) };
   }
   const spells = (ctx && ctx.spells ? ctx.spells : []).filter(c => ['ロケット', 'ライトニング', 'ポイズン', 'ファイアボール', 'アースクエイク'].indexOf(c.name) >= 0);
-  if (spells.length) return { main: wins[0] || '—', second: spells.sort((a, b) => b.info.c - a.info.c)[0].name + _tr('削り'), source: _tr('呪文補助') };
+  if (spells.length) return { main: wins[0] || '—', second: cardDisplayName(spells.sort((a, b) => b.info.c - a.info.c)[0].name) + _tr('削り'), source: _tr('呪文補助') };
   return { main: wins[0] || '—', second: '', source: '' };
 }
 function fuguIntelHtml(deck, ctx) {
@@ -558,21 +561,21 @@ function winClassGroup(sc, cls) {
 }
 function winChipGroup(title, arr) {
   if (!arr.length) return '';
-  return '<div class="dg-detail"><b>' + _tr(title) + '</b>：' + arr.slice(0, 4).map(function (x) { return x.c.name + mark(x.c); }).join(' / ') + '</div>';
+  return '<div class="dg-detail"><b>' + _tr(title) + '</b>：' + arr.slice(0, 4).map(function (x) { return cardLabel(x.c); }).join(' / ') + '</div>';
 }
 function cycleFitLine(cycles) {
   if (!cycles.length) return '';
   const labels = cycles.map(function (x) {
     const t = x.w.attackType;
-    if (t === 'cycleGroundDps') return x.c.name + _tr('＝地上DPSで受ける');
-    if (t === 'cyclePoke') return x.c.name + _tr('＝対空も橋前ちょっかいもできる');
-    if (t === 'cycleDpsPressure') return x.c.name + _tr('＝地上小物処理と入った時の削り');
-    if (t === 'cycleSplash') return x.c.name + _tr('＝小物処理を補う');
-    if (t === 'cycleReset') return x.c.name + _tr('＝リセットと連鎖処理');
-    if (t === 'cycleFreeze') return x.c.name + _tr('＝足止めで1発を作る');
-    if (t === 'cycleHeal') return x.c.name + _tr('＝反撃の生存時間を伸ばす');
-    if (t === 'cycleDefense') return x.c.name + _tr('＝囲み・タゲ取りで受ける');
-    return x.c.name;
+    if (t === 'cycleGroundDps') return cardDisplayName(x.c.name) + _tr('＝地上DPSで受ける');
+    if (t === 'cyclePoke') return cardDisplayName(x.c.name) + _tr('＝対空も橋前ちょっかいもできる');
+    if (t === 'cycleDpsPressure') return cardDisplayName(x.c.name) + _tr('＝地上小物処理と入った時の削り');
+    if (t === 'cycleSplash') return cardDisplayName(x.c.name) + _tr('＝小物処理を補う');
+    if (t === 'cycleReset') return cardDisplayName(x.c.name) + _tr('＝リセットと連鎖処理');
+    if (t === 'cycleFreeze') return cardDisplayName(x.c.name) + _tr('＝足止めで1発を作る');
+    if (t === 'cycleHeal') return cardDisplayName(x.c.name) + _tr('＝反撃の生存時間を伸ばす');
+    if (t === 'cycleDefense') return cardDisplayName(x.c.name) + _tr('＝囲み・タゲ取りで受ける');
+    return cardDisplayName(x.c.name);
   });
   return '<div class="dg-detail"><b>' + _tr('サイクル調整枠') + '</b>：' + labels.join(' / ') + '</div>';
 }
@@ -580,9 +583,9 @@ function defenseFitLine(defenses) {
   if (!defenses.length) return '';
   const labels = defenses.map(function (x) {
     const t = x.w.attackType;
-    if (t === 'defensiveSplash') return x.c.name + _tr('＝複数体をまとめて処理');
-    if (t === 'kiteTank') return x.c.name + _tr('＝逆サイド釣りと時間稼ぎ');
-    return x.c.name;
+    if (t === 'defensiveSplash') return cardDisplayName(x.c.name) + _tr('＝複数体をまとめて処理');
+    if (t === 'kiteTank') return cardDisplayName(x.c.name) + _tr('＝逆サイド釣りと時間稼ぎ');
+    return cardDisplayName(x.c.name);
   });
   return '<div class="dg-detail"><b>' + _tr('防衛調整枠') + '</b>：' + labels.join(' / ') + '</div>';
 }
@@ -610,11 +613,11 @@ function diagnoseHtml(deck) {
   const costs = deck.map(function (c) { return c.info.c; });
   const avg = costs.reduce(function (s, v) { return s + v; }, 0) / 8;
   const typ = avg < 3.1 ? _tr('高速で回すタイプ') : avg < 3.8 ? _tr('バランス型') : avg < 4.4 ? _tr('やや重めの構え') : _tr('重量級（序盤の受けに注意）');
-  const mn = mains[0] ? (mains[0].c.name + mark(mains[0].c)) : null;
-  const sn = secs[0] ? (secs[0].c.name + mark(secs[0].c)) : null;
+  const mn = mains[0] ? cardLabel(mains[0].c) : null;
+  const sn = secs[0] ? cardLabel(secs[0].c) : null;
   let line = mn ? (_tr('主役は') + '<b>' + mn + '</b>') : _tr('タワーを削る明確な主役が見当たりません');
   if (mn && sn) line += _tr('。詰めや別ルートに') + '<b>' + sn + '</b>' + _tr('も使える形');
-  else if (mn && supports[0]) line += _tr('。追加ダメージ役に') + '<b>' + supports[0].c.name + mark(supports[0].c) + '</b>' + _tr('を使える形');
+  else if (mn && supports[0]) line += _tr('。追加ダメージ役に') + '<b>' + cardLabel(supports[0].c) + '</b>' + _tr('を使える形');
   line += '。' + typ + '（' + _tr('平均コスト') + avg.toFixed(1) + '）。';
   h += '<div class="dg-cap"><div class="cap-head">🃏 ' + _tr('このデッキの特徴') + '</div><div class="dg-detail">' + line + '</div>'
     + winChipGroup('主軸', mains) + winChipGroup('第2勝ち筋', secs) + winChipGroup('補助勝ち筋', supports) + cycleFitLine(cycles) + defenseFitLine(defenses)
@@ -656,7 +659,7 @@ function render() {
   const sorted = costs.slice().sort((a, b) => a - b);
   const cyc = sorted.slice(0, 4).reduce((s, v) => s + v, 0);
   const curve = avg < 3.1 ? _tr('高速サイクル型') : avg < 3.8 ? _tr('バランス型') : avg < 4.4 ? _tr('やや重め') : _tr('重量級（序盤の受けに注意）');
-  const winName = ctx.wins.length ? (ctx.wins[0].name + mark(ctx.wins[0])) : '—';
+  const winName = ctx.wins.length ? cardLabel(ctx.wins[0]) : '—';
   const badTitles = checks.filter(c => c.grade === 'bad' || c.grade === 'warn').map(c => c.title).slice(0, 3);
   const summary = ctx.wins.length
     ? (badTitles.length ? _t('diag.sum', { t: curve, w: winName, b: badTitles.join(' / ') }) : _t('diag.sumGood', { t: curve, w: winName }))
@@ -665,7 +668,7 @@ function render() {
   const deckHtml = '<div class="dg-deckbar"><div class="dg-deck">' + DECK.map(c => {
     const img = c.f === 'e' ? c.info.iv : c.f === 'h' ? c.info.ih : c.info.i;
     const badge = c.f === 'e' ? '<span class="slot-badge">⚡</span>' : c.f === 'h' ? '<span class="slot-badge">👑</span>' : '';
-    return '<div class="mini-card' + (c.f === 'e' ? ' is-evo' : c.f === 'h' ? ' is-hero' : '') + '" data-key="' + c.name + ':' + _fnorm(c.f) + '"><span class="pip">' + c.info.c + '</span>' + badge + '<img src="' + img + '" alt="' + c.name + '"></div>';
+    return '<div class="mini-card' + (c.f === 'e' ? ' is-evo' : c.f === 'h' ? ' is-hero' : '') + '" data-key="' + c.name + ':' + _fnorm(c.f) + '"><span class="pip">' + c.info.c + '</span>' + badge + '<img src="' + img + '" alt="' + cardDisplayName(c.name) + '"></div>';
   }).join('') + '</div></div>';
 
   const html = diagnoseHtml(DECK); // ★新診断（特徴/実戦傾向/強み弱み/苦手相手）。旧 archetype/verdict/実戦読み/checks は廃止
