@@ -100,7 +100,7 @@ var SLUG2JP = {
   "witch": "ネクロマンサー", "bowler": "ボウラー", "executioner": "執行人ファルチェ", "cannon-cart": "60式ムート",
   "royal-hogs": "ロイヤルホグ", "rascals": "アウトロー", "electro-dragon": "ライトニングドラゴン", "prince": "プリンス",
   "ram-rider": "ラムライダー", "little-prince": "リトルプリンス", "monk": "モンク", "goblinstein": "ゴブリンシュタイン",
-  "boss-bandit": "ボスアサシン", "archer-queen": "アーチャークイーン", "goblin-machine": "ゴブリンマシン",
+  "boss-bandit": "ボスアサシン", "archer-queen": "アーチャークイーン", "goblin-machine": "ゴブリンマシン", "ronin": "ローニン",
   "graveyard": "スケルトンラッシュ", "inferno-tower": "インフェルノタワー", "royal-giant": "ロイヤルジャイアント",
   "elite-barbarians": "エリートバーバリアン", "giant-skeleton": "巨大スケルトン", "goblin-giant": "ゴブジャイアント",
   "sparky": "スパーキー", "spirit-empress": "スピリットエンプレス", "rocket": "ロケット", "lightning": "ライトニング",
@@ -127,7 +127,7 @@ var COST = {
   "バーバリアン": 5, "ガーゴイルの群れ": 5, "ジャイアント": 5, "ウィザード": 5, "エアバルーン": 5, "ネクロマンサー": 5,
   "ボウラー": 5, "執行人ファルチェ": 5, "60式ムート": 5, "ロイヤルホグ": 5, "アウトロー": 5, "ライトニングドラゴン": 5,
   "プリンス": 5, "ラムライダー": 5, "リトルプリンス": 3, "モンク": 5, "ゴブリンシュタイン": 5, "ボスアサシン": 6,
-  "アーチャークイーン": 5, "ゴブリンマシン": 5, "スケルトンラッシュ": 5, "インフェルノタワー": 5, "ロイヤルジャイアント": 6,
+  "アーチャークイーン": 5, "ゴブリンマシン": 5, "ローニン": 5, "スケルトンラッシュ": 5, "インフェルノタワー": 5, "ロイヤルジャイアント": 6,
   "エリートバーバリアン": 6, "巨大スケルトン": 6, "ゴブジャイアント": 6, "スパーキー": 6, "スピリットエンプレス": 6,
   "ロケット": 6, "ライトニング": 6, "エリクサーポンプ": 6, "バーバリアンの小屋": 6, "巨大クロスボウ": 6,
   "ペッカ": 7, "ラヴァハウンド": 7, "エレクトロジャイアント": 7, "メガナイト": 7, "見習い親衛隊": 7, "ゴーレム": 8, "三銃士": 9
@@ -725,6 +725,18 @@ async function updateDecks() {
     } catch (e) { console.log('pol-ranking-probe error ' + ((e && e.message) || e)); }
   }
   var players = (ranking.items || []).slice(0, topN);
+  // PoLランキングがシーズン切替やAPI側都合で空になることがある。
+  // その時にseedだけ処理して「集計0件」で赤くするより、鮮度マーカーだけ進めて正常スキップする。
+  if (rankingSource === 'pol' && !players.length) {
+    try {
+      await ghWriteJson_(ghSiblingPath_(GH_PATH, 'collect-freshness.json'),
+        { updated: new Date().toISOString(), visibility: 'freshness-marker', intervalHours: intervalHours,
+          source: rankingSource, topPlayers: 0, warning: 'pol ranking empty; skipped without updating analysis json' },
+        'chore: update collect freshness marker');
+    } catch (e) { console.log('collect freshness marker error ' + ((e && e.message) || e)); }
+    console.log('pol ranking empty; skipped without failing');
+    return;
+  }
   var rankMetaByTag = {};
   players.forEach(function (p) {
     var t = normTag_(p.tag);
