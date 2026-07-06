@@ -598,6 +598,113 @@ function publicFit_(v, max) {
   if (max != null) out = Math.min(max, out);
   return Math.max(0, out);
 }
+function templateCoreMonthKeyOffset_(off) {
+  var d = new Date();
+  d.setUTCMonth(d.getUTCMonth() + off);
+  return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0');
+}
+function templateCoreClamp01_(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+function templateCoreClampRange_(x, min, max) { return x < min ? min : x > max ? max : x; }
+function templateCoreRound2_(x) { return Math.round(x * 100) / 100; }
+async function writeTemplateCoreFromSighist_(ghPath, reason) {
+  var templateFive = {}, templateCardUse = {}, templateTotalUse = 0, templateMonthsSeen = {};
+  function addTemplateBase_(names, use) {
+    if (!names || !use) return;
+    templateTotalUse += use;
+    names.forEach(function (n) { templateCardUse[n] = (templateCardUse[n] || 0) + use; });
+  }
+  function addTemplateFive_(names, sigKey, use, games, wins, domSum, domGames) {
+    if (!names || names.length < 6 || !use) return;
+    var deck = names.slice().sort();
+    for (var a0 = 0; a0 < deck.length - 4; a0++) for (var b0 = a0 + 1; b0 < deck.length - 3; b0++) for (var c0 = b0 + 1; c0 < deck.length - 2; c0++) for (var d0 = c0 + 1; d0 < deck.length - 1; d0++) for (var e0 = d0 + 1; e0 < deck.length; e0++) {
+      var five = [deck[a0], deck[b0], deck[c0], deck[d0], deck[e0]];
+      var k5 = five.join('|');
+      var bucket = templateFive[k5] || (templateFive[k5] = { use: 0, decks: {}, cand: {} });
+      bucket.use += use;
+      bucket.decks[sigKey] = (bucket.decks[sigKey] || 0) + use;
+      for (var mi0 = 0; mi0 < deck.length; mi0++) {
+        var cand = deck[mi0];
+        if (five.indexOf(cand) >= 0) continue;
+        var row = bucket.cand[cand] || (bucket.cand[cand] = { card: cand, use: 0, games: 0, wins: 0, domSum: 0, domGames: 0, decks: {}, top: 0 });
+        row.use += use; row.games += games || 0; row.wins += wins || 0; row.domSum += domSum || 0; row.domGames += domGames || 0;
+        row.decks[sigKey] = (row.decks[sigKey] || 0) + use;
+        row.top = Math.max(row.top || 0, use);
+      }
+    }
+  }
+  function addTemplateMonth_(ss, mk5) {
+    if (!ss || !ss.cards || !ss.sigs || templateMonthsSeen[mk5]) return false;
+    templateMonthsSeen[mk5] = true;
+    var cardsT = ss.cards || [], sigsT = ss.sigs || {};
+    Object.keys(sigsT).forEach(function (key) {
+      var ids = String(key).split('|')[0].split('.').map(function (x) { return parseInt(x, 10); }).filter(function (x) { return !isNaN(x); });
+      var names = [];
+      ids.forEach(function (id) { var n = cardsT[id]; if (n && names.indexOf(n) < 0) names.push(n); });
+      if (names.length < 6) return;
+      var v = sigsT[key] || [], use = v[0] || v[1] || 0, games = v[1] || 0, wins = v[2] || 0, domSum = v[3] || 0, domGames = v[4] || 0;
+      if (!use) return;
+      addTemplateBase_(names, use);
+      addTemplateFive_(names, key, use, games, wins, domSum, domGames);
+    });
+    return true;
+  }
+  var templateCoreMonths = parseInt(prop('TEMPLATE_CORE_MONTHS', '120'), 10) || 120;
+  var templateMonths = [];
+  for (var tm5 = 0; tm5 > -templateCoreMonths; tm5--) templateMonths.push(templateCoreMonthKeyOffset_(tm5));
+  for (var tmi5 = 0; tmi5 < templateMonths.length; tmi5++) {
+    var tmk5 = templateMonths[tmi5];
+    try {
+      var tsh = await readPrivateJson_(ghSiblingPath_(ghPath, 'sighist-' + tmk5 + '.json'));
+      addTemplateMonth_(tsh, tmk5);
+    } catch (e) { console.log('template-core history skip ' + tmk5 + ' :: ' + ((e && e.message) || e)); }
+  }
+  var minFiveUse = parseInt(prop('TEMPLATE_CORE_FIVE_MIN_USE', '3'), 10);
+  var minCandUse = parseInt(prop('TEMPLATE_CORE_CAND_MIN_USE', '2'), 10);
+  var maxKeys = parseInt(prop('TEMPLATE_CORE_MAX_KEYS', '12000'), 10);
+  var fiveGroups = [];
+  Object.keys(templateFive).forEach(function (k5) {
+    var bucket = templateFive[k5];
+    if (!bucket || bucket.use < minFiveUse) return;
+    var rows = [];
+    Object.keys(bucket.cand || {}).forEach(function (card) {
+      var r = bucket.cand[card];
+      if (!r || r.use < minCandUse) return;
+      var cond = bucket.use ? r.use / bucket.use : 0;
+      var base = templateTotalUse ? (templateCardUse[card] || 0) / templateTotalUse : 0;
+      var lift = base > 0 ? cond / base : 1;
+      var variants = Object.keys(r.decks || {}).length;
+      var wr = r.games ? r.wins / r.games : null;
+      var dom = r.domGames ? r.domSum / r.domGames : null;
+      var topShare = r.use ? (r.top || 0) / r.use : 1;
+      var conf = templateCoreClamp01_(Math.sqrt(r.use / (r.use + 16)) * (r.games ? Math.sqrt(r.games / (r.games + 45)) : 0.72));
+      var fit = 24 * Math.log(Math.max(1, r.use)) / Math.log(8)
+        + 28 * templateCoreClamp01_(cond / 0.55)
+        + 20 * templateCoreClamp01_(Math.log(Math.max(1, lift)) / Math.log(5))
+        + 12 * templateCoreClamp01_(variants / 4)
+        + 8 * conf
+        + (wr == null ? 0 : templateCoreClampRange_((wr - 0.50) * 55, -5, 10))
+        + (dom == null ? 0 : templateCoreClampRange_(dom * 18, -5, 8))
+        - (topShare > 0.86 ? (topShare - 0.86) * 18 : 0);
+      rows.push({ card: card, kind: 'templateCore', fit: publicFit_(fit, 100), use: Math.round(r.use * 10) / 10,
+        games: r.games || 0, wr: wr == null ? null : Math.round(wr * 1000) / 10,
+        lift: templateCoreRound2_(lift), share: templateCoreRound2_(cond), variants: variants,
+        text: variants >= 3 ? '過去の完成形で、この5枚から形をまとめやすい核候補です。' : '近い完成形に寄せる時の核候補です。' });
+    });
+    rows.sort(function (a, b) { return (b.fit - a.fit) || (b.use - a.use); });
+    if (rows.length) fiveGroups.push({ key: k5, fit: rows[0].fit, use: bucket.use, rows: rows.slice(0, 5) });
+  });
+  fiveGroups.sort(function (a, b) { return (b.fit - a.fit) || (b.use - a.use); });
+  var byFive = {};
+  fiveGroups.slice(0, maxKeys).forEach(function (g) { byFive[g.key] = g.rows; });
+  var templateMonthsOut = templateMonths.filter(function (m) { return !!templateMonthsSeen[m]; });
+  await writePublicJson_(ghSiblingPath_(ghPath, 'card-template-core-public-v1.json'),
+    { updated: new Date().toISOString(), version: 1, visibility: 'public-display', source: 'sighist monthly digest', generatedFrom: reason || 'sighist',
+      months: templateMonthsOut, historyMonths: templateMonthsOut.length, totalUse: Math.round(templateTotalUse * 10) / 10,
+      count: Object.keys(byFive).length, byFive: byFive },
+    'chore: update card-template-core-public-v1.json');
+  console.log('card-template-core ' + Object.keys(byFive).length + ' five-card keys' + (reason ? ' (' + reason + ')' : ''));
+  return Object.keys(byFive).length;
+}
 // pairの「噛み合いの明確さ」を0-100の段階値で出す。公開fitはmax頭打ちで強弱が出ないため、
 //  こちらで lift/勝ち方/月間安定/サンプル/テンプレ依存/広さ（+あれば支配度・決定力）を合成して段階を作る。
 //  これで「明確シナジー」を頭打ち値ではなく本当の強さで切り分けられる。
@@ -727,7 +834,10 @@ async function updateDecks() {
   var players = (ranking.items || []).slice(0, topN);
   // PoLランキングがシーズン切替やAPI側都合で空になることがある。
   // その時にseedだけ処理して「集計0件」で赤くするより、鮮度マーカーだけ進めて正常スキップする。
+  // ただしsighist由来の派生JSONは既存履歴だけで作れるので、6枚目アシスト用の完成形候補は更新する。
   if (rankingSource === 'pol' && !players.length) {
+    try { await writeTemplateCoreFromSighist_(GH_PATH, 'pol ranking empty fallback'); }
+    catch (e) { console.log('template-core fallback error ' + ((e && e.message) || e)); }
     try {
       await ghWriteJson_(ghSiblingPath_(GH_PATH, 'collect-freshness.json'),
         { updated: new Date().toISOString(), visibility: 'freshness-marker', intervalHours: intervalHours,
