@@ -1,0 +1,41 @@
+name: export potential sheet
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export-potential:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Prepare Google credentials
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "GOOGLE_SERVICE_ACCOUNT_JSON secret is missing" >&2
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/google-service-account.json"
+
+      - name: Export potential to R2
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/google-service-account.json
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET || 'crdb-data-private' }}
+          R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
+          PUBLIC_GH_MIRROR: '0'
+        run: node tools/export-potential-from-sheet.js --out "$RUNNER_TEMP/card-potential.json" --publish --verify
