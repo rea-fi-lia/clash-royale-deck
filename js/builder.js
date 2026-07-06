@@ -42,6 +42,10 @@ let assistDirection = null;
 let assistDirVariant = { attack: 0, defense: 0, cycle: 0 };
 // 方向ブロックで今出している候補名→方向ラベル（クリック追加時のトースト表示に使う）。
 let assistDirLabelByName = {};
+// 6枚目「完成形に寄せる核候補」3枠それぞれの別候補ローテーション位置（方向ブロックと同じく独立に回す）。
+let assistCoreVariant = { 0: 0, 1: 0, 2: 0 };
+// 6枚目の核候補で今出しているカード名→ラベル（クリック追加時のトースト表示に使う）。
+let assistCoreLabelByName = {};
 // エリクサー価値ベクトルの導出キャッシュ（カード名→9ベクトル＋sub）。データ再読込でクリア。
 let assistVectorCache = {};
 // 組み合わせ/苦しい相手の読みは、全量ではなく「今のデッキ周辺」だけWorkerから取る。
@@ -62,7 +66,7 @@ function allowAssistPublicJsonFallback() {
     return !prod && new URLSearchParams(location.search || '').get('publicJsonFallback') === '1';
   } catch (e) { return false; }
 }
-const assistData = { wincon: null, potential: null, tags: null, pairs: null, deckPairs: null, pairExt: null, threatResp: null, vectors: null, eval: null, ready: false, tried: false };
+const assistData = { wincon: null, potential: null, tags: null, pairs: null, deckPairs: null, pairExt: null, threatResp: null, templateCore: null, vectors: null, eval: null, ready: false, tried: false };
 
 function saveFavorites() {
   if (window.CRAuth && CRAuth.getUser && CRAuth.getUser()) {
@@ -398,6 +402,7 @@ function applyAssistContext(key, bundle) {
   assistData.deckPairs = bundle && bundle.deckPairs ? bundle.deckPairs : [];
   assistData.pairExt = bundle && bundle.pairExt ? bundle.pairExt : {};
   assistData.threatResp = bundle && bundle.threatResp ? bundle.threatResp : {};
+  assistData.templateCore = bundle && bundle.templateCore ? bundle.templateCore : [];
   assistContextKey = key || '';
 }
 function clearAssistContext() {
@@ -405,6 +410,7 @@ function clearAssistContext() {
   assistData.deckPairs = null;
   assistData.pairExt = null;
   assistData.threatResp = null;
+  assistData.templateCore = null;
   assistContextKey = '';
   assistContextPending = '';
 }
@@ -419,6 +425,7 @@ function ensureAssistContext(info) {
   assistData.deckPairs = null;
   assistData.pairExt = null;
   assistData.threatResp = null;
+  assistData.templateCore = null;
   assistContextKey = '';
   assistContextPending = key;
   loadAssistContextBundle(info).then(bundle => {
@@ -443,6 +450,7 @@ function applyAssistBundle(bundle) {
   assistData.deckPairs = bundle && bundle.deckPairs ? bundle.deckPairs : null;
   assistData.pairExt = bundle && bundle.pairExt ? bundle.pairExt : null;
   assistData.threatResp = bundle && bundle.threatResp ? bundle.threatResp : null;
+  assistData.templateCore = bundle && bundle.templateCore ? bundle.templateCore : null;
   assistData.vectors = normalizeAssistCards(bundle && bundle.vectors);
   assistData.eval = null;
   assistVectorCache = {};
@@ -1889,6 +1897,71 @@ function assistDirectionBlocksHtml(info) {
   }).join('');
   return '<div class="assist-dir-blocks"><div class="assist-dir-blocks-q">' + esc((info.cards.length + 1) + '枚目を伸ばす方向') + '</div>' + cardsHtml + '</div>';
 }
+// =============================================================
+//  6枚目「完成形に寄せる核候補」（5枚見えた時だけ表示）
+//   ・その5枚を含む過去の完成形から、よく核になっている1枚を出す（勝ち筋に限定しない）。
+//   ・サブ/防衛/呪文/建物でも「核」なら出す＝データで判断（Worker側のtemplateCore）。
+//   ・3枠それぞれに独立した「別候補」を持たせ、押した枠だけ次の候補へ回す。
+// =============================================================
+// Workerが返したtemplateCore行を、実カードに解決して並べ替え済みで返す（重複と既採用は除外）。
+function assistTemplateCoreRows(info) {
+  if (!Array.isArray(assistData.templateCore) || !info || !info.cards || info.cards.length !== 5) return [];
+  const seen = new Set();
+  const rows = [];
+  assistData.templateCore.forEach(r => {
+    if (!r || !r.card) return;
+    const c = CARDS.find(x => x.name === r.card);
+    if (!c || !assistLegal(c, info)) return;
+    if (seen.has(c.name)) return;
+    seen.add(c.name);
+    rows.push({ card: c, kind: r.kind || 'templateCore', text: r.text || '', variants: Number(r.variants) || 0 });
+  });
+  return rows;
+}
+// 核候補の理由文（プレイヤー向けの自然文。データ臭・テンプレ語は出さない）。
+function assistTemplateCoreReason(c, info, row) {
+  if (assistIsMainWincon(c)) return 'この5枚を勝ち筋としてまとめる核になりやすい1枚です。';
+  if (assistIsSecondary(c)) return 'サブの攻め手として、この5枚に核を足す1枚です。';
+  if (assistIsDefenseBuilding(c) || c.type === 'building') return '守りの軸として、この5枚をまとめやすい1枚です。';
+  if (assistIsSpell(c)) return '呪文枠として、この5枚の形を締める1枚です。';
+  return (row && row.variants >= 3)
+    ? '過去の完成形で、この5枚から形をまとめやすい1枚です。'
+    : '近い完成形に寄せる時の核になりやすい1枚です。';
+}
+// 3枠を作る。ランキングを i, i+3, i+6… で3枠に分配（＝所有が排他）し、各枠は自分の所有内だけ回す。
+//  これで「別候補」を押した枠だけ必ず変わり、他の枠は動かない（完全独立）。初期表示は上位3枚。
+function assistTemplateCoreHtml(info) {
+  assistCoreLabelByName = {};
+  if (!info || info.cards.length !== 5) return '';
+  const rows = assistTemplateCoreRows(info);
+  if (!rows.length) return '';
+  const slots = [0, 1, 2].map(i => {
+    const owned = rows.filter((_, idx) => idx % 3 === i);
+    if (!owned.length) return { i, card: null, total: 0 };
+    const total = owned.length;
+    const idx = ((assistCoreVariant[i] || 0) % total + total) % total;
+    const row = owned[idx];
+    assistCoreLabelByName[row.card.name] = '6枚目の核候補';
+    return { i, card: row.card, total, reason: assistTemplateCoreReason(row.card, info, row), badges: assistBadges(row.card, info) };
+  });
+  if (!slots.some(s => s.card)) return '';
+  const cardsHtml = slots.map(s => {
+    if (!s.card) return '';
+    const head = s.total > 1 ? '<div class="acc-head"><button type="button" class="acc-refresh" data-assist-core-refresh="' + s.i + '">別候補</button></div>' : '';
+    const c = s.card;
+    const badges = (s.badges || []).slice(0, 2).map(x => '<span>' + esc(x) + '</span>').join('');
+    return '<div class="assist-core-block">' + head
+      + '<div class="assist-core-card" role="button" tabindex="0" data-assist-card="' + esc(c.name) + '">'
+      + (c.img ? '<img src="' + esc(c.img) + '" alt="" loading="lazy">' : '<span></span>')
+      + '<span class="acc-body"><span class="acc-name">' + esc(TR(c.name)) + '</span>'
+      + '<span class="acc-reason">' + esc(s.reason) + '</span>'
+      + (badges ? '<span class="acc-badges">' + badges + '</span>' : '') + '</span>'
+      + '<span class="acc-add">＋</span></div></div>';
+  }).join('');
+  return '<div class="assist-core"><div class="assist-core-q">6枚目：完成形に寄せる核候補</div>'
+    + '<div class="assist-core-note">過去の完成形で、この5枚から形をまとめやすい1枚です。勝ち筋でなくても核になる札を出します。</div>'
+    + '<div class="assist-core-blocks">' + cardsHtml + '</div></div>';
+}
 // 今のデッキ内の「明確／型」な2枚組を見せる（明確シナジーの可視化）。プレイヤー向けの自然文で。
 function assistClearSynergyHtml(info) {
   if (!info || info.cards.length < 2) return '';
@@ -1976,6 +2049,8 @@ function updateAssistPanel() {
   controls.classList.toggle('assist-active', assistMode);
   btn.setAttribute('aria-pressed', assistMode ? 'true' : 'false');
   btn.innerHTML = assistMode ? '<span>アシストON</span>' : '<span>アシスト</span>';
+  assistDirLabelByName = {};
+  assistCoreLabelByName = {};
   if (!assistMode) { panel.innerHTML = ''; assistSuggestions = []; updateAssistTopInfo(null); refreshAssistHighlights(); return; }
   const info = assistDeckInfo();
   const contextLoading = ensureAssistContext(info);
@@ -2012,10 +2087,11 @@ function updateAssistPanel() {
   const devLine = assistDevelopmentHtml(info);
   const activeChunk = assistChunk === 'threats' ? 'threats' : 'cards';
   const dir3 = info.cards.length >= 3 ? assistDirectionBlocksHtml(info) : '';
+  const core6 = info.cards.length === 5 ? assistTemplateCoreHtml(info) : '';
   const clearSyn = assistClearSynergyHtml(info);
   const chunkHtml = activeChunk === 'threats'
     ? assistThreatHtml(info)
-    : (clearSyn + assistSpellTargetChipsHtml(info) + (dir3 ? '' : assistDirectionChipsHtml(info)) + cardsHtml + dir3);
+    : (clearSyn + assistSpellTargetChipsHtml(info) + (dir3 ? '' : assistDirectionChipsHtml(info)) + cardsHtml + dir3 + core6);
   const actionMain = activeChunk === 'threats'
     ? '<button class="assist-mini" id="assistBackCards" type="button">候補へ戻る</button>'
     : '<button class="assist-mini" id="assistRefresh" type="button">別候補</button>';
@@ -2046,7 +2122,7 @@ function updateAssistPanel() {
       const c = CARDS.find(x => x.name === b.getAttribute('data-assist-card'));
       if (!c) return;
       addAssistToDeck(c);
-      const dirLabel = assistDirLabelByName[c.name];
+      const dirLabel = assistDirLabelByName[c.name] || assistCoreLabelByName[c.name];
       const label = dirLabel || assistKindLabel((assistSuggestions.find(s => s.card.name === c.name) || {}).kind || 'natural');
       showToast(label + '：' + TR(c.name));
       updateAssistPanel();
@@ -2095,6 +2171,7 @@ function updateAssistPanel() {
     try { localStorage.setItem('cr_assist_dev_note', assistDevNote); } catch(e) {}
     assistVariant = 0;
     assistDirVariant = { attack: 0, defense: 0, cycle: 0 };
+    assistCoreVariant = { 0: 0, 1: 0, 2: 0 };
     updateAssistPanel();
   };
   const devClear = document.getElementById('assistDevClear');
@@ -2103,6 +2180,7 @@ function updateAssistPanel() {
     try { localStorage.removeItem('cr_assist_dev_note'); } catch(e) {}
     assistVariant = 0;
     assistDirVariant = { attack: 0, defense: 0, cycle: 0 };
+    assistCoreVariant = { 0: 0, 1: 0, 2: 0 };
     updateAssistPanel();
   };
   // 方向チップ（攻撃強化/防衛強化/回転力強化）：選ぶと候補がその方向へ寄る。同じものをもう一度押すと解除。
@@ -2121,6 +2199,16 @@ function updateAssistPanel() {
       const dir = b.getAttribute('data-assist-dir-refresh');
       if (!dir) return;
       assistDirVariant[dir] = (assistDirVariant[dir] || 0) + 1;
+      updateAssistPanel();
+    });
+  });
+  // 6枚目「核候補」3枠の別候補：押した枠だけ次の候補へ回す（他の枠は動かさない）。
+  panel.querySelectorAll('[data-assist-core-refresh]').forEach(b => {
+    b.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const i = parseInt(b.getAttribute('data-assist-core-refresh'), 10);
+      if (isNaN(i)) return;
+      assistCoreVariant[i] = (assistCoreVariant[i] || 0) + 1;
       updateAssistPanel();
     });
   });
@@ -2164,6 +2252,7 @@ function setAssistMode(on) {
   assistMode = !!on;
   assistVariant = 0;
   assistDirVariant = { attack: 0, defense: 0, cycle: 0 }; // 方向ブロックの別候補位置もリセット
+  assistCoreVariant = { 0: 0, 1: 0, 2: 0 }; // 6枚目の核候補ローテーション位置もリセット
   assistDirection = null; // ON/OFF切替で方向選択はリセット（毎回ニュートラルから）
   try { localStorage.setItem('cr_assist_mode', assistMode ? 'on' : 'off'); } catch(e) {}
   updateAssistPanel();
