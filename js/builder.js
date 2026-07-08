@@ -66,7 +66,7 @@ function allowAssistPublicJsonFallback() {
     return !prod && new URLSearchParams(location.search || '').get('publicJsonFallback') === '1';
   } catch (e) { return false; }
 }
-const assistData = { wincon: null, potential: null, tags: null, pairs: null, deckPairs: null, pairExt: null, threatResp: null, templateCore: null, vectors: null, eval: null, ready: false, tried: false };
+const assistData = { wincon: null, potential: null, tags: null, pairs: null, deckPairs: null, pairExt: null, threatResp: null, templateCore: null, vectors: null, eval: null, personaProfiles: null, ready: false, tried: false };
 const ASSIST_ALT_POOL = 12;
 const ASSIST_TEMPLATE_CORE_POOL = 9;
 
@@ -458,11 +458,12 @@ function applyAssistBundle(bundle) {
   assistData.templateCore = bundle && bundle.templateCore ? bundle.templateCore : null;
   assistData.vectors = normalizeAssistCards(bundle && bundle.vectors);
   assistData.eval = null;
+  assistData.personaProfiles = bundle && bundle.personaProfiles && bundle.personaProfiles.byMbti ? bundle.personaProfiles.byMbti : null;
   assistVectorCache = {};
   assistContextCache = {};
   assistContextKey = '';
   assistContextPending = '';
-  assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags || assistData.pairs || assistData.pairExt || assistData.threatResp || assistData.vectors || assistData.eval);
+  assistData.ready = !!(assistData.wincon || assistData.potential || assistData.tags || assistData.pairs || assistData.pairExt || assistData.threatResp || assistData.vectors || assistData.eval || assistData.personaProfiles);
   updateAssistPanel();
 }
 function loadAssistData() {
@@ -2349,6 +2350,10 @@ function mbtiToAxes(mbti) {
   let ax = emptyAxes();
   if (!m) return ax;
   m.split('').forEach(letter => { ax = addAxes(ax, MBTI_CONTRIB[letter], 1); });
+  const prof = assistData.personaProfiles && assistData.personaProfiles[m];
+  // 裏側の型プロファイル（socionics.or.jp 由来の短いメタ＋導出軸）をMBTI入力にだけ混ぜる。
+  // ユーザーにソシオニクス名は見せず、候補の寄せ方だけ少し精密にする。
+  if (prof && prof.axes) ax = addAxes(ax, prof.axes, 0.85);
   return ax;
 }
 // 2択質問（クラロワの言葉で。MBTIという語は前面に出さない）。各選択肢が軸へ寄与。
