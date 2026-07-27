@@ -1,0 +1,39 @@
+{
+  "season": 84,
+  "kind": "final",
+  "source": "https://royaleapi.com/blog/season-84-balance-final-june-2026",
+  "publishedAt": "2026-05-31",
+  "liveAt": "2026-06-01",
+  "note": "27枚調整（nerf9/rework3/buff15）。呪文12種のタワーダメ一斉nerf含む。Lv11基準値。",
+  "changes": [
+    { "slug": "furnace", "field": "attrs.Range", "before": "6", "after": "5.5", "label": "Range -8%" },
+    { "slug": "rascals", "field": "s16.Rascal Boy Hitpoints", "ratio": [1832, 1940], "label": "Boy HP -6%" },
+    { "slug": "tesla", "field": "attrs.Lifetime", "before": "30 sec", "after": "25 sec", "label": "Lifetime -17%" },
+    { "slug": "goblin-giant", "field": "s16.Goblin Giant Hitpoints", "ratio": [3110, 3020], "label": "HP +3%" },
+    { "slug": "electro-dragon", "field": "s16.Hitpoints", "ratio": [1049, 998], "label": "HP +5%" },
+    { "slug": "rune-giant", "field": "s16.Damage", "ratio": [153, 120], "label": "Damage +28%", "alsoScale": ["s16.Damage per Second"] },
+    { "slug": "rocket", "field": "s16.Crown Tower Damage", "ratio": [343, 371], "label": "Tower Damage -8%" },
+    { "slug": "lightning", "field": "s16.Crown Tower Damage", "ratio": [265, 286], "label": "Tower Damage -7%" },
+    { "slug": "fireball", "field": "s16.Crown Tower Damage", "ratio": [172, 207], "label": "Tower Damage -17%" },
+    { "slug": "freeze", "field": "s16.Crown Tower Damage", "ratio": [37, 45], "label": "Tower Damage -18%" },
+    { "slug": "poison", "field": "s16.Crown Tower Damage", "ratio": [168, 184], "label": "Tower Damage -9%" },
+    { "slug": "earthquake", "field": "s16.Crown Tower Damage", "ratio": [147, 159], "label": "Tower Damage -8%" },
+    { "slug": "vines", "field": "s16.Crown Tower Damage", "ratio": [70, 76], "label": "Tower Damage -8%" },
+    { "slug": "arrows", "field": "s16.Crown Tower Damage", "ratio": [75, 93], "label": "Tower Damage -19%" },
+    { "slug": "zap", "field": "s16.Crown Tower Damage", "ratio": [48, 58], "label": "Tower Damage -17%" },
+    { "slug": "giant-snowball", "field": "s16.Crown Tower Damage", "ratio": [45, 54], "label": "Tower Damage -17%" },
+    { "slug": "rage", "field": "s16.Crown Tower Damage", "ratio": [45, 54], "label": "Tower Damage -17%" },
+    { "slug": "the-log", "field": "s16.Crown Tower Damage", "ratio": [35, 41], "label": "Tower Damage -15%" }
+  ],
+  "outOfScope": [
+    { "name": "Graveyard", "jp": "スケルトンラッシュ", "label": "Unit Count 13→12", "reason": "card-statsに対応フィールドなし（スポーン数）。タグ/式への影響は軽微" },
+    { "name": "Hero Bowler", "label": "Ability Duration -22%", "reason": "ヒーロー能力はcard-stats範囲外" },
+    { "name": "Hero Dark Prince", "label": "Rhino Spawn/First Charge/Deploy変更", "reason": "ヒーロー能力はcard-stats範囲外" },
+    { "name": "Hero Balloon", "label": "Skeletrooper Landing -14%", "reason": "ヒーロー能力はcard-stats範囲外" },
+    { "name": "Evolved Mega Knight", "label": "Ability Knockback -38%", "reason": "進化はcard-stats範囲外" },
+    { "name": "Evolved Inferno Dragon", "label": "Ability Duration -22%", "reason": "進化はcard-stats範囲外" },
+    { "name": "Evolved Mortar", "label": "Goblin Deploy +150%", "reason": "進化はcard-stats範囲外" },
+    { "name": "Evolved Lumberjack", "label": "Ghost Tower Damage -50%", "reason": "進化はcard-stats範囲外" },
+    { "name": "Evolved Dart Goblin", "label": "Poison Damage S1 +25%", "reason": "進化はcard-stats範囲外" }
+  ]
+}

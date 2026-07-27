@@ -1,0 +1,22 @@
+{
+  "season": 85,
+  "kind": "final",
+  "source": "https://royaleapi.com/blog/season-85-balance-final-july-2026",
+  "publishedAt": "2026-07-05",
+  "liveAt": "2026-07-06",
+  "note": "10項目（nerf5/rework1/buff4）。Lv11基準値。",
+  "changes": [
+    { "slug": "miner", "field": "s16.Crown Tower Damage", "ratio": [40, 48], "label": "Tower Damage -17%", "alsoScale": ["s16.Crown Tower Damage per second"] },
+    { "slug": "ram-rider", "field": "s16.Hitpoints", "ratio": [1766, 1697], "label": "HP +4%" },
+    { "slug": "baby-dragon", "field": "s16.Area Damage", "ratio": [168, 161], "label": "Damage +4%", "alsoScale": ["s16.Damage per second"] },
+    { "slug": "pekka", "field": "s16.Damage", "ratio": [842, 816], "label": "Damage +3%", "alsoScale": ["s16.Damage per second"] },
+    { "slug": "electro-giant", "field": "s16.Hitpoints", "ratio": [3952, 3855], "label": "HP +3%" }
+  ],
+  "outOfScope": [
+    { "name": "Evolved Executioner", "label": "Close Quarters Range -29% / Damage -10%", "reason": "進化はcard-stats範囲外" },
+    { "name": "Hero Magic Archer", "label": "Ability Range -13% / Teleport -30% / Decoy HP -57%", "reason": "ヒーロー能力はcard-stats範囲外" },
+    { "name": "Hero Balloon", "label": "Skeletrooper複数nerf / Shield -33%", "reason": "ヒーロー能力はcard-stats範囲外" },
+    { "name": "Hero Goblins", "label": "Deploy Time +30%", "reason": "ヒーロー能力はcard-stats範囲外" },
+    { "name": "Hero Tombstone", "label": "Tomb Queen HP +20% / Spawn -100% / Cost 6→5", "reason": "ヒーロー能力はcard-stats範囲外" }
+  ]
+}
