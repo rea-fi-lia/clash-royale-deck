@@ -1262,7 +1262,7 @@ async function updateDecks() {
   // ★seed母集団：過去に当たった相手tag＋クラン経由で発見したtagを履歴に保持し、
   //   毎回少しずつ（SEED_PER_RUN件）だけ追加収集する＝「一気にではなく」少しずつ広げる。
   if (!hist.oppSeeds) hist.oppSeeds = {}; // tag -> { tr, lastSeen, lastFetch, src }
-  var SEED_PER_RUN = parseInt(prop('SEED_PER_RUN', '60'), 10);
+  var SEED_PER_RUN = parseInt(prop('SEED_PER_RUN', '300'), 10);
 
   // ================= クラン経由の発見（全トロフィー帯へ届く入口） =================
   // 2026-08-02計測で判明：/locations/{id}/rankings/players は空を返す（トロフィーランキングは事実上廃止）。
