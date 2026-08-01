@@ -1,0 +1,31 @@
+name: probe api limits
+
+# CR API（RoyaleAPIプロキシ経由）の可用エンドポイントとレート上限を1回だけ実測する。
+# 帯別メタ収集を全トロフィー帯へ広げる前の事前計測用。手動実行のみ。
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: collect-decks # 通常の収集と同時に走らせない（相乗りで負荷をかけない）
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Probe
+        env:
+          CR_TOKEN: ${{ secrets.CR_TOKEN }}
+        run: node tools/probe-api-limits.js
