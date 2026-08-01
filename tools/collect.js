@@ -942,6 +942,9 @@ async function updateDecks() {
     Object.keys(t0).forEach(function (k) { schemaSample.teamKeys[k] = (schemaSample.teamKeys[k] || 0) + 1; });
     Object.keys(c0).forEach(function (k) { schemaSample.cardKeys[k] = (schemaSample.cardKeys[k] || 0) + 1; });
     ['elixirLeaked', 'kingTowerHitPoints', 'princessTowersHitPoints', 'trophyChange', 'startingTrophies', 'supportCards', 'globalRank', 'kingTowerLevel', 'princessTowerLevel'].forEach(function (f) { if (t0[f] != null) schemaSample.present[f] = (schemaSample.present[f] || 0) + 1; });
+    // ★相手側も棚卸しする（globalRank/trophyChangeが相手にも入るかは実測しないと分からない＝欠損率の把握用）
+    var op0 = (b.opponent && b.opponent[0]) || {};
+    ['trophyChange', 'globalRank', 'startingTrophies', 'tag'].forEach(function (f) { if (op0[f] != null) schemaSample.present['opp.' + f] = (schemaSample.present['opp.' + f] || 0) + 1; });
     ['level', 'maxLevel', 'evolutionLevel', 'starLevel'].forEach(function (f) { if (c0[f] != null) schemaSample.present['card.' + f] = (schemaSample.present['card.' + f] || 0) + 1; });
     ['battleTime', 'duration', 'durationSeconds', 'gameDuration', 'matchDuration', 'endTime'].forEach(function (f) { if (b[f] != null) schemaSample.present[f] = (schemaSample.present[f] || 0) + 1; });
     if (b.leagueNumber != null) schemaSample.present.leagueNumber = (schemaSample.present.leagueNumber || 0) + 1;
@@ -1039,7 +1042,13 @@ async function updateDecks() {
       towerTroop: supportName_(p),
       towerTroopLevel: supportLevel_(p),
       kingTowerLevel: typeof p.kingTowerLevel === 'number' ? p.kingTowerLevel : null,
-      princessTowerLevel: typeof p.princessTowerLevel === 'number' ? p.princessTowerLevel : null
+      princessTowerLevel: typeof p.princessTowerLevel === 'number' ? p.princessTowerLevel : null,
+      // ★2026-08-02追加：後からの再分析に必要な素の信号を生ログへ残す。
+      // trophyChange=その試合の価値／globalRank=対戦相手を含む実力指標／tag=同一人物の追跡用。
+      // いずれもAPIに存在しない試合があるためnull許容（欠損前提で集計すること）。
+      tag: normTag_(p.tag) || null,
+      trophyChange: typeof p.trophyChange === 'number' ? p.trophyChange : null,
+      globalRank: typeof p.globalRank === 'number' ? p.globalRank : null
     };
   }
   function trophyBattleEvent_(b, d, od, tc, oc) {
