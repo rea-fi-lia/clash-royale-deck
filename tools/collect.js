@@ -148,9 +148,18 @@ function eloBand_(elo) {
 }
 
 async function crGet(path, token) {
-  const res = await fetch(PROXY + path, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json', 'User-Agent': UA } });
-  if (res.status !== 200) throw new Error('CR API ' + res.status + ' for ' + path + ' :: ' + (await res.text()).slice(0, 300));
-  return res.json();
+  // ★429（レート制限）は指数バックオフで再試行する。実測上限＝同時60件、90件で429が出る（2026-08-02計測）。
+  var waits = [1200, 3000, 7000];
+  for (var i = 0; i <= waits.length; i++) {
+    const res = await fetch(PROXY + path, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json', 'User-Agent': UA } });
+    if (res.status === 200) return res.json();
+    if (res.status === 429 && i < waits.length) {
+      var ra = parseInt(res.headers.get('retry-after') || '0', 10);
+      await new Promise(function (r) { setTimeout(r, ra > 0 ? Math.min(ra * 1000, 15000) : waits[i]); });
+      continue;
+    }
+    throw new Error('CR API ' + res.status + ' for ' + path + ' :: ' + (await res.text()).slice(0, 300));
+  }
 }
 
 function summarizeRankingItems_(items) {
@@ -810,7 +819,8 @@ async function updateDecks() {
   var rankingSource = String(prop('RANKING_SOURCE', 'pol')).toLowerCase();
   var trophyMin = parseInt(prop('TROPHY_MIN', '0'), 10);
   var trophyMax = parseInt(prop('TROPHY_MAX', '999999'), 10);
-  var trophyEventMin = parseInt(prop('TROPHY_EVENT_MIN', '10000'), 10);
+  // ★全トロフィー帯を対象にする（2026-08-02）。従来は10000未満を捨てていたため一般帯が保存されなかった。
+  var trophyEventMin = parseInt(prop('TROPHY_EVENT_MIN', '0'), 10);
   var trophyEventMax = parseInt(prop('TROPHY_EVENT_MAX', '14000'), 10);
   var intervalHours = parseInt(prop('INTERVAL_HOURS', '6'), 10);
 
@@ -1249,15 +1259,102 @@ async function updateDecks() {
   var TAGSET = {}; allTags.forEach(function (t) { TAGSET[String(t).toUpperCase().replace(/[^0-9A-Z]/g, '')] = 1; });
   allTags.forEach(function (t) { if (lastT[t]) newLastT[t] = newLastT[t] || lastT[t]; });
 
-  // ★Top1000以外の10000〜14000帯母集団：過去に当たった相手tagをseedとして履歴に保持し、
+  // ★seed母集団：過去に当たった相手tag＋クラン経由で発見したtagを履歴に保持し、
   //   毎回少しずつ（SEED_PER_RUN件）だけ追加収集する＝「一気にではなく」少しずつ広げる。
-  if (!hist.oppSeeds) hist.oppSeeds = {}; // tag -> { tr, lastSeen, lastFetch }
+  if (!hist.oppSeeds) hist.oppSeeds = {}; // tag -> { tr, lastSeen, lastFetch, src }
   var SEED_PER_RUN = parseInt(prop('SEED_PER_RUN', '60'), 10);
+
+  // ================= クラン経由の発見（全トロフィー帯へ届く入口） =================
+  // 2026-08-02計測で判明：/locations/{id}/rankings/players は空を返す（トロフィーランキングは事実上廃止）。
+  // 一方クランランキングは生きており、「国の規模 × クラン順位の深さ」で全帯に到達できる。
+  //   大国(US/JP)の下位クラン … メンバーは1万トロフィー超＝上位層のみ
+  //   小国(アイスランド/ナウル等)の下位クラン … メンバーは30〜400トロフィー＝初心者帯まで届く
+  // 1クラン1リクエストで最大50人のtagが得られるため発見効率が高い。国は毎ラン数か国ずつ巡回する。
+  async function discoverViaClans() {
+    var nowMsClan = Date.now();
+    var perRun = parseInt(prop('CLAN_COUNTRIES_PER_RUN', '4'), 10);
+    if (perRun <= 0) return { countries: 0, clans: 0, found: 0 };
+    if (!hist.clanCrawl) hist.clanCrawl = { locs: null, cursor: 0, lastFullAt: 0 };
+    var cc = hist.clanCrawl;
+    if (!Array.isArray(cc.locs) || !cc.locs.length) {
+      var locs = await crGet('/locations', token);
+      // 国のみ。小さい国ほど低帯に届くので、IDの並びをシャッフルせず固定順で巡回し全国を確実に一巡させる。
+      cc.locs = ((locs && locs.items) || []).filter(function (l) { return l.isCountry; }).map(function (l) { return l.id; });
+      cc.cursor = 0;
+      console.log('clan-crawl locations loaded=' + cc.locs.length);
+    }
+    var stats = { countries: 0, clans: 0, found: 0 };
+    for (var k = 0; k < perRun && cc.locs.length; k++) {
+      var locId = cc.locs[cc.cursor % cc.locs.length];
+      cc.cursor = (cc.cursor + 1) % cc.locs.length;
+      if (cc.cursor === 0) cc.lastFullAt = Date.now();
+      var rk;
+      try { rk = await crGet('/locations/' + locId + '/rankings/clans?limit=1000', token); }
+      catch (e) { console.log('clan-crawl rankings error loc=' + locId + ' ' + ((e && e.message) || e)); continue; }
+      var clans = (rk && rk.items) || [];
+      if (!clans.length) continue;
+      stats.countries++;
+      // 上位・中位・下位から均等に抜く＝1国の中で実力の幅をまたぐ。
+      var picks = parseInt(prop('CLAN_PICKS_PER_COUNTRY', '5'), 10);
+      var idxs = [];
+      for (var i = 0; i < picks; i++) idxs.push(Math.min(clans.length - 1, Math.floor(clans.length * i / Math.max(1, picks - 1))));
+      idxs = idxs.filter(function (v, i, a) { return a.indexOf(v) === i; });
+      for (var j = 0; j < idxs.length; j++) {
+        var cl = clans[idxs[j]];
+        if (!cl || !cl.tag) continue;
+        var mem;
+        try { mem = await crGet('/clans/' + encodeURIComponent(cl.tag) + '/members', token); }
+        catch (e) { continue; }
+        stats.clans++;
+        ((mem && mem.items) || []).forEach(function (m) {
+          var t = normTag_(m.tag);
+          if (!t || TAGSET[t]) return;
+          var prev = hist.oppSeeds[t];
+          // ★nowは後方（3日ローリング節）で定義されるため、ここではDate.now()を直接使う（巻き上げでundefinedになる）
+          if (!prev) { hist.oppSeeds[t] = { tr: m.trophies || null, lastSeen: nowMsClan, lastFetch: 0, src: 'clan' }; stats.found++; }
+          else { prev.tr = (typeof m.trophies === 'number') ? m.trophies : prev.tr; prev.lastSeen = nowMsClan; }
+        });
+        await sleep(250);
+      }
+      await sleep(250);
+    }
+    return stats;
+  }
+
+  var clanStats = { countries: 0, clans: 0, found: 0 };
+  try { clanStats = await discoverViaClans(); }
+  catch (e) { console.log('clan-crawl error ' + ((e && e.message) || e)); }
+  console.log('clan-crawl countries=' + clanStats.countries + ' clans=' + clanStats.clans + ' newPlayers=' + clanStats.found);
+
+  // ================= 帯を均した seed 選択 =================
+  // 単純に「最も長く取得していない順」だと、母集団の多い帯（上位層）ばかり選ばれて低帯がいつまでも埋まらない。
+  // トロフィー1000刻みの帯ごとに取り、帯を順番に回して均等に選ぶ。
   var seedAll = Object.keys(hist.oppSeeds).filter(function (t) { return !TAGSET[t]; });
-  // 未取得（lastFetch無し=0）を優先し、その後は最も長く取得していない順。
-  seedAll.sort(function (a, b) { return (hist.oppSeeds[a].lastFetch || 0) - (hist.oppSeeds[b].lastFetch || 0); });
-  var seedTags = seedAll.slice(0, SEED_PER_RUN).map(function (t) { return '#' + t; });
-  console.log('opp seeds total=' + seedAll.length + ' fetchingThisRun=' + seedTags.length);
+  var BAND_W = 1000;
+  var byBand = {};
+  seedAll.forEach(function (t) {
+    var tr = hist.oppSeeds[t].tr;
+    var b = (typeof tr === 'number') ? Math.floor(tr / BAND_W) * BAND_W : 'unknown';
+    (byBand[b] || (byBand[b] = [])).push(t);
+  });
+  Object.keys(byBand).forEach(function (b) {
+    // 各帯の中では「未取得優先→最も長く取得していない順」
+    byBand[b].sort(function (a, c) { return (hist.oppSeeds[a].lastFetch || 0) - (hist.oppSeeds[c].lastFetch || 0); });
+  });
+  var bandKeys = Object.keys(byBand).sort();
+  var picked = [];
+  for (var round = 0; picked.length < SEED_PER_RUN && bandKeys.length; round++) {
+    var progressed = false;
+    for (var bi = 0; bi < bandKeys.length && picked.length < SEED_PER_RUN; bi++) {
+      var arr = byBand[bandKeys[bi]];
+      if (round < arr.length) { picked.push(arr[round]); progressed = true; }
+    }
+    if (!progressed) break;
+  }
+  var seedTags = picked.map(function (t) { return '#' + t; });
+  var bandSummary = bandKeys.map(function (b) { return b + ':' + byBand[b].length; }).join(' ');
+  console.log('seeds total=' + seedAll.length + ' fetchingThisRun=' + seedTags.length);
+  console.log('seed bands ' + bandSummary);
 
   async function fetchTags(tags, seedMode) {
     var got = [];
@@ -2599,8 +2696,22 @@ async function updateDecks() {
           count: events.length, duration: triple, byCard: byCard, byBand: byBand },
         'chore: update trophy-band-card-intel-v1.json');
     } catch (eBand) { console.log('trophy-band-card-intel write error ' + ((eBand && eBand.message) || eBand)); }
-    var publicBand = {};
-    Object.keys(byBand).forEach(function (bk) { publicBand[bk] = { games: byBand[bk].games, cards: publicPolMap_(byBand[bk].cards) }; });
+    // ★全トロフィー帯を集めるようにした結果、試合数の少ない帯が生まれる。
+    //   サンプル不足の帯をそのまま出すと誤った傾向を断定してしまうので、公開側は下限を設ける。
+    //   （非公開版 byBand は全帯そのまま残すので、後から窓を広げて再集計できる）
+    var BAND_MIN_GAMES = parseInt(prop('BAND_MIN_GAMES', '30'), 10);
+    var publicBand = {}, bandKept = 0, bandThin = 0;
+    Object.keys(byBand).forEach(function (bk) {
+      if (byBand[bk].games < BAND_MIN_GAMES) { bandThin++; return; }
+      publicBand[bk] = { games: byBand[bk].games, cards: publicPolMap_(byBand[bk].cards) };
+      bandKept++;
+    });
+    // 帯ごとの試合数を昇順で出す＝どの帯が埋まっていてどこが手薄かを毎ラン把握する
+    var bandDist = Object.keys(byBand)
+      .sort(function (a, b) { return parseInt(a, 10) - parseInt(b, 10); })
+      .map(function (bk) { return bk.split('-')[0] + ':' + byBand[bk].games; }).join(' ');
+    console.log('trophy-bands 公開=' + bandKept + ' 除外(サンプル不足<' + BAND_MIN_GAMES + ')=' + bandThin);
+    console.log('trophy-band 分布 ' + bandDist);
     await writePublicJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-public-v1.json'),
       { updated: trophyUpdated, version: 1, visibility: 'public-display', windowDays: 7,
         trophyRange: { min: trophyEventMin, max: trophyEventMax }, count: events.length,
