@@ -2650,6 +2650,12 @@ async function updateDecks() {
         cardKeys: Object.keys(schemaSample.cardKeys), presentCounts: schemaSample.present },
       'chore: update battle-schema-sample.json');
     console.log('battle-schema-sample size ' + schemaSample.sampleSize);
+    // ★重要フィールドの取得率をログに出す（APIが返さなくなった時に気づけるようにする）
+    var n = schemaSample.sampleSize || 1;
+    var pct = function (k) { return Math.round((schemaSample.present[k] || 0) / n * 100) + '%'; };
+    console.log('field-coverage self: trophyChange=' + pct('trophyChange') + ' globalRank=' + pct('globalRank') +
+      ' | opponent: trophyChange=' + pct('opp.trophyChange') + ' globalRank=' + pct('opp.globalRank') +
+      ' tag=' + pct('opp.tag') + ' startingTrophies=' + pct('opp.startingTrophies'));
   } catch (e) { console.log('battle-schema-sample error ' + ((e && e.message) || e)); }
 
   hist.lastT = newLastT; // ★二重カウント防止のしおり
