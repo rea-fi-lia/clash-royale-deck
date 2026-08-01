@@ -917,7 +917,13 @@ async function updateDecks() {
   var newLastT = {};
 
   // ---- バトルログから集計 ----
-  var pop = {}, win = {}, unmapped = {}, CHUNK = 40;
+  // ★同時実行数とチャンク間待機（2026-08-02実測に基づく）。
+  //   単発バーストは同時80件まで成功・85件で429。ただし同時70件の連続運転は3ラウンド目で429多発。
+  //   ＝「瞬間の上限」より「持続できる上限」の方がかなり低い。40は長時間の実運用で無事故のため既定を維持し、
+  //   上げる時は CHUNK / CHUNK_SLEEP を環境変数で調整して429ログを見ながら詰める。
+  var pop = {}, win = {}, unmapped = {};
+  var CHUNK = parseInt(prop('FETCH_CHUNK', '40'), 10);
+  var CHUNK_SLEEP = parseInt(prop('FETCH_CHUNK_SLEEP_MS', '300'), 10);
   var muNow = {};       // ' 自分arch|相手arch' → [試合数, 勝ち数]（今回ぶん）
   // ★苦しい相手×対策札（今回ぶん）：pair全体 / pair×相手型 / pair+C×相手型 を貯め、UI用JSONへ落とす。
   var pairAllNow = {}, pairThreatNow = {}, tripleThreatNow = {};
@@ -1262,7 +1268,7 @@ async function updateDecks() {
   // ★seed母集団：過去に当たった相手tag＋クラン経由で発見したtagを履歴に保持し、
   //   毎回少しずつ（SEED_PER_RUN件）だけ追加収集する＝「一気にではなく」少しずつ広げる。
   if (!hist.oppSeeds) hist.oppSeeds = {}; // tag -> { tr, lastSeen, lastFetch, src }
-  var SEED_PER_RUN = parseInt(prop('SEED_PER_RUN', '300'), 10);
+  var SEED_PER_RUN = parseInt(prop('SEED_PER_RUN', '600'), 10);
 
   // ================= クラン経由の発見（全トロフィー帯へ届く入口） =================
   // 2026-08-02計測で判明：/locations/{id}/rankings/players は空を返す（トロフィーランキングは事実上廃止）。
@@ -1356,19 +1362,40 @@ async function updateDecks() {
   console.log('seeds total=' + seedAll.length + ' fetchingThisRun=' + seedTags.length);
   console.log('seed bands ' + bandSummary);
 
+  // ★バトルログ取得は crGet を通らないため、ここに独自の429対策を持つ（2026-08-02）。
+  //   実測: 単発バーストは同時80件まで成功・85件で429。ただし同時70件を連続すると3ラウンド目で429が多発
+  //   ＝瞬間値は出せても持続できない。よってチャンクごとの待機と429時の追加待機で自律的に減速する。
+  var rate429 = { hits: 0, retried: 0, gaveUp: 0, extraWaitMs: 0 };
   async function fetchTags(tags, seedMode) {
     var got = [];
     for (var off = 0; off < tags.length; off += CHUNK) {
       var slice = tags.slice(off, off + CHUNK);
-      var resps = await Promise.all(slice.map(function (t) {
-        return fetch(PROXY + '/players/' + encodeURIComponent(t) + '/battlelog', { headers: headers })
-          .then(async function (r) { return { ok: r.status === 200, body: r.status === 200 ? await r.json() : null }; })
-          .catch(function () { return { ok: false, body: null }; });
-      }));
-      resps.forEach(function (res, i) {
-        if (res.ok) { got.push(slice[i]); try { processLog(res.body, slice[i], seedMode); } catch (e) {} }
-      });
-      await sleep(300);
+      var pending = slice.slice();
+      // 429になったものだけを最大3回まで再試行する（成功分は捨てない）
+      for (var attempt = 0; attempt <= 3 && pending.length; attempt++) {
+        var resps = await Promise.all(pending.map(function (t) {
+          return fetch(PROXY + '/players/' + encodeURIComponent(t) + '/battlelog', { headers: headers })
+            .then(async function (r) {
+              if (r.status === 200) return { ok: true, body: await r.json() };
+              return { ok: false, body: null, status: r.status, retryAfter: parseInt(r.headers.get('retry-after') || '0', 10) };
+            })
+            .catch(function () { return { ok: false, body: null, status: 0 }; });
+        }));
+        var next = [], maxRa = 0;
+        resps.forEach(function (res, i) {
+          if (res.ok) { got.push(pending[i]); try { processLog(res.body, pending[i], seedMode); } catch (e) {} }
+          else if (res.status === 429) { rate429.hits++; next.push(pending[i]); if (res.retryAfter > maxRa) maxRa = res.retryAfter; }
+        });
+        pending = next;
+        if (!pending.length) break;
+        if (attempt === 3) { rate429.gaveUp += pending.length; break; }
+        rate429.retried += pending.length;
+        // 429が出た＝速すぎる。retry-afterがあれば従い、無ければ指数的に待つ。
+        var wait = maxRa > 0 ? Math.min(maxRa * 1000, 15000) : [1500, 4000, 9000][attempt];
+        rate429.extraWaitMs += wait;
+        await sleep(wait);
+      }
+      await sleep(CHUNK_SLEEP);
     }
     return got;
   }
@@ -1377,6 +1404,9 @@ async function updateDecks() {
   var miss = allTags.filter(function (t) { return got1.indexOf(t) < 0; });
   if (miss.length) { await sleep(1200); await fetchTags(miss); }
   console.log('typeSeen ' + JSON.stringify(typeSeen));
+  // ★レート制限の当たり具合を毎ラン可視化する。hits>0 なら速すぎる＝CHUNKを下げるか待機を伸ばす判断材料。
+  console.log('rate-limit 429hits=' + rate429.hits + ' 再試行=' + rate429.retried + ' 諦め=' + rate429.gaveUp +
+    ' 追加待機=' + Math.round(rate429.extraWaitMs / 1000) + 's | chunk=' + CHUNK + ' sleep=' + CHUNK_SLEEP + 'ms');
 
   // ★seed（Top1000以外）を少しずつ追加収集。PoLメタは汚さず、trophy eventのみ拾う。
   if (seedTags.length) {
