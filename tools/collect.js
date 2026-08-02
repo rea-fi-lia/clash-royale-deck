@@ -1268,7 +1268,7 @@ async function updateDecks() {
   // ★seed母集団：過去に当たった相手tag＋クラン経由で発見したtagを履歴に保持し、
   //   毎回少しずつ（SEED_PER_RUN件）だけ追加収集する＝「一気にではなく」少しずつ広げる。
   if (!hist.oppSeeds) hist.oppSeeds = {}; // tag -> { tr, lastSeen, lastFetch, src }
-  var SEED_PER_RUN = parseInt(prop('SEED_PER_RUN', '600'), 10);
+  var SEED_PER_RUN = parseInt(prop('SEED_PER_RUN', '1000'), 10);
 
   // ================= クラン経由の発見（全トロフィー帯へ届く入口） =================
   // 2026-08-02計測で判明：/locations/{id}/rankings/players は空を返す（トロフィーランキングは事実上廃止）。
@@ -1278,7 +1278,7 @@ async function updateDecks() {
   // 1クラン1リクエストで最大50人のtagが得られるため発見効率が高い。国は毎ラン数か国ずつ巡回する。
   async function discoverViaClans() {
     var nowMsClan = Date.now();
-    var perRun = parseInt(prop('CLAN_COUNTRIES_PER_RUN', '4'), 10);
+    var perRun = parseInt(prop('CLAN_COUNTRIES_PER_RUN', '8'), 10);
     if (perRun <= 0) return { countries: 0, clans: 0, found: 0 };
     if (!hist.clanCrawl) hist.clanCrawl = { locs: null, cursor: 0, lastFullAt: 0 };
     var cc = hist.clanCrawl;
