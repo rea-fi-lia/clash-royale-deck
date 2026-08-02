@@ -2670,8 +2670,27 @@ async function updateDecks() {
     });
     var eventCut = now - 7 * 864e5;
     events = events.filter(function (e) { var t = parseBattleTimeMs_(e.battleTime); return t && t >= eventCut; })
-      .sort(function (a, b) { return parseBattleTimeMs_(b.battleTime) - parseBattleTimeMs_(a.battleTime); })
-      .slice(0, parseInt(prop('TROPHY_EVENT_KEEP', '20000'), 10));
+      .sort(function (a, b) { return parseBattleTimeMs_(b.battleTime) - parseBattleTimeMs_(a.battleTime); });
+
+    // ★保持を「全体で新しい順に上限」から「帯ごとに上限」へ変更（2026-08-02）。
+    //   全体上限だと試合数の多い帯（上位帯や人口の多い帯）が枠を食い尽くし、
+    //   静かな帯が押し出されて公開ラインを割る。実際 seed を 600→1000 に増やして
+    //   カバー帯が 40→44 に増えたのに、公開帯は 33→31 へ減った（合計がちょうど20000で頭打ち）。
+    //   帯ごとに配分すれば、どの帯も統計に足りる分だけ確実に残る。
+    var PER_BAND_KEEP = parseInt(prop('TROPHY_EVENT_KEEP_PER_BAND', '800'), 10);
+    var TOTAL_KEEP = parseInt(prop('TROPHY_EVENT_KEEP', '60000'), 10);
+    var perBandCount = {}, keptEvents = [];
+    for (var ei = 0; ei < events.length && keptEvents.length < TOTAL_KEEP; ei++) {
+      var ev = events[ei];
+      var bk = Math.floor(ev.trophyMid / 300) * 300;
+      var c = perBandCount[bk] || 0;
+      if (c >= PER_BAND_KEEP) continue; // その帯はもう十分＝別の帯に枠を譲る
+      perBandCount[bk] = c + 1;
+      keptEvents.push(ev);
+    }
+    console.log('trophy-events 保持 ' + keptEvents.length + '/' + events.length +
+      '（帯ごと上限' + PER_BAND_KEEP + '・全体上限' + TOTAL_KEEP + '・帯数' + Object.keys(perBandCount).length + '）');
+    events = keptEvents;
 
     function playerFromEvent_(e, side) {
       var p = side === 'team' ? e.team : e.opponent;
