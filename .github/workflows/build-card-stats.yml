@@ -1,0 +1,48 @@
+name: build card stats
+
+# カードの実数値(card-stats.json)を公式Wikiから取り直してR2へ公開する。
+# 背景: 生成コードが存在せず6/11で凍結していたため、バランス調整に追従できていなかった。
+# 毎日1回まわしておけば、調整の翌日には自動で最新化される。
+
+on:
+  schedule:
+    - cron: '40 4 * * *' # 毎日 13:40 JST（収集の毎時:15/:37/:57とずらす）
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'true にすると差分を表示するだけでR2へ公開しない'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-card-stats
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build card stats from wiki
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET || 'crdb-data-private' }}
+          R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            node tools/build-card-stats.js --from-r2
+          else
+            node tools/build-card-stats.js --from-r2 --publish
+          fi
