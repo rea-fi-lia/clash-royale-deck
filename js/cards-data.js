@@ -4,6 +4,23 @@
  *  - CARD_INFO / CARD_YOMI: CARDS から自動導出（decks などが使用）
  *  ★カードを追加・修正するときはこのファイルの CARDS だけを編集する
  * ============================================================= */
+
+/* ★進化(-ev1)・英雄(-hero)画像のフォールバック（2026-08-03）
+ * 新しい進化/英雄が実装された直後は配布リポジトリに画像がまだ無く404になる。
+ * 各描画箇所にonerrorを書くと追加のたびに漏れるので、ここで一括して面倒を見る。
+ *   xxx-hero-ev1.png → xxx-hero.png → xxx.png の順に降りていく。
+ * キャプチャ段階で拾うのは、img の error はバブリングしないため。 */
+document.addEventListener('error', function (e) {
+  var el = e.target;
+  if (!el || el.tagName !== 'IMG') return;
+  var src = el.getAttribute('src') || '';
+  var next = src.replace(/-ev1(\.png)$/, '$1');
+  if (next === src) next = src.replace(/-hero(\.png)$/, '$1');
+  if (next === src) return;                 // これ以上たどれない＝通常画像自体が無い
+  if (el.dataset.imgFallbackDone === next) return; // 同じ差し替えの繰り返しを防ぐ
+  el.dataset.imgFallbackDone = next;
+  el.src = next;
+}, true);
 const CARDS = [
   // 1コスト
   {name:"スケルトン", yomi:"スケルトン スケ", evolved:true, imgEvolved:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/skeletons-ev1.png",           cost:1, type:"troop",    role:"サイクル・防衛", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/skeletons.png"},
@@ -19,7 +36,7 @@ const CARDS = [
   {name:"コウモリの群れ", yomi:"コウモリの群れ コウモリ バット バツ", evolved:true, imgEvolved:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/bats-ev1.png",        cost:2, type:"troop",    role:"対空・サイクル", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/bats.png"},
   {name:"アイスゴーレム", yomi:"アイスゴーレム アイゴレ アイスゴレ", hero:true, imgHero:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/ice-golem-hero.png",        cost:2, type:"troop",    role:"タンク・デス凍結", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/ice-golem.png"},
   {name:"ウォールブレイカー", yomi:"ウォールブレイカー ウォールブレ ウォルブレ WB", evolved:true, imgEvolved:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/wall-breakers-ev1.png",    cost:2, type:"troop",    role:"建物狙い・サイクル", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/wall-breakers.png"},
-  {name:"バーサーカー", yomi:"バーサーカー バーサカ",          cost:2, type:"troop",    role:"高速高DPS近接", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/berserker.png"},
+  {name:"バーサーカー", yomi:"バーサーカー バーサカ", hero:true, imgHero:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/berserker-hero.png",          cost:2, type:"troop",    role:"高速高DPS近接", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/berserker.png"},
   {name:"ザップ", yomi:"ザップ", evolved:true, imgEvolved:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/zap-ev1.png",                cost:2, type:"spell",    role:"即時感電・リセット", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/zap.png"},
   {name:"巨大雪玉", yomi:"きょだいゆきだま ゆきだま 雪玉", evolved:true, imgEvolved:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/giant-snowball-ev1.png",              cost:2, type:"spell",    role:"ノックバック・減速", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/giant-snowball.png"},
   {name:"ローリングバーバリアン", yomi:"ローリングバーバリアン バーバレル ロリバーバ ロリババ", hero:true, imgHero:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/barbarian-barrel-hero.png", cost:2, type:"spell",    role:"転がし＋バーバリアン", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/barbarian-barrel.png"},
@@ -59,7 +76,7 @@ const CARDS = [
   {name:"墓石", yomi:"はかいし ぼせき はか いし トゥームストーン", hero:true, imgHero:"https://cdn.royaleapi.com/static/img/cards-150/tombstone-hero.png",                  cost:3, type:"building", role:"スケルトン生成", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/tombstone.png"},
 
   // 4コスト
-  {name:"バルキリー", yomi:"バルキリー バルキ バルキリ", evolved:true, imgEvolved:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/valkyrie-ev1.png",            cost:4, type:"troop",    role:"範囲防衛・タンク", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/valkyrie.png"},
+  {name:"バルキリー", yomi:"バルキリー バルキ バルキリ", evolved:true, hero:true, imgEvolved:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/valkyrie-ev1.png", imgHero:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/valkyrie-hero.png",            cost:4, type:"troop",    role:"範囲防衛・タンク", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/valkyrie.png"},
   {name:"マスケット銃士", evolved:true, imgEvolved:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/musketeer-ev1.png", yomi:"マスケット銃士 マスケ", hero:true, imgHero:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/musketeer-hero.png",        cost:4, type:"troop",    role:"遠距離高火力", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/musketeer.png"},
   {name:"ミニペッカ", yomi:"ミニペッカ ミニペ", hero:true, imgHero:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/mini-pekka-hero.png",            cost:4, type:"troop",    role:"単体超高DPS", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/mini-pekka.png"},
   {name:"ホグライダー", yomi:"ホグライダー ホグ",          cost:4, type:"troop",    role:"建物狙い突撃", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/hog-rider.png"},
@@ -121,7 +138,7 @@ const CARDS = [
 
   // 6コスト
   {name:"ロイヤルジャイアント", yomi:"ロイヤルジャイアント ロイジャイ RG", evolved:true, imgEvolved:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/royal-giant-ev1.png",  cost:6, type:"troop",    role:"建物狙い超射程", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/royal-giant.png"},
-  {name:"エリートバーバリアン", yomi:"エリートバーバリアン エリババ EB",  cost:6, type:"troop",    role:"高速高火力2体", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/elite-barbarians.png"},
+  {name:"エリートバーバリアン", yomi:"エリートバーバリアン エリババ EB", evolved:true, imgEvolved:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/elite-barbarians-ev1.png",  cost:6, type:"troop",    role:"高速高火力2体", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/elite-barbarians.png"},
   {name:"巨大スケルトン", yomi:"きょだいすけるとん キョスケ ジャイスケ 巨大スケルトン",        cost:6, type:"troop",    role:"タンク＋デス爆弾", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/giant-skeleton.png"},
   {name:"ゴブジャイアント", yomi:"ゴブジャイアント ゴブジャイ", evolved:true, imgEvolved:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/goblin-giant-ev1.png",      cost:6, type:"troop",    role:"タンク＋槍ゴブリン", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/goblin-giant.png"},
   {name:"スパーキー", yomi:"スパーキー スパキ",            cost:6, type:"troop",    role:"蓄電超高火力", img:"https://raw.githubusercontent.com/RoyaleAPI/cr-api-assets/master/cards/sparky.png"},

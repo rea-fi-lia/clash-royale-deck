@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+<meta name="google-adsense-account" content="ca-pub-4930535711396745">
 <script>(function(){try{if(localStorage.getItem('cr_theme')==='light')document.documentElement.classList.add('light');}catch(e){}})();</script>
 <style>html.light{--bg:#f4f5f7;--surface:#ffffff;--surface2:#eef1f5;--border:rgba(0,0,0,.10);--border-hi:rgba(0,0,0,.22);--text:#1a1d24;--text-muted:#5c6270;--text-dim:#aeb4c0;--accent:#d6900f;--accent2:#b67a12;--red:#d83a3a;--evo:#7c4dff;--hero:#d6900f;--dim:#5c6270;--gold:#b67a12}</style>
 <!-- Google Analytics (GA4) -->
@@ -39,7 +40,16 @@
 <meta name="twitter:image" content="https://crdeckbuilders.com/ogp.png">
 <meta name="keywords" content="clash royale,mazzi,migliori mazzi,creatore di mazzi,meta,winrate,evoluzione,campione">
 <meta name="author" content="rea-fi-lia">
-<link rel="stylesheet" href="/css/index.css?v=260726">
+<link rel="stylesheet" href="/css/index.css?v=260729">
+<!-- MOBILE-FOOTER-FIX: 固定ON時のbody高さを可視VPに揃え＋フッター下の"ふとい帯"を解消（将来 css/index.css へ移設可） -->
+<style>
+@media (max-width: 720px){
+  /* base の body{min-height:100vh}(iOS=836) が固定ON時に解放されず836になるのを、inset:0駆動(=796)へ。解除側と統一＝切替ジャンプも解消 */
+  body.cr-builder { min-height: 0; }
+  /* フッター下の40px帯を解消。Safari下バー分の最小クリアランスは env で確保 */
+  body.cr-builder .footer-signature { padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px)); }
+}
+</style>
 
 <script type="application/ld+json">
 {
@@ -76,7 +86,6 @@
 <style>html.nopin .sitebar,html.nopin header,html.nopin .mm-sticky,html.nopin #diagResult.tab-sim .dg-deckbar{position:static!important}html.nopin{height:auto!important;overflow:visible!important}html.nopin body{position:static!important;inset:auto!important;height:auto!important;min-height:100vh;overflow:visible!important;overflow-y:visible!important;display:block!important}html.nopin .app{display:block!important;flex:none!important;height:auto!important;min-height:0!important;overflow:visible!important}html.nopin .left,html.nopin .right{flex:none!important;height:auto!important;max-height:none!important;overflow:visible!important;touch-action:auto!important}html.nopin .card-list,html.nopin .deck-slots{overflow:visible!important;height:auto!important;max-height:none!important;flex:none!important}@media (max-width:720px){html.nopin body.cr-builder{position:fixed!important;inset:0!important;height:auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;overscroll-behavior-y:none!important}html.nopin .app{display:flex!important;flex-direction:column!important;flex:1 1 0%!important;height:auto!important;min-height:0!important;overflow:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior-y:contain!important}html.nopin .right{flex:0 0 auto!important;overflow:visible!important;touch-action:auto!important}html.nopin .left{flex:0 0 auto!important;height:auto!important;overflow:visible!important}html.nopin .card-list,html.nopin .deck-slots{overflow:visible!important;height:auto!important;max-height:none!important;flex:none!important}html.nopin body.cr-builder .footer-signature{flex:0 0 auto!important}}.bar-pin-btn{cursor:pointer}.nav-icon{color:var(--text)!important;border:1px solid var(--border-hi)!important;background:var(--surface2)!important;box-shadow:0 1px 2px rgba(0,0,0,.22)!important;width:36px!important;height:36px!important}.nav-icon .nav-emoji svg{stroke-width:2.1}.nav-icon.active{color:var(--accent)!important;border-color:var(--accent)!important;background:rgba(232,160,32,.16)!important;box-shadow:0 0 0 1px rgba(232,160,32,.35),0 0 10px -2px rgba(232,160,32,.55)!important}@media(hover:hover){.nav-icon:hover{color:var(--accent)!important;border-color:var(--accent)!important;background:var(--surface)!important;transform:translateY(-1px)}}.bar-pin-btn{color:var(--accent)!important;border-color:rgba(232,160,32,.5)!important;background:rgba(232,160,32,.12)!important}.bar-pin-btn.off{opacity:1!important;color:var(--text-muted)!important;border-color:var(--border-hi)!important;background:var(--surface2)!important}@media(max-width:720px){.nav-icon{width:34px!important;height:34px!important}}</style>
 <script>document.addEventListener('DOMContentLoaded',function(){var ja=(document.documentElement.lang||'ja').slice(0,2)==='ja';var P='<span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9A2 2 0 0 1 15 10.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span>';var rows=document.querySelectorAll('.nav-icons');for(var i=0;i<rows.length;i++){(function(row){if(row.querySelector('.bar-pin-btn'))return;var b=document.createElement('button');b.type='button';b.className='nav-icon bar-pin-btn';b.innerHTML=P;function paint(){var off=document.documentElement.classList.contains('nopin');b.classList.toggle('off',off);b.title=off?(ja?'固定する':'Pin layout'):(ja?'固定を解除':'Unpin layout');b.setAttribute('aria-pressed',off?'false':'true');}b.addEventListener('click',function(){var off=!document.documentElement.classList.contains('nopin');document.documentElement.classList.toggle('nopin',off);try{localStorage.setItem('cr_pin',off?'off':'on');}catch(e){}paint();});paint();row.insertBefore(b,row.firstChild);})(rows[i]);}});</script>
 <!-- /CRPIN -->
-<meta name="google-adsense-account" content="ca-pub-4930535711396745">
 </head>
 <body class="cr-builder">
 
@@ -163,6 +172,7 @@
   </div>
 </div>
 
+
 <div class="footer-signature">
   <span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span>
 </div>
@@ -171,6 +181,9 @@
   <nav class="cg-panel" aria-label="サイト案内リンク">
     <b>サイト案内</b>
     <p>デッキ作成の考え方や用語を読む</p>
+    <p>CR Deck Buildersは、クラロワの8枚デッキを組みながら平均コスト、カードの役割、攻めと守りの偏りを確認できるデッキ作成ツールです。カード名や略称で検索し、タップまたはドラッグでデッキに入れ替えできます。</p>
+    <p>アシストをオンにすると、いま選んでいるカードに合わせて、攻撃強化・防衛強化・回転力強化の候補を見比べられます。完成したデッキは分析ページで勝ち筋、苦しい相手、補いやすい役割を確認できます。</p>
+    <p>人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。</p>
     <div class="cg-links">
       <a href="guide.html">デッキ作成ガイド</a>
       <a href="faq.html">よくある質問</a>
@@ -181,11 +194,65 @@
 </details>
 <div class="toast" id="toast"></div>
 
-<script src="/js/cards-data.js?v=260726"></script>
-<script src="/js/builder.js?v=260728"></script>
+<script src="/js/cards-data.js?v=260729"></script>
+<script src="/js/builder.js?v=260729"></script>
 
 <!-- ログイン＆ユーザーデータ（Firebase）。ヘッダーにログインボタンが自動で付きます -->
-<script type="module" src="/auth.js?v=260726"></script>
-<script defer src="/i18n.js?v=260728"></script>
+<script type="module" src="/auth.js?v=260729"></script>
+<script defer src="/i18n.js?v=260729"></script>
+<!-- DEBUG-OVERLAY-START (一時デバッグ・?debug=1 の時だけ表示。iOSフッター隙間の原因特定用・診断後に削除) -->
+<script>
+(function(){
+  try{
+    if(!/[?&]debug=1/.test(location.search)) return;
+    function q(s){return document.querySelector(s);}
+    var appEl=q('.app'), footEl=q('.footer-signature'), clEl=q('.card-list')||q('#cardList'), rightEl=q('.right');
+    // 要素を色枠で囲む（outlineはレイアウトに影響しない）
+    if(document.body) document.body.style.outline='2px solid red';
+    if(appEl) appEl.style.outline='2px solid cyan';
+    if(footEl) footEl.style.outline='2px solid lime';
+    if(clEl) clEl.style.outline='2px dashed orange';
+    if(rightEl) rightEl.style.outline='2px dotted #ff8800';
+    function fill(c){var d=document.createElement('div');d.style.cssText='position:fixed;left:0;right:0;pointer-events:none;z-index:2147483000;background:'+c+';';document.body.appendChild(d);return d;}
+    var fBelow=fill('rgba(255,0,255,.40)');  // マゼンタ: フッター下〜画面下
+    var fMid=fill('rgba(255,255,0,.35)');     // 黄: app下端〜フッター上端
+    var fCl=fill('rgba(0,255,255,.25)');      // シアン: カード一覧下端〜app下端
+    var sab=document.createElement('div');
+    sab.style.cssText='position:fixed;bottom:0;left:-9999px;padding-bottom:env(safe-area-inset-bottom);';
+    document.body.appendChild(sab);
+    var box=document.createElement('div');
+    box.style.cssText='position:fixed;top:0;left:0;z-index:2147483647;background:rgba(0,0,0,.86);color:#0f0;font:9px/1.3 monospace;padding:4px 5px;white-space:pre;pointer-events:none;';
+    document.body.appendChild(box);
+    function r(e){if(!e)return null;var b=e.getBoundingClientRect();return{t:Math.round(b.top),bt:Math.round(b.bottom),h:Math.round(b.height),sh:e.scrollHeight};}
+    function upd(){
+      var vv=window.visualViewport, innerH=window.innerHeight, vvH=vv?Math.round(vv.height):innerH, visH=vv?vv.height:innerH;
+      var bcs=getComputedStyle(document.body), fcs=footEl?getComputedStyle(footEl):null;
+      var br=r(document.body), ar=r(appEl), fr=r(footEl), cr=r(clEl);
+      var rr=r(q('.right')), c1=r(q('.card-list .card')||q('.card'));
+      if(fr){var gb=visH-fr.bt; fBelow.style.top=fr.bt+'px'; fBelow.style.height=(gb>0?gb:0)+'px';}
+      if(ar&&fr){var gm=fr.t-ar.bt; fMid.style.top=ar.bt+'px'; fMid.style.height=(gm>0?gm:0)+'px';}
+      if(cr&&ar){var gc=ar.bt-cr.bt; fCl.style.top=cr.bt+'px'; fCl.style.height=(gc>0?gc:0)+'px';}
+      box.textContent=
+        'nopin:'+document.documentElement.classList.contains('nopin')+'\n'+
+        'innerH:'+innerH+' vvH:'+vvH+'\n'+
+        'body css-h:'+bcs.height+' rectB:'+(br?br.bt:'-')+'\n'+
+        'app b:'+(ar?ar.bt:'-')+' h:'+(ar?ar.h:'-')+' sh:'+(ar?ar.sh:'-')+'\n'+
+        'cardlist b:'+(cr?cr.bt:'-')+' sh:'+(cr?cr.sh:'-')+'\n'+
+        'deckR b:'+(rr?rr.bt:'-')+' card1 t:'+(c1?c1.t:'-')+'\n'+
+        'foot t:'+(fr?fr.t:'-')+' b:'+(fr?fr.bt:'-')+' h:'+(fr?fr.h:'-')+'\n'+
+        'foot pad TB:'+(fcs?(fcs.paddingTop+'/'+fcs.paddingBottom):'-')+'\n'+
+        '★belowFoot(magenta):'+(fr?Math.round(visH-fr.bt):'-')+'\n'+
+        '★app->foot(yellow):'+(ar&&fr?Math.round(fr.t-ar.bt):'-')+'\n'+
+        '★cl->app(cyan):'+(cr&&ar?Math.round(ar.bt-cr.bt):'-')+'\n'+
+        'body->visH:'+(br?Math.round(visH-br.bt):'-');
+    }
+    upd();
+    ['scroll','resize','orientationchange','touchmove','touchend'].forEach(function(e){window.addEventListener(e,upd,true);});
+    if(window.visualViewport){window.visualViewport.addEventListener('resize',upd);window.visualViewport.addEventListener('scroll',upd);}
+    setInterval(upd,400);
+  }catch(e){}
+})();
+</script>
+<!-- DEBUG-OVERLAY-END -->
 </body>
 </html>

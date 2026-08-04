@@ -294,7 +294,7 @@ let ME_CARDS = [];              // あなたの対面メタ（自分のバトル
 let ME_COUNT = 0;               // 対面集計に使った対戦数
 let _cardMode = 'env';          // 'env'=環境 / 'me'=あなたの対面
 let POL_CARD_INTEL = null;      // 3日全体の相手カード別・試合内容統計
-let TROPHY_BAND_INTEL = null;   // 10000〜14000帯のカード別・帯別の実戦統計
+let TROPHY_BAND_INTEL = null;   // 全トロフィー帯(0〜14000・300刻み)のカード別・帯別の実戦統計
 const _mmSel = new Set();       // 分布図に表示するカード名
 let _mmZoom = null;             // ズーム中の象限（'tl'/'tr'/'bl'/'br' or null＝全体）
 let _ctab = 'use';              // 'use'=使用率 / 'win'=勝率
@@ -356,7 +356,7 @@ function _ckey(c) { return c.name + (c.f ? '|' + c.f : ''); }           // 選�
 function _cardImgF(c) { const i = CARD_INFO[c.name]; if (!i) return ''; if (c.f === 'e' && i.iv) return i.iv; if (c.f === 'h' && i.ih) return i.ih; return i.i || ''; }
 function _fmark(c) { return c.f === 'e' ? '⚡' : (c.f === 'h' ? '👑' : ''); }
 function _oppIntel(name) { return POL_CARD_INTEL && POL_CARD_INTEL.byOpponentCard && POL_CARD_INTEL.byOpponentCard[name]; }
-// ★10000〜14000帯のカード別実戦統計。ユーザーの最新トロフィー±150に近い帯を優先し、無ければ全帯byCardを使う。
+// ★全トロフィー帯(0〜14000・300刻み)のカード別実戦統計。ユーザーの最新トロフィー±150に近い帯を優先し、無ければ全帯byCardを使う。
 function _bandIntel(name) {
   if (!TROPHY_BAND_INTEL) return null;
   const center = ME_TROPHY_CENTER;

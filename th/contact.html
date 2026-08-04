@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+<meta name="google-adsense-account" content="ca-pub-4930535711396745">
 <script>(function(){try{if(localStorage.getItem('cr_theme')==='light')document.documentElement.classList.add('light');}catch(e){}})();</script>
 <style>html.light{--bg:#f4f5f7;--surface:#ffffff;--surface2:#eef1f5;--border:rgba(0,0,0,.10);--border-hi:rgba(0,0,0,.22);--text:#1a1d24;--text-muted:#5c6270;--text-dim:#aeb4c0;--accent:#d6900f;--accent2:#b67a12;--red:#d83a3a;--evo:#7c4dff;--hero:#d6900f;--dim:#5c6270;--gold:#b67a12}</style>
 <!-- Google Analytics (GA4) -->
@@ -103,7 +104,6 @@
 <style>html.nopin .sitebar,html.nopin header,html.nopin .mm-sticky,html.nopin #diagResult.tab-sim .dg-deckbar{position:static!important}html.nopin{height:auto!important;overflow:visible!important}html.nopin body{position:static!important;inset:auto!important;height:auto!important;min-height:100vh;overflow:visible!important;overflow-y:visible!important;display:block!important}html.nopin .app{display:block!important;flex:none!important;height:auto!important;min-height:0!important;overflow:visible!important}html.nopin .left,html.nopin .right{flex:none!important;height:auto!important;max-height:none!important;overflow:visible!important;touch-action:auto!important}html.nopin .card-list,html.nopin .deck-slots{overflow:visible!important;height:auto!important;max-height:none!important;flex:none!important}@media (max-width:720px){html.nopin body.cr-builder{position:fixed!important;inset:0!important;height:auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;overscroll-behavior-y:none!important}html.nopin .app{display:flex!important;flex-direction:column!important;flex:1 1 0%!important;height:auto!important;min-height:0!important;overflow:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior-y:contain!important}html.nopin .right{flex:0 0 auto!important;overflow:visible!important;touch-action:auto!important}html.nopin .left{flex:0 0 auto!important;height:auto!important;overflow:visible!important}html.nopin .card-list,html.nopin .deck-slots{overflow:visible!important;height:auto!important;max-height:none!important;flex:none!important}html.nopin body.cr-builder .footer-signature{flex:0 0 auto!important}}.bar-pin-btn{cursor:pointer}.nav-icon{color:var(--text)!important;border:1px solid var(--border-hi)!important;background:var(--surface2)!important;box-shadow:0 1px 2px rgba(0,0,0,.22)!important;width:36px!important;height:36px!important}.nav-icon .nav-emoji svg{stroke-width:2.1}.nav-icon.active{color:var(--accent)!important;border-color:var(--accent)!important;background:rgba(232,160,32,.16)!important;box-shadow:0 0 0 1px rgba(232,160,32,.35),0 0 10px -2px rgba(232,160,32,.55)!important}@media(hover:hover){.nav-icon:hover{color:var(--accent)!important;border-color:var(--accent)!important;background:var(--surface)!important;transform:translateY(-1px)}}.bar-pin-btn{color:var(--accent)!important;border-color:rgba(232,160,32,.5)!important;background:rgba(232,160,32,.12)!important}.bar-pin-btn.off{opacity:1!important;color:var(--text-muted)!important;border-color:var(--border-hi)!important;background:var(--surface2)!important}@media(max-width:720px){.nav-icon{width:34px!important;height:34px!important}}</style>
 <script>document.addEventListener('DOMContentLoaded',function(){var ja=(document.documentElement.lang||'ja').slice(0,2)==='ja';var P='<span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9A2 2 0 0 1 15 10.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span>';var rows=document.querySelectorAll('.nav-icons');for(var i=0;i<rows.length;i++){(function(row){if(row.querySelector('.bar-pin-btn'))return;var b=document.createElement('button');b.type='button';b.className='nav-icon bar-pin-btn';b.innerHTML=P;function paint(){var off=document.documentElement.classList.contains('nopin');b.classList.toggle('off',off);b.title=off?(ja?'固定する':'Pin layout'):(ja?'固定を解除':'Unpin layout');b.setAttribute('aria-pressed',off?'false':'true');}b.addEventListener('click',function(){var off=!document.documentElement.classList.contains('nopin');document.documentElement.classList.toggle('nopin',off);try{localStorage.setItem('cr_pin',off?'off':'on');}catch(e){}paint();});paint();row.insertBefore(b,row.firstChild);})(rows[i]);}});</script>
 <!-- /CRPIN -->
-<meta name="google-adsense-account" content="ca-pub-4930535711396745">
 </head>
 <body>
 
@@ -192,7 +192,7 @@
 </script>
 
 <!-- ログイン（Firebase）。ヘッダーにログインボタンが自動で付きます -->
-<script type="module" src="/auth.js?v=260726"></script>
-<script defer src="/i18n.js?v=260728"></script>
+<script type="module" src="/auth.js?v=260729"></script>
+<script defer src="/i18n.js?v=260729"></script>
 </body>
 </html>
