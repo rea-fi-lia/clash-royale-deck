@@ -156,8 +156,7 @@ jobs:
             -c model_providers.sakana.env_key="SAKANA_API_KEY" \
             -c model_providers.sakana.wire_api="responses" \
             -c model_reasoning_effort=high \
-            --skip-git-repo-check \
-            --dangerously-bypass-approvals-and-sandbox \
+            --full-auto \
             "$(cat /tmp/brief.md)" || echo "Fuguが最後まで走らなかった"
           if [ -n "$(git status --porcelain)" ]; then echo "fixed=true" >> $GITHUB_OUTPUT; fi
 
@@ -190,12 +189,18 @@ jobs:
         if: steps.gate.outputs.go == 'true' && steps.audit.outputs.has_diff == 'true'
         run: |
           git add -A -- . ':!3d.html' ':!css/neo3d.css' ':!js/neo3d.js'
-          git commit -m "fix(auto): ${{ steps.gate.outputs.label }}の失敗を自動修理
-
-$(head -c 800 /tmp/summary.md 2>/dev/null || echo '(要約なし)')
-
-対象: ${{ steps.gate.outputs.workflow }} / 実行 ${{ steps.gate.outputs.run_id }}
-★これは自動生成です。検証に通った場合のみPRになります。"
+          # ⚠️ YAMLの run: | の中でヒアドキュメントや複数行の文字列を使うと、
+          #    行頭に出た瞬間ブロックが途切れてワークフロー自体が読めなくなる（2026-08-11に踏んだ）。
+          #    必ずファイルに書き出してから -F / --body-file で渡すこと。
+          {
+            echo "fix(auto): ${{ steps.gate.outputs.label }}の失敗を自動修理"
+            echo
+            head -c 800 /tmp/summary.md 2>/dev/null || echo '(要約なし)'
+            echo
+            echo "対象: ${{ steps.gate.outputs.workflow }} / 実行 ${{ steps.gate.outputs.run_id }}"
+            echo "★これは自動生成です。検証に通った場合のみPRになります。"
+          } > /tmp/commitmsg.txt
+          git commit -F /tmp/commitmsg.txt
           git push -u origin "${{ steps.gate.outputs.branch }}"
 
       # ── 本番を汚さずに、実際に動かして確かめる ──────────────────
@@ -234,25 +239,27 @@ $(head -c 800 /tmp/summary.md 2>/dev/null || echo '(要約なし)')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # ⚠️ ヒアドキュメント禁止（上と同じ理由）。本文はファイルに書いて --body-file で渡す
+          {
+            echo "定期処理が続けて失敗したため、AIが原因を調べて直しました。"
+            echo
+            echo "## 要約"
+            cat /tmp/summary.md 2>/dev/null || echo '(要約なし)'
+            echo
+            echo "## 検証"
+            echo "**本番を汚さない経路で実際に走らせ、成功を確認しています。**"
+            echo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/${{ steps.verify.outputs.verify_run }}"
+            echo
+            echo "## 元の失敗"
+            echo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/${{ steps.gate.outputs.run_id }}"
+            echo
+            echo "---"
+            echo "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+          } > /tmp/pr-body.md
           URL=$(gh pr create \
             --title "🤖 自動修理: ${{ steps.gate.outputs.label }}（${{ steps.gate.outputs.workflow }}）" \
-            --body "$(cat <<EOF
-定期処理が続けて失敗したため、AIが原因を調べて直しました。
-
-## 要約
-$(cat /tmp/summary.md 2>/dev/null || echo '(要約なし)')
-
-## 検証
-**本番を汚さない経路で実際に走らせ、成功を確認しています。**
-$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/${{ steps.verify.outputs.verify_run }}
-
-## 元の失敗
-$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/${{ steps.gate.outputs.run_id }}
-
----
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
-EOF
-)" --label auto-repair --head "${{ steps.gate.outputs.branch }}" --base main)
+            --body-file /tmp/pr-body.md \
+            --label auto-repair --head "${{ steps.gate.outputs.branch }}" --base main)
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       # 既定はオフ。リポジトリ変数 AUTO_MERGE_FIX=1 にすると、検証を通った修正が自動で本番へ入る
