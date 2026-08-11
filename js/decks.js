@@ -367,7 +367,7 @@ function crownQualityHtml(d) {
   const cw = Array.isArray(d.cw) ? d.cw : null;
   if (!cw) return base;
   const tri = (cw[0] || 0) + (cw[1] || 0) + (cw[2] || 0);   // 三冠での勝ち
-  if (tri < 8) return base;                                  // 標本不足＝言わない
+  if (tri < 20) return base;   // 標本不足＝言わない。n=13だと±26ptも振れるので20勝を下限にした
   const pure = cw[0] / tri;                                  // 三冠のうち完封(3:0)だった割合。全体基準は約70%
   const tip = '三冠の内訳 3:0=' + cw[0] + ' / 3:1=' + cw[1] + ' / 3:2=' + cw[2] +
     '　（相手にクラウンを渡さず三冠＝押し切っている。渡しているほど押し返されている）';
