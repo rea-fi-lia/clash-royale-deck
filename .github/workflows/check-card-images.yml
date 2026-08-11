@@ -29,3 +29,20 @@ jobs:
       - env:
           CR_TOKEN: ${{ secrets.CR_TOKEN }}
         run: node tools/check-card-images.js
+
+      # ★通知は .github/actions/notify に一本化してある。
+      #   鳴らし方を変えたいときはあのファイル1枚を直せば全ワークフローに効く。
+      - name: 結果を通知
+        if: always()
+        uses: ./.github/actions/notify
+        with:
+          status: ${{ job.status }}
+          workflow: check-card-images.yml
+          label: カード画像の点検
+          streak: '1'
+          detail: 画像が表示できない状態になっている可能性があります。
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          line_push_token: ${{ secrets.LINE_PUSH_TOKEN }}
+          line_push_to: ${{ secrets.LINE_PUSH_TO }}

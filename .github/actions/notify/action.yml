@@ -1,0 +1,85 @@
+name: 障害・復旧の通知
+description: >
+  ワークフローが失敗/復旧したときに通知する共通部品。
+  ★通知のやり方を変えたいときは、このファイル1枚を直せば全ワークフローに効く。
+  送り先のSecretが未設定なら黙ってスキップするので、入れるまでは何も起きない。
+
+inputs:
+  status:
+    description: 呼び出し元の結果（success / failure）。${{ job.status }} を渡す
+    required: true
+  workflow:
+    description: 対象ワークフローのファイル名（例 collect.yml）。連続失敗の判定に使う
+    required: true
+  label:
+    description: 人が読む名前（例 データ収集）
+    required: true
+  streak:
+    description: 何回連続で失敗したら鳴らすか。毎時のものは2、1日1回のものは1
+    required: false
+    default: '1'
+  detail:
+    description: 本文に足したい補足
+    required: false
+    default: ''
+  github_token:
+    required: true
+  discord_webhook_url:
+    required: false
+  slack_webhook_url:
+    required: false
+  line_push_token:
+    required: false
+  line_push_to:
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: 判定して通知
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+        DISCORD_WEBHOOK_URL: ${{ inputs.discord_webhook_url }}
+        SLACK_WEBHOOK_URL: ${{ inputs.slack_webhook_url }}
+        LINE_PUSH_TOKEN: ${{ inputs.line_push_token }}
+        LINE_PUSH_TO: ${{ inputs.line_push_to }}
+        ST: ${{ inputs.status }}
+        WF: ${{ inputs.workflow }}
+        LABEL: ${{ inputs.label }}
+        STREAK: ${{ inputs.streak }}
+        DETAIL: ${{ inputs.detail }}
+      run: |
+        set -u
+        RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
+        # 今回のrunを除いた「完了済みの結果」を新しい順に並べる
+        PREV=$(gh run list --workflow="$WF" --limit 15 --json conclusion,databaseId \
+          -q "[.[] | select(.databaseId != $GITHUB_RUN_ID) | select(.conclusion != null and .conclusion != \"\") | .conclusion] | join(\" \")" 2>/dev/null || echo "")
+
+        # 先頭から何回連続で失敗しているか
+        FAILS=0
+        for c in $PREV; do
+          if [ "$c" = "failure" ]; then FAILS=$((FAILS + 1)); else break; fi
+        done
+        echo "直近の結果: [$PREV]  → 連続失敗 $FAILS 回"
+
+        if [ "$ST" = "failure" ]; then
+          TOTAL=$((FAILS + 1))
+          if [ "$TOTAL" -lt "$STREAK" ]; then
+            echo "連続 $TOTAL 回（しきい値 $STREAK）なのでまだ鳴らさない"
+            exit 0
+          fi
+          # 失敗したステップのログ末尾を添える。Discordは等幅で表示されるので原因がそのまま読める
+          LOG=$(gh run view "$GITHUB_RUN_ID" --log-failed 2>/dev/null | tail -c 1200 || echo "")
+          BODY=$(printf '%s が %s回続けて失敗しています。\n%s\n\n%s\n\n--- ログ末尾 ---\n%s' \
+            "$LABEL" "$TOTAL" "$DETAIL" "$RUN_URL" "$LOG")
+          node tools/notify.js --level error --title "⚠️ CRDB ${LABEL}が失敗しています" --body "$BODY"
+        else
+          if [ "$FAILS" -ge 1 ]; then
+            node tools/notify.js --level ok --title "✅ CRDB ${LABEL}が復旧しました" \
+              --body "$(printf '%s回続けて失敗していましたが、正常に戻りました。\n%s' "$FAILS" "$RUN_URL")"
+          else
+            echo "前回も正常なので通知しない"
+          fi
+        fi

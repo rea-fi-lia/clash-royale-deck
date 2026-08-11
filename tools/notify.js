@@ -26,7 +26,9 @@ const level = argOne('--level') || (/(⚠|失敗|止ま|エラー)/.test(title |
 const body = argOne('--body') || args.filter(a => !a.startsWith('--') && args[args.indexOf(a) - 1] !== '--title' && args[args.indexOf(a) - 1] !== '--body').join(' ');
 const text = [title, body].filter(Boolean).join('\n');
 
-if (!text.trim()) { console.error('本文が空です'); process.exit(1); }
+// --test : 設定できたか確かめる。赤と緑を1通ずつ送る
+const isTest = args.includes('--test');
+if (!isTest && !text.trim()) { console.error('本文が空です'); process.exit(1); }
 
 async function sendDiscord() {
   const url = process.env.DISCORD_WEBHOOK_URL;
@@ -66,6 +68,15 @@ async function sendSlack() {
 }
 
 (async () => {
+  if (isTest) {
+    const { execFileSync } = require('child_process');
+    for (const [lv, t] of [['error', '⚠️ これは失敗の見え方です'], ['ok', '✅ これは復旧の見え方です']]) {
+      execFileSync('node', [__filename, '--level', lv, '--title', t,
+        '--body', '通知の疎通テストです。\n等幅で表示されていれば、ログもそのまま読めます。\n  例) FATAL ERROR: JavaScript heap out of memory'],
+        { stdio: 'inherit' });
+    }
+    return;
+  }
   const results = (await Promise.all([sendDiscord(), sendSlack(), sendLine()])).filter(Boolean);
   if (!results.length) {
     console.log('通知の送り先が未設定のためスキップしました。');

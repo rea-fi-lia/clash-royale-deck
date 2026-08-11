@@ -1,0 +1,57 @@
+name: daily digest
+
+# 1日1回、数字を返す。
+# 「落ちたら鳴る」だけだと静かなときに何も返ってこないので、
+# 生きていること＋前日からの増減を毎朝1通で受け取る。
+on:
+  schedule:
+    - cron: '0 22 * * *'   # 毎日 07:00 JST
+  workflow_dispatch:
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 前日の数字を持ち越して増減を出す（リポジトリを汚さずキャッシュで持つ）
+      - name: 前回の数字を復元
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/.digest-state.json
+          key: digest-state-${{ github.run_id }}
+          restore-keys: digest-state-
+
+      - name: サマリーを作って送る
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          LINE_PUSH_TOKEN: ${{ secrets.LINE_PUSH_TOKEN }}
+          LINE_PUSH_TO: ${{ secrets.LINE_PUSH_TO }}
+        run: node tools/digest.js
+
+      - name: 今回の数字を保存
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: tools/.digest-state.json
+          key: digest-state-${{ github.run_id }}
+
+      - name: 結果を通知
+        if: failure()
+        uses: ./.github/actions/notify
+        with:
+          status: ${{ job.status }}
+          workflow: digest.yml
+          label: 日次サマリー
+          streak: '1'
+          detail: サマリー自体が作れていません（/api/meta が落ちている可能性）。
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          line_push_token: ${{ secrets.LINE_PUSH_TOKEN }}
+          line_push_to: ${{ secrets.LINE_PUSH_TO }}

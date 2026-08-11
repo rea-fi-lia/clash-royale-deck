@@ -135,39 +135,19 @@ jobs:
           DECKS_PATH: 'decks.json'   # GITHUB_PATH は Actions 予約名のため使わない
         run: node tools/collect.js
 
-      # ★2026-08-11追加：落ちたことに気づける仕組み。
-      #   11回連続で失敗し3時間26分止まっていたのに誰も気づかなかった反省から。
-      #   2回連続で失敗したときだけ通知する（1回の瞬断では鳴らさない）。
-      #   復旧したときも1回だけ知らせる。送り先が未設定なら黙ってスキップする。
-      - name: Notify on repeated failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          LINE_PUSH_TOKEN: ${{ secrets.LINE_PUSH_TOKEN }}
-          LINE_PUSH_TO: ${{ secrets.LINE_PUSH_TO }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          PREV=$(gh run list --workflow=collect.yml --limit 2 --json conclusion -q '.[1].conclusion')
-          echo "前回の結果: $PREV"
-          if [ "$PREV" = "failure" ]; then
-            node tools/notify.js \
-              --title "⚠️ CRDB データ収集が2回続けて失敗しています" \
-              --body "$(printf 'データが更新されていません。\n実行ログ: %s/%s/actions/runs/%s' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
-          else
-            echo "1回目の失敗なので通知しない（次も失敗したら鳴らす）"
-          fi
-
-      - name: Notify on recovery
-        if: success()
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          LINE_PUSH_TOKEN: ${{ secrets.LINE_PUSH_TOKEN }}
-          LINE_PUSH_TO: ${{ secrets.LINE_PUSH_TO }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        run: |
-          PREV=$(gh run list --workflow=collect.yml --limit 2 --json conclusion -q '.[1].conclusion')
-          if [ "$PREV" = "failure" ]; then
-            node tools/notify.js --title "✅ CRDB データ収集が復旧しました" --body "収集が正常に戻りました。"
-          fi
+      # ★通知は .github/actions/notify に一本化してある。
+      #   鳴らし方を変えたいときはあのファイル1枚を直せば全ワークフローに効く。
+      - name: 結果を通知
+        if: always()
+        uses: ./.github/actions/notify
+        with:
+          status: ${{ job.status }}
+          workflow: collect.yml
+          label: データ収集
+          streak: '2'
+          detail: サイトの数字が更新されません。
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          line_push_token: ${{ secrets.LINE_PUSH_TOKEN }}
+          line_push_to: ${{ secrets.LINE_PUSH_TO }}

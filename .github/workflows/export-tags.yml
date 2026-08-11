@@ -48,3 +48,20 @@ jobs:
           R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
           PUBLIC_GH_MIRROR: '0'
         run: node tools/export-tags-from-sheet.js --out "$RUNNER_TEMP/card-tags.json" --publish --verify
+
+      # ★通知は .github/actions/notify に一本化してある。
+      #   鳴らし方を変えたいときはあのファイル1枚を直せば全ワークフローに効く。
+      - name: 結果を通知
+        if: always()
+        uses: ./.github/actions/notify
+        with:
+          status: ${{ job.status }}
+          workflow: export-tags.yml
+          label: タグのシート同期
+          streak: '1'
+          detail: スプレッドシートへの同期が止まっています。
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          line_push_token: ${{ secrets.LINE_PUSH_TOKEN }}
+          line_push_to: ${{ secrets.LINE_PUSH_TO }}

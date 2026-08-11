@@ -103,3 +103,20 @@ jobs:
             git commit -m "chore(cards): カード個別ページを最新データで再生成"
             git push
           fi
+
+      # ★通知は .github/actions/notify に一本化してある。
+      #   鳴らし方を変えたいときはあのファイル1枚を直せば全ワークフローに効く。
+      - name: 結果を通知
+        if: always()
+        uses: ./.github/actions/notify
+        with:
+          status: ${{ job.status }}
+          workflow: build-card-stats.yml
+          label: カード実数値の取得
+          streak: '1'
+          detail: Wikiからの再取得が止まると、圏内判定などの導出タグが古いままになります。
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          line_push_token: ${{ secrets.LINE_PUSH_TOKEN }}
+          line_push_to: ${{ secrets.LINE_PUSH_TO }}
