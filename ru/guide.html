@@ -15,8 +15,8 @@
 <link rel="canonical" href="https://crdeckbuilders.com/ru/guide.html">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="/css/content.css?v=260811k">
-<link rel="stylesheet" href="/css/guard.css?v=260811k">
+<link rel="stylesheet" href="/css/content.css?v=260811n">
+<link rel="stylesheet" href="/css/guard.css?v=260811n">
 <!-- CRVT --><style>@view-transition{navigation:auto}@keyframes cr-ol{to{transform:translateX(-26%);opacity:.5}}@keyframes cr-ir{from{transform:translateX(100%)}}@keyframes cr-or{to{transform:translateX(26%);opacity:.5}}@keyframes cr-il{from{transform:translateX(-100%)}}@media(max-width:768px){html:active-view-transition-type(crf)::view-transition-old(root){animation:cr-ol .26s ease both}html:active-view-transition-type(crf)::view-transition-new(root){animation:cr-ir .26s ease both}html:active-view-transition-type(crb)::view-transition-old(root){animation:cr-or .26s ease both}html:active-view-transition-type(crb)::view-transition-new(root){animation:cr-il .26s ease both}}</style><script>(function(){if(!("startViewTransition"in document)||!window.navigation)return;function ty(a){try{if(!a||!a.from)return null;var f=new URL(a.from.url).pathname,o=new URL(a.entry.url).pathname;var S=function(p){return p.indexOf("strategy.html")>-1};var I=function(p){return p.charAt(p.length-1)==="/"||p.indexOf("index.html")>-1};if(I(f)&&S(o))return"crf";if(S(f)&&I(o))return"crb"}catch(e){}return null}addEventListener("pageswap",function(e){if(e.viewTransition){var t=ty(e.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}});addEventListener("pagereveal",function(e){if(e.viewTransition){var t=ty(navigation.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}})})();</script>
 <!-- CRPIN -->
 <script>(function(){try{if(localStorage.getItem('cr_pin')==='off')document.documentElement.classList.add('nopin');}catch(e){}})();</script>
@@ -27,7 +27,7 @@
 <body>
 <div class="sitebar">
   <header>
-    <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>クラロワデッキ作成・診断ツール</span></div></a>
+    <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>Билдер и анализатор колод Clash Royale</span></div></a>
     </header><nav class="nav-icons topbar" aria-label="主要ページ"><a class="nav-icon" href="/me.html" title="マイページ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg></span></a>
       <a class="nav-icon" href="index.html" title="デッキ作成"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 8.5v7M8.5 12h7"/></svg></span></a>
       <a class="nav-icon" href="decks.html" title="人気デッキ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5a1.5 1.5 0 0 0 0 3H7M17 6h2.5a1.5 1.5 0 0 1 0 3H17M9.5 17h5M10 21h4M12 14v3"/></svg></span></a>
@@ -40,73 +40,73 @@
 <main class="content-shell">
   <section class="hero">
     <div class="eyebrow">Deck Building Guide</div>
-    <h1>クラロワのデッキは、8枚を「役割」でつなぐと組みやすい。</h1>
-    <p class="lead">強いカードを8枚並べるだけでは、攻め筋がぼやけたり、守りの穴が残ったりします。CR Deck Buildersでは、勝ち筋、2枚の形、3枚目候補、苦しい相手への受けを順に見ながら、自分で納得してデッキを組めるようにしています。</p>
-    <div class="hero-actions"><a class="btn primary" href="index.html">デッキを組む</a><a class="btn" href="faq.html">よくある質問を見る</a></div>
+    <h1>Колода Clash Royale складывается, когда вы связываете 8 карт по их ролям.</h1>
+    <p class="lead">Просто выстроить 8 сильных карт — значит размыть атаку и оставить дыры в защите. CR Deck Builders последовательно ведёт вас через вин-кондишен, ядро из двух карт, кандидатов на третью карту и ответы на тяжёлые матчапы — чтобы вы собрали колоду, в которую действительно верите.</p>
+    <div class="hero-actions"><a class="btn primary" href="index.html">Собрать колоду</a><a class="btn" href="faq.html">Посмотреть частые вопросы</a></div>
     <div class="toc" aria-label="目次">
-      <a href="#start">最初の1枚</a><a href="#pair">2枚の形</a><a href="#third">3枚目候補</a><a href="#direction">次の方向</a><a href="#threat">苦しい相手</a><a href="#finish">8枚の仕上げ</a>
+      <a href="#start">Первая карта</a><a href="#pair">Ядро из двух карт</a><a href="#third">Кандидаты на третью</a><a href="#direction">Следующее направление</a><a href="#threat">Тяжёлые матчапы</a><a href="#finish">Завершение всех 8</a>
     </div>
   </section>
 
   <section id="start" class="section">
-    <h2>1. 最初は「勝ち筋」か「使いたいカード」から決める</h2>
-    <p>デッキ作成で迷うときは、最初に軸を1つ決めます。ホグライダー、ロイヤルジャイアント、ラヴァハウンドのような勝ち筋から始めてもいいし、好きな防衛カードや使い慣れたカードから始めても構いません。</p>
-    <p>大事なのは、そのカードで何をしたいかを短く言えることです。「橋前で素早く削る」「大型を受けてカウンターする」「空から形を作る」のように言葉にできると、次の1枚を選びやすくなります。</p>
-    <div class="callout">アシストは自動で完成デッキを押しつけるものではありません。私が横で候補を出し、最後に選ぶのはプレイヤー自身、という考え方で作っています。</div>
+    <h2>1. Начните с вин-кондишена — или с карты, которой хотите играть</h2>
+    <p>Если застряли, сначала определите одну ось. Начните с вин-кондишена вроде Хог Райдера, Королевского Гиганта или Лавовой Гончей — или с любимой защитной карты, которую хорошо знаете. Оба пути рабочие.</p>
+    <p>Важно уметь сказать одной короткой фразой, что эта карта должна делать. «Быстро чипить у моста», «принимать танки и контратаковать», «строить пуш с воздуха» — как только это сформулировано, следующая карта выбирается гораздо легче.</p>
+    <div class="callout">Ассистент никогда не навязывает готовую колоду. Он сидит рядом и предлагает кандидатов — окончательный выбор всегда за вами.</div>
   </section>
 
   <section id="pair" class="section">
-    <h2>2. 2枚シナジーは「一緒に置く」より「役割がつながる」かを見る</h2>
-    <p>2枚シナジーは、単に同じデッキで見かける組み合わせではなく、片方が作った状況をもう片方が活かせるかで考えると実戦に近くなります。例えば、相手の小物を呪文で処理して勝ち筋を通す、建物で受けてカウンターに変える、空中ユニットを盾役の後ろに置く、といった形です。</p>
+    <h2>2. Синергия двух карт — это связанные роли, а не просто карты рядом</h2>
+    <p>Настоящая синергия — не две карты, которые просто встречаются в одной колоде, а карта, использующая ситуацию, созданную другой. Заклинание убирает мелочь, чтобы вин-кондишен прошёл; здание принимает пуш и превращает его в контратаку; воздушный юнит идёт за танком.</p>
     <ul>
-      <li><strong>通す2枚：</strong>勝ち筋を守る、邪魔な小物を消す、タワーへ届かせる。</li>
-      <li><strong>受ける2枚：</strong>タンクを止める、小物を散らす、呪文で守りを軽くする。</li>
-      <li><strong>回す2枚：</strong>低コストで手札を整え、同じ攻めを何度も作る。</li>
+      <li><strong>Пара для пробива:</strong>Защитить вин-кондишен, убрать мешающую мелочь, довести до башни.</li>
+      <li><strong>Пара для приёма:</strong>Останавливать танки, разгонять рой, облегчать защиту заклинанием.</li>
+      <li><strong>Пара для цикла:</strong>Дёшево формировать руку и снова и снова собирать тот же пуш.</li>
     </ul>
   </section>
 
   <section id="third" class="section">
-    <h2>3. 3枚目は「2枚の形を前に進める1枚」として選ぶ</h2>
-    <p>CR Deck Buildersが見たい3枚目は、固定の3枚セットではありません。すでに選んだ2枚に対して、攻めを通しやすくするか、守りを成立させるか、苦しい相手を受けやすくするかを見ます。</p>
-    <p>たとえば、勝ち筋＋小型呪文まで決めたなら、3枚目は盾役、防衛の起点、空中対策、建物対策などが候補になります。逆に、受けの2枚から始めたなら、守った後にタワーへつなぐカードが必要になることがあります。</p>
+    <h2>3. Выбирайте третью карту так, чтобы она продвигала ядро из двух</h2>
+    <p>Третья карта не входит в фиксированную тройку. С учётом двух выбранных она должна помочь атаке пройти, защите — устоять, или сделать тяжёлый матчап терпимее.</p>
+    <p>Если у вас вин-кондишен плюс малое заклинание, кандидатами будут мини-танк, опора защиты, ПВО или ответ на здания. Если же вы начали с защитной пары, может не хватать карты, которая переводит удачную защиту в удар по башне.</p>
     <div class="grid two">
-      <div class="card"><h3>自然候補</h3><p>今の形を素直に伸ばしやすいカード。迷ったときに扱いやすく、デッキの意図が崩れにくい候補です。</p></div>
-      <div class="card"><h3>発見候補</h3><p>少し意外でも、役割が噛み合えば形を広げられるカード。固定観念から外して試す入口です。</p></div>
+      <div class="card"><h3>Естественные варианты</h3><p>Карты, прямолинейно развивающие текущую форму. Просты в обращении, когда сомневаетесь, и не ломают замысел колоды.</p></div>
+      <div class="card"><h3>Неожиданные варианты</h3><p>Слегка неочевидные карты, способные расширить форму, если роли совпадут. Приглашение выйти за рамки шаблонов.</p></div>
     </div>
   </section>
 
   <section id="direction" class="section">
-    <h2>4. 3枚そろったら「次はどこを伸ばす？」で方向を選ぶ</h2>
-    <p>4枚目からは、正解の1枚を押し付けるより、伸ばしたい方向をプレイヤーが選べた方が自分のデッキになります。3枚そろうとアシストに <strong>攻撃強化 / 防衛強化 / 回転力強化</strong> が出るので、今いちばん足したい方向を選ぶと、候補がその方向にゆるく絞られます。</p>
+    <h2>4. Когда собраны три карты, выберите направление роста</h2>
+    <p>С четвёртой карты лучше выбирать направление самому, чем получать «правильный» вариант — так колода становится вашей. Как только три карты на месте, Ассистент показывает <strong>Усилить атаку / Усилить защиту / Усилить цикл</strong>  — выберите то, что хотите добавить прямо сейчас, и кандидаты мягко сместятся в эту сторону.</p>
     <div class="grid two">
-      <div class="card"><h3>攻撃強化</h3><p>タワーへ届く力や押し込む圧を足す方向。ユニットでも呪文でも、攻めの決定力につながる札を中心に出します。</p></div>
-      <div class="card"><h3>防衛強化</h3><p>受けを作りやすくする方向。対空、群れの処理、大型の受け、相手を止める札など、守りの穴に合わせて出します。</p></div>
-      <div class="card"><h3>回転力強化</h3><p>手札を回しやすくする方向。ただ軽いだけでなく、今のデッキを実際に軽くできるかで見ます。</p></div>
+      <div class="card"><h3>Усилить атаку</h3><p>Добавляет пробивную силу до башни и давление в пуше. Юниты или заклинания — в фокусе карты, дающие добивание.</p></div>
+      <div class="card"><h3>Усилить защиту</h3><p>Облегчает защиту. ПВО, зачистка роя, приём танков, останавливающая сила — под конкретные дыры вашей защиты.</p></div>
+      <div class="card"><h3>Усилить цикл</h3><p>Ускоряет прокрутку руки. Не просто дешёвые карты — проверяется, действительно ли карта облегчает именно эту колоду.</p></div>
     </div>
-    <p>回転力強化は、平均コストの今の値と合わせて考えます。たとえば平均が軽いデッキにそこそこ重い札を足しても回転は上がりません。逆に、重くなりそうな形なら、3コスト前後の札でも全体を軽くして回しやすくできます。だから同じカードでも、今のデッキ次第で回転への効き方は変わります。</p>
-    <p>方向はいつでも切り替えられますし、選ばなければ今までどおり自然な候補が出ます。攻め・受け・回しのどれを今優先したいかを、自分の意思で決めるための入口です。</p>
+    <p>Цикл оценивается относительно текущего среднего эликсира. Добавить средне-тяжёлую карту в и без того лёгкую колоду — не ускорить её; а в форме, которая тяжелеет, даже карта примерно за 3 эликсира может облегчить всю колоду. Одна и та же карта влияет на цикл по-разному в зависимости от колоды.</p>
+    <p>Направление можно менять в любой момент, а если не выбирать — появятся привычные естественные кандидаты. Это точка входа, чтобы самому решить, что сейчас важнее: атака, защита или цикл.</p>
   </section>
 
   <section id="threat" class="section">
-    <h2>5. 苦しい相手を先に想定すると、対策札が選びやすい</h2>
-    <p>デッキが弱く見える理由は、勝ち筋が弱いからとは限りません。空中大型が重い、小物で止まりやすい、タンク受けが薄い、速い攻めに遅れやすい、建物で受けられやすいなど、構造上の穴が残っていることがあります。</p>
-    <p>「この形で苦しい相手」を先に言葉にすると、次の候補はかなり絞れます。対策札はただ防ぐカードではなく、守った後に自分の攻めへつながるカードを選ぶと、デッキ全体の流れがきれいになります。</p>
-    <p>ただし、一見苦しく見える相手でも、デッキの洗練度や立ち回りで受け切れることがあります。苦手を完全に消すだけでなく、デッキの癖を把握し、どこまでをプレイヤースキルで埋めるかも大事な判断です。</p>
+    <h2>5. Назовите тяжёлые матчапы заранее — и карты-ответы выберутся сами</h2>
+    <p>Колода, кажущаяся слабой, не обязательно имеет слабый вин-кондишен. Больно от крупного воздуха, рой вас стопорит, приём танков тонкий, быстрые пуши опережают, здания глушат атаку — именно такие структурные дыры чаще всего и есть причина.</p>
+    <p>Проговорите, какие матчапы бьют по этой форме, и список кандидатов быстро сузится. И карта-ответ должна не просто блокировать — выберите ту, что после защиты перетекает в вашу атаку, и вся колода заиграет чище.</p>
+    <p>При этом матчапы, плохие на бумаге, часто удерживаются за счёт отточенности и игры. Вместо того чтобы стирать каждую слабость, знать повадки своей колоды — и решать, сколько закрыть навыком, — это тоже часть мастерства.</p>
   </section>
 
   <section id="finish" class="section">
-    <h2>6. 8枚に近づいたら、平均コストと役割の抜けを確認する</h2>
-    <p>最後は平均コストだけでなく、手札回し、対空、範囲攻撃、小型呪文、大型呪文、建物、フィニッシャー、防衛からのカウンターを見ます。全部を完璧に入れる必要はありませんが、抜けている理由を自分で説明できると、デッキの癖として扱いやすくなります。</p>
-    <p>デッキの癖を把握できていれば、多少の苦手はプレイヤースキルで埋められます。だから診断は「弱点を全部消すため」だけでなく、「自分がどこを腕で見るか」を決めるためにも使えます。</p>
-    <p>8枚がそろったら、デッキ分析でバランスを確認し、人気デッキページで近い形や環境の流れを見ると、調整の方向が決めやすくなります。</p>
-    <div class="page-links"><a href="cards/index.html">全カードデータ</a><a href="strategy.html">デッキ分析へ</a><a href="decks.html">人気デッキを見る</a><a href="glossary.html">用語集を見る</a><a href="about.html">このサイトについて</a></div>
+    <h2>6. Ближе к 8 картам проверьте средний эликсир и недостающие роли</h2>
+    <p>В конце смотрите шире среднего эликсира: прокрутка руки, ПВО, урон по площади, малое заклинание, большое заклинание, здание, финишер и контратака из защиты. Всё иметь не обязательно — но если вы можете объяснить, почему чего-то нет, это становится повадкой, вокруг которой можно играть, а не дырой.</p>
+    <p>Если вы знаете повадки своей колоды, навык закроет немалую часть слабостей. Поэтому используйте анализ не только чтобы стирать изъяны, но и чтобы решить, какие из них возьмёте на себя.</p>
+    <p>Когда все 8 собраны, проверьте баланс в анализе колоды, затем загляните в популярные колоды за похожими формами и текущей метой — направление следующей правки станет гораздо яснее.</p>
+    <div class="page-links"><a href="cards/index.html">Все данные карт</a><a href="strategy.html">Перейти к анализу колоды</a><a href="decks.html">Смотреть популярные колоды</a><a href="glossary.html">Открыть словарь</a><a href="about.html">Об этом сайте</a></div>
   </section>
 
-  <p class="meta-note">CR Deck BuildersはSupercellの非公式ファンコンテンツです。クラッシュ・ロワイヤルのカード画像・名称等の権利は各権利者に帰属します。</p>
+  <p class="meta-note">CR Deck Builders — неофициальный фан-контент, не одобренный Supercell. Изображения и названия карт Clash Royale принадлежат их правообладателям.</p>
 </main>
 
 <div class="footer-signature"><span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span></div>
-<script defer src="/i18n.js?v=260811k"></script>
-<script defer src="/js/ux-guard.js?v=260811k"></script>
+<script defer src="/i18n.js?v=260811n"></script>
+<script defer src="/js/ux-guard.js?v=260811n"></script>
 </body>
 </html>

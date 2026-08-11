@@ -15,8 +15,8 @@
 <link rel="canonical" href="https://crdeckbuilders.com/ko/guide.html">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="/css/content.css?v=260811k">
-<link rel="stylesheet" href="/css/guard.css?v=260811k">
+<link rel="stylesheet" href="/css/content.css?v=260811n">
+<link rel="stylesheet" href="/css/guard.css?v=260811n">
 <!-- CRVT --><style>@view-transition{navigation:auto}@keyframes cr-ol{to{transform:translateX(-26%);opacity:.5}}@keyframes cr-ir{from{transform:translateX(100%)}}@keyframes cr-or{to{transform:translateX(26%);opacity:.5}}@keyframes cr-il{from{transform:translateX(-100%)}}@media(max-width:768px){html:active-view-transition-type(crf)::view-transition-old(root){animation:cr-ol .26s ease both}html:active-view-transition-type(crf)::view-transition-new(root){animation:cr-ir .26s ease both}html:active-view-transition-type(crb)::view-transition-old(root){animation:cr-or .26s ease both}html:active-view-transition-type(crb)::view-transition-new(root){animation:cr-il .26s ease both}}</style><script>(function(){if(!("startViewTransition"in document)||!window.navigation)return;function ty(a){try{if(!a||!a.from)return null;var f=new URL(a.from.url).pathname,o=new URL(a.entry.url).pathname;var S=function(p){return p.indexOf("strategy.html")>-1};var I=function(p){return p.charAt(p.length-1)==="/"||p.indexOf("index.html")>-1};if(I(f)&&S(o))return"crf";if(S(f)&&I(o))return"crb"}catch(e){}return null}addEventListener("pageswap",function(e){if(e.viewTransition){var t=ty(e.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}});addEventListener("pagereveal",function(e){if(e.viewTransition){var t=ty(navigation.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}})})();</script>
 <!-- CRPIN -->
 <script>(function(){try{if(localStorage.getItem('cr_pin')==='off')document.documentElement.classList.add('nopin');}catch(e){}})();</script>
@@ -27,7 +27,7 @@
 <body>
 <div class="sitebar">
   <header>
-    <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>クラロワデッキ作成・診断ツール</span></div></a>
+    <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>클래시 로얄 덱 빌더 & 분석기</span></div></a>
     </header><nav class="nav-icons topbar" aria-label="主要ページ"><a class="nav-icon" href="/me.html" title="マイページ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg></span></a>
       <a class="nav-icon" href="index.html" title="デッキ作成"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 8.5v7M8.5 12h7"/></svg></span></a>
       <a class="nav-icon" href="decks.html" title="人気デッキ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5a1.5 1.5 0 0 0 0 3H7M17 6h2.5a1.5 1.5 0 0 1 0 3H17M9.5 17h5M10 21h4M12 14v3"/></svg></span></a>
@@ -40,73 +40,73 @@
 <main class="content-shell">
   <section class="hero">
     <div class="eyebrow">Deck Building Guide</div>
-    <h1>クラロワのデッキは、8枚を「役割」でつなぐと組みやすい。</h1>
-    <p class="lead">強いカードを8枚並べるだけでは、攻め筋がぼやけたり、守りの穴が残ったりします。CR Deck Buildersでは、勝ち筋、2枚の形、3枚目候補、苦しい相手への受けを順に見ながら、自分で納得してデッキを組めるようにしています。</p>
-    <div class="hero-actions"><a class="btn primary" href="index.html">デッキを組む</a><a class="btn" href="faq.html">よくある質問を見る</a></div>
+    <h1>클래시 로얄 덱은 8장을 “역할”로 이으면 짜기 쉬워집니다.</h1>
+    <p class="lead">강한 카드를 8장 늘어놓기만 하면 공격 루트가 흐려지거나 수비에 구멍이 남습니다. CR Deck Builders는 승리 플랜, 두 장의 형태, 세 번째 카드 후보, 어려운 상대에 대한 대응을 차례로 보면서 스스로 납득하고 덱을 짤 수 있게 합니다.</p>
+    <div class="hero-actions"><a class="btn primary" href="index.html">덱 짜기</a><a class="btn" href="faq.html">자주 묻는 질문 보기</a></div>
     <div class="toc" aria-label="目次">
-      <a href="#start">最初の1枚</a><a href="#pair">2枚の形</a><a href="#third">3枚目候補</a><a href="#direction">次の方向</a><a href="#threat">苦しい相手</a><a href="#finish">8枚の仕上げ</a>
+      <a href="#start">첫 번째 카드</a><a href="#pair">두 장의 형태</a><a href="#third">세 번째 카드 후보</a><a href="#direction">다음 방향</a><a href="#threat">어려운 상대</a><a href="#finish">8장 마무리</a>
     </div>
   </section>
 
   <section id="start" class="section">
-    <h2>1. 最初は「勝ち筋」か「使いたいカード」から決める</h2>
-    <p>デッキ作成で迷うときは、最初に軸を1つ決めます。ホグライダー、ロイヤルジャイアント、ラヴァハウンドのような勝ち筋から始めてもいいし、好きな防衛カードや使い慣れたカードから始めても構いません。</p>
-    <p>大事なのは、そのカードで何をしたいかを短く言えることです。「橋前で素早く削る」「大型を受けてカウンターする」「空から形を作る」のように言葉にできると、次の1枚を選びやすくなります。</p>
-    <div class="callout">アシストは自動で完成デッキを押しつけるものではありません。私が横で候補を出し、最後に選ぶのはプレイヤー自身、という考え方で作っています。</div>
+    <h2>1. 먼저 “승리 플랜”이나 “쓰고 싶은 카드”부터 정한다</h2>
+    <p>덱 짜기에서 막힐 때는 먼저 축을 하나 정합니다. 호그 라이더, 로얄 자이언트, 라바 하운드 같은 승리 플랜에서 시작해도 좋고, 좋아하는 수비 카드나 익숙한 카드에서 시작해도 괜찮습니다.</p>
+    <p>중요한 건 그 카드로 무엇을 하고 싶은지 짧게 말할 수 있는 것입니다. “다리 앞에서 빠르게 깎는다”, “대형을 받아 카운터한다”, “공중에서 형태를 만든다”처럼 말로 표현되면 다음 한 장을 고르기가 쉬워집니다.</p>
+    <div class="callout">어시스트는 완성된 덱을 강요하는 기능이 아닙니다. 옆에서 후보를 내고, 마지막에 고르는 건 플레이어 자신이라는 생각으로 만들었습니다.</div>
   </section>
 
   <section id="pair" class="section">
-    <h2>2. 2枚シナジーは「一緒に置く」より「役割がつながる」かを見る</h2>
-    <p>2枚シナジーは、単に同じデッキで見かける組み合わせではなく、片方が作った状況をもう片方が活かせるかで考えると実戦に近くなります。例えば、相手の小物を呪文で処理して勝ち筋を通す、建物で受けてカウンターに変える、空中ユニットを盾役の後ろに置く、といった形です。</p>
+    <h2>2. 두 장 시너지는 “같이 놓기”보다 “역할이 이어지는지”를 본다</h2>
+    <p>두 장 시너지는 단순히 같은 덱에서 보이는 조합이 아니라, 한쪽이 만든 상황을 다른 쪽이 살릴 수 있는지로 생각하면 실전에 가까워집니다. 예를 들어 상대의 잔챙이를 마법으로 정리해 승리 플랜을 통과시키거나, 건물로 받아 카운터로 바꾸거나, 공중 유닛을 방패 뒤에 놓는 형태입니다.</p>
     <ul>
-      <li><strong>通す2枚：</strong>勝ち筋を守る、邪魔な小物を消す、タワーへ届かせる。</li>
-      <li><strong>受ける2枚：</strong>タンクを止める、小物を散らす、呪文で守りを軽くする。</li>
-      <li><strong>回す2枚：</strong>低コストで手札を整え、同じ攻めを何度も作る。</li>
+      <li><strong>통과시키는 두 장:</strong>승리 플랜을 지키고, 방해되는 잔챙이를 지우고, 타워까지 닿게 한다.</li>
+      <li><strong>받아내는 두 장:</strong>탱커를 멈추고, 잔챙이를 흩고, 마법으로 수비를 가볍게 한다.</li>
+      <li><strong>돌리는 두 장:</strong>낮은 코스트로 손패를 정리하고, 같은 공격을 몇 번이고 만든다.</li>
     </ul>
   </section>
 
   <section id="third" class="section">
-    <h2>3. 3枚目は「2枚の形を前に進める1枚」として選ぶ</h2>
-    <p>CR Deck Buildersが見たい3枚目は、固定の3枚セットではありません。すでに選んだ2枚に対して、攻めを通しやすくするか、守りを成立させるか、苦しい相手を受けやすくするかを見ます。</p>
-    <p>たとえば、勝ち筋＋小型呪文まで決めたなら、3枚目は盾役、防衛の起点、空中対策、建物対策などが候補になります。逆に、受けの2枚から始めたなら、守った後にタワーへつなぐカードが必要になることがあります。</p>
+    <h2>3. 세 번째는 “두 장의 형태를 앞으로 밀어주는 한 장”으로 고른다</h2>
+    <p>CR Deck Builders가 보는 세 번째 카드는 고정된 3장 세트가 아닙니다. 이미 고른 두 장에 대해 공격을 통과시킬지, 수비를 성립시킬지, 어려운 상대를 받기 쉽게 할지를 봅니다.</p>
+    <p>예를 들어 승리 플랜과 소형 마법까지 정했다면 세 번째는 방패 역할, 수비의 기점, 공중 대책, 건물 대책 등이 후보가 됩니다. 반대로 수비 두 장에서 시작했다면 막은 뒤 타워로 이어주는 카드가 필요할 수 있습니다.</p>
     <div class="grid two">
-      <div class="card"><h3>自然候補</h3><p>今の形を素直に伸ばしやすいカード。迷ったときに扱いやすく、デッキの意図が崩れにくい候補です。</p></div>
-      <div class="card"><h3>発見候補</h3><p>少し意外でも、役割が噛み合えば形を広げられるカード。固定観念から外して試す入口です。</p></div>
+      <div class="card"><h3>자연스러운 후보</h3><p>지금 형태를 무리 없이 키우기 쉬운 카드. 망설일 때 다루기 쉽고 덱의 의도가 흐트러지지 않는 후보입니다.</p></div>
+      <div class="card"><h3>발견 후보</h3><p>조금 의외라도 역할이 맞물리면 형태를 넓힐 수 있는 카드. 고정관념에서 벗어나 시도해 보는 입구입니다.</p></div>
     </div>
   </section>
 
   <section id="direction" class="section">
-    <h2>4. 3枚そろったら「次はどこを伸ばす？」で方向を選ぶ</h2>
-    <p>4枚目からは、正解の1枚を押し付けるより、伸ばしたい方向をプレイヤーが選べた方が自分のデッキになります。3枚そろうとアシストに <strong>攻撃強化 / 防衛強化 / 回転力強化</strong> が出るので、今いちばん足したい方向を選ぶと、候補がその方向にゆるく絞られます。</p>
+    <h2>4. 세 장이 모이면 “다음은 어디를 키울까”로 방향을 고른다</h2>
+    <p>네 번째부터는 정답 한 장을 강요받기보다 키우고 싶은 방향을 플레이어가 고를 수 있는 편이 자신의 덱이 됩니다. 세 장이 모이면 어시스트에 <strong>공격 강화 / 수비 강화 / 순환력 강화</strong>  가 나타나므로, 지금 가장 더하고 싶은 방향을 고르면 후보가 그쪽으로 부드럽게 좁혀집니다.</p>
     <div class="grid two">
-      <div class="card"><h3>攻撃強化</h3><p>タワーへ届く力や押し込む圧を足す方向。ユニットでも呪文でも、攻めの決定力につながる札を中心に出します。</p></div>
-      <div class="card"><h3>防衛強化</h3><p>受けを作りやすくする方向。対空、群れの処理、大型の受け、相手を止める札など、守りの穴に合わせて出します。</p></div>
-      <div class="card"><h3>回転力強化</h3><p>手札を回しやすくする方向。ただ軽いだけでなく、今のデッキを実際に軽くできるかで見ます。</p></div>
+      <div class="card"><h3>공격 강화</h3><p>타워까지 닿는 힘과 밀어붙이는 압박을 더하는 방향. 유닛이든 마법이든 공격의 결정력으로 이어지는 카드를 중심으로 냅니다.</p></div>
+      <div class="card"><h3>수비 강화</h3><p>받아내기 쉽게 만드는 방향. 대공, 물량 처리, 대형 받기, 상대를 멈추는 카드 등 수비의 구멍에 맞춰 냅니다.</p></div>
+      <div class="card"><h3>순환력 강화</h3><p>손패를 돌리기 쉽게 만드는 방향. 단순히 가벼운 게 아니라, 지금 덱을 실제로 가볍게 할 수 있는지로 봅니다.</p></div>
     </div>
-    <p>回転力強化は、平均コストの今の値と合わせて考えます。たとえば平均が軽いデッキにそこそこ重い札を足しても回転は上がりません。逆に、重くなりそうな形なら、3コスト前後の札でも全体を軽くして回しやすくできます。だから同じカードでも、今のデッキ次第で回転への効き方は変わります。</p>
-    <p>方向はいつでも切り替えられますし、選ばなければ今までどおり自然な候補が出ます。攻め・受け・回しのどれを今優先したいかを、自分の意思で決めるための入口です。</p>
+    <p>순환력 강화는 지금의 평균 코스트와 함께 생각합니다. 예를 들어 평균이 가벼운 덱에 제법 무거운 카드를 더해도 순환은 올라가지 않습니다. 반대로 무거워질 것 같은 형태라면 3코스트 전후의 카드로도 전체를 가볍게 해 돌리기 쉽게 만들 수 있습니다. 그래서 같은 카드라도 지금 덱에 따라 순환에 미치는 효과가 달라집니다.</p>
+    <p>방향은 언제든 바꿀 수 있고, 고르지 않으면 지금까지처럼 자연스러운 후보가 나옵니다. 공격·수비·순환 중 무엇을 지금 우선할지 자신의 의지로 정하기 위한 입구입니다.</p>
   </section>
 
   <section id="threat" class="section">
-    <h2>5. 苦しい相手を先に想定すると、対策札が選びやすい</h2>
-    <p>デッキが弱く見える理由は、勝ち筋が弱いからとは限りません。空中大型が重い、小物で止まりやすい、タンク受けが薄い、速い攻めに遅れやすい、建物で受けられやすいなど、構造上の穴が残っていることがあります。</p>
-    <p>「この形で苦しい相手」を先に言葉にすると、次の候補はかなり絞れます。対策札はただ防ぐカードではなく、守った後に自分の攻めへつながるカードを選ぶと、デッキ全体の流れがきれいになります。</p>
-    <p>ただし、一見苦しく見える相手でも、デッキの洗練度や立ち回りで受け切れることがあります。苦手を完全に消すだけでなく、デッキの癖を把握し、どこまでをプレイヤースキルで埋めるかも大事な判断です。</p>
+    <h2>5. 어려운 상대를 먼저 상정하면 대응 카드를 고르기 쉬워진다</h2>
+    <p>덱이 약해 보이는 이유가 승리 플랜이 약해서만은 아닙니다. 공중 대형이 버겁다, 잔챙이에 막히기 쉽다, 탱커 받기가 얇다, 빠른 공격에 늦는다, 건물에 막히기 쉽다 등 구조상의 구멍이 남아 있을 수 있습니다.</p>
+    <p>“이 형태에서 어려운 상대”를 먼저 말로 표현하면 다음 후보가 꽤 좁혀집니다. 대응 카드는 그저 막는 카드가 아니라, 막은 뒤 자신의 공격으로 이어지는 카드를 고르면 덱 전체의 흐름이 깔끔해집니다.</p>
+    <p>다만 언뜻 어려워 보이는 상대라도 덱의 숙련도와 운영으로 받아낼 수 있습니다. 약점을 전부 없애는 것뿐 아니라, 덱의 버릇을 파악하고 어디까지를 플레이어 실력으로 메울지도 중요한 판단입니다.</p>
   </section>
 
   <section id="finish" class="section">
-    <h2>6. 8枚に近づいたら、平均コストと役割の抜けを確認する</h2>
-    <p>最後は平均コストだけでなく、手札回し、対空、範囲攻撃、小型呪文、大型呪文、建物、フィニッシャー、防衛からのカウンターを見ます。全部を完璧に入れる必要はありませんが、抜けている理由を自分で説明できると、デッキの癖として扱いやすくなります。</p>
-    <p>デッキの癖を把握できていれば、多少の苦手はプレイヤースキルで埋められます。だから診断は「弱点を全部消すため」だけでなく、「自分がどこを腕で見るか」を決めるためにも使えます。</p>
-    <p>8枚がそろったら、デッキ分析でバランスを確認し、人気デッキページで近い形や環境の流れを見ると、調整の方向が決めやすくなります。</p>
-    <div class="page-links"><a href="cards/index.html">全カードデータ</a><a href="strategy.html">デッキ分析へ</a><a href="decks.html">人気デッキを見る</a><a href="glossary.html">用語集を見る</a><a href="about.html">このサイトについて</a></div>
+    <h2>6. 8장에 가까워지면 평균 코스트와 역할의 공백을 확인한다</h2>
+    <p>마지막에는 평균 코스트뿐 아니라 손패 순환, 대공, 범위 공격, 소형 마법, 대형 마법, 건물, 피니셔, 수비에서의 카운터를 봅니다. 전부 완벽히 넣을 필요는 없지만, 빠진 이유를 스스로 설명할 수 있으면 덱의 버릇으로 다루기 쉬워집니다.</p>
+    <p>덱의 버릇을 파악하고 있으면 어느 정도의 약점은 플레이어 실력으로 메울 수 있습니다. 그래서 진단은 “약점을 전부 없애기 위해”서만이 아니라 “내가 어디를 실력으로 볼지”를 정하는 데에도 쓸 수 있습니다.</p>
+    <p>8장이 모이면 덱 분석에서 밸런스를 확인하고, 인기 덱 페이지에서 비슷한 형태나 환경의 흐름을 보면 조정 방향을 정하기 쉬워집니다.</p>
+    <div class="page-links"><a href="cards/index.html">전체 카드 데이터</a><a href="strategy.html">덱 분석으로 가기</a><a href="decks.html">인기 덱 보기</a><a href="glossary.html">용어집 보기</a><a href="about.html">이 사이트 소개</a></div>
   </section>
 
-  <p class="meta-note">CR Deck BuildersはSupercellの非公式ファンコンテンツです。クラッシュ・ロワイヤルのカード画像・名称等の権利は各権利者に帰属します。</p>
+  <p class="meta-note">CR Deck Builders는 Supercell의 비공식 팬 콘텐츠입니다. 클래시 로얄의 카드 이미지·명칭 등의 권리는 각 권리자에게 있습니다.</p>
 </main>
 
 <div class="footer-signature"><span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span></div>
-<script defer src="/i18n.js?v=260811k"></script>
-<script defer src="/js/ux-guard.js?v=260811k"></script>
+<script defer src="/i18n.js?v=260811n"></script>
+<script defer src="/js/ux-guard.js?v=260811n"></script>
 </body>
 </html>

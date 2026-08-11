@@ -40,8 +40,8 @@
 <meta name="twitter:image" content="https://crdeckbuilders.com/ogp.png">
 <meta name="keywords" content="clash royale,decks,beste decks,deck builder,meta,winrate,evolution,champion">
 <meta name="author" content="rea-fi-lia">
-<link rel="stylesheet" href="/css/index.css?v=260811k">
-<link rel="stylesheet" href="/css/guard.css?v=260811k">
+<link rel="stylesheet" href="/css/index.css?v=260811n">
+<link rel="stylesheet" href="/css/guard.css?v=260811n">
 <!-- MOBILE-FOOTER-FIX: 固定ON時のbody高さを可視VPに揃え＋フッター下の"ふとい帯"を解消（将来 css/index.css へ移設可） -->
 <style>
 @media (max-width: 720px){
@@ -91,16 +91,16 @@
 <body class="cr-builder">
 
 <header>
-  <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>クラロワデッキ作成・診断ツール</span></div></a>
+  <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>Clash Royale Deck-Builder & Analyse-Tool</span></div></a>
 </header>
 
 <div class="app">
   <!-- RIGHT: deck (モバイルでは上に表示) -->
   <div class="right">
     <div class="deck-header">
-      <div class="deck-title">デッキ <span class="deck-count" id="deckCount">0/8</span></div>
+      <div class="deck-title">Deck <span class="deck-count" id="deckCount">0/8</span></div>
       <div class="avg-row">
-        <span class="avg-label">平均コスト</span>
+        <span class="avg-label">Ø-Elixier</span>
         <span class="avg-val" id="avgVal">—</span>
         <span class="avg-trend" id="avgTrend"></span>
         <span class="avg-sub" id="avgSub"></span>
@@ -119,17 +119,17 @@
     </div>
     <div class="deck-slots" id="deckSlots"></div>
     <a class="empty-deck-cta" id="emptyDeckCta" href="decks.html">
-      <span class="edc-emoji">🏆</span><span>人気デッキから作る</span><span class="edc-arrow">→</span>
+      <span class="edc-emoji">🏆</span><span>Aus beliebtem Deck starten</span><span class="edc-arrow">→</span>
     </a>
     <div class="deck-actions">
       <div class="da-left">
-        <button class="btn btn-ghost" id="clearBtn">クリア</button>
-        <button class="btn btn-primary" id="saveBtn">保存</button>
+        <button class="btn btn-ghost" id="clearBtn">Leeren</button>
+        <button class="btn btn-primary" id="saveBtn">Speichern</button>
       </div>
       <button class="slot-load-btn" id="slotLoadBtn" title="タップで使い方／長押しでスロット切替"><span class="sl-cap">SLOT</span><span id="slotLoadNum">—</span></button>
       <div class="da-right">
-        <a class="btn btn-analyze" id="analyzeBtn" href="strategy.html" aria-disabled="true">デッキ分析へ →</a>
-        <button class="btn btn-ghost da-copy" id="copyDeckBtn" title="ゲームにコピー"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg><span class="da-copy-tx">ゲームに<br>コピー</span></button>
+        <a class="btn btn-analyze" id="analyzeBtn" href="strategy.html" aria-disabled="true">Zur Deck-Analyse →</a>
+        <button class="btn btn-ghost da-copy" id="copyDeckBtn" title="ゲームにコピー"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg><span class="da-copy-tx">Ins Spiel<br>kopieren</span></button>
       </div>
     </div>
   </div>
@@ -144,18 +144,18 @@
           <button class="search-clear" id="searchClear" tabindex="-1">✕</button>
           <button class="assist-top-info" id="assistTopInfo" type="button" aria-live="polite"></button>
         </div>
-        <button class="assist-toggle" id="assistToggle" type="button" aria-pressed="false"><span>アシスト</span></button>
+        <button class="assist-toggle" id="assistToggle" type="button" aria-pressed="false"><span>Assist</span></button>
       </div>
       <div class="assist-panel" id="assistPanel"></div>
       <div class="controls-row filter-row">
         <div class="type-tabs">
-          <button class="ttab active" data-type="all">全て</button>
-          <button class="ttab" data-type="troop">ユニット</button>
-          <button class="ttab" data-type="spell">呪文</button>
-          <button class="ttab" data-type="building">建物</button>
-          <button class="ttab" data-type="evolved"><span class="t-emoji">⚡</span>限界突破</button>
-          <button class="ttab" data-type="hero"><span class="t-emoji">👑</span>ヒーロー</button>
-          <button class="ttab" data-type="champion"><span class="t-emoji">🏆</span>チャンピオン</button>
+          <button class="ttab active" data-type="all">Alle</button>
+          <button class="ttab" data-type="troop">Truppen</button>
+          <button class="ttab" data-type="spell">Zauber</button>
+          <button class="ttab" data-type="building">Gebäude</button>
+          <button class="ttab" data-type="evolved"><span class="t-emoji">⚡</span>Evolution</button>
+          <button class="ttab" data-type="hero"><span class="t-emoji">👑</span>Helden</button>
+          <button class="ttab" data-type="champion"><span class="t-emoji">🏆</span>Champions</button>
           <button class="ttab" data-type="fav" title="お気に入りを上に表示">
             <svg width="15" height="14" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path class="heart-fill heart-stroke" d="M12 20.5C12 20.5 2 13.5 2 7C2 4.2 4.2 2 7 2C9 2 10.8 3.1 12 4.7C13.2 3.1 15 2 17 2C19.8 2 22 4.2 22 7C22 13.5 12 20.5 12 20.5Z" stroke-linejoin="round" stroke-linecap="round"/></svg>
           </button>
@@ -165,7 +165,7 @@
         <div class="cost-filters" id="costFilters"></div>
         <div class="count-sort">
           <span class="count-info" id="countInfo"></span>
-          <button class="cost-sort-btn" id="costSortBtn" type="button" title="コスト順に並べ替え">コスト</button>
+          <button class="cost-sort-btn" id="costSortBtn" type="button" title="コスト順に並べ替え">Kosten</button>
         </div>
       </div>
     </div>
@@ -180,28 +180,28 @@
 <details class="corner-guide" aria-label="サイト案内">
   <summary title="サイト案内"><span>?</span></summary>
   <nav class="cg-panel" aria-label="サイト案内リンク">
-    <b>サイト案内</b>
-    <p>デッキ作成の考え方や用語を読む</p>
-    <p>CR Deck Buildersは、クラロワの8枚デッキを組みながら平均コスト、カードの役割、攻めと守りの偏りを確認できるデッキ作成ツールです。カード名や略称で検索し、タップまたはドラッグでデッキに入れ替えできます。</p>
-    <p>アシストをオンにすると、いま選んでいるカードに合わせて、攻撃強化・防衛強化・回転力強化の候補を見比べられます。完成したデッキは分析ページで勝ち筋、苦しい相手、補いやすい役割を確認できます。</p>
-    <p>全カードデータのページでは、122枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。</p>
+    <b>Seiten-Übersicht</b>
+    <p>Konzepte und Begriffe zum Deckbau lesen</p>
+    <p>CR Deck Builders ist ein Deckbau-Tool, mit dem du beim Zusammenstellen deines 8-Karten-Decks in Clash Royale die Durchschnittskosten, die Rollen der Karten und das Verhältnis von Angriff und Verteidigung im Blick behältst. Suche Karten über Namen oder Kürzel und tausche sie per Tippen oder Ziehen ins Deck.</p>
+    <p>Mit aktiviertem Assist vergleichst du – passend zu deinen bisher gewählten Karten – Kandidaten für mehr Angriff, mehr Verteidigung oder schnelleres Zyklen. Ist das Deck fertig, zeigt dir die Analyseseite deine Win-Condition, schwere Matchups und Rollen, die sich leicht nachbessern lassen.</p>
+    <p>Auf den Seiten mit allen Kartendaten findest du für jede der 122 Karten echte Werte wie Lebenspunkte, Schaden, Schaden pro Sekunde und Reichweite – dazu, welche Zauber sie ausschalten, sowie Nutzung und Winrate in Ranglistenkämpfen. Auf der Seite mit beliebten Decks suchst du Deck-Ideen aus dem Spielverhalten der weltbesten Spieler. Ein guter Weg: mit einem beliebten Deck starten, danach Glossar und Guide lesen und das Deck an deinen Spielstil anpassen.</p>
     <div class="cg-links">
-      <a href="cards/index.html">全カードデータ</a>
-      <a href="guide.html">デッキ作成ガイド</a>
-      <a href="faq.html">よくある質問</a>
-      <a href="about.html">このサイトについて</a>
-      <a href="glossary.html">用語集</a>
+      <a href="cards/index.html">Alle Kartendaten</a>
+      <a href="guide.html">Deckbau-Guide</a>
+      <a href="faq.html">Häufige Fragen</a>
+      <a href="about.html">Über diese Seite</a>
+      <a href="glossary.html">Glossar</a>
     </div>
   </nav>
 </details>
 <div class="toast" id="toast"></div>
 
-<script src="/js/cards-data.js?v=260811k"></script>
-<script src="/js/builder.js?v=260811k"></script>
+<script src="/js/cards-data.js?v=260811n"></script>
+<script src="/js/builder.js?v=260811n"></script>
 
 <!-- ログイン＆ユーザーデータ（Firebase）。ヘッダーにログインボタンが自動で付きます -->
-<script type="module" src="/auth.js?v=260811k"></script>
-<script defer src="/i18n.js?v=260811k"></script>
+<script type="module" src="/auth.js?v=260811n"></script>
+<script defer src="/i18n.js?v=260811n"></script>
 <!-- DEBUG-OVERLAY-START (一時デバッグ・?debug=1 の時だけ表示。iOSフッター隙間の原因特定用・診断後に削除) -->
 <script>
 (function(){
@@ -256,6 +256,6 @@
 })();
 </script>
 <!-- DEBUG-OVERLAY-END -->
-<script defer src="/js/ux-guard.js?v=260811k"></script>
+<script defer src="/js/ux-guard.js?v=260811n"></script>
 </body>
 </html>

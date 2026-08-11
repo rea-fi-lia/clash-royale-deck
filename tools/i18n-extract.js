@@ -57,6 +57,10 @@ function main() {
     });
   });
   fs.writeFileSync(path.join(CONTENT_DIR, '_ja-segments.json'), JSON.stringify(segments, null, 1));
+  // ★_keys.json＝ユニーク原文の「確定順」。tools/i18n-apply.js が訳文配列をこの順で突き合わせる。
+  //   （各言語ファイルに長い日本語キーを書き直さずに済ませるための索引）
+  const keyList = [...allKeys];
+  fs.writeFileSync(path.join(CONTENT_DIR, '_keys.json'), JSON.stringify(keyList, null, 1));
 
   const totalChars = [...allKeys].reduce((s, k) => s + k.length, 0);
   console.log('抽出: ' + PAGES.length + 'ページ / ユニーク原文 ' + allKeys.size + '件 / 計 ' + totalChars.toLocaleString() + '字');
