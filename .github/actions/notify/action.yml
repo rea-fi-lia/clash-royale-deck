@@ -6,7 +6,8 @@ description: >
 
 inputs:
   status:
-    description: 呼び出し元の結果（success / failure）。${{ job.status }} を渡す
+    # ⚠️ description の中に ${{ }} を書くとGitHubが式として評価して落ちる（2026-08-11に踏んだ）
+    description: 呼び出し元の結果（success / failure）。job.status を渡すこと
     required: true
   workflow:
     description: 対象ワークフローのファイル名（例 collect.yml）。連続失敗の判定に使う
