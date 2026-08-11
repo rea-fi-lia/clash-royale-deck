@@ -590,8 +590,10 @@ function updateMeLabel() {
   const nm = (window.CRAuth && CRAuth.getDisplayName && CRAuth.getDisplayName()) || '';
   el.textContent = nm ? _t('decks.envOfName', { name: nm }) : _tr('あなたの環境');
 }
+// ★2026-08-11：「あなたの環境」はマイページ（/me.html）へ統合（jo決定・docs/monetization.md）。
+//   ここのトグルはリンクに置き換えたのでクリックハンドラは付けない。
+//   ME系の集計コード自体は当面残す（他機能への影響を避けるため）。次の掃除で撤去してよい。
 const _meToggleBtn = document.getElementById('meToggle');
-if (_meToggleBtn) _meToggleBtn.addEventListener('click', () => setCardMode(_cardMode === 'me' ? 'env' : 'me'));
 const _meRefreshBtn = document.getElementById('meRefresh');
 if (_meRefreshBtn) _meRefreshBtn.addEventListener('click', () => setCardMode('me', true)); // 最新の対戦を取り直し
 
