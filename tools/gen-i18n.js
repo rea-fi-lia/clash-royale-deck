@@ -10,6 +10,7 @@
  *  ※ 文字列内のアポストロフィは ’(U+2019) を使う（JSのシングルクォートを壊さないため）。
  */
 const fs = require('fs');
+const { execFileSync } = require('child_process');
 const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const BASE = 'https://crdeckbuilders.com';
@@ -245,6 +246,37 @@ function buildLangPage(srcHtml, lang, page) {
   return h;
 }
 
+/* ★lastmod は「本当にそのファイルが変わった日」を出す（2026-08-11）
+ * それまで全URLに実行日を焼いていたが、毎日走らせる仕組みなので
+ * 中身が同じページにも今日の日付が付き、133URLすべてが同じ日になっていた。
+ * Googleは lastmod が不正確なサイトマップの日付を無視するため、
+ * クロールの優先付けに効かないどころか信頼を落とす。
+ *   - HEAD と差があるファイル（今回の生成で中身が変わった）→ 今日
+ *   - 差がないファイル → git の最終コミット日
+ *   - git が使えない/履歴が無い場合 → 今日（安全側）
+ * ※CIでは actions/checkout に fetch-depth: 0 が必要（履歴が無いと日付が取れない）。 */
+let _dirtySet = null;
+function dirtyFiles() {
+  if (_dirtySet) return _dirtySet;
+  _dirtySet = new Set();
+  try {
+    const out = execFileSync('git', ['status', '--porcelain', '--', '.'], { cwd: ROOT, encoding: 'utf8' });
+    out.split('\n').forEach(line => {
+      const m = line.trim().match(/^\S+\s+(.+)$/);
+      if (m) _dirtySet.add(m[1].replace(/^"|"$/g, ''));
+    });
+  } catch (e) { /* gitが無ければ全部「今日」扱いになる */ }
+  return _dirtySet;
+}
+function lastmodOf(relPath) {
+  if (dirtyFiles().has(relPath)) return TODAY;          // 今回変わった＝今日
+  try {
+    const d = execFileSync('git', ['log', '-1', '--format=%cs', '--', relPath], { cwd: ROOT, encoding: 'utf8' }).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  } catch (e) { /* 履歴なし */ }
+  return TODAY;
+}
+
 function writeSitemap() {
   let out = '<?xml version="1.0" encoding="UTF-8"?>\n';
   out += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n';
@@ -255,7 +287,8 @@ function writeSitemap() {
       out += '  <url>\n    <loc>' + pageUrl(lang, page) + '</loc>\n';
       INDEX_LANGS.forEach(l => { out += '    <xhtml:link rel="alternate" hreflang="' + HREFLANG[l] + '" href="' + pageUrl(l, page) + '"/>\n'; });
       out += '    <xhtml:link rel="alternate" hreflang="x-default" href="' + pageUrl('ja', page) + '"/>\n';
-      out += '    <lastmod>' + TODAY + '</lastmod>\n    <changefreq>' + (cf[page] || 'monthly') + '</changefreq>\n    <priority>' + (pr[page] || '0.4') + '</priority>\n  </url>\n';
+      const relPath = (lang === 'ja') ? page : (lang + '/' + page);
+      out += '    <lastmod>' + lastmodOf(relPath) + '</lastmod>\n    <changefreq>' + (cf[page] || 'monthly') + '</changefreq>\n    <priority>' + (pr[page] || '0.4') + '</priority>\n  </url>\n';
     });
   });
   /* ★カード個別ページ（/cards/*.html）もsitemapへ。2026-08-11追加。
@@ -267,7 +300,7 @@ function writeSitemap() {
     fs.readdirSync(cardsDir).filter(f => f.endsWith('.html')).sort().forEach(f => {
       const url = 'https://crdeckbuilders.com/cards/' + f;
       out += '  <url>\n    <loc>' + url + '</loc>\n';
-      out += '    <lastmod>' + TODAY + '</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>' + (f === 'index.html' ? '0.8' : '0.6') + '</priority>\n  </url>\n';
+      out += '    <lastmod>' + lastmodOf('cards/' + f) + '</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>' + (f === 'index.html' ? '0.8' : '0.6') + '</priority>\n  </url>\n';
       nCards++;
     });
   }
