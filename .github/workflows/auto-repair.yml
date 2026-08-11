@@ -1,0 +1,300 @@
+name: auto repair
+
+# 定期実行が続けて失敗したら、AIに直させる（2026-08-11）
+#
+# 【段構え】
+#   1段目 Claude（ANTHROPIC_API_KEY）
+#   2段目 Fugu（SAKANA_API_KEY・codex CLI経由）… 1段目が鍵無し/失敗/無変更のとき
+#   どちらも鍵が無ければ、診断だけ諦めて「鍵が未設定」とだけDiscordに出す
+#
+# 【安全装置】
+#   - mainには直接触らない。作業ブランチ＋PRだけ作る
+#   - 作った修正は**本番を汚さない経路で実際に動かして**確かめる
+#     （collectは target_branch=data-test で走らせる）
+#   - 検証が通ったときだけPRを出す。通らなければ診断だけ届ける
+#   - 自動マージは既定オフ。リポジトリ変数 AUTO_MERGE_FIX=1 で有効になる
+#   - 同じワークフローの修理PRが既に開いていたら何もしない（積み上がり防止）
+
+on:
+  workflow_run:
+    workflows: ['collect decks', 'build card stats', 'check card images', 'export tags sheet']
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      workflow:
+        description: '直す対象（例 collect.yml）'
+        required: true
+      label:
+        description: '人が読む名前'
+        required: false
+        default: '定期処理'
+
+concurrency:
+  group: auto-repair
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # ★secrets は step の if では参照できない。鍵の有無だけをjobレベルのenvに上げておく
+    env:
+      HAS_CLAUDE: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+      HAS_FUGU: ${{ secrets.SAKANA_API_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # ── どの失敗を相手にするのか決める ─────────────────────────────
+      - name: 対象と、直すべき状況かを判定
+        id: gate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EV: ${{ github.event_name }}
+          WF_NAME: ${{ github.event.workflow_run.name }}
+          WF_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WF_RUN_ID: ${{ github.event.workflow_run.id }}
+          IN_WF: ${{ github.event.inputs.workflow }}
+          IN_LABEL: ${{ github.event.inputs.label }}
+        run: |
+          set -e
+          if [ "$EV" = "workflow_dispatch" ]; then
+            WF="$IN_WF"; LABEL="$IN_LABEL"; RUN_ID=""
+            # 手動起動は「今すぐ診てくれ」の意味なので、しきい値を無視する
+            THRESHOLD=0
+          else
+            if [ "$WF_CONCLUSION" != "failure" ]; then
+              echo "失敗ではないので何もしない（$WF_CONCLUSION）"; echo "go=false" >> $GITHUB_OUTPUT; exit 0
+            fi
+            case "$WF_NAME" in
+              'collect decks')      WF=collect.yml;           LABEL=データ収集;        THRESHOLD=2 ;;
+              'build card stats')   WF=build-card-stats.yml;  LABEL=カード実数値の取得; THRESHOLD=1 ;;
+              'check card images')  WF=check-card-images.yml; LABEL=カード画像の点検;   THRESHOLD=1 ;;
+              'export tags sheet')  WF=export-tags.yml;       LABEL=タグのシート同期;   THRESHOLD=1 ;;
+              *) echo "対象外: $WF_NAME"; echo "go=false" >> $GITHUB_OUTPUT; exit 0 ;;
+            esac
+            RUN_ID="$WF_RUN_ID"
+          fi
+
+          # 通知と同じ判定を使う（定義は tools/failure-streak.js の1箇所）
+          STREAK=$(node tools/failure-streak.js --workflow "$WF")
+          echo "連続失敗: $STREAK 回 / しきい値: $THRESHOLD"
+          if [ "$STREAK" -lt "$THRESHOLD" ]; then
+            echo "まだ直しに行かない（次も失敗したら動く）"; echo "go=false" >> $GITHUB_OUTPUT; exit 0
+          fi
+
+          # 同じ対象の修理PRが既に開いていたら重ねない
+          OPEN=$(gh pr list --state open --label auto-repair --search "$WF in:title" --json number -q 'length')
+          if [ "${OPEN:-0}" -gt 0 ]; then
+            echo "$WF の修理PRが既に開いている。人が見るまで重ねない"; echo "go=false" >> $GITHUB_OUTPUT; exit 0
+          fi
+
+          [ -n "$RUN_ID" ] || RUN_ID=$(gh run list --workflow "$WF" --status failure --limit 1 --json databaseId -q '.[0].databaseId')
+          {
+            echo "go=true"; echo "workflow=$WF"; echo "label=$LABEL"
+            echo "run_id=$RUN_ID"; echo "branch=auto-fix/${WF%.yml}-${RUN_ID}"
+          } >> $GITHUB_OUTPUT
+
+      # ── 状況説明を組み立てる ────────────────────────────────────
+      - name: 状況説明を作る
+        if: steps.gate.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node tools/repair-context.js \
+            --workflow "${{ steps.gate.outputs.workflow }}" \
+            --run-id "${{ steps.gate.outputs.run_id }}" \
+            --label "${{ steps.gate.outputs.label }}" > /tmp/brief.md
+          wc -c /tmp/brief.md
+
+      - name: 作業ブランチを用意
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          git config user.name  "auto-repair (Claude/Fugu)"
+          git config user.email "noreply@anthropic.com"
+          git switch -c "${{ steps.gate.outputs.branch }}"
+
+      # ── 1段目：Claude ────────────────────────────────────────
+      - name: 1段目 Claude に直させる
+        id: claude
+        if: steps.gate.outputs.go == 'true' && env.HAS_CLAUDE == 'true'
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          npm install -g @anthropic-ai/claude-code >/dev/null 2>&1
+          timeout 900 claude -p "$(cat /tmp/brief.md)" \
+            --permission-mode acceptEdits \
+            --allowedTools "Read,Edit,Write,Grep,Glob,Bash(node --check:*),Bash(git diff:*),Bash(git status:*)" \
+            || echo "Claudeが最後まで走らなかった"
+          if [ -n "$(git status --porcelain)" ]; then echo "fixed=true" >> $GITHUB_OUTPUT; fi
+
+      # ── 2段目：Fugu（1段目が鍵無し・失敗・無変更のとき）─────────────
+      - name: 2段目 Fugu に直させる
+        id: fugu
+        if: steps.gate.outputs.go == 'true' && steps.claude.outputs.fixed != 'true' && env.HAS_FUGU == 'true'
+        continue-on-error: true
+        env:
+          SAKANA_API_KEY: ${{ secrets.SAKANA_API_KEY }}
+        run: |
+          npm install -g @openai/codex >/dev/null 2>&1
+          timeout 900 codex exec \
+            -m fugu-ultra \
+            -c model_provider=sakana \
+            -c model_providers.sakana.name="Sakana Fugu" \
+            -c model_providers.sakana.base_url="https://api.sakana.ai/v1" \
+            -c model_providers.sakana.env_key="SAKANA_API_KEY" \
+            -c model_providers.sakana.wire_api="responses" \
+            -c model_reasoning_effort=high \
+            --skip-git-repo-check \
+            --dangerously-bypass-approvals-and-sandbox \
+            "$(cat /tmp/brief.md)" || echo "Fuguが最後まで走らなかった"
+          if [ -n "$(git status --porcelain)" ]; then echo "fixed=true" >> $GITHUB_OUTPUT; fi
+
+      # ── 触ってはいけないものを触っていないか ────────────────────
+      - name: 差分の検閲
+        id: audit
+        if: steps.gate.outputs.go == 'true'
+        run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "変更なし（原因が分からなかった）"; echo "has_diff=false" >> $GITHUB_OUTPUT; exit 0
+          fi
+          echo "has_diff=true" >> $GITHUB_OUTPUT
+          git status --porcelain
+          # 要約は退避してからリポジトリから消す（mainに残さないため）
+          cp REPAIR_SUMMARY.md /tmp/summary.md 2>/dev/null || true
+          rm -f REPAIR_SUMMARY.md
+          # 約束：この3つは絶対にコミットしない
+          for f in 3d.html css/neo3d.css js/neo3d.js; do
+            if git status --porcelain -- "$f" | grep -q .; then
+              echo "::error::$f を触っている。修理を破棄する"; exit 1
+            fi
+          done
+          # 変更したJSはすべて構文チェック
+          for f in $(git diff --name-only --diff-filter=ACM -- '*.js'); do
+            node --check "$f" || { echo "::error::$f の構文が壊れている"; exit 1; }
+          done
+          git diff --stat
+
+      - name: 修正をブランチへ
+        if: steps.gate.outputs.go == 'true' && steps.audit.outputs.has_diff == 'true'
+        run: |
+          git add -A -- . ':!3d.html' ':!css/neo3d.css' ':!js/neo3d.js'
+          git commit -m "fix(auto): ${{ steps.gate.outputs.label }}の失敗を自動修理
+
+$(head -c 800 /tmp/summary.md 2>/dev/null || echo '(要約なし)')
+
+対象: ${{ steps.gate.outputs.workflow }} / 実行 ${{ steps.gate.outputs.run_id }}
+★これは自動生成です。検証に通った場合のみPRになります。"
+          git push -u origin "${{ steps.gate.outputs.branch }}"
+
+      # ── 本番を汚さずに、実際に動かして確かめる ──────────────────
+      - name: 修正を実際に走らせて検証
+        id: verify
+        if: steps.gate.outputs.go == 'true' && steps.audit.outputs.has_diff == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WF: ${{ steps.gate.outputs.workflow }}
+          BR: ${{ steps.gate.outputs.branch }}
+        run: |
+          # collectだけは書き込み先を data-test に逃がす（本番データを汚さない）
+          if [ "$WF" = "collect.yml" ]; then
+            gh workflow run "$WF" --ref "$BR" -f target_branch=data-test -f top_players=200
+          else
+            gh workflow run "$WF" --ref "$BR"
+          fi
+          sleep 25
+          RID=$(gh run list --workflow "$WF" --branch "$BR" --limit 1 --json databaseId -q '.[0].databaseId')
+          echo "検証run=$RID"
+          for i in $(seq 1 60); do
+            ST=$(gh run view "$RID" --json status,conclusion -q '"\(.status)|\(.conclusion // "")"')
+            case "$ST" in completed*) break ;; esac
+            sleep 20
+          done
+          echo "検証結果: $ST"
+          case "$ST" in
+            *success) echo "ok=true"  >> $GITHUB_OUTPUT ;;
+            *)        echo "ok=false" >> $GITHUB_OUTPUT ;;
+          esac
+          echo "verify_run=$RID" >> $GITHUB_OUTPUT
+
+      - name: 検証を通った修正をPRにする
+        id: pr
+        if: steps.verify.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          URL=$(gh pr create \
+            --title "🤖 自動修理: ${{ steps.gate.outputs.label }}（${{ steps.gate.outputs.workflow }}）" \
+            --body "$(cat <<EOF
+定期処理が続けて失敗したため、AIが原因を調べて直しました。
+
+## 要約
+$(cat /tmp/summary.md 2>/dev/null || echo '(要約なし)')
+
+## 検証
+**本番を汚さない経路で実際に走らせ、成功を確認しています。**
+$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/${{ steps.verify.outputs.verify_run }}
+
+## 元の失敗
+$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/${{ steps.gate.outputs.run_id }}
+
+---
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+EOF
+)" --label auto-repair --head "${{ steps.gate.outputs.branch }}" --base main)
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      # 既定はオフ。リポジトリ変数 AUTO_MERGE_FIX=1 にすると、検証を通った修正が自動で本番へ入る
+      - name: 自動マージ（AUTO_MERGE_FIX=1 のときだけ）
+        id: merged
+        if: steps.pr.outputs.url != '' && vars.AUTO_MERGE_FIX == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge "${{ steps.pr.outputs.url }}" --squash --delete-branch
+          echo "done=true" >> $GITHUB_OUTPUT
+
+      # ── どうなったかを必ず知らせる ──────────────────────────────
+      - name: 結果をDiscordへ
+        if: always() && steps.gate.outputs.go == 'true'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          LINE_PUSH_TOKEN: ${{ secrets.LINE_PUSH_TOKEN }}
+          LINE_PUSH_TO: ${{ secrets.LINE_PUSH_TO }}
+        run: |
+          SUM=$(head -c 900 /tmp/summary.md 2>/dev/null || echo '')
+          BASE="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/${{ steps.gate.outputs.run_id }}"
+          if [ "${{ steps.merged.outputs.done }}" = "true" ]; then
+            node tools/notify.js --level ok \
+              --title "🤖 ${{ steps.gate.outputs.label }}を自動で直しました（本番反映済み）" \
+              --body "$(printf '%s\n\n検証に通ったので本番へ入れました。\n%s' "$SUM" "${{ steps.pr.outputs.url }}")"
+          elif [ -n "${{ steps.pr.outputs.url }}" ]; then
+            node tools/notify.js --level ok \
+              --title "🤖 ${{ steps.gate.outputs.label }}の修正案ができました（承認待ち）" \
+              --body "$(printf '%s\n\n★実際に走らせて成功を確認済みです。マージすれば直ります。\n%s' "$SUM" "${{ steps.pr.outputs.url }}")"
+          elif [ "${{ steps.audit.outputs.has_diff }}" = "true" ]; then
+            node tools/notify.js --level error \
+              --title "⚠️ ${{ steps.gate.outputs.label }}：自動修理を試みましたが検証に落ちました" \
+              --body "$(printf '直そうとした内容はブランチ %s に残してあります。人の判断が要ります。\n%s\n\n%s' \
+                "${{ steps.gate.outputs.branch }}" "$SUM" "$BASE")"
+          elif [ "$HAS_CLAUDE" != "true" ] && [ "$HAS_FUGU" != "true" ]; then
+            node tools/notify.js --level error \
+              --title "⚠️ ${{ steps.gate.outputs.label }}が失敗（自動修理は鍵が未設定で動けません）" \
+              --body "$(printf 'ANTHROPIC_API_KEY か SAKANA_API_KEY をSecretsに入れると、次からAIが自動で調べて直します。\n%s' "$BASE")"
+          else
+            node tools/notify.js --level error \
+              --title "⚠️ ${{ steps.gate.outputs.label }}：自動修理でも原因が分かりませんでした" \
+              --body "$(printf 'AIが調べましたが変更を加えられませんでした。人の判断が要ります。\n%s' "$BASE")"
+          fi

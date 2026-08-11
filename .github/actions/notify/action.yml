@@ -54,16 +54,9 @@ runs:
         set -u
         RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
 
-        # 今回のrunを除いた「完了済みの結果」を新しい順に並べる
-        PREV=$(gh run list --workflow="$WF" --limit 15 --json conclusion,databaseId \
-          -q "[.[] | select(.databaseId != $GITHUB_RUN_ID) | select(.conclusion != null and .conclusion != \"\") | .conclusion] | join(\" \")" 2>/dev/null || echo "")
-
-        # 先頭から何回連続で失敗しているか
-        FAILS=0
-        for c in $PREV; do
-          if [ "$c" = "failure" ]; then FAILS=$((FAILS + 1)); else break; fi
-        done
-        echo "直近の結果: [$PREV]  → 連続失敗 $FAILS 回"
+        # ★連続失敗の定義は tools/failure-streak.js の1箇所だけ。自動修理も同じものを使う
+        FAILS=$(node tools/failure-streak.js --workflow "$WF" --exclude "$GITHUB_RUN_ID")
+        echo "連続失敗 $FAILS 回"
 
         if [ "$ST" = "failure" ]; then
           TOTAL=$((FAILS + 1))
