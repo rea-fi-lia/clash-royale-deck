@@ -162,3 +162,17 @@ h1 { margin-top: 8px; font-size: clamp(28px, 5vw, 46px); line-height: 1.16; font
 .me-weak-card small { font-size: 10px; color: var(--text-muted); }
 .me-spark { width: 100%; height: auto; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; }
 .me-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ── マイページ：勝ち方・負け方（クラウン内訳）と時間軸 2026-08-11 ── */
+.me-cq { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.me-cq-row { display: flex; align-items: center; gap: 6px; }
+.me-cq-label { min-width: 44px; font-size: 13px; color: var(--text-muted); }
+.me-cq-cell { flex: 1; text-align: center; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 2px; }
+.me-cq-cell b { display: block; font-size: 15px; }
+.me-cq-cell small { font-size: 10px; color: var(--text-muted); }
+.me-cq-cell.win { border-color: rgba(232,160,32,.55); }
+.me-cq-cell.lose { border-color: rgba(216,58,58,.45); }
+.me-weak-card.prio { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(232,160,32,.35); }
+.me-deck-global { display: block; font-size: 11px; color: var(--text-muted); }
+.me-ax { font-size: 11px; fill: var(--text-muted); }
