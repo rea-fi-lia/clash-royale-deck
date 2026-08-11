@@ -43,14 +43,29 @@ input, textarea, select, [contenteditable] { touch-action: auto; }
   justify-content: flex-end;
 }
 .sitebar header { flex-wrap: wrap; max-width: 100%; }
+/* ★ナビの見た目を全ページで統一（2026-08-11・jo指示）
+   「支援・お問い合わせ・人気デッキ」の見え方を基準にする。
+   これまで content.css=36px/角9px、decks.css=34px/角8px、
+   さらに各ページのインラインCSS(CRPIN)が !important で36pxを強制していて、
+   ページごとに高さと角の丸みが違っていた。ここで最終的に揃える。
+   ※デッキ作成(index.html)だけは例外＝現状のままにする（.deck-nav で除外）。 */
+.sitebar .nav-icons:not(.deck-nav) .nav-icon {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 8px !important;
+}
+.sitebar .nav-icons:not(.deck-nav) .nav-icon .nav-emoji svg { width: 18px; height: 18px; }
+.sitebar .nav-icons:not(.deck-nav) { padding-bottom: 8px; }
+
 @media (max-width: 420px) {
   /* 狭い端末ではアイコンを少し縮めて1列に収める */
-  .sitebar .nav-icon { width: 32px !important; height: 32px !important; }
+  .sitebar .nav-icons:not(.deck-nav) .nav-icon { width: 30px !important; height: 30px !important; }
+  .sitebar .nav-icons:not(.deck-nav) .nav-icon .nav-emoji svg { width: 16px; height: 16px; }
 }
 
 /* ── いま開いているページ名（ナビ左の空きスペース・2026-08-11） ──
    ★アイコンを押し出さない設計：文字側だけが縮む。 */
-.sitebar .nav-here {
+.nav-here {
   flex: 0 1 auto;          /* 伸びない・縮む＝アイコンの幅を奪わない */
   min-width: 0;            /* これが無いと flex が縮まない */
   margin-right: auto;      /* アイコン群を右端へ押し出す */
@@ -64,7 +79,7 @@ input, textarea, select, [contenteditable] { touch-action: auto; }
   color: var(--text);
   padding-left: 2px;
 }
-@media (max-width: 420px) { .sitebar .nav-here { font-size: 12px; } }
+@media (max-width: 420px) { .nav-here { font-size: 12px; } }
 
 /* 画面には出さないが読み上げ・検索には残す（見出しの重複を消すときに使う） */
 .visually-hidden {
@@ -72,3 +87,7 @@ input, textarea, select, [contenteditable] { touch-action: auto; }
   margin: -1px; padding: 0; border: 0; overflow: hidden;
   clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
 }
+
+/* デッキ作成(index)のナビでも現在地を出す。ピンが左、その右にページ名。 */
+.nav-icons.deck-nav { align-items: center; }
+.nav-icons.deck-nav .nav-here { margin-right: auto; }

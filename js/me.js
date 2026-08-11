@@ -197,6 +197,14 @@
           if (!best || g > best.g) { best = { cards, g }; bestKey = k; }
         }
       });
+      // ★いつのデータかを出す（jo指示・2026-08-11）。帯統計は7日窓の単一集計なので、
+      //   実際の窓と最終更新をそのまま書く（デッキ側の1h/1日/3日とは別物なので混同させない）。
+      const wd = tb.windowDays || 7;
+      const upd = tb.updated ? new Date(tb.updated) : null;
+      const hrs = upd ? Math.max(0, Math.round((Date.now() - upd) / 36e5)) : null;
+      const whenEl = $('meBandWhen');
+      if (whenEl) whenEl.textContent = '直近' + wd + '日の集計'
+        + (hrs != null ? '・' + (hrs < 1 ? 'たった今' : hrs < 24 ? hrs + '時間前' : Math.round(hrs / 24) + '日前') + '更新' : '');
       if (best) {
         const rows = Object.entries(best.cards).map(([n, v]) => ({ n, g: v.games || 0, wr: v.wr }))
           .sort((a, b) => b.g - a.g);
@@ -220,33 +228,47 @@
     $('meBandBody').innerHTML = bandHtml;
   }
 
-  /* トロフィー推移（時間軸つき） */
+  /* トロフィー推移（2026-08-11 刷新）
+   * 上部の主役として見せる：面グラフ＋現在値＋増減バッジ。時間軸は実時刻で配置する。 */
   function renderTrend(B) {
+    const el = $('meTrendBody');
     const seq = B.filter(b => typeof b.tr === 'number' && parseT(b.t)).slice().reverse();  // 古→新
-    if (seq.length < 2) { $('meTrendBody').innerHTML = '<p class="note">記録が貯まると表示されます。</p>'; return; }
+    if (seq.length < 2) { el.innerHTML = '<p class="note">記録が2戦以上たまるとトロフィーの推移が出ます。</p>'; return; }
     const pts = seq.map(b => b.tr);
     const t0 = parseT(seq[0].t), t1 = parseT(seq[seq.length - 1].t);
     const span = Math.max(1, t1 - t0);
-    const min = Math.min(...pts), max = Math.max(...pts), vspan = Math.max(1, max - min);
-    const W = 600, H = 150, padL = 46, padR = 10, padT = 8, padB = 22;
-    const X = i => padL + (parseT(seq[i].t) - t0) / span * (W - padL - padR);   // ★時間で配置（等間隔ではなく）
-    const Y = v => (H - padB) - (v - min) / vspan * (H - padT - padB);
-    const path = pts.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ');
-    // 時間軸ラベル：最古・中間・最新の3点
-    const midT = new Date((+t0 + +t1) / 2);
-    const axis =
-      '<line x1="' + padL + '" y1="' + (H - padB) + '" x2="' + (W - padR) + '" y2="' + (H - padB) + '" stroke="var(--border-hi)" stroke-width="1"/>'
-      + '<text x="' + padL + '" y="' + (H - 6) + '" class="me-ax">' + fmtDate(t0) + '</text>'
-      + '<text x="' + ((padL + W - padR) / 2) + '" y="' + (H - 6) + '" class="me-ax" text-anchor="middle">' + fmtDate(midT) + '</text>'
-      + '<text x="' + (W - padR) + '" y="' + (H - 6) + '" class="me-ax" text-anchor="end">' + fmtDate(t1) + '</text>'
-      + '<text x="' + (padL - 6) + '" y="' + (Y(max) + 4) + '" class="me-ax" text-anchor="end">' + max.toLocaleString() + '</text>'
-      + '<text x="' + (padL - 6) + '" y="' + (Y(min) + 4) + '" class="me-ax" text-anchor="end">' + min.toLocaleString() + '</text>';
-    $('meTrendBody').innerHTML =
-      '<svg viewBox="0 0 ' + W + ' ' + H + '" class="me-spark" role="img" aria-label="トロフィー推移">' + axis
-      + '<path d="' + path + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>'
-      + seq.map((b, i) => '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(b.tr).toFixed(1) + '" r="2.4" fill="' + (b.win ? 'var(--accent)' : 'var(--red, #d83a3a)') + '"><title>' + fmtDate(parseT(b.t)) + ' ' + b.tr + (b.win ? ' 勝ち' : ' 負け') + '</title></circle>').join('')
-      + '</svg>'
-      + '<p class="note">' + fmtDate(t0) + '〜' + fmtDate(t1) + '・' + seq.length + '戦（●勝ち ●負け）</p>';
+    const rawMin = Math.min(...pts), rawMax = Math.max(...pts);
+    const pad = Math.max(30, Math.round((rawMax - rawMin) * 0.18));
+    const min = rawMin - pad, max = rawMax + pad, vspan = Math.max(1, max - min);
+    const W = 640, H = 168, L = 8, R = 8, T = 14, Bm = 26;
+    const X = i => L + (parseT(seq[i].t) - t0) / span * (W - L - R);
+    const Y = v => (H - Bm) - (v - min) / vspan * (H - T - Bm);
+    const line = pts.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ');
+    const area = line + ' L' + X(pts.length - 1).toFixed(1) + ',' + (H - Bm) + ' L' + X(0).toFixed(1) + ',' + (H - Bm) + ' Z';
+    const grid = [rawMax, rawMin].map(v =>
+      '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" class="me-grid"/>'
+      + '<text x="' + (L + 2) + '" y="' + (Y(v) - 4).toFixed(1) + '" class="me-ax">' + v.toLocaleString() + '</text>').join('');
+    const last = pts[pts.length - 1], first = pts[0], diff = last - first;
+    const dots = seq.map((b, i) => '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(b.tr).toFixed(1) + '" r="2.2" class="'
+      + (b.win ? 'me-dot-w' : 'me-dot-l') + '"><title>' + fmtDate(parseT(b.t)) + ' ' + b.tr.toLocaleString()
+      + (b.win ? ' 勝ち' : ' 負け') + '</title></circle>').join('');
+    el.innerHTML =
+      '<div class="me-trend-head">'
+      + '<div class="me-trend-now"><b>' + last.toLocaleString() + '</b><span>トロフィー</span></div>'
+      + '<div class="me-trend-diff ' + (diff >= 0 ? 'up' : 'down') + '">' + (diff >= 0 ? '+' : '') + diff.toLocaleString() + '</div>'
+      + '<div class="me-trend-span">' + fmtDate(t0) + '〜' + fmtDate(t1) + '・' + seq.length + '戦</div>'
+      + '</div>'
+      + '<svg viewBox="0 0 ' + W + ' ' + H + '" class="me-trend" role="img" aria-label="トロフィー推移">'
+      + '<defs><linearGradient id="meGrad" x1="0" y1="0" x2="0" y2="1">'
+      + '<stop offset="0%" stop-color="var(--accent)" stop-opacity=".38"/>'
+      + '<stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>'
+      + grid
+      + '<path d="' + area + '" fill="url(#meGrad)"/>'
+      + '<path d="' + line + '" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>'
+      + dots
+      + '<text x="' + L + '" y="' + (H - 8) + '" class="me-ax">' + fmtDate(t0) + '</text>'
+      + '<text x="' + (W - R) + '" y="' + (H - 8) + '" class="me-ax" text-anchor="end">' + fmtDate(t1) + '</text>'
+      + '</svg>';
   }
 
   /* ---- 既存の端末内蓄積（カードページ時代の cr_me_{TAG}）を一度だけサーバーへ移す ---- */

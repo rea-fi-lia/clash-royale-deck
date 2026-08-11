@@ -51,13 +51,15 @@
       return (document.title || '').split(/[｜|]/)[0].trim();
     }
     function mount() {
-      var nav = document.querySelector('.sitebar .nav-icons');
+      var nav = document.querySelector('.sitebar .nav-icons') || document.querySelector('.nav-icons');
       if (!nav || nav.querySelector('.nav-here')) return;
       var txt = label();
       if (!txt) return;
       var el = document.createElement('span');
       el.className = 'nav-here';
       el.textContent = txt;
+      // ピン留めボタン（CRPINが後から先頭に差す）より右、他のアイコンより左に置く。
+      // 先頭に入れておけば、後からCRPINが firstChild に入って [ピン][ページ名]…[アイコン] になる。
       nav.insertBefore(el, nav.firstChild);
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);

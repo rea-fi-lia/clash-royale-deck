@@ -201,3 +201,21 @@ h1 { margin-top: 8px; font-size: clamp(28px, 5vw, 46px); line-height: 1.16; font
 #meRoot .me-lead { margin: 8px 0 0; font-size: 12.5px; color: var(--text-muted); }
 #meRoot .me-stat span i { display: block; font-style: normal; font-size: 10px; opacity: .7; }
 #meRoot h3 small { margin-left: 6px; font-size: 11px; font-weight: 400; color: var(--text-muted); }
+
+/* ── トロフィー推移（2026-08-11 刷新・上部の主役） ── */
+#meTrend { padding: 14px 16px; }
+.me-trend-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.me-trend-now b { font-size: 26px; font-weight: 700; letter-spacing: .5px; }
+.me-trend-now span { margin-left: 6px; font-size: 11px; color: var(--text-muted); }
+.me-trend-diff { font-size: 13px; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.me-trend-diff.up { color: #4caf78; background: rgba(76,175,120,.14); }
+.me-trend-diff.down { color: #d8635a; background: rgba(216,99,90,.14); }
+.me-trend-span { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+.me-trend { width: 100%; height: auto; display: block; overflow: visible; }
+.me-grid { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 4; }
+.me-dot-w { fill: var(--accent); }
+.me-dot-l { fill: #d8635a; }
+/* 帯セクションの見出しと期間 */
+.me-band-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.me-band-head h2 { margin: 0; }
+.me-band-when { font-size: 11.5px; color: var(--text-muted); }
