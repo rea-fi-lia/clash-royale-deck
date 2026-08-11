@@ -91,16 +91,16 @@
 <body class="cr-builder">
 
 <header>
-  <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>クラロワデッキ作成・診断ツール</span></div></a>
+  <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>ตัวสร้างและวิเคราะห์เด็ค Clash Royale</span></div></a>
 </header>
 
 <div class="app">
   <!-- RIGHT: deck (モバイルでは上に表示) -->
   <div class="right">
     <div class="deck-header">
-      <div class="deck-title">デッキ <span class="deck-count" id="deckCount">0/8</span></div>
+      <div class="deck-title">เด็ค <span class="deck-count" id="deckCount">0/8</span></div>
       <div class="avg-row">
-        <span class="avg-label">平均コスト</span>
+        <span class="avg-label">อิลิกเซอร์เฉลี่ย</span>
         <span class="avg-val" id="avgVal">—</span>
         <span class="avg-trend" id="avgTrend"></span>
         <span class="avg-sub" id="avgSub"></span>
@@ -119,17 +119,17 @@
     </div>
     <div class="deck-slots" id="deckSlots"></div>
     <a class="empty-deck-cta" id="emptyDeckCta" href="decks.html">
-      <span class="edc-emoji">🏆</span><span>人気デッキから作る</span><span class="edc-arrow">→</span>
+      <span class="edc-emoji">🏆</span><span>เริ่มจากเด็คยอดนิยม</span><span class="edc-arrow">→</span>
     </a>
     <div class="deck-actions">
       <div class="da-left">
-        <button class="btn btn-ghost" id="clearBtn">クリア</button>
-        <button class="btn btn-primary" id="saveBtn">保存</button>
+        <button class="btn btn-ghost" id="clearBtn">ล้าง</button>
+        <button class="btn btn-primary" id="saveBtn">บันทึก</button>
       </div>
       <button class="slot-load-btn" id="slotLoadBtn" title="タップで使い方／長押しでスロット切替"><span class="sl-cap">SLOT</span><span id="slotLoadNum">—</span></button>
       <div class="da-right">
-        <a class="btn btn-analyze" id="analyzeBtn" href="strategy.html" aria-disabled="true">デッキ分析へ →</a>
-        <button class="btn btn-ghost da-copy" id="copyDeckBtn" title="ゲームにコピー"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg><span class="da-copy-tx">ゲームに<br>コピー</span></button>
+        <a class="btn btn-analyze" id="analyzeBtn" href="strategy.html" aria-disabled="true">ไปที่การวิเคราะห์เด็ค →</a>
+        <button class="btn btn-ghost da-copy" id="copyDeckBtn" title="ゲームにコピー"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg><span class="da-copy-tx">คัดลอก<br>ไปยังเกม</span></button>
       </div>
     </div>
   </div>
@@ -144,18 +144,18 @@
           <button class="search-clear" id="searchClear" tabindex="-1">✕</button>
           <button class="assist-top-info" id="assistTopInfo" type="button" aria-live="polite"></button>
         </div>
-        <button class="assist-toggle" id="assistToggle" type="button" aria-pressed="false"><span>アシスト</span></button>
+        <button class="assist-toggle" id="assistToggle" type="button" aria-pressed="false"><span>ตัวช่วย</span></button>
       </div>
       <div class="assist-panel" id="assistPanel"></div>
       <div class="controls-row filter-row">
         <div class="type-tabs">
-          <button class="ttab active" data-type="all">全て</button>
-          <button class="ttab" data-type="troop">ユニット</button>
-          <button class="ttab" data-type="spell">呪文</button>
-          <button class="ttab" data-type="building">建物</button>
-          <button class="ttab" data-type="evolved"><span class="t-emoji">⚡</span>限界突破</button>
-          <button class="ttab" data-type="hero"><span class="t-emoji">👑</span>ヒーロー</button>
-          <button class="ttab" data-type="champion"><span class="t-emoji">🏆</span>チャンピオン</button>
+          <button class="ttab active" data-type="all">ทั้งหมด</button>
+          <button class="ttab" data-type="troop">ยูนิต</button>
+          <button class="ttab" data-type="spell">เวทมนตร์</button>
+          <button class="ttab" data-type="building">สิ่งก่อสร้าง</button>
+          <button class="ttab" data-type="evolved"><span class="t-emoji">⚡</span>วิวัฒนาการ</button>
+          <button class="ttab" data-type="hero"><span class="t-emoji">👑</span>ฮีโร่</button>
+          <button class="ttab" data-type="champion"><span class="t-emoji">🏆</span>แชมเปี้ยน</button>
           <button class="ttab" data-type="fav" title="お気に入りを上に表示">
             <svg width="15" height="14" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg"><path class="heart-fill heart-stroke" d="M12 20.5C12 20.5 2 13.5 2 7C2 4.2 4.2 2 7 2C9 2 10.8 3.1 12 4.7C13.2 3.1 15 2 17 2C19.8 2 22 4.2 22 7C22 13.5 12 20.5 12 20.5Z" stroke-linejoin="round" stroke-linecap="round"/></svg>
           </button>
@@ -165,7 +165,7 @@
         <div class="cost-filters" id="costFilters"></div>
         <div class="count-sort">
           <span class="count-info" id="countInfo"></span>
-          <button class="cost-sort-btn" id="costSortBtn" type="button" title="コスト順に並べ替え">コスト</button>
+          <button class="cost-sort-btn" id="costSortBtn" type="button" title="コスト順に並べ替え">ค่าใช้จ่าย</button>
         </div>
       </div>
     </div>
@@ -180,17 +180,17 @@
 <details class="corner-guide" aria-label="サイト案内">
   <summary title="サイト案内"><span>?</span></summary>
   <nav class="cg-panel" aria-label="サイト案内リンク">
-    <b>サイト案内</b>
-    <p>デッキ作成の考え方や用語を読む</p>
-    <p>CR Deck Buildersは、クラロワの8枚デッキを組みながら平均コスト、カードの役割、攻めと守りの偏りを確認できるデッキ作成ツールです。カード名や略称で検索し、タップまたはドラッグでデッキに入れ替えできます。</p>
-    <p>アシストをオンにすると、いま選んでいるカードに合わせて、攻撃強化・防衛強化・回転力強化の候補を見比べられます。完成したデッキは分析ページで勝ち筋、苦しい相手、補いやすい役割を確認できます。</p>
-    <p>全カードデータのページでは、122枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。</p>
+    <b>แนะนำเว็บไซต์</b>
+    <p>อ่านแนวคิดและคำศัพท์ในการจัดเด็ค</p>
+    <p>CR Deck Builders คือเครื่องมือจัดเด็คที่ให้คุณดูอิลิกเซอร์เฉลี่ย บทบาทของแต่ละใบ และความเอนเอียงระหว่างเกมรุกกับเกมรับ ไปพร้อมกับการประกอบเด็ค 8 ใบของ Clash Royale ค้นหาการ์ดด้วยชื่อหรือชื่อย่อ แล้วแตะหรือลากเพื่อสลับเข้าเด็ค</p>
+    <p>เมื่อเปิดตัวช่วย คุณจะเปรียบเทียบการ์ดที่แนะนำสำหรับเสริมการโจมตี เสริมการป้องกัน หรือเสริมความเร็วในการหมุนเวียนได้ ตามการ์ดที่เลือกไว้แล้ว เมื่อเด็คครบ หน้าวิเคราะห์จะบอกเงื่อนไขชัยชนะ คู่ต่อสู้ที่รับมือยาก และบทบาทที่เติมเต็มได้ง่าย</p>
+    <p>ในหน้าข้อมูลการ์ดทั้งหมด คุณจะเห็นตัวเลขจริงของการ์ดแต่ละใบจากทั้งหมด 122 ใบ ทั้งพลังชีวิต ความเสียหาย ความเสียหายต่อวินาที และระยะโจมตี รวมถึงเวทใดที่กำจัดมันได้ กับอัตราการใช้และอัตราชนะในแมตช์จัดอันดับ ส่วนหน้าเด็คยอดนิยมช่วยให้คุณหาไอเดียจากการเล่นจริงของผู้เล่นระดับท็อปของโลก เส้นทางที่ดีคือ เริ่มจากเด็คยอดนิยม อ่านอภิธานศัพท์และคู่มือ แล้วค่อยปรับเด็คให้เข้ากับสไตล์ของตัวเอง</p>
     <div class="cg-links">
-      <a href="cards/index.html">全カードデータ</a>
-      <a href="guide.html">デッキ作成ガイド</a>
-      <a href="faq.html">よくある質問</a>
-      <a href="about.html">このサイトについて</a>
-      <a href="glossary.html">用語集</a>
+      <a href="cards/index.html">ข้อมูลการ์ดทั้งหมด</a>
+      <a href="guide.html">คู่มือการจัดเด็ค</a>
+      <a href="faq.html">คำถามที่พบบ่อย</a>
+      <a href="about.html">เกี่ยวกับเว็บไซต์นี้</a>
+      <a href="glossary.html">อภิธานศัพท์</a>
     </div>
   </nav>
 </details>
