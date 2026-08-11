@@ -1292,7 +1292,7 @@ async function updateDecks() {
   // ★2026-08-11引き上げ：1000→4000。実測で本収集は4.5〜5分・timeout30分と時間に6倍の余裕があり、
   //   ペース（40並列+300ms＝429ゼロを実証済み）は変えず、シード数だけ増やして全帯の標本を厚くする。
   //   429が出始めたらログの rate429 カウンタに出るので、そこで見直す。
-  var SEED_PER_RUN = parseInt(prop('SEED_PER_RUN', '4000'), 10);
+  var SEED_PER_RUN = parseInt(prop('SEED_PER_RUN', '8000'), 10);   // 2026-08-11: 4000→8000（実測6.5分/枠30分でまだ余裕）
 
   // ================= クラン経由の発見（全トロフィー帯へ届く入口） =================
   // 2026-08-02計測で判明：/locations/{id}/rankings/players は空を返す（トロフィーランキングは事実上廃止）。
@@ -1302,7 +1302,7 @@ async function updateDecks() {
   // 1クラン1リクエストで最大50人のtagが得られるため発見効率が高い。国は毎ラン数か国ずつ巡回する。
   async function discoverViaClans() {
     var nowMsClan = Date.now();
-    var perRun = parseInt(prop('CLAN_COUNTRIES_PER_RUN', '16'), 10);   // 2026-08-11: 8→16（新規タグの流入を倍に）
+    var perRun = parseInt(prop('CLAN_COUNTRIES_PER_RUN', '32'), 10);   // 2026-08-11: 8→16→32（新規発見がまだ毎時3700人＝飽和が見えないので更に拡大）
     if (perRun <= 0) return { countries: 0, clans: 0, found: 0 };
     if (!hist.clanCrawl) hist.clanCrawl = { locs: null, cursor: 0, lastFullAt: 0 };
     var cc = hist.clanCrawl;
@@ -1325,7 +1325,7 @@ async function updateDecks() {
       if (!clans.length) continue;
       stats.countries++;
       // 上位・中位・下位から均等に抜く＝1国の中で実力の幅をまたぐ。
-      var picks = parseInt(prop('CLAN_PICKS_PER_COUNTRY', '6'), 10);   // 2026-08-11: 5→6
+      var picks = parseInt(prop('CLAN_PICKS_PER_COUNTRY', '8'), 10);   // 2026-08-11: 5→6→8
       var idxs = [];
       for (var i = 0; i < picks; i++) idxs.push(Math.min(clans.length - 1, Math.floor(clans.length * i / Math.max(1, picks - 1))));
       idxs = idxs.filter(function (v, i, a) { return a.indexOf(v) === i; });
@@ -2874,7 +2874,10 @@ async function updateDecks() {
       e.tr = oppSeedNow[t];
       e.lastSeen = seedNowMs;
     });
-    var SEED_MAX = parseInt(prop('SEED_MAX', '8000'), 10);
+    // ★2026-08-11引き上げ：8000→50000。前回runで seeds total=11707 に対し stored=8000 ＝
+    //   発見済みタグを毎時3千人以上捨てていた。台帳は巡回の母集団なので大きいほど
+    //   帯の隅々まで拾える。5万件で約5MB＝histの読み書きに支障ない規模。
+    var SEED_MAX = parseInt(prop('SEED_MAX', '50000'), 10);
     var seedKeys = Object.keys(hist.oppSeeds);
     if (seedKeys.length > SEED_MAX) {
       // 直近で見かけた順に残す＝鮮度の高い母集団を保持。
