@@ -65,3 +65,10 @@ input, textarea, select, [contenteditable] { touch-action: auto; }
   padding-left: 2px;
 }
 @media (max-width: 420px) { .sitebar .nav-here { font-size: 12px; } }
+
+/* 画面には出さないが読み上げ・検索には残す（見出しの重複を消すときに使う） */
+.visually-hidden {
+  position: absolute !important; width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}

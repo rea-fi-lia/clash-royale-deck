@@ -90,7 +90,8 @@
       : '<div class="me-stats">'
       + '<div class="me-stat"><b>' + wr + '%</b><span>勝率</span></div>'
       + '<div class="me-stat"><b>' + w + '勝' + l + '敗</b><span>' + B.length + '戦</span></div>'
-      + (cB.length ? '<div class="me-stat"><b>' + (crownF - crownA >= 0 ? '+' : '') + (Math.round((crownF - crownA) / cB.length * 100) / 100) + '</b><span>クラウン差/戦</span></div>' : '')
+      + (cB.length ? '<div class="me-stat"><b>' + (crownF - crownA >= 0 ? '+' : '') + (Math.round((crownF - crownA) / cB.length * 100) / 100) + '</b><span>クラウン差/戦'
+        + (cB.length < B.length ? '<i>' + cB.length + '戦分</i>' : '') + '</span></div>' : '')
       + '</div>'
       + crownQualityHtml(cB);
 
@@ -145,7 +146,7 @@
     const tri = wins[0] + wins[1] + wins[2];
     const note = tri >= 5
       ? '<p class="note">三冠勝ち' + tri + '戦のうち3-0が' + Math.round(wins[0] / tri * 100) + '%（全体の平均はおよそ70%。高いほど押し切って勝てています）</p>' : '';
-    return '<h3>勝ち方・負け方（クラウン内訳）</h3><div class="me-cq">'
+    return '<h3>勝ち方・負け方（クラウン内訳）<small>' + cB.length + '戦分</small></h3><div class="me-cq">'
       + row('勝ち', wins, wTot, 'win') + row('負け', losses, lTot, 'lose') + '</div>' + note;
   }
 
@@ -167,6 +168,9 @@
       if (!cur || (x.games || 0) > (cur.games || 0)) globalBySig[k] = { winRate: x.winRate, games: x.games || 0 };
     }));
     const decks = Object.values(byDeck).sort((a, b) => b.g - a.g).slice(0, 5);
+    const covered = Object.values(byDeck).reduce((a, d) => a + d.g, 0);
+    const deckNote = (covered && covered < B.length)
+      ? '<p class="note">自分のデッキが記録されている' + covered + '戦が対象です（これから貯まる分にはすべて記録されます）。</p>' : '';
     $('meDecksBody').innerHTML = decks.length === 0 ? '<p class="note">記録が貯まると表示されます。</p>'
       : decks.map(dk => {
         const wrd = Math.round(dk.w / dk.g * 1000) / 10;
@@ -176,7 +180,7 @@
         return '<div class="me-deck"><div class="me-deck-cards">'
           + dk.deck.map((n, i) => chip(n, fAt(dk.df, i))).join('')
           + '</div><div class="me-deck-stat"><b>' + wrd + '%</b><span>' + dk.w + '勝' + (dk.g - dk.w) + '敗</span>' + cmp + '</div></div>';
-      }).join('');
+      }).join('') + deckNote;
   }
 
   /* あなたの帯のいま＋「最優先の対策」（帯で流行 × あなたが苦手 の交差＝このサイトにしか出せない掛け算） */
