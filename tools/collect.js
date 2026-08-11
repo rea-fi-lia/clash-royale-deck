@@ -2812,14 +2812,23 @@ async function updateDecks() {
   try {
     var evPath = ghSiblingPath_(ghPath, 'trophy-battle-events-v1.json');
     var oldEv = (await readPrivateJson_(evPath)) || { events: [] };
-    var seenEv = {}, events = [];
-    (oldEv.events || []).concat(trophyEventsNow).forEach(function (e) {
-      if (!e || !e.id || seenEv[e.id]) return;
-      seenEv[e.id] = 1; events.push(e);
-    });
+    // ★2026-08-11：ここでOOM(exit 134)になった。上限を800→2400へ上げた結果、
+    //   concat で「旧22万件＋今回分」の巨大配列を作ってから filter→sort していて、
+    //   中間配列がヒープを食い尽くしていた。
+    //   対策：concatをやめて1本の配列に押し込みつつ、その場で期限切れを捨てる
+    //   （中間配列を作らない）。旧配列の参照も早めに手放す。
     var eventCut = now - 7 * 864e5;
-    events = events.filter(function (e) { var t = parseBattleTimeMs_(e.battleTime); return t && t >= eventCut; })
-      .sort(function (a, b) { return parseBattleTimeMs_(b.battleTime) - parseBattleTimeMs_(a.battleTime); });
+    var seenEv = {}, events = [];
+    var pushEv = function (e) {
+      if (!e || !e.id || seenEv[e.id]) return;
+      var t = parseBattleTimeMs_(e.battleTime);
+      if (!t || t < eventCut) return;             // 期限切れはこの時点で捨てる
+      seenEv[e.id] = 1; events.push(e);
+    };
+    (oldEv.events || []).forEach(pushEv);
+    oldEv.events = null; oldEv = null;            // 旧配列を手放す（GCが回収できるように）
+    trophyEventsNow.forEach(pushEv);
+    events.sort(function (a, b) { return parseBattleTimeMs_(b.battleTime) - parseBattleTimeMs_(a.battleTime); });
 
     // ★保持を「全体で新しい順に上限」から「帯ごとに上限」へ変更（2026-08-02）。
     //   全体上限だと試合数の多い帯（上位帯や人口の多い帯）が枠を食い尽くし、
@@ -2828,8 +2837,8 @@ async function updateDecks() {
     //   帯ごとに配分すれば、どの帯も統計に足りる分だけ確実に残る。
     // ★2026-08-11引き上げ：800→2400。全47帯が800の上限に張り付いていた＝統計が上限で頭打ちだった。
     //   1帯2400試合あればカード別勝率も語れる。JSONは概算42MB（毎時読み書きで問題ない規模）。
-    var PER_BAND_KEEP = parseInt(prop('TROPHY_EVENT_KEEP_PER_BAND', '2400'), 10);
-    var TOTAL_KEEP = parseInt(prop('TROPHY_EVENT_KEEP', '120000'), 10);
+    var PER_BAND_KEEP = parseInt(prop('TROPHY_EVENT_KEEP_PER_BAND', '1600'), 10);
+    var TOTAL_KEEP = parseInt(prop('TROPHY_EVENT_KEEP', '80000'), 10);
     var perBandCount = {}, keptEvents = [];
     for (var ei = 0; ei < events.length && keptEvents.length < TOTAL_KEEP; ei++) {
       var ev = events[ei];
