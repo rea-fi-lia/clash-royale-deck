@@ -30,3 +30,20 @@ input, textarea, select, [contenteditable] { touch-action: auto; }
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
 }
+
+/* ── ナビ（上部アイコン列）の折返し（2026-08-11） ──
+   アイコンが増えると横幅が足りなくなり、ページ全体が横に伸びる原因になる。
+   decks.css だけが「下の列へ回して右寄せ」を持っていたので、全ページ共通にする。
+   ページ側のCSSより後に読み込むので、ここが最後に勝つ。 */
+.sitebar .nav-icons {
+  display: flex;
+  flex-wrap: wrap;              /* 入り切らなければ折り返す＝横に伸ばさない */
+  gap: 4px;
+  max-width: 100%;
+  justify-content: flex-end;
+}
+.sitebar header { flex-wrap: wrap; max-width: 100%; }
+@media (max-width: 420px) {
+  /* 狭い端末ではアイコンを少し縮めて1列に収める */
+  .sitebar .nav-icon { width: 32px !important; height: 32px !important; }
+}
