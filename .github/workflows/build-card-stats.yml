@@ -15,7 +15,7 @@ on:
         default: 'false'
 
 permissions:
-  contents: read
+  contents: write   # 生成したカードページをコミットするため
 
 concurrency:
   group: build-card-stats
@@ -71,3 +71,31 @@ jobs:
           R2_BUCKET: ${{ vars.R2_BUCKET || 'crdb-data-private' }}
           R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
         run: node tools/sync-sheet-stats.js --from-r2
+
+      # カード個別ページ（/cards/*.html）を最新の実数値・タグ・実戦データで焼き直す。
+      # ★2026-08-11追加。AdSense「有用性の低いコンテンツ」対策で作った122枚の静的ページ。
+      #   数値が古いと「役に立たないページ」に戻るので、実数値の更新と同じ便で回す。
+      - name: Rebuild card pages
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET || 'crdb-data-private' }}
+          R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
+        run: |
+          node tools/build-card-pages.js --from-r2 --from-api
+          node tools/gen-i18n.js
+
+      - name: Commit card pages
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add cards sitemap.xml
+          if git diff --cached --quiet; then
+            echo "カードページに差分なし"
+          else
+            git commit -m "chore(cards): カード個別ページを最新データで再生成"
+            git push
+          fi

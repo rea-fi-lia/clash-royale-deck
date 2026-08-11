@@ -258,8 +258,22 @@ function writeSitemap() {
       out += '    <lastmod>' + TODAY + '</lastmod>\n    <changefreq>' + (cf[page] || 'monthly') + '</changefreq>\n    <priority>' + (pr[page] || '0.4') + '</priority>\n  </url>\n';
     });
   });
+  /* ★カード個別ページ（/cards/*.html）もsitemapへ。2026-08-11追加。
+     AdSense「有用性の低いコンテンツ」対策で122枚の実データページを静的生成したので、
+     クロール対象に入れないと意味がない。日本語のみ（翻訳版は作らない）。 */
+  const cardsDir = path.join(ROOT, 'cards');
+  let nCards = 0;
+  if (fs.existsSync(cardsDir)) {
+    fs.readdirSync(cardsDir).filter(f => f.endsWith('.html')).sort().forEach(f => {
+      const url = 'https://crdeckbuilders.com/cards/' + f;
+      out += '  <url>\n    <loc>' + url + '</loc>\n';
+      out += '    <lastmod>' + TODAY + '</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>' + (f === 'index.html' ? '0.8' : '0.6') + '</priority>\n  </url>\n';
+      nCards++;
+    });
+  }
   out += '</urlset>\n';
   fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), out);
+  if (nCards) console.log('sitemap: カードページ ' + nCards + '件を追加');
 }
 
 function main() {
