@@ -30,7 +30,7 @@
 
 <div class="sitebar">
 <header>
-  <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>クラロワデッキ作成・診断ツール</span></div></a>
+  <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>Creatore e analizzatore di mazzi Clash Royale</span></div></a>
 </header>
 <nav class="nav-icons topbar"><a class="nav-icon" href="/me.html" title="マイページ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg></span></a>
     <a class="nav-icon" href="index.html" title="デッキ作成"><span class="nav-emoji"><svg style="display:block" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 8.5v7M8.5 12h7"/></svg></span></a>
@@ -42,26 +42,26 @@
 </div>
 
 <div class="seg-tabs" id="topSeg">
-  <button class="seg-tab" data-seg="decks"><span class="seg-emoji">🏆</span>デッキ</button>
-  <button class="seg-tab" data-seg="cards"><span class="seg-emoji">🃏</span>カード</button>
+  <button class="seg-tab" data-seg="decks"><span class="seg-emoji">🏆</span>Mazzo</button>
+  <button class="seg-tab" data-seg="cards"><span class="seg-emoji">🃏</span>Carte</button>
 </div>
 
 <div class="swipe-viewport">
   <div class="swipe-track">
     <div class="swipe-page">
     <section id="secDecks">
-      <h1 class="page-title">人気デッキ・デッキ開発</h1>
-      <p class="page-sub" id="pageSub">世界上位ランカーのランク戦デッキを集計して掲載しています。</p>
+      <h1 class="page-title">Mazzi popolari e sviluppo dei mazzi</h1>
+      <p class="page-sub" id="pageSub">Raccolti dai mazzi delle partite classificate dei migliori giocatori al mondo.</p>
       <p class="agg-note" id="aggNote"></p>
       <div class="meta-share" id="metaShare" style="display:none"></div>
       <div class="deck-tabs" id="deckTabs">
-        <button class="deck-tab active" data-tab="pop">📊 使用率</button>
-        <button class="deck-tab" data-tab="win">🏅 勝率</button>
-        <button class="deck-tab" data-tab="trend">🔥 急上昇</button>
+        <button class="deck-tab active" data-tab="pop">📊 Utilizzo</button>
+        <button class="deck-tab" data-tab="win">🏅 Winrate</button>
+        <button class="deck-tab" data-tab="trend">🔥 In crescita</button>
       </div>
       <p class="tab-desc" id="deckTabDesc"></p>
       <div class="owned-filter">
-        <button id="ownedToggle" class="owned-toggle" aria-pressed="false">🃏 組めるデッキだけ表示</button>
+        <button id="ownedToggle" class="owned-toggle" aria-pressed="false">🃏 Solo mazzi che posso costruire</button>
         <span id="ownedNote" class="owned-note"></span>
       </div>
       <div class="card-filter">
@@ -73,33 +73,33 @@
         <span id="cardChip" class="card-chip" style="display:none"></span>
       </div>
       <div id="deckList"></div>
-      <p class="note">※ メタは随時変わります。代表的な型を掲載しています。</p>
+      <p class="note">※ Il meta cambia di continuo. Sono mostrati archetipi rappresentativi.</p>
     </section>
 
     <section id="secCards">
-      <h1 class="page-title">カード人気・メタ</h1>
-      <p class="page-sub">カード1枚ごとの使用率と勝率を、マップ上の位置で表示。「安定」「目立たないが勝ってる」「チャレンジング」など、そのカードが今の環境でどれだけポテンシャルを持つかが一目でわかる。</p>
+      <h1 class="page-title">Popolarità delle carte e meta</h1>
+      <p class="page-sub">Ogni carta è posizionata in base a utilizzo e winrate, così vedi a colpo d’occhio quanto potenziale ha nel meta attuale: scelte solide, carte che rendono senza farsi notare, scommesse impegnative e altro.</p>
       <p class="agg-note" id="cardsNote"></p>
-      <p class="note" style="text-align:left; margin:2px 0 12px;">※ 勝率は「そのカードを入れたデッキ」が勝った割合です。カード単体の力とは限りませんが、勝てるデッキに採用されている＝強い構築の一員として機能しているという意味合いで表示しています。</p>
+      <p class="note" style="text-align:left; margin:2px 0 12px;">※ Il winrate è la percentuale di vittorie dei mazzi che contengono quella carta. Non è la forza della carta da sola, ma essere scelta da mazzi vincenti significa che funziona come parte di build forti.</p>
 
       <div class="card-mode" id="cardModeTabs">
-        <a class="me-toggle" id="meToggle" href="/me.html">👤 <span id="meLabel">あなたの環境</span><span id="meSuffix">はマイページで</span></a>
-        <button class="mm-clear" id="meRefresh" type="button" style="display:none">↻ 更新</button>
+        <a class="me-toggle" id="meToggle" href="/me.html">👤 <span id="meLabel">Il tuo ambiente di matchup</span><span id="meSuffix"> si trova nella Mia pagina</span></a>
+        <button class="mm-clear" id="meRefresh" type="button" style="display:none">↻ Aggiorna</button>
       </div>
       <div class="meta-share" id="meMeta" style="display:none"></div>
       <div class="mm-sticky">
         <div class="mm-head">
-          <span class="mm-title"><button class="mm-toggle" id="mmToggle" type="button" aria-label="メタマップを開閉">▾</button><svg width="15" height="15" viewBox="0 0 16 16" style="vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="none" stroke="#e8a020" stroke-width="1.4"/><line x1="8" y1="2" x2="8" y2="14" stroke="#e8a020" stroke-width="1" opacity="0.45"/><line x1="2" y1="8" x2="14" y2="8" stroke="#e8a020" stroke-width="1" opacity="0.45"/><circle cx="11" cy="5" r="2" fill="#e8a020"/></svg>メタマップ・Tier</span>
-          <span class="mm-btns"><button class="mm-clear" id="mmAll" type="button">全て表示</button><button class="mm-clear" id="mmClear" type="button">選択をクリア</button></span>
+          <span class="mm-title"><button class="mm-toggle" id="mmToggle" type="button" aria-label="メタマップを開閉">▾</button><svg width="15" height="15" viewBox="0 0 16 16" style="vertical-align:-2px;margin-right:5px" aria-hidden="true"><rect x="1" y="1" width="14" height="14" rx="3" fill="none" stroke="#e8a020" stroke-width="1.4"/><line x1="8" y1="2" x2="8" y2="14" stroke="#e8a020" stroke-width="1" opacity="0.45"/><line x1="2" y1="8" x2="14" y2="8" stroke="#e8a020" stroke-width="1" opacity="0.45"/><circle cx="11" cy="5" r="2" fill="#e8a020"/></svg>Mappa del meta e tier</span>
+          <span class="mm-btns"><button class="mm-clear" id="mmAll" type="button">Mostra tutto</button><button class="mm-clear" id="mmClear" type="button">Cancella selezione</button></span>
         </div>
-        <p class="mm-hint">下のランキングでカードをタップすると、ここに表示されます。横=使用率の順位（右ほど人気）／縦=勝率の順位（上ほど高い）。</p>
+        <p class="mm-hint">Tocca una carta nella classifica qui sotto per posizionarla qui. Orizzontale = posizione per utilizzo (più a destra, più popolare) / verticale = posizione per winrate (più in alto, migliore).</p>
         <div id="metaMap" class="metamap"></div>
       </div>
 
       <div class="crank-tabs" id="crankTabs">
-        <button class="crank-tab active" data-ctab="use">📊 使用率</button>
-        <button class="crank-tab" data-ctab="win">🏅 勝率</button>
-        <button class="crank-tab" data-ctab="rise">🔥 急上昇</button>
+        <button class="crank-tab active" data-ctab="use">📊 Utilizzo</button>
+        <button class="crank-tab" data-ctab="win">🏅 Winrate</button>
+        <button class="crank-tab" data-ctab="rise">🔥 In crescita</button>
       </div>
       <div class="crank-search">
         <input id="crankSearch" type="text" placeholder="🔍 カードランキングを検索" autocomplete="off" spellcheck="false" enterkeyhint="search">
@@ -114,11 +114,11 @@
 </div>
 
 <section class="page-guide">
-  <h2>このページの読み方</h2>
-  <p>デッキは「使用率」「勝率」「急上昇」の3つの並びで見られます。使用率は使っている人の多さ、勝率はそのデッキ全体の勝ち越し具合、急上昇は直近で使う人が増えている型です。環境シェアは、勝ち筋カードごとに使われている割合をまとめたものです。</p>
-  <p>勝率の並びにある「3冠率」は勝ちのうち3クラウンで終えた割合、「クラウン差」は1試合あたりの取ったクラウンと取られたクラウンの差です。同じ勝率でも、押し切って勝つ型なのか、細かく削り合って勝つ型なのかの違いがここに出ます。</p>
-  <p>デッキの中のカードをタップするとそのカードのページが開き、実数値・役割・どの呪文で落ちるか・よく一緒に使われるカードを確認できます。</p>
-  <div class="page-links"><a href="cards/index.html">全カードデータ</a><a href="guide.html">デッキ作成ガイド</a><a href="glossary.html">用語集</a><a href="index.html">デッキを組む</a></div>
+  <h2>Come leggere questa pagina</h2>
+  <p>I mazzi si possono ordinare in tre modi: utilizzo, winrate e in crescita. L’utilizzo indica quante persone giocano il mazzo, il winrate quanto vince nel complesso, mentre “in crescita” evidenzia gli archetipi che stanno guadagnando giocatori. La quota di meta riassume quanto viene giocata ciascuna win condition.</p>
+  <p>Nella vista winrate, la “percentuale di 3 corone” è la quota di vittorie chiuse con tre corone, mentre la “differenza corone” sono le corone ottenute meno quelle subite per partita. Due mazzi con lo stesso winrate possono differire qui: uno travolge, l’altro vince rosicchiando.</p>
+  <p>Tocca una carta all’interno di un mazzo per aprirne la pagina e vedere valori reali, ruoli, quali incantesimi la uccidono e con quali carte viene spesso giocata.</p>
+  <div class="page-links"><a href="cards/index.html">Dati di tutte le carte</a><a href="guide.html">Guida alla creazione di mazzi</a><a href="glossary.html">Glossario</a><a href="index.html">Costruisci un mazzo</a></div>
 </section>
 
 <div class="footer-signature">
