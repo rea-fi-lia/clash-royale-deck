@@ -134,3 +134,38 @@ jobs:
           WIN_MIN_GAMES_3D: '100'   # ★本番GASのスクリプトプロパティと一致（既定30を上書き運用中）。カットオーバー無風化。
           DECKS_PATH: 'decks.json'   # GITHUB_PATH は Actions 予約名のため使わない
         run: node tools/collect.js
+
+      # ★2026-08-11追加：落ちたことに気づける仕組み。
+      #   11回連続で失敗し3時間26分止まっていたのに誰も気づかなかった反省から。
+      #   2回連続で失敗したときだけ通知する（1回の瞬断では鳴らさない）。
+      #   復旧したときも1回だけ知らせる。送り先が未設定なら黙ってスキップする。
+      - name: Notify on repeated failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LINE_PUSH_TOKEN: ${{ secrets.LINE_PUSH_TOKEN }}
+          LINE_PUSH_TO: ${{ secrets.LINE_PUSH_TO }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          PREV=$(gh run list --workflow=collect.yml --limit 2 --json conclusion -q '.[1].conclusion')
+          echo "前回の結果: $PREV"
+          if [ "$PREV" = "failure" ]; then
+            node tools/notify.js \
+              --title "⚠️ CRDB データ収集が2回続けて失敗しています" \
+              --body "$(printf 'データが更新されていません。\n実行ログ: %s/%s/actions/runs/%s' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID")"
+          else
+            echo "1回目の失敗なので通知しない（次も失敗したら鳴らす）"
+          fi
+
+      - name: Notify on recovery
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          LINE_PUSH_TOKEN: ${{ secrets.LINE_PUSH_TOKEN }}
+          LINE_PUSH_TO: ${{ secrets.LINE_PUSH_TO }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          PREV=$(gh run list --workflow=collect.yml --limit 2 --json conclusion -q '.[1].conclusion')
+          if [ "$PREV" = "failure" ]; then
+            node tools/notify.js --title "✅ CRDB データ収集が復旧しました" --body "収集が正常に戻りました。"
+          fi

@@ -25,3 +25,11 @@
 
 - `type`: `"troop"` / `"spell"` / `"building"`
 - チャンピオンは `champion: true` を追加
+
+## 設計メモ（docs/）
+
+| ファイル | 中身 |
+|---|---|
+| [docs/data-collection.md](docs/data-collection.md) | 収集の設計・47帯の定義・拡大の実測史・「全試合は誰にも取れない」構造・飽和の判定 |
+| [docs/monetization.md](docs/monetization.md) | 課金の設計・払いたくなる3原則・無料/課金の線引き・マイページ・実装状況 |
+| [docs/operations.md](docs/operations.md) | 障害の記録と、落ちたら気づく仕組み（通知の設定手順） |
