@@ -36,7 +36,7 @@ const CARDS = [
   {name:"コウモリの群れ", yomi:"コウモリの群れ コウモリ バット バツ", evolved:true, imgEvolved:"https://cdn.royaleapi.com/static/img/cards/bats-ev1.png",        cost:2, type:"troop",    role:"対空・サイクル", img:"https://cdn.royaleapi.com/static/img/cards/bats.png"},
   {name:"アイスゴーレム", yomi:"アイスゴーレム アイゴレ アイスゴレ", hero:true, imgHero:"https://cdn.royaleapi.com/static/img/cards/ice-golem-hero.png",        cost:2, type:"troop",    role:"タンク・デス凍結", img:"https://cdn.royaleapi.com/static/img/cards/ice-golem.png"},
   {name:"ウォールブレイカー", yomi:"ウォールブレイカー ウォールブレ ウォルブレ WB", evolved:true, imgEvolved:"https://cdn.royaleapi.com/static/img/cards/wall-breakers-ev1.png",    cost:2, type:"troop",    role:"建物狙い・サイクル", img:"https://cdn.royaleapi.com/static/img/cards/wall-breakers.png"},
-  {name:"バーサーカー", yomi:"バーサーカー バーサカ",          cost:2, type:"troop",    role:"高速高DPS近接", img:"https://cdn.royaleapi.com/static/img/cards/berserker.png"},
+  {name:"バーサーカー", yomi:"バーサーカー バーサカ",          cost:2, type:"troop",    role:"高速高DPS近接", img:"https://cdn.royaleapi.com/static/img/cards/berserker.png", hero:true, imgHero:"https://cdn.royaleapi.com/static/img/cards/berserker-hero.png"},
   {name:"ザップ", yomi:"ザップ", evolved:true, imgEvolved:"https://cdn.royaleapi.com/static/img/cards/zap-ev1.png",                cost:2, type:"spell",    role:"即時感電・リセット", img:"https://cdn.royaleapi.com/static/img/cards/zap.png"},
   {name:"巨大雪玉", yomi:"きょだいゆきだま ゆきだま 雪玉", evolved:true, imgEvolved:"https://cdn.royaleapi.com/static/img/cards/giant-snowball-ev1.png",              cost:2, type:"spell",    role:"ノックバック・減速", img:"https://cdn.royaleapi.com/static/img/cards/giant-snowball.png"},
   {name:"ローリングバーバリアン", yomi:"ローリングバーバリアン バーバレル ロリバーバ ロリババ", hero:true, imgHero:"https://cdn.royaleapi.com/static/img/cards/barbarian-barrel-hero.png", cost:2, type:"spell",    role:"転がし＋バーバリアン", img:"https://cdn.royaleapi.com/static/img/cards/barbarian-barrel.png"},
@@ -138,7 +138,7 @@ const CARDS = [
 
   // 6コスト
   {name:"ロイヤルジャイアント", yomi:"ロイヤルジャイアント ロイジャイ RG", evolved:true, imgEvolved:"https://cdn.royaleapi.com/static/img/cards/royal-giant-ev1.png",  cost:6, type:"troop",    role:"建物狙い超射程", img:"https://cdn.royaleapi.com/static/img/cards/royal-giant.png"},
-  {name:"エリートバーバリアン", yomi:"エリートバーバリアン エリババ EB",  cost:6, type:"troop",    role:"高速高火力2体", img:"https://cdn.royaleapi.com/static/img/cards/elite-barbarians.png"},
+  {name:"エリートバーバリアン", yomi:"エリートバーバリアン エリババ EB",  cost:6, type:"troop",    role:"高速高火力2体", img:"https://cdn.royaleapi.com/static/img/cards/elite-barbarians.png", evolved:true, imgEvolved:"https://cdn.royaleapi.com/static/img/cards/elite-barbarians-ev1.png"},
   {name:"巨大スケルトン", yomi:"きょだいすけるとん キョスケ ジャイスケ 巨大スケルトン",        cost:6, type:"troop",    role:"タンク＋デス爆弾", img:"https://cdn.royaleapi.com/static/img/cards/giant-skeleton.png"},
   {name:"ゴブジャイアント", yomi:"ゴブジャイアント ゴブジャイ", evolved:true, imgEvolved:"https://cdn.royaleapi.com/static/img/cards/goblin-giant-ev1.png",      cost:6, type:"troop",    role:"タンク＋槍ゴブリン", img:"https://cdn.royaleapi.com/static/img/cards/goblin-giant.png"},
   {name:"スパーキー", yomi:"スパーキー スパキ",            cost:6, type:"troop",    role:"蓄電超高火力", img:"https://cdn.royaleapi.com/static/img/cards/sparky.png"},
@@ -167,6 +167,58 @@ const CARD_INFO = Object.fromEntries(CARDS.map(c => [c.name, {
   e: !!c.evolved, h: !!c.hero, ch: !!c.champion
 }]));
 const CARD_YOMI = Object.fromEntries(CARDS.map(c => [c.name, c.yomi || '']));
+
+/* ══════ カード画像の解決は「ここだけ」に書く（全ページ共通の正本） ══════
+ * ★2026-08-11に確立したルール。
+ *   それまで <img> を出す箇所が js/ 全体に22か所あり、4通りの独自ルールで
+ *   画像を決めていた。そのため「1か所直しても全体に効かない」状態で、
+ *   ランキングやカード検索が形態（進化/英雄）を無視して通常画像を出していた。
+ *
+ * 【鉄則】新しく <img> を書くときは必ず cardImageSrc() を通す。
+ *         CARD_INFO の .i / .iv / .ih や CARDS の .img / .imgEvolved / .imgHero を
+ *         描画側から直接読んではいけない。
+ *         違反は `node tools/check-card-images.js` が検出して落とす（CIで毎回走る）。
+ *
+ * name : "ナイト" でも "ナイト⚡" / "ナイト👑" でも可（末尾の記号から形態を読む）
+ * form : 'e'|'evolved'|'⚡' ／ 'h'|'hero'|'👑' ／ 'n'|'normal'／未指定
+ *        指定が name の記号と食い違う場合は form を優先する。
+ * ★存在しない形態を要求されたら通常画像へ落とす。バッジ（⚡/👑）も cardFormMark() が
+ *   同じ判定を使うので、「⚡が付いているのに絵は通常」という食い違いが起きない。 */
+function cardBaseName(name) { return String(name == null ? '' : name).replace(/[⚡👑]+$/, ''); }
+function cardFormOf(name, form) {
+  var f = form == null ? '' : String(form);
+  if (!f) { var s = String(name || '').slice(cardBaseName(name).length); f = s; }
+  if (f === 'e' || f === 'evolved' || f === '⚡') return 'e';
+  if (f === 'h' || f === 'hero' || f === '👑') return 'h';
+  return 'n';
+}
+function cardHasForm(name, form) {
+  var info = CARD_INFO[cardBaseName(name)];
+  if (!info) return false;
+  var f = cardFormOf(name, form);
+  return f === 'e' ? !!info.iv : f === 'h' ? !!info.ih : true;
+}
+function cardImageSrc(name, form) {
+  var base = cardBaseName(name);
+  var info = CARD_INFO[base];
+  if (!info) return '';
+  var f = cardFormOf(name, form);
+  if (f === 'e' && info.iv) return info.iv;
+  if (f === 'h' && info.ih) return info.ih;
+  return info.i || '';
+}
+// 実際に表示される形態（存在しない形態を要求されたら 'n' に落ちる）
+function cardShownForm(name, form) { return cardHasForm(name, form) ? cardFormOf(name, form) : 'n'; }
+function cardFormMark(name, form) { var f = cardShownForm(name, form); return f === 'e' ? '⚡' : f === 'h' ? '👑' : ''; }
+// <img> タグごと作る。alt と loading を書き忘れないための入口。
+function cardImgTag(name, form, opt) {
+  var src = cardImageSrc(name, form);
+  if (!src) return '';
+  var o = opt || {};
+  return '<img' + (o.cls ? ' class="' + o.cls + '"' : '') + ' src="' + src + '" alt="' +
+    String(o.alt != null ? o.alt : cardBaseName(name)).replace(/"/g, '&quot;') + '"' +
+    (o.eager ? '' : ' loading="lazy"') + '>';
+}
 
 // ---- カード画像の読み込み失敗フォールバック（全ページ共通・全描画箇所に自動適用） ----
 //  「?」表示の対策：cdn.royaleapi ⇄ raw.githubusercontent を相互フォールバック。

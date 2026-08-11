@@ -1897,7 +1897,7 @@ function assistThreatHtml(info) {
   if (!rows.length) return '<div class="assist-empty">今の形で大きく薄い受けはまだ見えにくいです。もう1〜2枚足すと読みやすくなります。</div>';
   return '<div class="assist-threats">' + rows.map(r => {
     const cards = r.responses.map(x => '<button class="assist-threat-card" type="button" data-threat-card="' + esc(x.card.name) + '">'
-      + (x.card.img ? '<img src="' + esc(x.card.img) + '" alt="" loading="lazy">' : '')
+      + cardImgTag(x.card.name, 'n', { alt: '' })
       + '<span><b>' + esc(TR(x.card.name)) + '</b><small>' + esc(r.need) + '</small></span><em>＋</em></button>').join('');
     return '<div class="assist-threat"><div class="at-head"><span>⚠ ' + esc(r.title) + '</span><small>' + esc(r.need) + '</small></div>'
       + '<div class="at-text">' + esc(r.text) + '</div><div class="at-cards">' + cards + '</div></div>';
@@ -1936,7 +1936,7 @@ function assistDirectionBlocksHtml(info) {
     const badges = (b.badges || []).slice(0, 2).map(x => '<span>' + esc(x) + '</span>').join('');
     return '<div class="assist-dir-block">' + head
       + '<div class="assist-dir-card" role="button" tabindex="0" data-assist-card="' + esc(c.name) + '">'
-      + (c.img ? '<img src="' + esc(c.img) + '" alt="" loading="lazy">' : '<span></span>')
+      + (cardImgTag(c.name, 'n', { alt: '' }) || '<span></span>')
       + '<span class="adc-body"><span class="adc-name">' + esc(TR(c.name)) + '</span>'
       + '<span class="adc-reason">' + esc(b.reason) + '</span>'
       + (badges ? '<span class="adc-badges">' + badges + '</span>' : '') + '</span>'
@@ -1999,7 +1999,7 @@ function assistTemplateCoreHtml(info) {
     const badges = (s.badges || []).slice(0, 2).map(x => '<span>' + esc(x) + '</span>').join('');
     return '<div class="assist-core-block">' + head
       + '<div class="assist-core-card" role="button" tabindex="0" data-assist-card="' + esc(c.name) + '">'
-      + (c.img ? '<img src="' + esc(c.img) + '" alt="" loading="lazy">' : '<span></span>')
+      + (cardImgTag(c.name, 'n', { alt: '' }) || '<span></span>')
       + '<span class="acc-body"><span class="acc-name">' + esc(TR(c.name)) + '</span>'
       + '<span class="acc-reason">' + esc(s.reason) + '</span>'
       + (badges ? '<span class="acc-badges">' + badges + '</span>' : '') + '</span>'
@@ -2116,7 +2116,7 @@ function updateAssistPanel() {
     const detail = s.detail ? '<button class="ac-detail-toggle" type="button" data-detail-for="' + esc(c.name) + '" aria-expanded="false">理由を詳しく</button>'
       + '<span class="ac-detail" data-detail="' + esc(c.name) + '" hidden>' + esc(s.detail) + '</span>' : '';
     return '<div class="assist-card ' + s.kind + '" role="button" tabindex="0" data-assist-card="' + esc(c.name) + '">'
-      + (c.img ? '<img src="' + esc(c.img) + '" alt="" loading="lazy">' : '<span></span>')
+      + (cardImgTag(c.name, 'n', { alt: '' }) || '<span></span>')
       + '<span class="ac-body"><span class="ac-kind">' + assistKindIcon(s.kind) + ' ' + assistKindLabel(s.kind) + '</span>'
       + '<span class="ac-name">' + esc(TR(c.name)) + '</span>'
       + '<span class="ac-reason">' + esc(s.reason) + '</span>'
@@ -2567,10 +2567,8 @@ function render() {
       <path class="heart-fill heart-stroke" d="M12 20.5C12 20.5 2 13.5 2 7C2 4.2 4.2 2 7 2C9 2 10.8 3.1 12 4.7C13.2 3.1 15 2 17 2C19.8 2 22 4.2 22 7C22 13.5 12 20.5 12 20.5Z" stroke-linejoin="round" stroke-linecap="round"/>
     </svg>`;
     // 進化タブなら進化後画像、英雄タブなら英雄画像を表示（無ければ通常画像）
-    const cardImgSrc = (activeTypes.has('evolved') && c.imgEvolved) ? c.imgEvolved
-                     : (activeTypes.has('hero') && c.imgHero) ? c.imgHero
-                     : c.img;
-    const imgHtml = cardImgSrc ? `<img class="card-img" src="${cardImgSrc}" alt="" loading="lazy">` : '';
+    const listForm = (activeTypes.has('evolved') && c.evolved) ? 'e' : (activeTypes.has('hero') && c.hero) ? 'h' : 'n';
+    const imgHtml = cardImgTag(c.name, listForm, { cls: 'card-img', alt: '' });
     div.innerHTML = `
       ${imgHtml}
       <button class="fav-btn ${faved ? 'active' : ''}${justFaved === c.name ? ' pop' : ''}" title="${faved ? 'お気に入り解除' : 'お気に入り追加'}" onclick="toggleFav('${c.name}', event)">${heartSvg}</button>
@@ -2694,8 +2692,7 @@ function addToDeck(card) {
 function openImageReplaceDialog(card, idxs, opts) {
   opts = opts || {};
   // 入れるカードの画像（進化/ヒーロー文脈ならその姿）
-  const newImgSrc = ctxCardImg(card, opts.mode);
-  const cardImg = newImgSrc ? `<img src="${newImgSrc}" alt="">` : '';
+  const cardImg = cardImgTag(card.name, opts.mode, { alt: '', eager: true });
   const doReplace = (i) => {
     const old = deck[i];
     deck[i] = card;
@@ -2719,7 +2716,7 @@ function openImageReplaceDialog(card, idxs, opts) {
     ov.innerHTML = `<div class="swap-box">
       <div class="swap-title">入れ替える？</div>
       <div class="swap-fromto">
-        <div class="ft-card dim"><div class="ft-cap">いま</div>${old && old.img ? `<img src="${old.img}" alt="">` : ''}<div class="ft-name">${old ? TR(old.name) : ''}</div></div>
+        <div class="ft-card dim"><div class="ft-cap">いま</div>${old ? cardImgTag(old.name, slotMode(old, idxs[0]), { alt: '', eager: true }) : ''}<div class="ft-name">${old ? TR(old.name) : ''}</div></div>
         <div class="ft-arrow">➜</div>
         <div class="ft-card hot" id="ftConfirm"><div class="ft-cap">これに</div>${cardImg}<div class="ft-name">${TR(card.name)}</div></div>
       </div>
@@ -2729,9 +2726,9 @@ function openImageReplaceDialog(card, idxs, opts) {
     // 「どっちと入れ替える？」：中央に入れる対象、両脇に候補。候補カードをタップで確定
     const sideHtml = (i) => {
       const d = deck[i];
-      const img = slotCardImg(d, i); // その枠に表示される姿（進化/ヒーロー）
+      // その枠に表示される姿（進化/ヒーロー）
       return `<div class="swap-opt" data-idx="${i}">
-        ${img ? `<img src="${img}" alt="">` : ''}
+        ${d ? cardImgTag(d.name, slotMode(d, i), { alt: '', eager: true }) : ''}
         <div class="swap-opt-name">${d ? TR(d.name) : ''}</div>
         <div class="swap-opt-slot">${T('slot.n', { n: i + 1 })}</div>
       </div>`;
@@ -2757,7 +2754,7 @@ function openChampSwapDialog(card) {
   const opts = [1, 2].map(i => {
     const d = deck[i];
     return `<div class="swap-opt" data-idx="${i}">
-      ${d.img ? `<img src="${d.img}" alt="">` : ''}
+      ${cardImgTag(d.name, slotMode(d, i), { alt: '', eager: true })}
       <div class="swap-opt-name">${TR(d.name)}</div>
       <div class="swap-opt-slot">${T('slot.n', { n: i + 1 })}</div>
     </div>`;
@@ -3151,15 +3148,11 @@ function slotMode(card, slotIdx) {
 function slotCardImg(card, idx) {
   if (!card) return '';
   const mode = slotMode(card, idx);
-  return mode === 'evolved' && card.imgEvolved ? card.imgEvolved
-       : mode === 'hero' && card.imgHero ? card.imgHero
-       : card.img;
+  return cardImageSrc(card.name, mode);
 }
 // 文脈（進化/ヒーロー）で入れるカードの画像
 function ctxCardImg(card, mode) {
-  if (mode === 'evolved' && card.imgEvolved) return card.imgEvolved;
-  if (mode === 'hero' && card.imgHero) return card.imgHero;
-  return card.img;
+  return cardImageSrc(card.name, mode);
 }
 
 const COST_COLORS = {1:'#4caf50',2:'#26c6a0',3:'#3a8ef0',4:'#e8a020',5:'#8b5cf6',6:'#e05050',7:'#c0781a',8:'#888',9:'#9090d0'};
@@ -3182,12 +3175,8 @@ function renderDeck() {
       div.dataset.idx = i;
       const modeBadge = mode === 'evolved' ? '<span class="slot-badge evolved-badge">進化</span>'
                       : mode === 'hero'    ? '<span class="slot-badge hero-badge">英雄</span>' : '';
-      const slotImgSrc = mode === 'evolved' && c.imgEvolved ? c.imgEvolved
-                       : mode === 'hero'    && c.imgHero    ? c.imgHero
-                       : c.img;
-      const slotImg = slotImgSrc
-        ? `<div class="slot-img-wrap"><img class="slot-img" src="${slotImgSrc}" alt="" loading="lazy"></div>`
-        : `<div class="slot-img-wrap"></div>`;
+      const slotImgTag = cardImgTag(c.name, mode, { cls: 'slot-img', alt: '' });
+      const slotImg = slotImgTag ? `<div class="slot-img-wrap">${slotImgTag}</div>` : `<div class="slot-img-wrap"></div>`;
       // wildスロット（idx=2）かつ進化・ヒーロー両方対応カード→切り替えボタン
       const showToggle = SLOT_TYPE[i] === 'wild' && c.evolved && c.hero;
       const toggleBtn = showToggle ? `<button class="mode-toggle-btn" onclick="toggleSlot2Mode('${c.name}', event)">
@@ -3637,7 +3626,7 @@ function shareReplica(deckArr, gradeKey, by) {
     const c = deckArr[i];
     if (!c) { cards += '<div class="rep-card"></div>'; continue; }
     const pip = COST_COLORS[Math.min(c.cost, 9)] || '#888';
-    cards += '<div class="rep-card"><img src="' + slotCardImg(c, i) + '" alt=""><span class="rep-pip" style="background:' + pip + '">' + c.cost + '</span></div>';
+    cards += '<div class="rep-card">' + cardImgTag(c.name, slotMode(c, i), { alt: '', eager: true }) + '<span class="rep-pip" style="background:' + pip + '">' + c.cost + '</span></div>';
   }
   return '<div class="share-rep" style="border-color:' + G.b + ';' + (G.g ? 'box-shadow:inset ' + G.g + ';' : '') + '">'
     + '<div class="rep-top"><div><div class="rep-h1">CR DECK BUILDERS</div><div class="rep-h2">クラロワデッキ作成・診断ツール</div></div>'

@@ -1125,26 +1125,47 @@ async function updateDecks() {
       var f = 'norm';
       if (c.rarity === 'champion') f = 'champ';
       else if (c.evolutionLevel && c.evolutionLevel > 0) {
+        // ★2026-08-11に900試合で実測した規約：evolutionLevel 1=進化 / 2=ヒーロー（例外なし）。
+        //   iconUrls は補助にとどめる。公式 /cards がまだ配信していない形態があり
+        //   （エリートバーバリアンの進化：evolutionLevel=1 が211/231で観測されるのに
+        //    iconUrls は medium だけ）、iconUrls だけを見ると取りこぼす。
         var iu = c.iconUrls || {};
         var hasEvo = !!iu.evolutionMedium, hasHero = !!iu.heroMedium;
-        if (hasEvo && hasHero) f = (c.evolutionLevel >= 2) ? 'hero' : 'evo';
-        else f = hasHero ? 'hero' : 'evo';
+        if (hasEvo && !hasHero) f = 'evo';
+        else if (hasHero && !hasEvo) f = 'hero';
+        else f = (c.evolutionLevel >= 2) ? 'hero' : 'evo';   // 両方ある／両方無い＝レベル規約で決める
       }
       fm.push(f);
     });
     return (ok && jp.length === 8) ? { jp: jp, fm: fm } : null;
+  }
+  // 勝者側から見たクラウン対 → 0..5（3:0 / 3:1 / 3:2 / 2:0 / 2:1 / 1:0）。引き分け等は -1
+  function crownBucket_(tc, oc) {
+    var hi = Math.max(tc, oc), lo = Math.min(tc, oc);
+    if (hi === lo) return -1;
+    if (hi === 3) return lo === 0 ? 0 : lo === 1 ? 1 : 2;
+    if (hi === 2) return lo === 0 ? 3 : 4;
+    if (hi === 1) return 5;
+    return -1;
   }
   function tally(map, d, won, tc, oc) {
     if (!d) return false;
     var special = [];
     d.jp.forEach(function (n, idx) { if (d.fm[idx] !== 'norm') special.push(n); });
     var key = d.jp.slice().sort().join('|') + '#' + special.slice().sort().join('|');
-    var e = map[key] || (map[key] = { count: 0, wins: 0, cards: d.jp, votes: {}, vwins: {}, c3: 0, cf: 0, ca: 0 });
+    var e = map[key] || (map[key] = { count: 0, wins: 0, cards: d.jp, votes: {}, vwins: {}, c3: 0, cf: 0, ca: 0, cw: [0,0,0,0,0,0], cl: [0,0,0,0,0,0] });
+    if (!e.cw) { e.cw = [0,0,0,0,0,0]; e.cl = [0,0,0,0,0,0]; }   // 旧スナップからの復元用
     e.count++;
     if (won === true) e.wins++;
     if (typeof tc === 'number' && typeof oc === 'number') {
       e.cf += tc; e.ca += oc;
       if (won === true && tc === 3) e.c3++;
+      // ★クラウン対（自分:相手）で決着の質を残す。3冠率だけだと
+      //   「3:0の完封三冠」と「3:2の競り三冠」が同じ数字になってしまう（2026-08-11）。
+      //   勝ち6分割: 3:0 / 3:1 / 3:2 / 2:0 / 2:1 / 1:0
+      //   負け6分割: 0:3 / 1:3 / 2:3 / 0:2 / 1:2 / 0:1
+      var wi = crownBucket_(tc, oc);
+      if (wi >= 0) { if (won === true) e.cw[wi]++; else e.cl[wi]++; }
     }
     d.jp.forEach(function (n, idx) {
       var v = e.votes[n] || (e.votes[n] = { evo: 0, hero: 0, both: 0, champ: 0, norm: 0 });
@@ -1501,11 +1522,13 @@ async function updateDecks() {
   Object.keys(win).forEach(function (s) { sigSet[s] = 1; });
   var dkArr = Object.keys(sigSet).map(function (sig) {
     var W = win[sig] || {};
-    return { sig: sig, p: (pop[sig] ? pop[sig].count : 0), g: W.count || 0, w: W.wins || 0, c3: W.c3 || 0, cf: W.cf || 0, ca: W.ca || 0 };
+    return { sig: sig, p: (pop[sig] ? pop[sig].count : 0), g: W.count || 0, w: W.wins || 0, c3: W.c3 || 0, cf: W.cf || 0, ca: W.ca || 0,
+      cw: W.cw || [0,0,0,0,0,0], cl: W.cl || [0,0,0,0,0,0] };
   });
   dkArr.sort(function (a, b) { return (b.p + b.g) - (a.p + a.g); });
   var dkNow = {};
-  dkArr.slice(0, DK_KEEP).forEach(function (x) { dkNow[x.sig] = [x.p, x.g, x.w, x.c3, x.cf, x.ca]; });
+  // 6要素[p,g,w,c3,cf,ca] の後ろへ 勝ち内訳6 + 負け内訳6 を足す（旧スナップは6要素のままでも読める）
+  dkArr.slice(0, DK_KEEP).forEach(function (x) { dkNow[x.sig] = [x.p, x.g, x.w, x.c3, x.cf, x.ca].concat(x.cw, x.cl); });
 
   // PoL試合内容も上位デッキ（dkNow）分だけスナップショットへ（compact）
   var polSnap = {};
@@ -1536,9 +1559,40 @@ async function updateDecks() {
     for (var i = 0; i < ARCH_WINCONS.length; i++) if (jp.indexOf(ARCH_WINCONS[i]) >= 0) out.push(ARCH_WINCONS[i]);
     return out.length ? out : ['その他'];
   }
+  /* 決着の質。★2026-08-11：3冠率だけでは「3:0の完封三冠」と「3:2の競り三冠」が
+   *   同じ数字になってしまうため、クラウン対の内訳から意味づけまで出す。
+   *   勝ち内訳 CW = [3:0, 3:1, 3:2, 2:0, 2:1, 1:0]
+   *   負け内訳 CL = [0:3, 1:3, 2:3, 0:2, 1:2, 0:1]
+   *   読み方（joの整理）:
+   *     3:0 完封三冠 ＝ 圧勝／3:1 力の差がある三冠／3:2 三冠まで持っていかないと勝てなかった
+   *     2:0・1:0 完封だが三冠に届かない ＝ 削り切る力（大型/攻城力）が薄い可能性
+   *     2:1・1:2 は拮抗／0:3 は崩壊 */
   function crownOut_(a) {
     if (!a.G || (a.CF + a.CA) <= 0) return null;
-    return { c3: a.W ? Math.round(a.C3 / a.W * 1000) / 10 : null, cd: Math.round((a.CF - a.CA) / a.G * 100) / 100 };
+    var CW = a.CW || [0,0,0,0,0,0], CL = a.CL || [0,0,0,0,0,0];
+    var w = CW[0]+CW[1]+CW[2]+CW[3]+CW[4]+CW[5];
+    var l = CL[0]+CL[1]+CL[2]+CL[3]+CL[4]+CL[5];
+    var pct = function (n, d) { return d ? Math.round(n / d * 1000) / 10 : null; };
+    var out = { c3: a.W ? Math.round(a.C3 / a.W * 1000) / 10 : null, cd: Math.round((a.CF - a.CA) / a.G * 100) / 100 };
+    if (!w && !l) return out;
+    out.cw = CW; out.cl = CL;
+    if (w) {
+      out.wq = {
+        crush: pct(CW[0], w),                    // 3:0 完封三冠
+        gap:   pct(CW[1], w),                    // 3:1 力の差
+        grind: pct(CW[2], w),                    // 3:2 競り三冠
+        shut:  pct(CW[0] + CW[3] + CW[5], w),    // 相手0封じ（完封）
+        short: pct(CW[3] + CW[5], w),            // 完封したが三冠に届かない
+        close: pct(CW[4] + CW[5], w)             // クラウン差1の薄氷
+      };
+    }
+    if (l) {
+      out.lq = {
+        collapse: pct(CL[0], l),                 // 0:3 崩壊
+        close:    pct(CL[4] + CL[5], l)          // 1クラウン差で落とした＝拮抗
+      };
+    }
+    return out;
   }
 
   // dinfo更新＋窓外掃除
@@ -1577,9 +1631,10 @@ async function updateDecks() {
       playersW += (s.players || 0);
       var dk = s.dk || {};
       Object.keys(dk).forEach(function (sig) {
-        var a = agg[sig] || (agg[sig] = { P: 0, G: 0, W: 0, C3: 0, CF: 0, CA: 0 });
+        var a = agg[sig] || (agg[sig] = { P: 0, G: 0, W: 0, C3: 0, CF: 0, CA: 0, CW: [0,0,0,0,0,0], CL: [0,0,0,0,0,0] });
         a.P += dk[sig][0] || 0; a.G += dk[sig][1] || 0; a.W += dk[sig][2] || 0;
         a.C3 += dk[sig][3] || 0; a.CF += dk[sig][4] || 0; a.CA += dk[sig][5] || 0;
+        for (var _b = 0; _b < 6; _b++) { a.CW[_b] += dk[sig][6 + _b] || 0; a.CL[_b] += dk[sig][12 + _b] || 0; }
       });
     });
     var popDecks = Object.keys(agg).sort(function (a, b) { return agg[b].P - agg[a].P; })
@@ -1589,7 +1644,7 @@ async function updateDecks() {
         var o = { name: d.name, slots: d.slots, forms: d.forms, count: a.P, uniq: uniqCountW(sig, ms), games: a.G, arch: archOfSig_(sig), archs: archsOfSig_(sig) };
         var ch = cycHvy_(d.slots); o.cyc = ch.cyc; o.hvy = ch.hvy;
         if (a.G > 0) o.winRate = Math.round(a.W / a.G * 1000) / 10;
-        if (cr) { o.c3 = cr.c3; o.cd = cr.cd; }
+        if (cr) { o.c3 = cr.c3; o.cd = cr.cd; if (cr.wq) o.wq = cr.wq; if (cr.lq) o.lq = cr.lq; if (cr.cw) { o.cw = cr.cw; o.cl = cr.cl; } }
         return o;
       }).filter(Boolean).slice(0, DECK_TOP);
     var winDecks = Object.keys(agg).filter(function (sig) { return agg[sig].G >= winMin; })
@@ -1601,7 +1656,7 @@ async function updateDecks() {
           winRate: Math.round(a.W / a.G * 1000) / 10, lb: Math.round(wilson_(a.W, a.G) * 1000) / 10,
           count: a.P, uniq: uniqCountW(sig, ms), arch: archOfSig_(sig), archs: archsOfSig_(sig) };
         var ch = cycHvy_(d.slots); o.cyc = ch.cyc; o.hvy = ch.hvy;
-        if (cr) { o.c3 = cr.c3; o.cd = cr.cd; }
+        if (cr) { o.c3 = cr.c3; o.cd = cr.cd; if (cr.wq) o.wq = cr.wq; if (cr.lq) o.lq = cr.lq; if (cr.cw) { o.cw = cr.cw; o.cl = cr.cl; } }
         return o;
       }).filter(Boolean).slice(0, DECK_TOP);
     var cards = aggregateCards_(snaps);

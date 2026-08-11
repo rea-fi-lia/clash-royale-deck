@@ -187,7 +187,7 @@ function renderCardPop(q) {
   _cardPop.innerHTML = matches.map(n => {
     const info = CARD_INFO[n] || {};
     return '<div class="pop-card" data-n="' + n.replace(/"/g, '&quot;') + '">'
-      + (info.i ? '<img src="' + info.i + '" alt="' + n + '" loading="lazy">' : '')
+      + cardImgTag(n)
       + '<div class="nm">' + n + '</div></div>';
   }).join('');
   _cardPop.classList.add('open');
@@ -237,7 +237,7 @@ function renderDecks(decks) {
       // 勝率タブ：勝率 ＋ 対戦数（3日合計）＋ 使用人数
       headHtml = '<span class="stat-win">' + _t('decks.winPct', { p: d.winRate }) + '</span>'
         + '<span class="stat-sep">' + _t('decks.nGames', { n: (d.games || 0) }) + '</span>'
-        + (d.c3 != null ? '<span class="stat-sep">' + _t('decks.c3', { p: d.c3 }) + '</span>' : '')
+        + crownQualityHtml(d)
         + (d.cd != null ? '<span class="stat-sep">' + _t('decks.cd', { v: (d.cd > 0 ? '+' + d.cd : d.cd) }) + '</span>' : '')
         + (d.uniq != null ? '<span class="stat-sep">' + _t('decks.nPeople', { n: d.uniq }) + '</span>' : d.count != null ? '<span class="stat-sep">' + _t('decks.nUsed', { n: d.count }) + '</span>' : '')
         + '<span class="stat-avg">' + avgLbl + ' <b>' + avg + '</b></span>';
@@ -270,10 +270,11 @@ function renderDecks(decks) {
       } else {
         mode = slotModeOf(info, i, n, evoSet, hasEvo);
       }
-      const img = mode==='evolved' ? (info.iv||info.i) : mode==='hero' ? (info.ih||info.i) : info.i;
-      const badge = mode==='evolved' ? '<span class="slot-badge">⚡</span>' : mode==='hero' ? '<span class="slot-badge">👑</span>' : mode==='champion' ? '<span class="slot-badge">🏆</span>' : '';
-      const cls = 'mini-card' + (mode==='evolved'?' is-evo':'') + (mode==='hero'?' is-hero':'') + (mode==='champion'?' is-champ':'');
-      return '<div class="'+cls+'" title="'+n+'"><span class="pip">'+(info.c!=null?info.c:'')+'</span>'+badge+(img?'<img src="'+img+'" alt="'+n+'" loading="lazy">':'')+'</div>';
+      // ★存在しない形態を要求されても cardShownForm が 'n' に落とすので、バッジと画像が食い違わない
+      const shown = mode==='champion' ? 'champion' : cardShownForm(n, mode);
+      const badge = shown==='e' ? '<span class="slot-badge">⚡</span>' : shown==='h' ? '<span class="slot-badge">👑</span>' : mode==='champion' ? '<span class="slot-badge">🏆</span>' : '';
+      const cls = 'mini-card' + (shown==='e'?' is-evo':'') + (shown==='h'?' is-hero':'') + (mode==='champion'?' is-champ':'');
+      return '<div class="'+cls+'" title="'+n+'"><span class="pip">'+(info.c!=null?info.c:'')+'</span>'+badge+cardImgTag(n, mode)+'</div>';
     }).join('');
     const url = 'index.html?deck=' + encodeURIComponent(d.slots.join(','));
     const el = document.createElement('div');
@@ -349,12 +350,39 @@ document.querySelectorAll('#topSeg .seg-tab').forEach(btn => {
 window.addEventListener('hashchange', () => setSeg(location.hash.replace('#', '')));
 setSeg(location.hash.replace('#', '')); // 初期表示はハッシュに従う（#cards ならカード）
 
-function _cardImg(name) { const i = CARD_INFO[name]; return i ? (i.i || '') : ''; }
+/* ★決着の質（2026-08-11）
+ * 「3冠率」だけだと 3:0 の完封三冠と 3:2 の競り三冠が同じ数字になり、
+ * デッキの性格が消えてしまう。クラウン対（自分:相手）の内訳から言葉にする。
+ *   3:0 完封三冠＝圧勝で押し切る型
+ *   3:1 力の差がある三冠
+ *   3:2 三冠まで持っていかないと勝てない（＝競り合いになりやすい）
+ *   2:0 / 1:0 完封したが三冠に届かない＝削り切る力（大型・攻城力）が薄い
+ *   2:1 / 1:2 は拮抗、0:3 は崩壊
+ * wq/lq が無い古いデータでは従来の3冠率だけを出す。 */
+function crownQualityHtml(d) {
+  if (!d || d.c3 == null) return '';
+  const base = '<span class="stat-sep">' + _t('decks.c3', { p: d.c3 }) + '</span>';
+  const q = d.wq;
+  if (!q) return base;
+  // どの勝ち方が主か。最大のものを一言にする
+  const cand = [
+    { v: q.crush, k: '完封三冠', cls: 'cq-crush', tip: '3:0＝相手にクラウンを渡さず三冠。押し切る力が強い' },
+    { v: q.gap,   k: '三冠',     cls: 'cq-gap',   tip: '3:1＝力の差をつけて三冠' },
+    { v: q.grind, k: '競り三冠', cls: 'cq-grind', tip: '3:2＝相手にも2冠取られている。三冠まで行かないと勝ち切れない' },
+    { v: q.short, k: '完封2冠',  cls: 'cq-short', tip: '2:0/1:0＝完封しているが三冠に届かない。削り切る力（大型・攻城力）が薄い' },
+    { v: q.close, k: '薄氷',     cls: 'cq-close', tip: '1クラウン差の勝ち。細かく削り合っての決着' }
+  ].filter(x => x.v != null).sort((a, b) => b.v - a.v)[0];
+  if (!cand || cand.v < 30) return base;   // 突出した勝ち方が無ければ言わない
+  return base + '<span class="stat-sep ' + cand.cls + '" title="' + cand.tip + '">' +
+    _tr(cand.k) + ' ' + cand.v + '%</span>';
+}
+function _cardImg(name) { return cardImageSrc(name); }
 function _cardCost(name) { const i = CARD_INFO[name]; return i ? i.c : ''; }
 // ★形態別カード（GASの cards に f:'e'(限界突破)/'h'(ヒーロー) が付く。f無し=ノーマル）
 function _ckey(c) { return c.name + (c.f ? '|' + c.f : ''); }           // 選択・識別キー
-function _cardImgF(c) { const i = CARD_INFO[c.name]; if (!i) return ''; if (c.f === 'e' && i.iv) return i.iv; if (c.f === 'h' && i.ih) return i.ih; return i.i || ''; }
-function _fmark(c) { return c.f === 'e' ? '⚡' : (c.f === 'h' ? '👑' : ''); }
+function _cardImgF(c) { return cardImageSrc(c.name, c.f); }
+// ★バッジも「実際に表示される形態」から出す。存在しない形態（例: エリババ⚡）は無印になる
+function _fmark(c) { return cardFormMark(c.name, c.f); }
 function _oppIntel(name) { return POL_CARD_INTEL && POL_CARD_INTEL.byOpponentCard && POL_CARD_INTEL.byOpponentCard[name]; }
 // ★全トロフィー帯(0〜14000・300刻み)のカード別実戦統計。ユーザーの最新トロフィー±150に近い帯を優先し、無ければ全帯byCardを使う。
 function _bandIntel(name) {
@@ -469,7 +497,7 @@ function renderCrank() {
     return '<div class="crank-row' + (sel ? ' sel' : '') + '" data-n="' + String(_ckey(c)).replace(/"/g, '&quot;') + '">'
       + '<span class="crank-rank">' + rank + '</span>'
       + '<span class="crank-ico"><span class="pip">' + _cardCost(c.name) + '</span>'
-        + (_cardImgF(c) ? '<img src="' + _cardImgF(c) + '" alt="' + _tr(c.name) + '" loading="lazy">' : '')
+        + cardImgTag(c.name, c.f, { alt: _tr(c.name) })
         + (_fmark(c) ? '<span class="fbadge">' + _fmark(c) + '</span>' : '') + '</span>'
       + '<span class="crank-name">' + _tr(c.name) + (_fmark(c) ? ' <span class="fmark">' + _fmark(c) + '</span>' : '') + '</span>'
       + _cardPracticalIntel(c)
@@ -642,7 +670,7 @@ function renderMetaMap() {
     const x = clamp(pad + rx * (100 - 2 * pad));
     const y = clamp((100 - pad) - ry * (100 - 2 * pad));
     return '<div class="mm-pt" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%" title="' + _tr(c.name) + _fmark(c) + ' 使用' + (c.use || 0) + '% / 勝率' + (c.win || 0) + '%">'
-      + (_cardImgF(c) ? '<img src="' + _cardImgF(c) + '" alt="' + _tr(c.name) + '">' : '')
+      + cardImgTag(c.name, c.f, { alt: _tr(c.name), eager: true })
       + (_fmark(c) ? '<span class="fbadge">' + _fmark(c) + '</span>' : '')
       + (lab ? '<span class="lab">' + _tr(c.name) + (_fmark(c) ? '<i class="fm">' + _fmark(c) + '</i>' : '') + '</span>' : '') + '</div>';
   };
@@ -762,8 +790,7 @@ function renderMeMeta() {
     + '<div class="ms-note">' + _tr('相手デッキの勝ち筋分布＝あなたの現在トロフィー±150の近似メタ。使ったデッキに関係なく貯まる正確なサンプルです。勝率は対面3戦未満なら表示しません') + '</div>'
     + top.map(m => {
       const base = m.k;
-      const info = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[base] : null;
-      const img = (info && info.i) ? '<img src="' + info.i + '" alt="' + base + '" loading="lazy">' : '';
+      const img = cardImgTag(base);
       const winTxt = (m.win != null && m.games >= 3) ? _t('decks.winPct', { p: m.win }) : '';
       return '<div class="ms-row">'
         + '<span class="ms-ico">' + img + '</span>'
@@ -956,11 +983,9 @@ function renderMetaShare() {
   el.innerHTML = '<div class="ms-title">' + _tr('🧭 環境シェア（勝ち筋別）') + '<span class="ms-win">' + winLabel(CUR_WINDOW) + '</span></div>'
     + '<div class="ms-note">' + _tr('％＝この勝ち筋カードを含むデッキを使った人の割合（複数の勝ち筋を持つデッキは各勝ち筋にカウント）／ 勝率＝そのデッキ全体の勝率') + '</div>'
     + '<div class="ms-list">' + top.map(m => {
-      const base = String(m.k).replace(/[⚡👑]+$/, '');
-      const suf = String(m.k).slice(base.length);
-      const info = CARD_INFO[base];
-      const src = info ? ((suf === '⚡' && info.iv) ? info.iv : (suf === '👑' && info.ih) ? info.ih : info.i) : '';
-      const img = src ? '<img src="' + src + '" alt="' + base + '" loading="lazy">' : '';
+      const base = cardBaseName(m.k);
+      const suf = cardFormMark(m.k);   // ★存在しない形態なら無印になる
+      const img = cardImgTag(m.k);
       return '<div class="ms-row">'
         + '<span class="ms-ico">' + img + '</span>'
         + '<span class="ms-name"><span>' + _tr(base) + '</span>' + (suf ? '<span class="ms-suf">' + suf + '</span>' : '') + '</span>'

@@ -1,0 +1,31 @@
+name: check card images
+
+# ★2026-08-11に確立したルールの番人。
+#   画像の解決を js/cards-data.js の cardImageSrc/cardImgTag に一本化したので、
+#   そこを迂回する <img> が入ったら落とす。
+#   併せて公式APIとの形態の突合と、全URLの実在も見る。
+on:
+  push:
+    paths:
+      - 'js/**'
+      - 'tools/check-card-images.js'
+      - '.github/workflows/check-card-images.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '10 5 * * *'   # 毎日1回、新実装の取りこぼしを拾う
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - env:
+          CR_TOKEN: ${{ secrets.CR_TOKEN }}
+        run: node tools/check-card-images.js

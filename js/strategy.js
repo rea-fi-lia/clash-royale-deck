@@ -48,12 +48,13 @@ function parseDeck() {
   for (let i = 0; i < 8; i++) {
     const info = CARD_INFO[names[i]];
     if (!info) return null;
-    const fm = (f[i] === 'e' && info.iv) ? 'e' : (f[i] === 'h' && info.ih) ? 'h' : 'n';
+    const fm = cardShownForm(names[i], f[i]);   // 存在しない形態は 'n' に落ちる（正本＝cards-data.js）
     deck.push({ name: names[i], f: fm, info });
   }
   return deck;
 }
-function mark(c) { return c.f === 'e' ? '⚡' : c.f === 'h' ? '👑' : ''; }
+// ★実際に表示される形態から出す（存在しない形態は無印。cards-data.js の正本を通す）
+function mark(c) { return cardFormMark(c.name, c.f); }
 function tagsOf(c) { if (!TAGS) return []; const e = TAGS[c.name + mark(c)] || TAGS[c.name]; return (e && e.tags) || []; }
 function potOf(c) { if (!POT) return null; return POT[c.name + mark(c)] || POT[c.name] || null; }
 function statOf(c) { return (STATS && STATS[c.name]) || null; }
@@ -61,8 +62,8 @@ function has(c, key) { return tagsOf(c).indexOf(key) >= 0; }
 function inZone(c, z) { const s = statOf(c); return s && (s.tags || []).indexOf(z) >= 0; }
 function isSpell(c) { const s = statOf(c); return s && s.n && s.n.type === 'Spell'; }
 function chip(c) {
-  const img = c.f === 'e' ? c.info.iv : c.f === 'h' ? c.info.ih : c.info.i;
-  return '<span class="dg-chip"><img src="' + img + '" alt="' + cardDisplayName(c.name) + '"><span>' + cardDisplayName(c.name) + '</span>' + mark(c) + '</span>';
+  return '<span class="dg-chip">' + cardImgTag(c.name, c.f, { alt: cardDisplayName(c.name), eager: true }) +
+    '<span>' + cardDisplayName(c.name) + '</span>' + mark(c) + '</span>';
 }
 function C(n, k) { if (k > n) return 0; let r = 1; for (let i = 0; i < k; i++) r = r * (n - i) / (i + 1); return Math.round(r); }
 
@@ -461,10 +462,9 @@ function similarRankingHtml(deck) {
   const wins = changes.filter(r => r.wr >= 55).sort((a, b) => b.wr - a.wr).slice(0, 100);
   const loses = changes.filter(r => r.wr <= 45).sort((a, b) => a.wr - b.wr).slice(0, 100);
   const cimgF = (name, form) => {
-    const inf = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[name] : null;
-    const src = inf ? (form === 'e' && inf.iv ? inf.iv : form === 'h' && inf.ih ? inf.ih : inf.i) : '';
-    const badge = form === 'e' ? '<span class="sr-fb">⚡</span>' : form === 'h' ? '<span class="sr-fb">👑</span>' : '';
-    return '<span class="sr-c">' + (src ? '<img src="' + src + '" alt="' + name + '" loading="lazy">' : '') + badge + '</span>';
+    const m = cardFormMark(name, form);
+    const badge = m ? '<span class="sr-fb">' + m + '</span>' : '';
+    return '<span class="sr-c">' + cardImgTag(name, form, { alt: name }) + badge + '</span>';
   };
   const enc = arr => arr.map(x => x.name + ':' + x.form).join(',');
   const rowHtml = r => {
@@ -515,7 +515,7 @@ function applyDeckSwap(outStr, inStr, rfStr) {
   const inCards = inList.map(x => {
     const info = (typeof CARD_INFO !== 'undefined') ? CARD_INFO[x.name] : null;
     if (!info) return null;
-    const fm = (x.form === 'e' && info.iv) ? 'e' : (x.form === 'h' && info.ih) ? 'h' : 'n'; // 形を画像有無で正規化
+    const fm = cardShownForm(x.name, x.form); // 存在しない形態は 'n' に正規化
     return { name: x.name, f: fm, info };
   });
   if (inCards.indexOf(null) >= 0) return;
@@ -526,13 +526,13 @@ function applyDeckSwap(outStr, inStr, rfStr) {
   const rankerForm = {}; rfList.forEach(function (x) { rankerForm[x.name] = x.form; });
   next = next.map(function (c) {
     const want = rankerForm[c.name]; // 'e' | 'h' | undefined（チャンピオンはinfo.chでreslotが枠2/3へ）
-    const can = want === 'e' ? !!(c.info && c.info.iv) : want === 'h' ? !!(c.info && c.info.ih) : false;
+    const can = !!want && cardHasForm(c.name, want);
     return { name: c.name, f: (want && can) ? want : 'n', info: c.info };
   });
   // 進化は最大2枠。ランカーの形態記録が欠けても、進化可能なカードがあれば埋める（＝枠を遊ばせない／チャンピオンは枠2/3なので除外）
   let _evoN = next.filter(function (c) { return c.f === 'e'; }).length;
   if (_evoN < 2) next = next.map(function (c) {
-    if (_evoN >= 2 || c.f !== 'n' || !(c.info && c.info.iv) || (c.info && c.info.ch)) return c;
+    if (_evoN >= 2 || c.f !== 'n' || !cardHasForm(c.name, 'e') || (c.info && c.info.ch)) return c;
     _evoN++; return { name: c.name, f: 'e', info: c.info };
   });
   DECK = reslotDeck(next); // Index準拠で進化/ヒーローを定位置に
@@ -666,9 +666,9 @@ function render() {
     : _tr('タワーへの明確なダメージ源がありません');
 
   const deckHtml = '<div class="dg-deckbar"><div class="dg-deck">' + DECK.map(c => {
-    const img = c.f === 'e' ? c.info.iv : c.f === 'h' ? c.info.ih : c.info.i;
-    const badge = c.f === 'e' ? '<span class="slot-badge">⚡</span>' : c.f === 'h' ? '<span class="slot-badge">👑</span>' : '';
-    return '<div class="mini-card' + (c.f === 'e' ? ' is-evo' : c.f === 'h' ? ' is-hero' : '') + '" data-key="' + c.name + ':' + _fnorm(c.f) + '"><span class="pip">' + c.info.c + '</span>' + badge + '<img src="' + img + '" alt="' + cardDisplayName(c.name) + '"></div>';
+    const shown = cardShownForm(c.name, c.f);
+    const badge = shown === 'e' ? '<span class="slot-badge">⚡</span>' : shown === 'h' ? '<span class="slot-badge">👑</span>' : '';
+    return '<div class="mini-card' + (shown === 'e' ? ' is-evo' : shown === 'h' ? ' is-hero' : '') + '" data-key="' + c.name + ':' + _fnorm(c.f) + '"><span class="pip">' + c.info.c + '</span>' + badge + cardImgTag(c.name, c.f, { alt: cardDisplayName(c.name), eager: true }) + '</div>';
   }).join('') + '</div></div>';
 
   const html = diagnoseHtml(DECK); // ★新診断（特徴/実戦傾向/強み弱み/苦手相手）。旧 archetype/verdict/実戦読み/checks は廃止
