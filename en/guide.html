@@ -9,13 +9,14 @@
 <meta name="google-adsense-account" content="ca-pub-4930535711396745">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>クラロワ デッキ作成ガイド｜CR Deck Builders</title>
-<meta name="description" content="クラロワのデッキ作成ガイド。勝ち筋、2枚シナジー、3枚目候補、苦しい相手への対策、平均コスト、呪文・建物・小物処理まで、8枚を組む考え方を解説します。">
+<title>How to Build a Clash Royale Deck — Full Guide | CR Deck Builders</title>
+<meta name="description" content="Learn how to build a winning Clash Royale deck: win conditions, two-card synergies, third-card picks, counters to hard matchups, average elixir, spells and buildings — the full 8-card framework.">
 <meta name="robots" content="noindex,follow">
 <link rel="canonical" href="https://crdeckbuilders.com/en/guide.html">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="stylesheet" href="/css/content.css?v=260811g">
+<link rel="stylesheet" href="/css/content.css?v=260811k">
+<link rel="stylesheet" href="/css/guard.css?v=260811k">
 <!-- CRVT --><style>@view-transition{navigation:auto}@keyframes cr-ol{to{transform:translateX(-26%);opacity:.5}}@keyframes cr-ir{from{transform:translateX(100%)}}@keyframes cr-or{to{transform:translateX(26%);opacity:.5}}@keyframes cr-il{from{transform:translateX(-100%)}}@media(max-width:768px){html:active-view-transition-type(crf)::view-transition-old(root){animation:cr-ol .26s ease both}html:active-view-transition-type(crf)::view-transition-new(root){animation:cr-ir .26s ease both}html:active-view-transition-type(crb)::view-transition-old(root){animation:cr-or .26s ease both}html:active-view-transition-type(crb)::view-transition-new(root){animation:cr-il .26s ease both}}</style><script>(function(){if(!("startViewTransition"in document)||!window.navigation)return;function ty(a){try{if(!a||!a.from)return null;var f=new URL(a.from.url).pathname,o=new URL(a.entry.url).pathname;var S=function(p){return p.indexOf("strategy.html")>-1};var I=function(p){return p.charAt(p.length-1)==="/"||p.indexOf("index.html")>-1};if(I(f)&&S(o))return"crf";if(S(f)&&I(o))return"crb"}catch(e){}return null}addEventListener("pageswap",function(e){if(e.viewTransition){var t=ty(e.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}});addEventListener("pagereveal",function(e){if(e.viewTransition){var t=ty(navigation.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}})})();</script>
 <!-- CRPIN -->
 <script>(function(){try{if(localStorage.getItem('cr_pin')==='off')document.documentElement.classList.add('nopin');}catch(e){}})();</script>
@@ -26,86 +27,86 @@
 <body>
 <div class="sitebar">
   <header>
-    <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>クラロワデッキ作成・診断ツール</span></div></a>
-    <nav class="nav-icons" aria-label="主要ページ"><a class="nav-icon" href="/me.html" title="マイページ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg></span></a>
+    <a class="logo" href="index.html"><img class="logo-icon" src="icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>Clash Royale Deck Builder & Analyzer</span></div></a>
+    </header><nav class="nav-icons topbar" aria-label="主要ページ"><a class="nav-icon" href="/me.html" title="マイページ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg></span></a>
       <a class="nav-icon" href="index.html" title="デッキ作成"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 8.5v7M8.5 12h7"/></svg></span></a>
       <a class="nav-icon" href="decks.html" title="人気デッキ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5a1.5 1.5 0 0 0 0 3H7M17 6h2.5a1.5 1.5 0 0 1 0 3H17M9.5 17h5M10 21h4M12 14v3"/></svg></span></a>
       <a class="nav-icon active" href="guide.html" title="使い方ガイド"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H7a3 3 0 0 0-3 3V5.5z"/><path d="M8 7h8M8 11h7M8 15h5"/></svg></span></a>
       <a class="nav-icon" href="support.html" title="支援"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.7S3.5 15.4 3.5 9.3A4.3 4.3 0 0 1 12 6.6 4.3 4.3 0 0 1 20.5 9.3c0 6.1-8.5 11.4-8.5 11.4z"/></svg></span></a>
       <a class="nav-icon" href="contact.html" title="お問い合わせ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></span></a>
     </nav>
-  </header>
 </div>
 
 <main class="content-shell">
   <section class="hero">
     <div class="eyebrow">Deck Building Guide</div>
-    <h1>クラロワのデッキは、8枚を「役割」でつなぐと組みやすい。</h1>
-    <p class="lead">強いカードを8枚並べるだけでは、攻め筋がぼやけたり、守りの穴が残ったりします。CR Deck Buildersでは、勝ち筋、2枚の形、3枚目候補、苦しい相手への受けを順に見ながら、自分で納得してデッキを組めるようにしています。</p>
-    <div class="hero-actions"><a class="btn primary" href="index.html">デッキを組む</a><a class="btn" href="faq.html">よくある質問を見る</a></div>
+    <h1>Clash Royale decks come together when you connect 8 cards by their roles.</h1>
+    <p class="lead">Just lining up 8 strong cards leaves your attack unfocused and holes in your defense. CR Deck Builders walks through your win condition, your two-card core, third-card candidates, and answers to tough matchups — so you build a deck you actually believe in.</p>
+    <div class="hero-actions"><a class="btn primary" href="index.html">Build a Deck</a><a class="btn" href="faq.html">See the FAQ</a></div>
     <div class="toc" aria-label="目次">
-      <a href="#start">最初の1枚</a><a href="#pair">2枚の形</a><a href="#third">3枚目候補</a><a href="#direction">次の方向</a><a href="#threat">苦しい相手</a><a href="#finish">8枚の仕上げ</a>
+      <a href="#start">First card</a><a href="#pair">Two-card core</a><a href="#third">Third-card candidates</a><a href="#direction">Next direction</a><a href="#threat">Tough matchups</a><a href="#finish">Finishing all 8</a>
     </div>
   </section>
 
   <section id="start" class="section">
-    <h2>1. 最初は「勝ち筋」か「使いたいカード」から決める</h2>
-    <p>デッキ作成で迷うときは、最初に軸を1つ決めます。ホグライダー、ロイヤルジャイアント、ラヴァハウンドのような勝ち筋から始めてもいいし、好きな防衛カードや使い慣れたカードから始めても構いません。</p>
-    <p>大事なのは、そのカードで何をしたいかを短く言えることです。「橋前で素早く削る」「大型を受けてカウンターする」「空から形を作る」のように言葉にできると、次の1枚を選びやすくなります。</p>
-    <div class="callout">アシストは自動で完成デッキを押しつけるものではありません。私が横で候補を出し、最後に選ぶのはプレイヤー自身、という考え方で作っています。</div>
+    <h2>1. Start from a win condition — or a card you want to play</h2>
+    <p>When you are stuck, pick one axis first. Start from a win condition like Hog Rider, Royal Giant or Lava Hound — or from a favorite defensive card you know well. Either works.</p>
+    <p>What matters is being able to say, in one short phrase, what you want that card to do. “Chip fast at the bridge,” “absorb tanks and counter,” “build a push from the air” — once it is in words, the next card is much easier to choose.</p>
+    <div class="callout">Assist never forces a finished deck on you. It sits beside you offering candidates — the final pick is always yours.</div>
   </section>
 
   <section id="pair" class="section">
-    <h2>2. 2枚シナジーは「一緒に置く」より「役割がつながる」かを見る</h2>
-    <p>2枚シナジーは、単に同じデッキで見かける組み合わせではなく、片方が作った状況をもう片方が活かせるかで考えると実戦に近くなります。例えば、相手の小物を呪文で処理して勝ち筋を通す、建物で受けてカウンターに変える、空中ユニットを盾役の後ろに置く、といった形です。</p>
+    <h2>2. Two-card synergy means connected roles, not just cards placed together</h2>
+    <p>Real synergy is not two cards that merely appear in the same deck — it is one card exploiting the situation the other creates. A spell clears their swarm so your win condition connects; a building absorbs the push and turns it into a counter; an air unit rides behind a tank.</p>
     <ul>
-      <li><strong>通す2枚：</strong>勝ち筋を守る、邪魔な小物を消す、タワーへ届かせる。</li>
-      <li><strong>受ける2枚：</strong>タンクを止める、小物を散らす、呪文で守りを軽くする。</li>
-      <li><strong>回す2枚：</strong>低コストで手札を整え、同じ攻めを何度も作る。</li>
+      <li><strong>A connecting pair:</strong>Protect the win condition, clear the chaff in its way, get it to the tower.</li>
+      <li><strong>A defending pair:</strong>Stop tanks, scatter swarms, lighten the defense with a spell.</li>
+      <li><strong>A cycling pair:</strong>Shape your hand cheaply and rebuild the same push again and again.</li>
     </ul>
   </section>
 
   <section id="third" class="section">
-    <h2>3. 3枚目は「2枚の形を前に進める1枚」として選ぶ</h2>
-    <p>CR Deck Buildersが見たい3枚目は、固定の3枚セットではありません。すでに選んだ2枚に対して、攻めを通しやすくするか、守りを成立させるか、苦しい相手を受けやすくするかを見ます。</p>
-    <p>たとえば、勝ち筋＋小型呪文まで決めたなら、3枚目は盾役、防衛の起点、空中対策、建物対策などが候補になります。逆に、受けの2枚から始めたなら、守った後にタワーへつなぐカードが必要になることがあります。</p>
+    <h2>3. Pick the third card to move your two-card core forward</h2>
+    <p>The third card is not part of some fixed three-card set. Given the two you picked, it should make your attack connect, make your defense hold, or make a tough matchup easier to receive.</p>
+    <p>If you have a win condition plus a small spell, candidates include a mini-tank, a defensive anchor, anti-air, or a building answer. If you started from a defensive pair instead, you may need the card that carries a successful defense to the tower.</p>
     <div class="grid two">
-      <div class="card"><h3>自然候補</h3><p>今の形を素直に伸ばしやすいカード。迷ったときに扱いやすく、デッキの意図が崩れにくい候補です。</p></div>
-      <div class="card"><h3>発見候補</h3><p>少し意外でも、役割が噛み合えば形を広げられるカード。固定観念から外して試す入口です。</p></div>
+      <div class="card"><h3>Natural picks</h3><p>Cards that extend your current shape in a straightforward way. Easy to handle when unsure, and they keep the deck’s intent intact.</p></div>
+      <div class="card"><h3>Discovery picks</h3><p>Slightly unexpected cards that can widen your shape if the roles click. An invitation to step outside fixed ideas.</p></div>
     </div>
   </section>
 
   <section id="direction" class="section">
-    <h2>4. 3枚そろったら「次はどこを伸ばす？」で方向を選ぶ</h2>
-    <p>4枚目からは、正解の1枚を押し付けるより、伸ばしたい方向をプレイヤーが選べた方が自分のデッキになります。3枚そろうとアシストに <strong>攻撃強化 / 防衛強化 / 回転力強化</strong> が出るので、今いちばん足したい方向を選ぶと、候補がその方向にゆるく絞られます。</p>
+    <h2>4. With three cards in, choose which direction to grow</h2>
+    <p>From the fourth card on, choosing your own direction beats being handed the “correct” pick — that is how the deck becomes yours. Once three cards are in, Assist shows <strong>Boost Offense / Boost Defense / Boost Cycle</strong>  — pick whichever you most want to add right now, and the candidates gently narrow toward it.</p>
     <div class="grid two">
-      <div class="card"><h3>攻撃強化</h3><p>タワーへ届く力や押し込む圧を足す方向。ユニットでも呪文でも、攻めの決定力につながる札を中心に出します。</p></div>
-      <div class="card"><h3>防衛強化</h3><p>受けを作りやすくする方向。対空、群れの処理、大型の受け、相手を止める札など、守りの穴に合わせて出します。</p></div>
-      <div class="card"><h3>回転力強化</h3><p>手札を回しやすくする方向。ただ軽いだけでなく、今のデッキを実際に軽くできるかで見ます。</p></div>
+      <div class="card"><h3>Boost Offense</h3><p>Adds tower-reaching power and pushing pressure. Troops or spells, the candidates center on cards that add finishing power.</p></div>
+      <div class="card"><h3>Boost Defense</h3><p>Makes defending easier. Anti-air, swarm clear, tank absorption, stopping power — matched to the holes in your defense.</p></div>
+      <div class="card"><h3>Boost Cycle</h3><p>Makes the hand cycle faster. Not just cheap cards — it checks whether the card actually lightens this deck.</p></div>
     </div>
-    <p>回転力強化は、平均コストの今の値と合わせて考えます。たとえば平均が軽いデッキにそこそこ重い札を足しても回転は上がりません。逆に、重くなりそうな形なら、3コスト前後の札でも全体を軽くして回しやすくできます。だから同じカードでも、今のデッキ次第で回転への効き方は変わります。</p>
-    <p>方向はいつでも切り替えられますし、選ばなければ今までどおり自然な候補が出ます。攻め・受け・回しのどれを今優先したいかを、自分の意思で決めるための入口です。</p>
+    <p>Cycle is judged against your current average elixir. Adding a mid-heavy card to an already light deck will not speed it up; in a shape trending heavy, even a ~3-elixir card can lighten the whole deck. The same card affects cycle differently depending on the deck it joins.</p>
+    <p>You can switch directions any time, and if you choose none, natural candidates appear as before. It is an entry point for deciding — on your own terms — whether attack, defense or cycle comes first right now.</p>
   </section>
 
   <section id="threat" class="section">
-    <h2>5. 苦しい相手を先に想定すると、対策札が選びやすい</h2>
-    <p>デッキが弱く見える理由は、勝ち筋が弱いからとは限りません。空中大型が重い、小物で止まりやすい、タンク受けが薄い、速い攻めに遅れやすい、建物で受けられやすいなど、構造上の穴が残っていることがあります。</p>
-    <p>「この形で苦しい相手」を先に言葉にすると、次の候補はかなり絞れます。対策札はただ防ぐカードではなく、守った後に自分の攻めへつながるカードを選ぶと、デッキ全体の流れがきれいになります。</p>
-    <p>ただし、一見苦しく見える相手でも、デッキの洗練度や立ち回りで受け切れることがあります。苦手を完全に消すだけでなく、デッキの癖を把握し、どこまでをプレイヤースキルで埋めるかも大事な判断です。</p>
+    <h2>5. Name your tough matchups early and counter cards pick themselves</h2>
+    <p>A deck that feels weak does not necessarily have a weak win condition. Big air units hurt, swarms stall you, tank absorption is thin, fast pushes outpace you, buildings blunt your attack — structural holes like these are often the real cause.</p>
+    <p>Say out loud which matchups hurt this shape, and the candidate list narrows fast. And a counter card should not merely block — pick one that flows into your own attack after defending, and the whole deck runs cleaner.</p>
+    <p>That said, matchups that look bad on paper can often be held through refinement and piloting. Rather than erasing every weakness, knowing your deck’s quirks — and deciding how much to cover with player skill — is part of the craft.</p>
   </section>
 
   <section id="finish" class="section">
-    <h2>6. 8枚に近づいたら、平均コストと役割の抜けを確認する</h2>
-    <p>最後は平均コストだけでなく、手札回し、対空、範囲攻撃、小型呪文、大型呪文、建物、フィニッシャー、防衛からのカウンターを見ます。全部を完璧に入れる必要はありませんが、抜けている理由を自分で説明できると、デッキの癖として扱いやすくなります。</p>
-    <p>デッキの癖を把握できていれば、多少の苦手はプレイヤースキルで埋められます。だから診断は「弱点を全部消すため」だけでなく、「自分がどこを腕で見るか」を決めるためにも使えます。</p>
-    <p>8枚がそろったら、デッキ分析でバランスを確認し、人気デッキページで近い形や環境の流れを見ると、調整の方向が決めやすくなります。</p>
-    <div class="page-links"><a href="cards/index.html">全カードデータ</a><a href="strategy.html">デッキ分析へ</a><a href="decks.html">人気デッキを見る</a><a href="glossary.html">用語集を見る</a><a href="about.html">このサイトについて</a></div>
+    <h2>6. Near 8 cards, check average elixir and missing roles</h2>
+    <p>At the end, look beyond average elixir: hand cycle, anti-air, splash damage, small spell, big spell, building, finisher, and counters out of defense. You do not need all of them — but if you can explain why something is missing, it becomes a quirk you can play around rather than a hole.</p>
+    <p>If you know your deck’s quirks, skill can cover a fair amount of weakness. So use the analysis not only to erase flaws, but to decide which ones you will handle with your own hands.</p>
+    <p>Once all 8 are in, check the balance in Deck Analysis, then browse Popular Decks for similar shapes and the current meta — the direction of your next tweak becomes much clearer.</p>
+    <div class="page-links"><a href="cards/index.html">All Card Data</a><a href="strategy.html">Go to Deck Analysis</a><a href="decks.html">See Popular Decks</a><a href="glossary.html">Open the Glossary</a><a href="about.html">About This Site</a></div>
   </section>
 
-  <p class="meta-note">CR Deck BuildersはSupercellの非公式ファンコンテンツです。クラッシュ・ロワイヤルのカード画像・名称等の権利は各権利者に帰属します。</p>
+  <p class="meta-note">CR Deck Builders is unofficial fan content, not endorsed by Supercell. Clash Royale card images and names belong to their respective owners.</p>
 </main>
 
 <div class="footer-signature"><span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span></div>
-<script defer src="/i18n.js?v=260811g"></script>
+<script defer src="/i18n.js?v=260811k"></script>
+<script defer src="/js/ux-guard.js?v=260811k"></script>
 </body>
 </html>

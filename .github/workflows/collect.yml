@@ -114,6 +114,9 @@ jobs:
       - name: Run collector
         if: steps.freshness.outputs.run_collect == 'true'
         env:
+          # ★2026-08-11：帯別イベントの絞り込みでヒープが尽きてOOM(exit 134)になったため拡張。
+          #   GitHubランナーは16GBあるので8GBまで使ってよい。
+          NODE_OPTIONS: --max-old-space-size=8192
           CR_TOKEN: ${{ secrets.CR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}

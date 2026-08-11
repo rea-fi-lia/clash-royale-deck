@@ -87,6 +87,142 @@ const SEO = {
     'zh-tw': { t: '皇室戰爭牌組分析器 — 平衡與對戰 | CR Deck Builders', d: '分析你的皇室戰爭牌組：聖水曲線、攻防平衡、牌組能力與對戰Meta的勝負關係。免費即時牌組診斷。', k: '牌組分析,皇室戰爭,對戰,平衡,牌組數據' },
     fa: { t: 'تحلیل‌گر دک کلش رویال — تعادل و رویارویی | CR Deck Builders', d: 'دک کلش رویال خود را تحلیل کنید: منحنی اکسیر، تعادل حمله و دفاع، توانایی‌های دک و رویارویی با متا. بررسی رایگان و فوری دک.', k: 'تحلیل دک,کلش رویال,رویارویی,تعادل' },
     nl: { t: 'Clash Royale Deck Analyzer — Balans & Matchups | CR Deck Builders', d: 'Analyseer je Clash Royale deck: elixercurve, aanvals- en verdedigingsbalans, deckcapaciteiten en matchups tegen de meta. Gratis directe deckcheck.', k: 'deck analyzer,clash royale,matchups,balans,deckstatistieken' }
+  },
+  /* ── 2026-08-11 追加：コンテンツ4ページ＋UTIL3ページの言語別SEO文字列。
+   *    これまで index/decks/strategy のみで、残り7ページ×17言語＝119ページが
+   *    日本語title/descのまま生成されていた（AdSense後の開放時に全部SERPへ出る）。 */
+  'guide.html': {
+    en: { t: 'How to Build a Clash Royale Deck — Full Guide | CR Deck Builders', d: 'Learn how to build a winning Clash Royale deck: win conditions, two-card synergies, third-card picks, counters to hard matchups, average elixir, spells and buildings — the full 8-card framework.', k: 'clash royale,deck guide,how to build a deck,win condition,synergy,deck building' },
+    es: { t: 'Cómo Crear un Mazo de Clash Royale — Guía Completa | CR Deck Builders', d: 'Aprende a crear un mazo ganador de Clash Royale: condición de victoria, sinergias de dos cartas, tercera carta, respuestas a rivales difíciles, coste medio, hechizos y edificios.', k: 'clash royale,guía de mazos,cómo hacer un mazo,condición de victoria,sinergia' },
+    'pt-br': { t: 'Como Montar um Deck de Clash Royale — Guia Completo | CR Deck Builders', d: 'Aprenda a montar um deck vencedor de Clash Royale: condição de vitória, sinergias de duas cartas, terceira carta, respostas a confrontos difíceis, custo médio, feitiços e construções.', k: 'clash royale,guia de decks,como montar deck,condição de vitória,sinergia' },
+    fr: { t: 'Comment Créer un Deck Clash Royale — Guide Complet | CR Deck Builders', d: 'Apprenez à créer un deck gagnant : condition de victoire, synergies à deux cartes, troisième carte, réponses aux matchups difficiles, coût moyen en élixir, sorts et bâtiments.', k: 'clash royale,guide deck,créer un deck,condition de victoire,synergie' },
+    de: { t: 'Clash Royale Deck bauen — Kompletter Guide | CR Deck Builders', d: 'Lerne, ein starkes Clash Royale Deck zu bauen: Win-Condition, Zwei-Karten-Synergien, dritte Karte, Antworten auf schwere Matchups, Durchschnittskosten, Zauber und Gebäude.', k: 'clash royale,deck guide,deck bauen,win condition,synergie' },
+    ru: { t: 'Как собрать колоду Clash Royale — полный гайд | CR Deck Builders', d: 'Учимся собирать выигрышную колоду: вин-кондишен, синергии двух карт, третья карта, ответы на сложные матчапы, средний эликсир, заклинания и здания — весь каркас из 8 карт.', k: 'clash royale,гайд по колодам,как собрать колоду,вин кондишен,синергия' },
+    ko: { t: '클래시 로얄 덱 만드는 법 — 완전 가이드 | CR Deck Builders', d: '이기는 덱을 만드는 법: 승리 플랜, 2카드 시너지, 세 번째 카드, 어려운 상성 대응, 평균 엘릭서, 마법과 건물까지 — 8장 구성의 모든 것.', k: '클래시로얄,덱 가이드,덱 만들기,승리 플랜,시너지' },
+    'zh-cn': { t: '皇室战争卡组构筑指南 | CR Deck Builders', d: '学习构筑制胜卡组：核心胜利手段、双卡联动、第三张卡的选择、克制困难对局、平均圣水、法术与建筑——完整的8卡构筑思路。', k: '皇室战争,卡组指南,组卡,胜利手段,联动' },
+    ar: { t: 'دليل بناء مجموعة كلاش رويال | CR Deck Builders', d: 'تعلّم بناء مجموعة رابحة: خطة الفوز، توافق البطاقات، البطاقة الثالثة، الرد على المواجهات الصعبة، متوسط الإكسير، التعاويذ والمباني — إطار كامل لثماني بطاقات.', k: 'كلاش رويال,دليل المجموعات,بناء مجموعة,خطة الفوز' },
+    tr: { t: 'Clash Royale Deste Kurma Rehberi | CR Deck Builders', d: 'Kazandıran deste kurmayı öğren: kazanma koşulu, ikili kart sinerjileri, üçüncü kart seçimi, zor eşleşmelere cevaplar, ortalama iksir, büyüler ve binalar — 8 kartlık tam çerçeve.', k: 'clash royale,deste rehberi,deste kurma,kazanma koşulu,sinerji' },
+    it: { t: 'Come Creare un Mazzo di Clash Royale — Guida Completa | CR Deck Builders', d: 'Impara a creare un mazzo vincente: win condition, sinergie a due carte, terza carta, risposte ai matchup difficili, costo medio di elisir, incantesimi ed edifici.', k: 'clash royale,guida mazzi,creare un mazzo,win condition,sinergia' },
+    id: { t: 'Cara Membuat Dek Clash Royale — Panduan Lengkap | CR Deck Builders', d: 'Pelajari cara membuat dek yang menang: win condition, sinergi dua kartu, kartu ketiga, jawaban untuk lawan sulit, rata-rata elixir, spell dan bangunan — kerangka lengkap 8 kartu.', k: 'clash royale,panduan dek,membuat dek,win condition,sinergi' },
+    th: { t: 'วิธีจัดเด็ค Clash Royale — คู่มือฉบับเต็ม | CR Deck Builders', d: 'เรียนรู้การจัดเด็คให้ชนะ: เงื่อนไขชัยชนะ ซินเนอร์จี้สองใบ การ์ดใบที่สาม วิธีรับมือแมตช์ยาก ค่าเฉลี่ยอิลิกเซอร์ เวทและสิ่งก่อสร้าง', k: 'clash royale,คู่มือเด็ค,จัดเด็ค,เงื่อนไขชัยชนะ' },
+    vi: { t: 'Cách Xây Bộ Bài Clash Royale — Hướng Dẫn Đầy Đủ | CR Deck Builders', d: 'Học cách xây bộ bài chiến thắng: win condition, cộng hưởng hai lá, lá thứ ba, cách xử lý kèo khó, elixir trung bình, phép và công trình — khung 8 lá hoàn chỉnh.', k: 'clash royale,hướng dẫn bộ bài,xây bộ bài,win condition' },
+    'zh-tw': { t: '皇室戰爭牌組構築指南 | CR Deck Builders', d: '學習構築致勝牌組：核心勝利手段、雙卡連動、第三張卡的選擇、克制困難對局、平均聖水、法術與建築——完整的8卡構築思路。', k: '皇室戰爭,牌組指南,組牌,勝利手段,連動' },
+    fa: { t: 'راهنمای ساخت دک کلش رویال | CR Deck Builders', d: 'ساخت دک برنده را یاد بگیرید: شرط برد، هم‌افزایی دو کارت، کارت سوم، پاسخ به مچ‌آپ‌های سخت، میانگین اکسیر، طلسم‌ها و ساختمان‌ها — چارچوب کامل هشت کارت.', k: 'کلش رویال,راهنمای دک,ساخت دک,شرط برد' },
+    nl: { t: 'Een Clash Royale Deck Bouwen — Complete Gids | CR Deck Builders', d: 'Leer een winnend deck bouwen: win condition, synergie tussen twee kaarten, derde kaart, antwoorden op lastige matchups, gemiddelde elixer, spells en gebouwen — het volledige 8-kaartenkader.', k: 'clash royale,deck gids,deck bouwen,win condition,synergie' }
+  },
+  'about.html': {
+    en: { t: 'About CR Deck Builders | Clash Royale Deck Tools', d: 'CR Deck Builders is a free unofficial fan tool for building, checking and exploring Clash Royale decks, powered by hourly top-ladder data. Learn how the site works and how it is made.', k: 'cr deck builders,about,clash royale tools,fan site' },
+    es: { t: 'Acerca de CR Deck Builders | Herramientas de Mazos', d: 'CR Deck Builders es una herramienta fan no oficial y gratuita para crear, analizar y explorar mazos de Clash Royale con datos del top mundial actualizados cada hora. Conoce el proyecto.', k: 'cr deck builders,acerca de,herramientas clash royale' },
+    'pt-br': { t: 'Sobre o CR Deck Builders | Ferramentas de Decks', d: 'O CR Deck Builders é uma ferramenta de fã, gratuita e não oficial, para montar, analisar e explorar decks de Clash Royale com dados do topo mundial atualizados a cada hora. Conheça o projeto.', k: 'cr deck builders,sobre,ferramentas clash royale' },
+    fr: { t: 'À Propos de CR Deck Builders | Outils de Decks', d: 'CR Deck Builders est un outil de fan non officiel et gratuit pour créer, analyser et explorer des decks Clash Royale, avec des données du top mondial mises à jour chaque heure.', k: 'cr deck builders,à propos,outils clash royale' },
+    de: { t: 'Über CR Deck Builders | Clash Royale Deck-Tools', d: 'CR Deck Builders ist ein kostenloses, inoffizielles Fan-Tool zum Bauen, Prüfen und Erkunden von Clash Royale Decks — mit stündlich aktualisierten Daten der Weltspitze. Mehr über das Projekt.', k: 'cr deck builders,über uns,clash royale tools' },
+    ru: { t: 'О сайте CR Deck Builders | Инструменты для колод', d: 'CR Deck Builders — бесплатный неофициальный фан-инструмент для сборки, проверки и изучения колод Clash Royale с ежечасно обновляемыми данными топ-игроков. Узнайте о проекте.', k: 'cr deck builders,о сайте,инструменты clash royale' },
+    ko: { t: 'CR Deck Builders 소개 | 클래시 로얄 덱 도구', d: 'CR Deck Builders는 매시간 갱신되는 상위 랭커 데이터로 덱을 만들고 진단하고 탐색하는 무료 비공식 팬 도구입니다. 사이트의 목적과 만든 방식을 소개합니다.', k: 'cr deck builders,소개,클래시로얄 도구' },
+    'zh-cn': { t: '关于 CR Deck Builders | 皇室战争卡组工具', d: 'CR Deck Builders 是免费的非官方粉丝工具，基于每小时更新的高端玩家数据，构建、诊断并浏览皇室战争卡组。了解本站的开发方针。', k: 'cr deck builders,关于,皇室战争工具' },
+    ar: { t: 'حول CR Deck Builders | أدوات مجموعات كلاش رويال', d: 'CR Deck Builders أداة مجانية غير رسمية من المعجبين لبناء مجموعات كلاش رويال وتحليلها واستكشافها، ببيانات كبار اللاعبين المحدّثة كل ساعة. تعرّف على المشروع.', k: 'cr deck builders,حول,أدوات كلاش رويال' },
+    tr: { t: 'CR Deck Builders Hakkında | Deste Araçları', d: 'CR Deck Builders; saatlik güncellenen üst sıra verileriyle Clash Royale destesi kurmak, kontrol etmek ve keşfetmek için ücretsiz, resmi olmayan bir hayran aracıdır. Projeyi tanıyın.', k: 'cr deck builders,hakkında,clash royale araçları' },
+    it: { t: 'Chi Siamo — CR Deck Builders | Strumenti per Mazzi', d: 'CR Deck Builders è uno strumento fan gratuito e non ufficiale per creare, analizzare ed esplorare mazzi di Clash Royale, con dati dei top player aggiornati ogni ora. Scopri il progetto.', k: 'cr deck builders,chi siamo,strumenti clash royale' },
+    id: { t: 'Tentang CR Deck Builders | Alat Dek Clash Royale', d: 'CR Deck Builders adalah alat fan tidak resmi dan gratis untuk membuat, memeriksa, dan menjelajahi dek Clash Royale dengan data pemain top yang diperbarui setiap jam. Kenali proyek ini.', k: 'cr deck builders,tentang,alat clash royale' },
+    th: { t: 'เกี่ยวกับ CR Deck Builders | เครื่องมือเด็ค', d: 'CR Deck Builders คือเครื่องมือแฟนเมดฟรีที่ไม่เป็นทางการ สำหรับสร้าง วิเคราะห์ และสำรวจเด็ค Clash Royale ด้วยข้อมูลผู้เล่นอันดับต้นที่อัปเดตทุกชั่วโมง', k: 'cr deck builders,เกี่ยวกับ,เครื่องมือ clash royale' },
+    vi: { t: 'Về CR Deck Builders | Công Cụ Bộ Bài Clash Royale', d: 'CR Deck Builders là công cụ fan không chính thức, miễn phí để xây, kiểm tra và khám phá bộ bài Clash Royale với dữ liệu top thủ cập nhật mỗi giờ. Tìm hiểu về dự án.', k: 'cr deck builders,giới thiệu,công cụ clash royale' },
+    'zh-tw': { t: '關於 CR Deck Builders | 皇室戰爭牌組工具', d: 'CR Deck Builders 是免費的非官方粉絲工具，基於每小時更新的高端玩家數據，構築、診斷並瀏覽皇室戰爭牌組。了解本站的開發方針。', k: 'cr deck builders,關於,皇室戰爭工具' },
+    fa: { t: 'درباره CR Deck Builders | ابزار دک کلش رویال', d: 'CR Deck Builders ابزاری رایگان و غیررسمی از طرفداران برای ساخت، بررسی و کاوش دک‌های کلش رویال با داده‌های بازیکنان برتر است که هر ساعت به‌روزرسانی می‌شود.', k: 'cr deck builders,درباره,ابزار کلش رویال' },
+    nl: { t: 'Over CR Deck Builders | Clash Royale Deck-Tools', d: 'CR Deck Builders is een gratis, onofficiële fantool om Clash Royale decks te bouwen, te checken en te verkennen, met elk uur bijgewerkte data van topspelers. Lees meer over het project.', k: 'cr deck builders,over,clash royale tools' }
+  },
+  'faq.html': {
+    en: { t: 'FAQ — Clash Royale Deck Builder | CR Deck Builders', d: 'Frequently asked questions about CR Deck Builders: how to build decks, use the assist, read popular-deck stats, copy decks to the game, data sources and privacy.', k: 'faq,clash royale,deck builder,questions' },
+    es: { t: 'Preguntas Frecuentes | CR Deck Builders', d: 'Preguntas frecuentes sobre CR Deck Builders: cómo crear mazos, usar el asistente, leer estadísticas de mazos populares, copiar mazos al juego, fuentes de datos y privacidad.', k: 'faq,preguntas,clash royale,mazos' },
+    'pt-br': { t: 'Perguntas Frequentes | CR Deck Builders', d: 'Perguntas frequentes sobre o CR Deck Builders: como montar decks, usar o assistente, ler estatísticas de decks populares, copiar decks para o jogo, fontes de dados e privacidade.', k: 'faq,perguntas,clash royale,decks' },
+    fr: { t: 'FAQ — Questions Fréquentes | CR Deck Builders', d: 'Questions fréquentes sur CR Deck Builders : créer des decks, utiliser l’assistant, lire les stats des decks populaires, copier un deck dans le jeu, sources de données et confidentialité.', k: 'faq,questions,clash royale,decks' },
+    de: { t: 'FAQ — Häufige Fragen | CR Deck Builders', d: 'Häufige Fragen zu CR Deck Builders: Decks bauen, den Assistenten nutzen, Statistiken beliebter Decks lesen, Decks ins Spiel kopieren, Datenquellen und Datenschutz.', k: 'faq,fragen,clash royale,decks' },
+    ru: { t: 'FAQ — частые вопросы | CR Deck Builders', d: 'Частые вопросы о CR Deck Builders: как собирать колоды, пользоваться ассистентом, читать статистику популярных колод, копировать колоды в игру, источники данных и приватность.', k: 'faq,вопросы,clash royale,колоды' },
+    ko: { t: '자주 묻는 질문 | CR Deck Builders', d: 'CR Deck Builders에 대한 자주 묻는 질문: 덱 만드는 법, 어시스트 사용법, 인기 덱 통계 보는 법, 게임으로 덱 복사, 데이터 출처와 개인정보.', k: 'faq,질문,클래시로얄,덱' },
+    'zh-cn': { t: '常见问题 | CR Deck Builders', d: '关于 CR Deck Builders 的常见问题：如何组卡、如何使用助手、如何看热门卡组数据、如何把卡组复制进游戏、数据来源与隐私。', k: '常见问题,faq,皇室战争,卡组' },
+    ar: { t: 'الأسئلة الشائعة | CR Deck Builders', d: 'الأسئلة الشائعة حول CR Deck Builders: بناء المجموعات، استخدام المساعد، قراءة إحصاءات المجموعات الشائعة، نسخ المجموعة إلى اللعبة، مصادر البيانات والخصوصية.', k: 'أسئلة شائعة,كلاش رويال,مجموعات' },
+    tr: { t: 'SSS — Sık Sorulan Sorular | CR Deck Builders', d: 'CR Deck Builders hakkında sık sorulan sorular: deste kurma, asistanı kullanma, popüler deste istatistiklerini okuma, desteyi oyuna kopyalama, veri kaynakları ve gizlilik.', k: 'sss,sorular,clash royale,deste' },
+    it: { t: 'FAQ — Domande Frequenti | CR Deck Builders', d: 'Domande frequenti su CR Deck Builders: creare mazzi, usare l’assistente, leggere le statistiche dei mazzi popolari, copiare i mazzi nel gioco, fonti dei dati e privacy.', k: 'faq,domande,clash royale,mazzi' },
+    id: { t: 'FAQ — Pertanyaan Umum | CR Deck Builders', d: 'Pertanyaan umum tentang CR Deck Builders: cara membuat dek, memakai asisten, membaca statistik dek populer, menyalin dek ke gim, sumber data, dan privasi.', k: 'faq,pertanyaan,clash royale,dek' },
+    th: { t: 'คำถามที่พบบ่อย | CR Deck Builders', d: 'คำถามที่พบบ่อยเกี่ยวกับ CR Deck Builders: วิธีจัดเด็ค การใช้ตัวช่วย การอ่านสถิติเด็คยอดนิยม การคัดลอกเด็คเข้าเกม แหล่งข้อมูล และความเป็นส่วนตัว', k: 'คำถามที่พบบ่อย,clash royale,เด็ค' },
+    vi: { t: 'Câu Hỏi Thường Gặp | CR Deck Builders', d: 'Câu hỏi thường gặp về CR Deck Builders: cách xây bộ bài, dùng trợ lý, đọc thống kê bộ bài phổ biến, sao chép bộ bài vào game, nguồn dữ liệu và quyền riêng tư.', k: 'faq,câu hỏi,clash royale,bộ bài' },
+    'zh-tw': { t: '常見問題 | CR Deck Builders', d: '關於 CR Deck Builders 的常見問題：如何組牌、如何使用助手、如何看熱門牌組數據、如何把牌組複製進遊戲、資料來源與隱私。', k: '常見問題,faq,皇室戰爭,牌組' },
+    fa: { t: 'پرسش‌های متداول | CR Deck Builders', d: 'پرسش‌های متداول درباره CR Deck Builders: ساخت دک، استفاده از دستیار، خواندن آمار دک‌های محبوب، کپی دک به بازی، منابع داده و حریم خصوصی.', k: 'پرسش‌های متداول,کلش رویال,دک' },
+    nl: { t: 'FAQ — Veelgestelde Vragen | CR Deck Builders', d: 'Veelgestelde vragen over CR Deck Builders: decks bouwen, de assistent gebruiken, statistieken van populaire decks lezen, decks naar het spel kopiëren, databronnen en privacy.', k: 'faq,vragen,clash royale,decks' }
+  },
+  'glossary.html': {
+    en: { t: 'Clash Royale Deck Glossary | CR Deck Builders', d: 'Deck-building terms explained: win condition, synergy, third-card picks, counter cards, average elixir, cycle, air defense, swarm control and more.', k: 'clash royale,glossary,terms,win condition,synergy,counter' },
+    es: { t: 'Glosario de Mazos de Clash Royale | CR Deck Builders', d: 'Términos de creación de mazos explicados: condición de victoria, sinergia, tercera carta, cartas de respuesta, coste medio, ciclo, defensa aérea y control de enjambres.', k: 'clash royale,glosario,términos,condición de victoria' },
+    'pt-br': { t: 'Glossário de Decks de Clash Royale | CR Deck Builders', d: 'Termos de construção de decks explicados: condição de vitória, sinergia, terceira carta, cartas de resposta, custo médio, ciclo, defesa aérea e controle de hordas.', k: 'clash royale,glossário,termos,condição de vitória' },
+    fr: { t: 'Glossaire des Decks Clash Royale | CR Deck Builders', d: 'Les termes de la création de decks expliqués : condition de victoire, synergie, troisième carte, cartes de réponse, coût moyen, cycle, défense anti-air et contrôle des nuées.', k: 'clash royale,glossaire,termes,condition de victoire' },
+    de: { t: 'Clash Royale Deck-Glossar | CR Deck Builders', d: 'Deckbau-Begriffe erklärt: Win-Condition, Synergie, dritte Karte, Konterkarten, Durchschnittskosten, Cycle, Luftverteidigung und Schwarmkontrolle.', k: 'clash royale,glossar,begriffe,win condition' },
+    ru: { t: 'Словарь терминов колод Clash Royale | CR Deck Builders', d: 'Термины дек-билдинга: вин-кондишен, синергия, третья карта, карты-ответы, средний эликсир, цикл, ПВО и контроль толпы.', k: 'clash royale,словарь,термины,вин кондишен' },
+    ko: { t: '클래시 로얄 덱 용어집 | CR Deck Builders', d: '덱 구성 용어 정리: 승리 플랜, 시너지, 세 번째 카드, 대응 카드, 평균 엘릭서, 순환, 대공, 물량 처리 등.', k: '클래시로얄,용어집,승리 플랜,시너지' },
+    'zh-cn': { t: '皇室战争卡组术语表 | CR Deck Builders', d: '组卡术语解释：胜利手段、联动、第三张卡、克制卡、平均圣水、循环、对空、清群等。', k: '皇室战争,术语表,胜利手段,联动' },
+    ar: { t: 'مسرد مصطلحات مجموعات كلاش رويال | CR Deck Builders', d: 'شرح مصطلحات بناء المجموعات: خطة الفوز، التوافق، البطاقة الثالثة، بطاقات الرد، متوسط الإكسير، الدورة، الدفاع الجوي والتعامل مع الحشود.', k: 'كلاش رويال,مسرد,مصطلحات' },
+    tr: { t: 'Clash Royale Deste Terimleri Sözlüğü | CR Deck Builders', d: 'Deste kurma terimleri: kazanma koşulu, sinerji, üçüncü kart, cevap kartları, ortalama iksir, döngü, hava savunması ve kalabalık kontrolü.', k: 'clash royale,sözlük,terimler,kazanma koşulu' },
+    it: { t: 'Glossario dei Mazzi di Clash Royale | CR Deck Builders', d: 'I termini del deck building spiegati: win condition, sinergia, terza carta, carte risposta, costo medio di elisir, ciclo, difesa aerea e controllo degli sciami.', k: 'clash royale,glossario,termini,win condition' },
+    id: { t: 'Glosarium Dek Clash Royale | CR Deck Builders', d: 'Istilah pembuatan dek dijelaskan: win condition, sinergi, kartu ketiga, kartu jawaban, rata-rata elixir, siklus, pertahanan udara, dan kontrol gerombolan.', k: 'clash royale,glosarium,istilah,win condition' },
+    th: { t: 'อภิธานศัพท์เด็ค Clash Royale | CR Deck Builders', d: 'อธิบายศัพท์การจัดเด็ค: เงื่อนไขชัยชนะ ซินเนอร์จี้ การ์ดใบที่สาม การ์ดรับมือ ค่าเฉลี่ยอิลิกเซอร์ วงจรหมุนเวียน การป้องกันทางอากาศ', k: 'clash royale,อภิธานศัพท์,ศัพท์' },
+    vi: { t: 'Thuật Ngữ Bộ Bài Clash Royale | CR Deck Builders', d: 'Giải thích thuật ngữ xây bộ bài: win condition, cộng hưởng, lá thứ ba, lá khắc chế, elixir trung bình, chu kỳ, phòng không và xử lý bầy đàn.', k: 'clash royale,thuật ngữ,win condition' },
+    'zh-tw': { t: '皇室戰爭牌組術語表 | CR Deck Builders', d: '組牌術語解釋：勝利手段、連動、第三張卡、克制卡、平均聖水、循環、對空、清群等。', k: '皇室戰爭,術語表,勝利手段,連動' },
+    fa: { t: 'واژه‌نامه دک کلش رویال | CR Deck Builders', d: 'توضیح اصطلاحات ساخت دک: شرط برد، هم‌افزایی، کارت سوم، کارت‌های پاسخ، میانگین اکسیر، چرخه، پدافند هوایی و کنترل ازدحام.', k: 'کلش رویال,واژه‌نامه,اصطلاحات' },
+    nl: { t: 'Clash Royale Deck-Woordenlijst | CR Deck Builders', d: 'Deckbouwtermen uitgelegd: win condition, synergie, derde kaart, counterkaarten, gemiddelde elixer, cycle, luchtverdediging en swarmcontrole.', k: 'clash royale,woordenlijst,termen,win condition' }
+  },
+  'support.html': {
+    en: { t: 'Support & Donations | CR Deck Builders', d: 'Support the development of CR Deck Builders with a donation. Donations help cover data collection and hosting for this free Clash Royale fan tool.', k: 'support,donation,cr deck builders' },
+    es: { t: 'Apoyo y Donaciones | CR Deck Builders', d: 'Apoya el desarrollo de CR Deck Builders con una donación. Las donaciones ayudan a cubrir la recopilación de datos y el alojamiento de esta herramienta fan gratuita.', k: 'apoyo,donación,cr deck builders' },
+    'pt-br': { t: 'Apoio e Doações | CR Deck Builders', d: 'Apoie o desenvolvimento do CR Deck Builders com uma doação. As doações ajudam a cobrir a coleta de dados e a hospedagem desta ferramenta de fã gratuita.', k: 'apoio,doação,cr deck builders' },
+    fr: { t: 'Soutien et Dons | CR Deck Builders', d: 'Soutenez le développement de CR Deck Builders par un don. Les dons couvrent la collecte de données et l’hébergement de cet outil de fan gratuit.', k: 'soutien,don,cr deck builders' },
+    de: { t: 'Unterstützung & Spenden | CR Deck Builders', d: 'Unterstütze die Entwicklung von CR Deck Builders mit einer Spende. Spenden helfen, Datensammlung und Hosting dieses kostenlosen Fan-Tools zu decken.', k: 'unterstützung,spende,cr deck builders' },
+    ru: { t: 'Поддержка и пожертвования | CR Deck Builders', d: 'Поддержите развитие CR Deck Builders пожертвованием. Пожертвования помогают покрывать сбор данных и хостинг этого бесплатного фан-инструмента.', k: 'поддержка,пожертвование,cr deck builders' },
+    ko: { t: '후원 안내 | CR Deck Builders', d: '후원으로 CR Deck Builders의 개발을 응원해 주세요. 후원금은 이 무료 팬 도구의 데이터 수집과 호스팅 비용에 쓰입니다.', k: '후원,기부,cr deck builders' },
+    'zh-cn': { t: '支持与捐助 | CR Deck Builders', d: '通过捐助支持 CR Deck Builders 的开发。捐助将用于这款免费粉丝工具的数据收集与托管费用。', k: '支持,捐助,cr deck builders' },
+    ar: { t: 'الدعم والتبرعات | CR Deck Builders', d: 'ادعم تطوير CR Deck Builders بتبرع. تساعد التبرعات في تغطية تكاليف جمع البيانات والاستضافة لهذه الأداة المجانية.', k: 'دعم,تبرع,cr deck builders' },
+    tr: { t: 'Destek ve Bağış | CR Deck Builders', d: 'Bir bağışla CR Deck Builders’ın geliştirilmesine destek olun. Bağışlar bu ücretsiz hayran aracının veri toplama ve barındırma maliyetlerini karşılar.', k: 'destek,bağış,cr deck builders' },
+    it: { t: 'Sostegno e Donazioni | CR Deck Builders', d: 'Sostieni lo sviluppo di CR Deck Builders con una donazione. Le donazioni coprono la raccolta dati e l’hosting di questo strumento fan gratuito.', k: 'sostegno,donazione,cr deck builders' },
+    id: { t: 'Dukungan & Donasi | CR Deck Builders', d: 'Dukung pengembangan CR Deck Builders dengan donasi. Donasi membantu menutup biaya pengumpulan data dan hosting alat fan gratis ini.', k: 'dukungan,donasi,cr deck builders' },
+    th: { t: 'สนับสนุนและบริจาค | CR Deck Builders', d: 'สนับสนุนการพัฒนา CR Deck Builders ด้วยการบริจาค เงินบริจาคช่วยครอบคลุมค่าเก็บข้อมูลและโฮสติงของเครื่องมือแฟนเมดฟรีนี้', k: 'สนับสนุน,บริจาค,cr deck builders' },
+    vi: { t: 'Ủng Hộ & Quyên Góp | CR Deck Builders', d: 'Ủng hộ việc phát triển CR Deck Builders bằng một khoản quyên góp. Quyên góp giúp trang trải chi phí thu thập dữ liệu và lưu trữ của công cụ fan miễn phí này.', k: 'ủng hộ,quyên góp,cr deck builders' },
+    'zh-tw': { t: '支持與捐助 | CR Deck Builders', d: '透過捐助支持 CR Deck Builders 的開發。捐助將用於這款免費粉絲工具的資料收集與託管費用。', k: '支持,捐助,cr deck builders' },
+    fa: { t: 'حمایت و کمک مالی | CR Deck Builders', d: 'با کمک مالی از توسعه CR Deck Builders حمایت کنید. کمک‌ها هزینه جمع‌آوری داده و میزبانی این ابزار رایگان را پوشش می‌دهد.', k: 'حمایت,کمک مالی,cr deck builders' },
+    nl: { t: 'Steun & Donaties | CR Deck Builders', d: 'Steun de ontwikkeling van CR Deck Builders met een donatie. Donaties dekken de dataverzameling en hosting van deze gratis fantool.', k: 'steun,donatie,cr deck builders' }
+  },
+  'contact.html': {
+    en: { t: 'Contact & Requests | CR Deck Builders', d: 'Send feature requests, card-addition requests, bug reports and questions about CR Deck Builders here.', k: 'contact,request,cr deck builders' },
+    es: { t: 'Contacto y Solicitudes | CR Deck Builders', d: 'Envía aquí solicitudes de funciones, peticiones de cartas nuevas, informes de errores y preguntas sobre CR Deck Builders.', k: 'contacto,solicitud,cr deck builders' },
+    'pt-br': { t: 'Contato e Solicitações | CR Deck Builders', d: 'Envie aqui pedidos de recursos, solicitações de novas cartas, relatos de bugs e dúvidas sobre o CR Deck Builders.', k: 'contato,solicitação,cr deck builders' },
+    fr: { t: 'Contact et Demandes | CR Deck Builders', d: 'Envoyez ici vos demandes de fonctionnalités, d’ajout de cartes, vos signalements de bugs et vos questions sur CR Deck Builders.', k: 'contact,demande,cr deck builders' },
+    de: { t: 'Kontakt & Anfragen | CR Deck Builders', d: 'Sende hier Funktionswünsche, Anfragen für neue Karten, Fehlerberichte und Fragen zu CR Deck Builders.', k: 'kontakt,anfrage,cr deck builders' },
+    ru: { t: 'Контакты и запросы | CR Deck Builders', d: 'Отправляйте сюда запросы функций, просьбы о добавлении карт, сообщения об ошибках и вопросы о CR Deck Builders.', k: 'контакты,запрос,cr deck builders' },
+    ko: { t: '문의 및 요청 | CR Deck Builders', d: '기능 요청, 카드 추가 요청, 버그 신고, CR Deck Builders에 대한 질문은 여기로 보내주세요.', k: '문의,요청,cr deck builders' },
+    'zh-cn': { t: '联系与请求 | CR Deck Builders', d: '功能请求、新卡添加请求、错误报告以及关于 CR Deck Builders 的问题，请从这里提交。', k: '联系,请求,cr deck builders' },
+    ar: { t: 'التواصل والطلبات | CR Deck Builders', d: 'أرسل من هنا طلبات الميزات وإضافة البطاقات وتقارير الأخطاء وأسئلتك حول CR Deck Builders.', k: 'تواصل,طلب,cr deck builders' },
+    tr: { t: 'İletişim ve İstekler | CR Deck Builders', d: 'Özellik isteklerini, kart ekleme taleplerini, hata bildirimlerini ve CR Deck Builders hakkındaki sorularını buradan gönder.', k: 'iletişim,istek,cr deck builders' },
+    it: { t: 'Contatti e Richieste | CR Deck Builders', d: 'Invia qui richieste di funzionalità, richieste di nuove carte, segnalazioni di bug e domande su CR Deck Builders.', k: 'contatti,richiesta,cr deck builders' },
+    id: { t: 'Kontak & Permintaan | CR Deck Builders', d: 'Kirimkan permintaan fitur, permintaan penambahan kartu, laporan bug, dan pertanyaan tentang CR Deck Builders di sini.', k: 'kontak,permintaan,cr deck builders' },
+    th: { t: 'ติดต่อและคำขอ | CR Deck Builders', d: 'ส่งคำขอฟีเจอร์ คำขอเพิ่มการ์ด รายงานบั๊ก และคำถามเกี่ยวกับ CR Deck Builders ได้ที่นี่', k: 'ติดต่อ,คำขอ,cr deck builders' },
+    vi: { t: 'Liên Hệ & Yêu Cầu | CR Deck Builders', d: 'Gửi yêu cầu tính năng, yêu cầu thêm lá bài, báo lỗi và câu hỏi về CR Deck Builders tại đây.', k: 'liên hệ,yêu cầu,cr deck builders' },
+    'zh-tw': { t: '聯絡與請求 | CR Deck Builders', d: '功能請求、新卡添加請求、錯誤回報以及關於 CR Deck Builders 的問題，請從這裡提交。', k: '聯絡,請求,cr deck builders' },
+    fa: { t: 'تماس و درخواست‌ها | CR Deck Builders', d: 'درخواست قابلیت، درخواست افزودن کارت، گزارش اشکال و پرسش‌های خود درباره CR Deck Builders را از اینجا بفرستید.', k: 'تماس,درخواست,cr deck builders' },
+    nl: { t: 'Contact & Verzoeken | CR Deck Builders', d: 'Stuur hier functieverzoeken, verzoeken om nieuwe kaarten, bugmeldingen en vragen over CR Deck Builders.', k: 'contact,verzoek,cr deck builders' }
+  },
+  'privacy.html': {
+    en: { t: 'Privacy Policy | CR Deck Builders', d: 'Privacy policy of CR Deck Builders: what data the site uses (analytics, ads, login), how it is stored, and how to contact us.', k: 'privacy policy,cr deck builders' },
+    es: { t: 'Política de Privacidad | CR Deck Builders', d: 'Política de privacidad de CR Deck Builders: qué datos usa el sitio (analítica, anuncios, inicio de sesión), cómo se almacenan y cómo contactarnos.', k: 'política de privacidad,cr deck builders' },
+    'pt-br': { t: 'Política de Privacidade | CR Deck Builders', d: 'Política de privacidade do CR Deck Builders: quais dados o site usa (análise, anúncios, login), como são armazenados e como falar conosco.', k: 'política de privacidade,cr deck builders' },
+    fr: { t: 'Politique de Confidentialité | CR Deck Builders', d: 'Politique de confidentialité de CR Deck Builders : quelles données le site utilise (analyse, publicités, connexion), comment elles sont stockées et comment nous contacter.', k: 'politique de confidentialité,cr deck builders' },
+    de: { t: 'Datenschutzerklärung | CR Deck Builders', d: 'Datenschutzerklärung von CR Deck Builders: welche Daten die Seite nutzt (Analyse, Werbung, Login), wie sie gespeichert werden und wie du uns erreichst.', k: 'datenschutz,cr deck builders' },
+    ru: { t: 'Политика конфиденциальности | CR Deck Builders', d: 'Политика конфиденциальности CR Deck Builders: какие данные использует сайт (аналитика, реклама, вход), как они хранятся и как с нами связаться.', k: 'политика конфиденциальности,cr deck builders' },
+    ko: { t: '개인정보 처리방침 | CR Deck Builders', d: 'CR Deck Builders의 개인정보 처리방침: 사이트가 사용하는 데이터(분석, 광고, 로그인), 저장 방식, 문의 방법을 안내합니다.', k: '개인정보 처리방침,cr deck builders' },
+    'zh-cn': { t: '隐私政策 | CR Deck Builders', d: 'CR Deck Builders 的隐私政策：本站使用哪些数据（分析、广告、登录）、如何存储以及联系方式。', k: '隐私政策,cr deck builders' },
+    ar: { t: 'سياسة الخصوصية | CR Deck Builders', d: 'سياسة الخصوصية لـ CR Deck Builders: ما البيانات التي يستخدمها الموقع (التحليلات، الإعلانات، تسجيل الدخول)، وكيف تُخزَّن، وكيف تتواصل معنا.', k: 'سياسة الخصوصية,cr deck builders' },
+    tr: { t: 'Gizlilik Politikası | CR Deck Builders', d: 'CR Deck Builders gizlilik politikası: sitenin kullandığı veriler (analiz, reklam, giriş), nasıl saklandığı ve bize nasıl ulaşacağın.', k: 'gizlilik politikası,cr deck builders' },
+    it: { t: 'Informativa sulla Privacy | CR Deck Builders', d: 'Informativa sulla privacy di CR Deck Builders: quali dati usa il sito (analisi, annunci, accesso), come vengono conservati e come contattarci.', k: 'privacy,cr deck builders' },
+    id: { t: 'Kebijakan Privasi | CR Deck Builders', d: 'Kebijakan privasi CR Deck Builders: data apa yang dipakai situs (analitik, iklan, login), cara penyimpanannya, dan cara menghubungi kami.', k: 'kebijakan privasi,cr deck builders' },
+    th: { t: 'นโยบายความเป็นส่วนตัว | CR Deck Builders', d: 'นโยบายความเป็นส่วนตัวของ CR Deck Builders: เว็บไซต์ใช้ข้อมูลใดบ้าง (วิเคราะห์ โฆษณา ล็อกอิน) จัดเก็บอย่างไร และติดต่อเราได้อย่างไร', k: 'นโยบายความเป็นส่วนตัว,cr deck builders' },
+    vi: { t: 'Chính Sách Bảo Mật | CR Deck Builders', d: 'Chính sách bảo mật của CR Deck Builders: trang web dùng dữ liệu gì (phân tích, quảng cáo, đăng nhập), lưu trữ ra sao và cách liên hệ.', k: 'chính sách bảo mật,cr deck builders' },
+    'zh-tw': { t: '隱私權政策 | CR Deck Builders', d: 'CR Deck Builders 的隱私權政策：本站使用哪些資料（分析、廣告、登入）、如何儲存以及聯絡方式。', k: '隱私權政策,cr deck builders' },
+    fa: { t: 'سیاست حریم خصوصی | CR Deck Builders', d: 'سیاست حریم خصوصی CR Deck Builders: سایت از چه داده‌هایی استفاده می‌کند (تحلیل، تبلیغات، ورود)، نحوه نگهداری و راه تماس با ما.', k: 'حریم خصوصی,cr deck builders' },
+    nl: { t: 'Privacybeleid | CR Deck Builders', d: 'Privacybeleid van CR Deck Builders: welke gegevens de site gebruikt (analyse, advertenties, inloggen), hoe ze worden bewaard en hoe je ons bereikt.', k: 'privacybeleid,cr deck builders' }
   }
 };
 
@@ -125,6 +261,46 @@ function absolutizeAssets(html) {
     .replace(/(href|src)="css\//g, '$1="/css/')
     .replace(/(href|src)="js\//g, '$1="/js/')
     .replace(/src="(auth\.js|i18n\.js|firebase-config\.js)/g, 'src="/$1');
+}
+
+/* ── 本文の静的翻訳（2026-08-11 追加） ─────────────────────────────
+ * tools/i18n-content/<lang>.json（形式: { "日本語原文(trim)": "翻訳" }）があれば、
+ * 生成時にテキストノード単位で置換して「静的に翻訳済みの言語ページ」を出す。
+ * 辞書に無い文はそのまま（＝日本語fallback。壊れない）。
+ * 日本語ページが正本：日本語を編集→gen-i18n再実行→全言語へ構造ごと反映。
+ * 新しく増えた日本語文は未訳として残り、tools/i18n-extract.js が検出する。
+ * ※ランタイムの i18n.js（アプリUI辞書）とは独立。静的置換が先に効き、
+ *   置換済みテキストは日本語キーに一致しないので二重翻訳は起きない。 */
+const CONTENT_DIR = path.join(__dirname, 'i18n-content');
+const JA_RE = /[぀-ヿ一-鿿]/;
+const _contentCache = {};
+const SWAP_STATS = {};   // lang → {total, done}（日本語テキストノード数と置換数）
+function contentDict(lang) {
+  if (lang in _contentCache) return _contentCache[lang];
+  let d = null;
+  try { d = JSON.parse(fs.readFileSync(path.join(CONTENT_DIR, lang + '.json'), 'utf8')); } catch (e) {}
+  _contentCache[lang] = d;
+  return d;
+}
+function swapBodyText(html, dict, stats) {
+  // script/style/コメントを退避（中の「<」で分割が壊れるのを防ぐ）→ テキストノードだけ置換 → 復元
+  const vault = [];
+  html = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<!--[\s\S]*?-->/gi,
+    m => { vault.push(m); return '<\u0000' + (vault.length - 1) + '>'; });   // タグ形＝split後もテキストノードへ混ざらない
+  const parts = html.split(/(<[^>]+>)/);
+  for (let i = 0; i < parts.length; i += 2) {          // 偶数インデックスがテキストノード
+    const seg = parts[i];
+    if (!seg || !JA_RE.test(seg)) continue;
+    const key = seg.trim();
+    if (!key) continue;
+    stats.total++;
+    const tr = dict[key];
+    if (tr == null || tr === '') continue;
+    stats.done++;
+    parts[i] = seg.replace(key, () => tr);             // 関数形＝訳文中の$を安全に
+  }
+  html = parts.join('');
+  return html.replace(/<\u0000(\d+)>/g, (m, n) => vault[+n]);
 }
 
 // ── GA4（Google アナリティクス）。全ページ(root+lang)の <head> 直後に注入。冪等＝既にあれば入れない。
@@ -243,6 +419,11 @@ function buildLangPage(srcHtml, lang, page) {
   if (shouldIndex) h = h.replace(/<\/head>/i, hreflangBlock(page) + '\n</head>');
   h = injectUnpin(injectVT(injectTheme(injectGA(h))));
   h = shouldIndex ? injectAdSense(h) : stripAdSense(h);
+  const cdict = contentDict(lang);
+  if (cdict) {
+    const st = (SWAP_STATS[lang] = SWAP_STATS[lang] || { total: 0, done: 0 });
+    h = swapBodyText(h, cdict, st);
+  }
   return h;
 }
 
@@ -324,6 +505,15 @@ function main() {
     h = injectUnpin(injectVT(injectTheme(injectGA(injectAdSense(h)))));
     fs.writeFileSync(path.join(ROOT, p), h);
   });
+  const swapped = Object.keys(SWAP_STATS);
+  if (swapped.length) {
+    swapped.forEach(l => {
+      const s = SWAP_STATS[l];
+      console.log('i18n-content ' + l + ': 本文 ' + s.done + '/' + s.total + ' 置換（未訳 ' + (s.total - s.done) + '）');
+    });
+  } else {
+    console.log('i18n-content: 辞書なし（本文は日本語のまま。tools/i18n-extract.js で抽出→翻訳を投入）');
+  }
   writeSitemap();
   console.log('generated ' + n + ' lang pages (' + GEN.join(',') + ') for [' + TARGETS.join(', ') + '] + hreflang + sitemap; index langs=[' + INDEX_LANGS.join(', ') + '], reviewMode=' + REVIEW_MODE);
 }
