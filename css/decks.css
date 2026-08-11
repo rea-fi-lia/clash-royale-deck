@@ -258,3 +258,21 @@
 .win-seg button:hover { border-color:#9aa3af; }
 .win-seg button.active { background:#3a8ef0; border-color:#3a8ef0; color:#fff; font-weight:700; }
 .ms-title .ms-win { font-size:11px; font-weight:600; color:#3a8ef0; margin-left:8px; }
+
+  /* ── カード個別ページへの導線（2026-08-11） ──
+     デッキ内のカードとランキング行から /cards/{slug}.html へ飛べるようにした。
+     ミニカードは <a> になったので、リンクらしい下線や色を打ち消しておく。 */
+  .mini-card { text-decoration: none; color: inherit; }
+  @media (hover: hover) {
+    a.mini-card:hover { outline: 1px solid var(--accent); outline-offset: 1px; }
+  }
+  .crank-detail {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; margin-left: 2px; flex: 0 0 auto;
+    border: 1px solid var(--border-hi); border-radius: 7px;
+    background: var(--surface2); color: var(--text-muted);
+    font-size: 13px; font-weight: 700; text-decoration: none;
+  }
+  @media (hover: hover) {
+    .crank-detail:hover { color: var(--accent); border-color: var(--accent); }
+  }

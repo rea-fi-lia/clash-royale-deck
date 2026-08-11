@@ -1185,3 +1185,36 @@
   .logo-icon{height:2.2em;width:2.2em;flex:0 0 auto;border-radius:50%;display:block;box-shadow:0 2px 8px rgba(0,0,0,.4)}
   .logo-text{display:flex;flex-direction:column;justify-content:center;line-height:1.18}
   @media (max-width:600px){.logo-icon{height:1.9em;width:1.9em}}
+
+  /* ★吹き出しはカードの外に出るので、開いている間だけクリップを解除する
+     （.card は既定で overflow:hidden。ここを外さないと「追加/カード詳細」が切れる） */
+  .card.peek { overflow: visible; }
+
+/* ── カードのタップ操作（2026-08-11・本家風） ──
+   1タップで即追加していたのを改め、少し浮かせて「追加 / カード詳細」を出す。
+   詳細はカード個別ページ（/cards/{slug}.html）へ。 */
+.card.peek {
+  transform: translateY(-6px) scale(1.06);
+  z-index: 30;
+  border-color: var(--accent);
+  box-shadow: 0 10px 28px -6px rgba(0,0,0,.6), 0 0 0 1px var(--accent);
+}
+.card-actions {
+  position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
+  margin-top: 6px; display: flex; gap: 6px; z-index: 31; white-space: nowrap;
+  background: var(--surface); border: 1px solid var(--border-hi); border-radius: 10px;
+  padding: 5px; box-shadow: 0 8px 22px -6px rgba(0,0,0,.65);
+}
+.card-actions .ca-add,
+.card-actions .ca-detail {
+  font: inherit; font-size: 12px; font-weight: 700; line-height: 1;
+  padding: 7px 10px; border-radius: 7px; cursor: pointer; text-decoration: none; border: 1px solid transparent;
+}
+.card-actions .ca-add { background: var(--accent); color: #1a1d24; }
+.card-actions .ca-detail { background: var(--surface2); color: var(--text); border-color: var(--border-hi); }
+@media (hover: hover) {
+  .card-actions .ca-add:hover { filter: brightness(1.08); }
+  .card-actions .ca-detail:hover { border-color: var(--accent); color: var(--accent); }
+}
+/* 一覧の下端で吹き出しが切れないように、開いている間だけ余白を確保 */
+.card-list:has(.card.peek) { padding-bottom: 56px; }

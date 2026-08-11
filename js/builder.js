@@ -352,15 +352,8 @@ function getFiltered() {
     // 複数選択：いずれかに該当すれば表示（OR）。空なら全て表示
     if (activeTypes.size > 0 && ![...activeTypes].some(t => cardMatchesType(c, t))) return false;
     if (activeCosts.size > 0 && !activeCosts.has(c.cost)) return false;
-    if (q) {
-      const nameMatch = toKatakana(c.name.toLowerCase()).includes(q);
-      const yomiMatch = c.yomi && toKatakana(c.yomi.toLowerCase()).includes(q);
-      // 英語名（画像スラッグ）でも検索：大小・スペース/ハイフンを無視（"hog"/"Hog Rider"→ホグライダー）
-      const qa = raw.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const slug = ((c.img || '').match(/\/([a-z0-9-]+)\.png/i) || [])[1] || '';
-      const enMatch = qa && slug.toLowerCase().replace(/[^a-z0-9]/g, '').includes(qa);
-      if (!nameMatch && !yomiMatch && !enMatch) return false;
-    }
+    // ★照合は cards-data.js の cardSearchMatch() が正本（略称・かな/カナ・半角/全角・英語名を一括で吸収）
+    if (raw.trim() && !cardSearchMatch(c, raw)) return false;
     return true;
   });
   if (costDesc) {
@@ -2589,12 +2582,59 @@ function render() {
       e.dataTransfer.effectAllowed = 'move';
     });
     div.addEventListener('dragend', e => { div.style.opacity = ''; dragSrcCard = null; });
-    div.onclick = () => { if (assistMode || isDragging || Date.now() < _suppressClickUntil) return; toggleDeck(c); }; // アシストON中はタップ追加しない（スクロールは可）。ドラッグ中／タッチタップ直後のclickも無視
+    // ★2026-08-11：本家のカード操作に寄せる。1タップで即追加ではなく、
+    //   少し浮かせて「追加」と「カード詳細」を出す（詳細＝カード個別ページ /cards/{slug}.html）。
+    //   デッキに入っているカードは従来どおり1タップで外す（戻す操作は速い方がよい）。
+    div.onclick = (e) => {
+      if (assistMode || isDragging || Date.now() < _suppressClickUntil) return;
+      if (e && e.target && e.target.closest('.card-actions, .fav-btn')) return; // ボタン自身のクリックは素通し
+      if (deck.some(d => d && d.name === c.name)) { toggleDeck(c); return; }    // 入っている→外す
+      openCardPeek(div, c);
+    };
     list.appendChild(div);
   });
   if (window.CRI18N) CRI18N.apply(); // 再描画後にUI全体を再翻訳（コスト/枚数など監視外の文言が日本語に戻るのを防ぐ）
   refreshAssistHighlights();
 }
+
+/* ★カードのタップ操作（2026-08-11・本家風）
+ * 1タップで即追加していたのをやめ、少し浮かせて2択を出す。
+ *   [＋ 追加]     … デッキへ入れる（従来のタップ相当）
+ *   [カード詳細]  … /cards/{slug}.html（実数値・役割・呪文圏内・実戦データ）へ
+ * 開いている間は他のカードのピークを閉じる。外側タップ／Escでも閉じる。 */
+let _peekEl = null;
+function closeCardPeek() {
+  if (!_peekEl) return;
+  _peekEl.classList.remove('peek');
+  const a = _peekEl.querySelector('.card-actions');
+  if (a) a.remove();
+  _peekEl = null;
+}
+function cardDetailUrl(c) {
+  const slug = ((c && c.img || '').match(/\/([a-z0-9-]+)\.png/i) || [])[1] || '';
+  return slug ? 'cards/' + slug + '.html' : '';
+}
+function openCardPeek(div, c) {
+  if (_peekEl === div) { closeCardPeek(); return; }   // 同じカードをもう一度タップ＝閉じる
+  closeCardPeek();
+  _peekEl = div;
+  div.classList.add('peek');
+  const url = cardDetailUrl(c);
+  const box = document.createElement('div');
+  box.className = 'card-actions';
+  box.innerHTML = '<button type="button" class="ca-add">＋ ' + esc(T('card.add', {}, '追加')) + '</button>' +
+    (url ? '<a class="ca-detail" href="' + url + '">' + esc(T('card.detail', {}, 'カード詳細')) + '</a>' : '');
+  box.querySelector('.ca-add').addEventListener('click', ev => {
+    ev.stopPropagation(); closeCardPeek(); toggleDeck(c);
+  });
+  const d = box.querySelector('.ca-detail');
+  if (d) d.addEventListener('click', ev => ev.stopPropagation());
+  div.appendChild(box);
+}
+document.addEventListener('click', e => {
+  if (_peekEl && !e.target.closest('.card.peek')) closeCardPeek();
+}, true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCardPeek(); });
 
 // ★デッキ変更時の軽量更新：カード一覧を作り直さず .in-deck クラスだけ切替＝連打・スクロール後タップでも軽い（全再構築＋CRI18N.applyを回避）。
 function refreshInDeck() {
@@ -4004,7 +4044,8 @@ function _buildOwnedMaps() {
     const m = (c.img || '').match(/cards\/([a-z0-9-]+)\.png/i);
     if (m) slugMap[m[1].toLowerCase()] = c.name;          // 英語slug → カード名
     nameMap[toKatakana(c.name.toLowerCase())] = c.name;   // 正式名
-    (c.yomi || '').split(/\s+/).forEach(y => { if (y) nameMap[toKatakana(y.toLowerCase())] = c.name; }); // ヨミも対象
+    // 読み・略称は cards-data.js の cardSearchTerms() が正本（照合規則をここに写さない）
+    cardSearchTerms(c).ja.forEach(y => { if (y) nameMap[y] = c.name; });
   });
   Object.entries(OWNED_ALIAS).forEach(([k, v]) => { nameMap[toKatakana(k.toLowerCase())] = v; }); // 別名保険
   return { slugMap, nameMap };
@@ -4017,6 +4058,8 @@ function resolveOwnedCards(rawNames) {
     const s = String(raw);
     const slug = s.toLowerCase().replace(/[.　]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     if (slug && slugMap[slug]) { out.add(slugMap[slug]); return; }   // 英語名→slug一致
+    const exact = cardResolveExact(s);                                // 読み・略称の完全一致（正本）
+    if (exact) { out.add(exact); return; }
     const k = toKatakana(s.toLowerCase().replace(/\s|　/g, ''));
     if (nameMap[k]) { out.add(nameMap[k]); return; }                 // 日本語名/ヨミ一致
     unmatched.push(raw);

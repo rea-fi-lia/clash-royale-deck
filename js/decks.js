@@ -169,16 +169,8 @@ function cardSlug(name) {
 }
 // 英数字以外を除いた小文字化（"Hog Rider"/"hog-rider" → "hogrider"）
 function asciiKey(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
-// 名前(日本語) or 略称(yomi) or 英語名(スラッグ) にヒットするか（大小・かな/カナ・スペース/ハイフン差を吸収）
-function cardMatches(name, q) {
-  const qn = kana(q);
-  if (kana(name).indexOf(qn) >= 0) return true;
-  const y = (typeof CARD_YOMI !== 'undefined' && CARD_YOMI[name]) ? CARD_YOMI[name] : '';
-  if (y && kana(y).indexOf(qn) >= 0) return true;
-  // 英語名で検索（"hog"/"Hog Rider"/"hogrider" → ホグライダー）
-  const qa = asciiKey(q);
-  return qa.length >= 1 && asciiKey(cardSlug(name)).indexOf(qa) >= 0;
-}
+// ★照合は cards-data.js の cardSearchMatch() が正本。ここでは薄く包むだけ。
+function cardMatches(name, q) { return cardSearchMatch(name, q); }
 function renderCardPop(q) {
   q = (q || '').trim();
   if (!q) { _cardPop.classList.remove('open'); _cardPop.innerHTML = ''; return; }
@@ -274,7 +266,13 @@ function renderDecks(decks) {
       const shown = mode==='champion' ? 'champion' : cardShownForm(n, mode);
       const badge = shown==='e' ? '<span class="slot-badge">⚡</span>' : shown==='h' ? '<span class="slot-badge">👑</span>' : mode==='champion' ? '<span class="slot-badge">🏆</span>' : '';
       const cls = 'mini-card' + (shown==='e'?' is-evo':'') + (shown==='h'?' is-hero':'') + (mode==='champion'?' is-champ':'');
-      return '<div class="'+cls+'" title="'+n+'"><span class="pip">'+(info.c!=null?info.c:'')+'</span>'+badge+cardImgTag(n, mode)+'</div>';
+      // ★2026-08-11：デッキ内のカードをタップしたらカード個別ページへ飛べるようにする。
+      //   デッキカード全体のクリック（デッキを開く）とぶつからないよう stopPropagation する。
+      const href = cardDetailUrl(n);
+      const inner = '<span class="pip">'+(info.c!=null?info.c:'')+'</span>'+badge+cardImgTag(n, mode);
+      return href
+        ? '<a class="'+cls+'" href="'+href+'" title="'+n+' のカードデータ" onclick="event.stopPropagation()">'+inner+'</a>'
+        : '<div class="'+cls+'" title="'+n+'">'+inner+'</div>';
     }).join('');
     const url = 'index.html?deck=' + encodeURIComponent(d.slots.join(','));
     const el = document.createElement('div');
@@ -376,6 +374,11 @@ function crownQualityHtml(d) {
   if (pure <= 0.50) return base + '<span class="stat-sep cq-grind" title="' + tip + '">' +
     _tr('押し返される三冠') + ' ' + Math.round((1 - pure) * 100) + '%</span>';
   return base;
+}
+// カード個別ページのURL。画像スラッグから作る（cards-data.js の定義が唯一の出所）
+function cardDetailUrl(name) {
+  const slug = cardSlug(cardBaseName(name));
+  return slug ? 'cards/' + slug + '.html' : '';
 }
 function _cardImg(name) { return cardImageSrc(name); }
 function _cardCost(name) { const i = CARD_INFO[name]; return i ? i.c : ''; }
@@ -504,6 +507,7 @@ function renderCrank() {
       + _cardPracticalIntel(c)
       + '<span class="crank-bar"><i style="width:' + barPct + '%;background:' + barCol + '"></i></span>'
       + '<span class="crank-stat ' + statCls + '"><span class="big">' + big + '</span><span class="sub">' + sub + '</span></span>'
+      + '<a class="crank-detail" href="' + cardDetailUrl(c.name) + '" title="' + _tr('カード詳細') + '" aria-label="' + _tr('カード詳細') + '" onclick="event.stopPropagation()">ℹ</a>'
       + '<button class="crank-go" type="button" data-go="' + String(c.name).replace(/"/g, '&quot;') + '" title="' + _tr('このカードでデッキ検索') + '" aria-label="' + _tr('このカードでデッキ検索') + '">🔍</button>'
       + '<span class="crank-check">' + (sel ? '✓' : '＋') + '</span>'
       + '</div>';

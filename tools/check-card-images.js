@@ -63,6 +63,34 @@ function lintRenderSites() {
   if (!hits) ok('直接の <img src=...> は無し（' + files.length + 'ファイル走査）');
 }
 
+/* ── [1b] 検索規約 ── */
+function lintSearchSites() {
+  console.log('\n[1b] 検索規約：カードの絞り込みは cardSearchMatch / cardSearchFilter を通す');
+  const files = fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js') && !SKIP_FILES.has(f));
+  let bad = 0;
+  files.forEach(f => {
+    fs.readFileSync(path.join(JS_DIR, f), 'utf8').split('\n').forEach((line, i) => {
+      if (/^\s*(\/\/|\*)/.test(line)) return;
+      // 照合のために yomi / CARD_YOMI を直接読んでいないか
+      if (/\.yomi\b/.test(line) || /CARD_YOMI\s*\[/.test(line)) {
+        fail(f + ':' + (i + 1) + ' で yomi を直接参照している → cardSearchMatch() を使う\n      ' + line.trim().slice(0, 120));
+        bad++;
+      }
+    });
+  });
+  if (!bad) ok('yomi の直接参照は無し（' + files.length + 'ファイル走査）');
+  // 検索ボックスの数と、照合が正本を通っているか
+  const html = fs.readdirSync(ROOT).filter(f => f.endsWith('.html'));
+  let boxes = 0;
+  html.forEach(f => {
+    const h = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    boxes += (h.match(/placeholder="[^"]*(検索|絞り込み|search)[^"]*"/gi) || []).length;
+  });
+  const uses = files.reduce((a, f) => a + (fs.readFileSync(path.join(JS_DIR, f), 'utf8').match(/cardSearch(Match|Filter)\s*\(/g) || []).length, 0);
+  console.log('  – 検索ボックス ' + boxes + '個 / 正本の呼び出し ' + uses + '箇所');
+  if (boxes && !uses) fail('検索ボックスがあるのに cardSearchMatch を誰も呼んでいない');
+}
+
 /* ── [4] 定義の整合 ── */
 function lintDefs(ctx) {
   console.log('\n[4] 定義の整合：形態フラグと画像フィールドの対応');
@@ -82,6 +110,15 @@ function lintDefs(ctx) {
   else ok('存在しない形態は通常画像へ落ちる');
   if (noEvo && ctx.cardFormMark(noEvo.name, 'e') !== '') fail('cardFormMark: 存在しない形態に⚡が付いている（' + noEvo.name + '）');
   else ok('存在しない形態にバッジが付かない');
+  // 検索：略称・かな/カナ・半角/全角・英語名が全部拾えるか（実況で使われる形が入口）
+  const probes = [['ホグ', 'ホグライダー'], ['ほぐ', 'ホグライダー'], ['ﾎｸﾞ', 'ホグライダー'], ['ＨＯＧ', 'ホグライダー'],
+    ['hog', 'ホグライダー'], ['エリバ', 'エリートバーバリアン'], ['マジアチ', 'マジックアーチャー'],
+    ['丸太', 'ローリングウッド'], ['バサ子', 'バーサーカー'], ['スノ', 'ローニン'], ['ゴルナ', 'ゴールドナイト']];
+  const miss = probes.filter(([q, want]) => !ctx.cardSearchFilter(q).some(c => c.name === want));
+  if (miss.length) miss.forEach(([q, w]) => fail('検索 "' + q + '" で ' + w + ' が出ない'));
+  else ok('検索の代表' + probes.length + '例すべてヒット（略称/かな/カナ/半角/全角/英語名）');
+  let terms = 0; CARDS.forEach(c => { terms += ctx.cardSearchTerms(c).ja.length; });
+  ok('収録している読み・略称: ' + terms + '形');
 }
 
 /* ── [2] 公式APIとの突合 ── */
@@ -142,6 +179,7 @@ async function checkUrls(ctx) {
 (async () => {
   const ctx = loadCards();
   lintRenderSites();
+  lintSearchSites();
   lintDefs(ctx);
   if (!LINT_ONLY) { await checkAgainstApi(ctx); await checkUrls(ctx); }
   console.log('\n' + (failed ? '★ ' + failed + '件の問題あり' : '問題なし'));
