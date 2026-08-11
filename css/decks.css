@@ -74,13 +74,10 @@
   .deck-stat-line { display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 8px; font-size:15px; font-weight:700; }
   .deck-stat-line .stat-use { color:var(--text); }
   .deck-stat-line .stat-sep { color:var(--text-muted); font-weight:500; font-size:12px; }
-  /* 決着の質（2026-08-11）。3冠率の隣に「どういう勝ち方か」を一言で出す。
-     色は主張しすぎない範囲で性格分け：押し切る=金 / 競る=橙 / 薄氷=青 */
-  .deck-stat-line .cq-crush { color:#e8a020; font-weight:700; }
-  .deck-stat-line .cq-gap   { color:#c9a227; font-weight:600; }
-  .deck-stat-line .cq-grind { color:#e07a30; font-weight:600; }
-  .deck-stat-line .cq-short { color:#8fa3c8; font-weight:600; }
-  .deck-stat-line .cq-close { color:#3a8ef0; font-weight:600; }
+  /* 三冠の質（2026-08-11）。3冠率の隣に「押し切ったのか押し返されたのか」を出す。
+     基準は 3:0 が三冠の約7割。そこから外れたときだけ表示する。 */
+  .deck-stat-line .cq-crush { color:#e8a020; font-weight:700; }   /* 完封三冠＝押し切る */
+  .deck-stat-line .cq-grind { color:#e07a30; font-weight:600; }   /* 押し返される三冠 */
   .deck-stat-line .stat-pct { color:var(--accent); }
   .deck-stat-line .stat-avg { color:var(--text-muted); font-weight:500; font-size:13px; }
   .deck-stat-line .stat-avg b { color:var(--text); font-weight:700; font-size:15px; }

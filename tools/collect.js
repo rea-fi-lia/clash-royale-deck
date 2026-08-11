@@ -1572,26 +1572,11 @@ async function updateDecks() {
     var CW = a.CW || [0,0,0,0,0,0], CL = a.CL || [0,0,0,0,0,0];
     var w = CW[0]+CW[1]+CW[2]+CW[3]+CW[4]+CW[5];
     var l = CL[0]+CL[1]+CL[2]+CL[3]+CL[4]+CL[5];
-    var pct = function (n, d) { return d ? Math.round(n / d * 1000) / 10 : null; };
     var out = { c3: a.W ? Math.round(a.C3 / a.W * 1000) / 10 : null, cd: Math.round((a.CF - a.CA) / a.G * 100) / 100 };
     if (!w && !l) return out;
+    // ★意味づけ（どういう勝ち方か）はクライアント1箇所（decks.js の crownQualityHtml）に集約する。
+    //   ここは生のクラウン対だけを渡す＝解釈を変えても再収集が要らない。
     out.cw = CW; out.cl = CL;
-    if (w) {
-      out.wq = {
-        crush: pct(CW[0], w),                    // 3:0 完封三冠
-        gap:   pct(CW[1], w),                    // 3:1 力の差
-        grind: pct(CW[2], w),                    // 3:2 競り三冠
-        shut:  pct(CW[0] + CW[3] + CW[5], w),    // 相手0封じ（完封）
-        short: pct(CW[3] + CW[5], w),            // 完封したが三冠に届かない
-        close: pct(CW[4] + CW[5], w)             // クラウン差1の薄氷
-      };
-    }
-    if (l) {
-      out.lq = {
-        collapse: pct(CL[0], l),                 // 0:3 崩壊
-        close:    pct(CL[4] + CL[5], l)          // 1クラウン差で落とした＝拮抗
-      };
-    }
     return out;
   }
 
@@ -1644,7 +1629,7 @@ async function updateDecks() {
         var o = { name: d.name, slots: d.slots, forms: d.forms, count: a.P, uniq: uniqCountW(sig, ms), games: a.G, arch: archOfSig_(sig), archs: archsOfSig_(sig) };
         var ch = cycHvy_(d.slots); o.cyc = ch.cyc; o.hvy = ch.hvy;
         if (a.G > 0) o.winRate = Math.round(a.W / a.G * 1000) / 10;
-        if (cr) { o.c3 = cr.c3; o.cd = cr.cd; if (cr.wq) o.wq = cr.wq; if (cr.lq) o.lq = cr.lq; if (cr.cw) { o.cw = cr.cw; o.cl = cr.cl; } }
+        if (cr) { o.c3 = cr.c3; o.cd = cr.cd; if (cr.cw) { o.cw = cr.cw; o.cl = cr.cl; } }
         return o;
       }).filter(Boolean).slice(0, DECK_TOP);
     var winDecks = Object.keys(agg).filter(function (sig) { return agg[sig].G >= winMin; })
@@ -1656,7 +1641,7 @@ async function updateDecks() {
           winRate: Math.round(a.W / a.G * 1000) / 10, lb: Math.round(wilson_(a.W, a.G) * 1000) / 10,
           count: a.P, uniq: uniqCountW(sig, ms), arch: archOfSig_(sig), archs: archsOfSig_(sig) };
         var ch = cycHvy_(d.slots); o.cyc = ch.cyc; o.hvy = ch.hvy;
-        if (cr) { o.c3 = cr.c3; o.cd = cr.cd; if (cr.wq) o.wq = cr.wq; if (cr.lq) o.lq = cr.lq; if (cr.cw) { o.cw = cr.cw; o.cl = cr.cl; } }
+        if (cr) { o.c3 = cr.c3; o.cd = cr.cd; if (cr.cw) { o.cw = cr.cw; o.cl = cr.cl; } }
         return o;
       }).filter(Boolean).slice(0, DECK_TOP);
     var cards = aggregateCards_(snaps);

@@ -132,6 +132,7 @@
       "avg.n": "({n} cards)",
       "decks.nPlayersUse": "{n} players",
       "decks.c3": "3-crown {p}%", "decks.cd": "crown diff {v}",
+      "完封三冠": "clean 3-crown", "押し返される三冠": "contested 3-crown",
       "diag.winconN": "{n} win condition(s)", "diag.airN": "{n} anti-air units", "diag.swarmN": "{a} splash units + {b} damage spells",
       "diag.tankKillerN": "{n} tank killer(s)", "diag.bldN": "{n} defensive building(s)", "diag.spellsN": "{n} spells ({s} small / {b} mid-large)",
       "diag.ctrlN": "{n} control cards (stun/freeze/knockback)", "diag.zoneN": "{n} cards can be wiped by one spell", "diag.curve": "Avg {avg} / fastest cycle {cyc} / heaviest {hvy} = {t}",

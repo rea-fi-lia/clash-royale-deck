@@ -350,31 +350,32 @@ document.querySelectorAll('#topSeg .seg-tab').forEach(btn => {
 window.addEventListener('hashchange', () => setSeg(location.hash.replace('#', '')));
 setSeg(location.hash.replace('#', '')); // 初期表示はハッシュに従う（#cards ならカード）
 
-/* ★決着の質（2026-08-11）
- * 「3冠率」だけだと 3:0 の完封三冠と 3:2 の競り三冠が同じ数字になり、
- * デッキの性格が消えてしまう。クラウン対（自分:相手）の内訳から言葉にする。
- *   3:0 完封三冠＝圧勝で押し切る型
- *   3:1 力の差がある三冠
- *   3:2 三冠まで持っていかないと勝てない（＝競り合いになりやすい）
- *   2:0 / 1:0 完封したが三冠に届かない＝削り切る力（大型・攻城力）が薄い
- *   2:1 / 1:2 は拮抗、0:3 は崩壊
- * wq/lq が無い古いデータでは従来の3冠率だけを出す。 */
+/* ★三冠の質（2026-08-11）
+ * joの指摘：「3冠率」だけだと 3:0 の完封三冠と 3:2 の競り三冠が同じ数字になる。
+ *   3:0 相手にクラウンを渡さず三冠＝押し切っている
+ *   3:1 力の差はあるが1つは渡している
+ *   3:2 三冠まで持っていかないと勝てなかった＝押し返されている
+ *
+ * ★実データで設計をやり直した（本番321勝で実測）:
+ *   1:0 が全勝利の76.6%を占めるため「薄氷」「完封」は全デッキに付いて情報にならない。
+ *   一方 三冠50勝の内訳は 3:0=70% / 3:1=28% / 3:2=2% とはっきり基準があり、
+ *   ここからの外れ方だけが意味を持つ。よって三冠の中身に絞って出す。
+ * 標本が足りないうちは何も言わない（収集が窓を埋めるまでの過渡期に嘘をつかないため）。 */
 function crownQualityHtml(d) {
   if (!d || d.c3 == null) return '';
   const base = '<span class="stat-sep">' + _t('decks.c3', { p: d.c3 }) + '</span>';
-  const q = d.wq;
-  if (!q) return base;
-  // どの勝ち方が主か。最大のものを一言にする
-  const cand = [
-    { v: q.crush, k: '完封三冠', cls: 'cq-crush', tip: '3:0＝相手にクラウンを渡さず三冠。押し切る力が強い' },
-    { v: q.gap,   k: '三冠',     cls: 'cq-gap',   tip: '3:1＝力の差をつけて三冠' },
-    { v: q.grind, k: '競り三冠', cls: 'cq-grind', tip: '3:2＝相手にも2冠取られている。三冠まで行かないと勝ち切れない' },
-    { v: q.short, k: '完封2冠',  cls: 'cq-short', tip: '2:0/1:0＝完封しているが三冠に届かない。削り切る力（大型・攻城力）が薄い' },
-    { v: q.close, k: '薄氷',     cls: 'cq-close', tip: '1クラウン差の勝ち。細かく削り合っての決着' }
-  ].filter(x => x.v != null).sort((a, b) => b.v - a.v)[0];
-  if (!cand || cand.v < 30) return base;   // 突出した勝ち方が無ければ言わない
-  return base + '<span class="stat-sep ' + cand.cls + '" title="' + cand.tip + '">' +
-    _tr(cand.k) + ' ' + cand.v + '%</span>';
+  const cw = Array.isArray(d.cw) ? d.cw : null;
+  if (!cw) return base;
+  const tri = (cw[0] || 0) + (cw[1] || 0) + (cw[2] || 0);   // 三冠での勝ち
+  if (tri < 8) return base;                                  // 標本不足＝言わない
+  const pure = cw[0] / tri;                                  // 三冠のうち完封(3:0)だった割合。全体基準は約70%
+  const tip = '三冠の内訳 3:0=' + cw[0] + ' / 3:1=' + cw[1] + ' / 3:2=' + cw[2] +
+    '　（相手にクラウンを渡さず三冠＝押し切っている。渡しているほど押し返されている）';
+  if (pure >= 0.85) return base + '<span class="stat-sep cq-crush" title="' + tip + '">' +
+    _tr('完封三冠') + ' ' + Math.round(pure * 100) + '%</span>';
+  if (pure <= 0.50) return base + '<span class="stat-sep cq-grind" title="' + tip + '">' +
+    _tr('押し返される三冠') + ' ' + Math.round((1 - pure) * 100) + '%</span>';
+  return base;
 }
 function _cardImg(name) { return cardImageSrc(name); }
 function _cardCost(name) { const i = CARD_INFO[name]; return i ? i.c : ''; }
