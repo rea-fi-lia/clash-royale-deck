@@ -42,7 +42,15 @@ input, textarea, select, [contenteditable] { touch-action: auto; }
   max-width: 100%;
   justify-content: flex-end;
 }
+/* ヘッダは折り返す＝中身が増えても横に伸びない。
+   ★2026-08-11：index.html でログインボタンが16pxはみ出し、overflow-x:hidden が
+   それを「隠して」いた（見えないだけで壊れている状態）。header全般に効かせる。 */
+header { flex-wrap: wrap; max-width: 100%; }
 .sitebar header { flex-wrap: wrap; max-width: 100%; }
+/* ロゴは縮んでよい（ボタン類を押し出さない）。長い文字は省略記号で逃がす。 */
+header .logo { min-width: 0; flex-shrink: 1; }
+header .logo-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+header .logo-text span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* ★ナビの見た目を全ページで統一（2026-08-11・jo指示）
    「支援・お問い合わせ・人気デッキ」の見え方を基準にする。
    これまで content.css=36px/角9px、decks.css=34px/角8px、
