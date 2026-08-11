@@ -24,19 +24,8 @@ import { firebaseConfig, isConfigured, crPlayerApiUrl } from "./firebase-config.
 
 // ===== ダブルタップ拡大を全ページ・全要素で防止（ピンチ拡大は維持） =====
 // CSSのtouch-actionだけだと動的生成要素などで効かない場合があるためJSでも防ぐ
-(function preventDoubleTapZoom() {
-  let lastTouchEnd = 0;
-  document.addEventListener("touchend", (e) => {
-    const now = Date.now();
-    if (now - lastTouchEnd <= 350) {
-      const t = e.target;
-      // 入力欄など、文字選択が必要な要素は除外
-      if (t && t.closest && t.closest("input, textarea, select, [contenteditable]")) { lastTouchEnd = now; return; }
-      e.preventDefault();
-    }
-    lastTouchEnd = now;
-  }, { passive: false });
-})();
+/* ダブルタップ拡大の防止は js/ux-guard.js へ集約した（2026-08-11）。
+   auth.js は一部ページしか読まれておらず、ガードとしては穴があったため。 */
 
 // Firebase SDK は動的に読み込む（CDNが遅くてもUIが先に出るように）。
 // 読み込んだ関数はここに入る。

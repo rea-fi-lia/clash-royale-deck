@@ -1,0 +1,32 @@
+/* =============================================================
+ *  UXガード（全ページ共通・2026-08-11）
+ *  ★ここが「横スクロールさせない / ダブルタップで拡大させない」の正本。
+ *    新しいページを作ったら guard.css と js/ux-guard.js を必ず読み込む。
+ *    読み込み漏れは `node tools/check-card-images.js` の [1d] が検出して落とす。
+ *
+ *  意図的な横スクロールは殺さない：
+ *    横に流したい箱には class="scroll-x" を付ける（下で例外指定している）。
+ *    既存の overflow-x:auto を自分で持つ箱もそのまま動く（下の * 指定はしていない）。
+ * ============================================================= */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;            /* ページ全体は横に動かさない */
+  overscroll-behavior-x: none;   /* 端で引っ張っても横に流れない（戻る操作の誤爆も防ぐ） */
+}
+/* 中身がはみ出す典型（長い英数字・URL・画像・表）を先回りで抑える */
+body img, body svg, body video, body iframe, body canvas { max-width: 100%; }
+body pre, body code { overflow-x: auto; max-width: 100%; }
+body table { max-width: 100%; }
+
+/* ダブルタップ拡大の防止（ピンチ拡大は残す）。
+   touch-action:manipulation はダブルタップズームだけを止める指定。 */
+body { touch-action: manipulation; }
+/* 入力欄は素の挙動を尊重（文字選択・カーソル移動を邪魔しない） */
+input, textarea, select, [contenteditable] { touch-action: auto; }
+
+/* ★意図的に横スクロールしたい箱はこれを付ける */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}

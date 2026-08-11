@@ -159,6 +159,21 @@ function inventoryImageSites() {
   console.log('  – 呼び出し合計 ' + total + '箇所 / 形態未指定 ' + missing + '箇所');
 }
 
+/* ── [1d] UXガードの読み込み ── */
+function lintUxGuard() {
+  console.log('\n[1d] UXガード：全ページが guard.css と ux-guard.js を読んでいるか');
+  // 「横スクロールさせない」「ダブルタップで拡大させない」の正本。
+  // 新しいページを作って読み込み忘れると、そのページだけ挙動が崩れるのでここで落とす。
+  const pages = fs.readdirSync(ROOT).filter(f => f.endsWith('.html') && f !== '3d.html' && !/^google/.test(f));
+  let bad = 0;
+  pages.forEach(f => {
+    const h = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    if (!/css\/guard\.css/.test(h)) { fail(f + ' が css/guard.css を読んでいない'); bad++; }
+    if (!/js\/ux-guard\.js/.test(h)) { fail(f + ' が js/ux-guard.js を読んでいない'); bad++; }
+  });
+  if (!bad) ok(pages.length + 'ページすべてが読み込み済み');
+}
+
 /* ── [4] 定義の整合 ── */
 function lintDefs(ctx) {
   console.log('\n[4] 定義の整合：形態フラグと画像フィールドの対応');
@@ -249,6 +264,7 @@ async function checkUrls(ctx) {
   lintRenderSites();
   lintSearchSites();
   inventoryImageSites();
+  lintUxGuard();
   lintDefs(ctx);
   if (!LINT_ONLY) { await checkAgainstApi(ctx); await checkUrls(ctx); }
   console.log('\n' + (failed ? '★ ' + failed + '件の問題あり' : '問題なし'));

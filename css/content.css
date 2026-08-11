@@ -176,3 +176,22 @@ h1 { margin-top: 8px; font-size: clamp(28px, 5vw, 46px); line-height: 1.16; font
 .me-weak-card.prio { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(232,160,32,.35); }
 .me-deck-global { display: block; font-size: 11px; color: var(--text-muted); }
 .me-ax { font-size: 11px; fill: var(--text-muted); }
+
+/* ── マイページ：ダッシュボードとして上を詰める（2026-08-11） ── */
+.hero-slim { padding: 14px 0 10px !important; margin-bottom: 4px !important; }
+.hero-slim h1 { font-size: 22px; margin: 0 0 4px; }
+.hero-slim .lead { font-size: 13px; margin: 0; color: var(--text-muted); }
+#meRoot .section-tight { padding: 12px 14px; margin: 0 0 8px; }
+#meRoot .section { margin-top: 12px; }
+/* 期間セレクタ */
+.me-range { display: flex; gap: 6px; margin: 0 0 12px; flex-wrap: wrap; }
+.me-range button { font: inherit; font-size: 13px; font-weight: 600; padding: 7px 14px; cursor: pointer;
+  background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border-hi); border-radius: 999px; }
+.me-range button.on { background: var(--accent); color: #1a1d24; border-color: var(--accent); }
+@media (hover: hover) { .me-range button:not(.on):hover { color: var(--accent); border-color: var(--accent); } }
+.me-head-total small { color: var(--text-muted); font-weight: 400; }
+/* 読み込み中のスケルトン（待ち時間の感覚を消す） */
+.me-skel { height: 52px; border-radius: 12px; background: linear-gradient(90deg, var(--surface2) 25%, var(--surface) 37%, var(--surface2) 63%);
+  background-size: 400% 100%; animation: me-shimmer 1.2s ease infinite; }
+.me-skel-head { height: 40px; }
+@keyframes me-shimmer { 0% { background-position: 100% 0 } 100% { background-position: 0 0 } }

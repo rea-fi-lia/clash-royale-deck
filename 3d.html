@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+<title>クラロワ 3Dデッキメーカー（新体験版）｜CR Deck Builders</title>
+<meta name="description" content="クラロワのデッキ作成を、ホログラフィックな3D体験で。カードを選ぶたびに私が読みを添える、新しいデッキメーカーの実験版です。">
+<!-- 実験ページのため当面は noindex（公開判断後に外す） -->
+<meta name="robots" content="noindex,follow">
+<meta name="theme-color" content="#0d0f14">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<!-- Google Analytics (GA4) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-N19CVY3C3K"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-N19CVY3C3K');</script>
+<link rel="stylesheet" href="css/neo3d.css?v=260811h">
+</head>
+<body class="neo">
+
+<!-- ====== 背景（奥行きレイヤー） ====== -->
+<div class="cosmos" aria-hidden="true">
+  <div class="cosmos-stars l1"></div>
+  <div class="cosmos-stars l2"></div>
+  <div class="cosmos-aurora"></div>
+  <div class="cosmos-floor"></div>
+  <div class="cosmos-motes" id="motes"></div>
+</div>
+
+<!-- ====== 3Dシーン ====== -->
+<div class="scene" id="scene">
+
+  <!-- 上部HUD -->
+  <header class="hud">
+    <a class="hud-logo" href="index.html" title="通常版に戻る">
+      <img src="icon-192.png" alt="CR Deck Builders" width="30" height="30">
+      <span class="hud-logo-tx">CR Deck Builders<b>3D LAB</b></span>
+    </a>
+    <div class="hud-read" id="hudRead"><span class="hud-read-tx" id="hudReadTx" aria-hidden="true"></span><span class="hud-read-caret" aria-hidden="true"></span><span class="sr-only" id="hudReadSr" aria-live="polite"></span></div>
+    <div class="hud-right">
+      <div class="exring" id="exring" title="平均エリクサーコスト">
+        <svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true">
+          <defs>
+            <linearGradient id="exg" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#ff7ad9"/><stop offset="1" stop-color="#b04ce0"/>
+            </linearGradient>
+          </defs>
+          <circle class="exring-bg" cx="32" cy="32" r="26"/>
+          <circle class="exring-fg" id="exringFg" cx="32" cy="32" r="26"/>
+        </svg>
+        <div class="exring-val"><span id="avgVal">—</span><small>AVG</small></div>
+      </div>
+      <button class="hud-gyro" id="gyroBtn" type="button" hidden aria-pressed="false" title="端末の傾きでカードが揺れます">傾き</button>
+    </div>
+  </header>
+
+  <!-- デッキ（8枚のハンド） -->
+  <section class="stage" aria-label="デッキ">
+    <div class="stage-arc" id="stageArc">
+      <div class="deck-count-3d" id="deckCount3d"><span id="deckCountNum">0</span><i>/8</i></div>
+      <!-- スロットはJSが生成 -->
+    </div>
+    <div class="stage-actions">
+      <button class="sbtn ghost" id="clearBtn" type="button">クリア</button>
+      <button class="sbtn ghost" id="fateBtn" type="button">運命の1枚</button>
+      <button class="sbtn gold" id="copyBtn" type="button">ゲームにコピー</button>
+      <a class="sbtn violet" id="analyzeBtn" href="strategy.html" aria-disabled="true">デッキ分析へ</a>
+      <button class="sbtn ghost" id="shareBtn" type="button">共有</button>
+    </div>
+  </section>
+
+  <!-- カードライブラリ -->
+  <section class="drawer" aria-label="カード一覧">
+    <div class="drawer-controls">
+      <div class="dsearch">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="search" placeholder="カード名か略称で検索..." enterkeyhint="search" autocomplete="off" autocorrect="off" autocapitalize="off">
+        <button class="dsearch-clear" id="searchClear" type="button" tabindex="-1">✕</button>
+      </div>
+      <div class="dchips" id="typeChips">
+        <button class="chip active" data-type="all" type="button">全て</button>
+        <button class="chip" data-type="troop" type="button">ユニット</button>
+        <button class="chip" data-type="spell" type="button">呪文</button>
+        <button class="chip" data-type="building" type="button">建物</button>
+        <button class="chip" data-type="evolved" type="button">⚡進化</button>
+        <button class="chip" data-type="hero" type="button">👑ヒーロー</button>
+        <button class="chip" data-type="champion" type="button">🏆チャンピオン</button>
+      </div>
+      <div class="dchips dchips-cost" id="costChips">
+        <button class="chip cost active" data-cost="0" type="button">ALL</button>
+        <button class="chip cost c1" data-cost="1" type="button">1</button>
+        <button class="chip cost c2" data-cost="2" type="button">2</button>
+        <button class="chip cost c3" data-cost="3" type="button">3</button>
+        <button class="chip cost c4" data-cost="4" type="button">4</button>
+        <button class="chip cost c5" data-cost="5" type="button">5</button>
+        <button class="chip cost c6" data-cost="6" type="button">6+</button>
+      </div>
+    </div>
+    <div class="dgrid-wrap"><div class="dgrid" id="dgrid"><!-- JSが生成 --></div></div>
+  </section>
+
+</div>
+
+<!-- 運命の1枚 ルーレット -->
+<div class="fate" id="fate" hidden>
+  <div class="fate-ring" id="fateRing"></div>
+  <div class="fate-label" id="fateLabel">運命の1枚…</div>
+</div>
+
+<!-- 完成演出 -->
+<div class="complete" id="complete" hidden>
+  <div class="complete-flash"></div>
+  <div class="complete-tx">COMPLETE</div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<div class="footer-signature"><span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span></div>
+
+<script src="js/cards-data.js?v=260811h"></script>
+<script src="js/neo3d.js?v=260811h"></script>
+</body>
+</html>

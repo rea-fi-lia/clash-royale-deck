@@ -17,7 +17,14 @@
   const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const TAG_KEY = 'cr_my_tag';
 
+  const CACHE_KEY = t => 'cr_my_cache_' + t;      // 直近の /api/me/sync 結果（即描画用）
+  const RANGE_KEY = 'cr_my_range';
+  let STATE = { data: null, meta: null, days: 30 };
+
   function localTag() { try { return (localStorage.getItem(TAG_KEY) || '').trim() || null; } catch (e) { return null; } }
+  function readCache(t) { try { return JSON.parse(localStorage.getItem(CACHE_KEY(t)) || 'null'); } catch (e) { return null; } }
+  function writeCache(t, d) { try { localStorage.setItem(CACHE_KEY(t), JSON.stringify(d)); } catch (e) {} }
+  function readRange() { try { const v = +localStorage.getItem(RANGE_KEY); return [1, 7, 30, 365].includes(v) ? v : 30; } catch (e) { return 30; } }
   function saveLocalTag(t) { try { localStorage.setItem(TAG_KEY, t); } catch (e) {} }
   function cleanTag(raw) { return String(raw || '').trim().toUpperCase().replace(/^#/, '').replace(/[^A-Z0-9]/g, ''); }
 
@@ -43,8 +50,18 @@
   const fmtDate = d => d ? (d.getMonth() + 1) + '/' + d.getDate() : '';
 
   /* ---- 描画 ---- */
+  // 期間で絞る（days=0/未指定なら全部）。battles は新しい順。
+  function inRange(list, days) {
+    if (!days) return list;
+    const cut = new Date(Date.now() - days * 864e5);
+    const cutStr = cut.toISOString().replace(/[-:]/g, '').slice(0, 15);
+    return list.filter(b => String(b.t) >= cutStr);
+  }
+  function rerender() { if (STATE.data) renderAll(STATE.data, STATE.meta); }
+
   function renderAll(data, meta) {
-    const B = data.battles || [];
+    const ALL = data.battles || [];
+    const B = inRange(ALL, STATE.days);
     $('meTagSetup').hidden = true;
     $('meBody').hidden = false;
 
@@ -58,7 +75,7 @@
       + '<div class="me-head-id"><b>' + esc(name || ('#' + data.tag)) + '</b>'
       + (name ? '<span class="me-tag">#' + esc(data.tag) + '</span>' : '') + '</div>'
       + (tr != null ? '<div class="me-head-band">🏆 ' + tr.toLocaleString() + '<span>帯 ' + band + '–' + (band + 299) + '</span></div>' : '')
-      + '<div class="me-head-total">記録 ' + B.length + '戦</div>'
+      + '<div class="me-head-total">' + B.length + '戦<small>／全' + ALL.length + '戦</small></div>'
       + '</div>';
 
     /* 成績サマリ */
@@ -67,7 +84,7 @@
     const cB = B.filter(b => typeof b.tc === 'number' && typeof b.oc === 'number');
     const crownF = cB.reduce((a, b) => a + b.tc, 0), crownA = cB.reduce((a, b) => a + b.oc, 0);
     $('meRecordBody').innerHTML = B.length === 0
-      ? '<p class="note">まだ試合の記録がありません。ランク戦（1v1）を遊ぶと、開くたびにここへ貯まっていきます。</p>'
+      ? '<p class="note">' + (ALL.length ? 'この期間の記録がありません。上の期間を広げてみてください。' : 'まだ試合の記録がありません。ランク戦（1v1）を遊ぶと、開くたびにここへ貯まっていきます。') + '</p>'
       : '<div class="me-stats">'
       + '<div class="me-stat"><b>' + wr + '%</b><span>勝率</span></div>'
       + '<div class="me-stat"><b>' + w + '勝' + l + '敗</b><span>' + B.length + '戦</span></div>'
@@ -245,21 +262,45 @@
   }
 
   /* ---- 同期 ---- */
+  /* ★体感速度：待たせない。
+   *   1) 端末キャッシュがあれば即描画（0ms）＋ meta も並行で取る
+   *   2) サーバー同期と /api/meta は同時に投げる（直列にしない）
+   *   3) 返ってきたら差し替え。初回だけはスケルトンを出して「読み込んでいる」と分かるように */
+  function skeleton() {
+    $('meTagSetup').hidden = true; $('meBody').hidden = false;
+    $('meHeader').innerHTML = '<div class="me-skel me-skel-head"></div>';
+    ['meRecordBody', 'meDecksBody', 'meEnvBody', 'meBandBody', 'meTrendBody']
+      .forEach(id => { const e = $(id); if (e) e.innerHTML = '<div class="me-skel"></div>'; });
+  }
   async function sync(tag) {
     const err = $('meTagError');
     err.hidden = true;
-    try {
-      await importLegacy(tag);                        // 端末の歴史を先に移してから
+    const cached = readCache(tag);
+    if (cached && cached.battles) { STATE.data = cached; renderAll(cached, STATE.meta); }   // 即描画
+    else skeleton();
+
+    // meta は毎回同じなのでセッション内で使い回す（2回目以降はネットワークに行かない）
+    const metaP = STATE.meta ? Promise.resolve(STATE.meta)
+      : fetch('/api/meta', { cache: 'default' }).then(x => x.ok ? x.json() : null).catch(() => null);
+    const syncP = (async () => {
+      await importLegacy(tag);
       const r = await fetch('/api/me/sync?tag=' + encodeURIComponent(tag), { cache: 'no-store' });
       const j = await r.json();
       if (!r.ok || j.error) throw new Error(j.error || ('HTTP ' + r.status));
-      saveLocalTag(tag);
-      let meta = null;
-      try { meta = await fetch('/api/meta?cb=' + Date.now(), { cache: 'no-store' }).then(x => x.ok ? x.json() : null); } catch (e) {}
-      renderAll(j, meta);
+      return j;
+    })();
+
+    try {
+      const [j, meta] = await Promise.all([syncP, metaP]);   // 並行
+      STATE.meta = meta || STATE.meta;
+      STATE.data = j;
+      saveLocalTag(tag); writeCache(tag, j);
+      renderAll(j, STATE.meta);
     } catch (e) {
+      if (cached && cached.battles) return;                  // キャッシュが出ているなら黙って諦める
       err.textContent = '取得できませんでした：' + (e && e.message || e) + '（タグをもう一度確認してください）';
       err.hidden = false;
+      $('meBody').hidden = true;
       $('meTagSetup').hidden = false;
     }
   }
@@ -274,15 +315,46 @@
     $('meTagInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('meTagSave').click(); });
     $('meTagChange').addEventListener('click', () => {
       $('meBody').hidden = true; $('meTagSetup').hidden = false; $('meTagInput').value = '';
+      curTag = null;
       try { localStorage.removeItem(TAG_KEY); } catch (e) {}
+      // ログイン中はアカウント側のタグが正なので、その旨を出す（勝手に戻って混乱しないように）
+      const p = window.CRAuth && CRAuth.getProfile && CRAuth.getProfile();
+      const err = $('meTagError');
+      if (p && p.crTag) {
+        err.textContent = 'ログイン中のアカウントには #' + cleanTag(p.crTag) + ' が登録されています。別のタグを入れるとこの端末でだけ切り替わります。';
+        err.hidden = false;
+      }
     });
 
-    // ログインの crTag を最優先（Firebase紐付け＝端末をまたぐ）。無ければ localStorage。
-    let started = false;
-    const startWith = t => { if (!started && t) { started = true; $('meTagInput').value = '#' + t; sync(t); } };
-    if (window.CRAuth && CRAuth.onChange) {
-      CRAuth.onChange((user, profile) => { if (profile && profile.crTag) startWith(cleanTag(profile.crTag)); });
+    // 期間の切り替え（再取得はしない＝手元のデータを絞るだけなので一瞬）
+    STATE.days = readRange();
+    const rangeEl = $('meRange');
+    if (rangeEl) {
+      rangeEl.querySelectorAll('button').forEach(b => {
+        b.classList.toggle('on', +b.dataset.days === STATE.days);
+        b.addEventListener('click', () => {
+          STATE.days = +b.dataset.days;
+          try { localStorage.setItem(RANGE_KEY, String(STATE.days)); } catch (e) {}
+          rangeEl.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+          rerender();
+        });
+      });
     }
-    setTimeout(() => startWith(localTag()), 400);
+
+    /* タグの決定：ローカルがあれば即開始（待たない）。
+       ログインの crTag が後から来て、それが違うタグなら差し替える。
+       ＝ログイン済みユーザーは何もしなくてもアカウント側のタグが最終的に勝つ。 */
+    let curTag = null;
+    const startWith = (t, force) => {
+      if (!t || (t === curTag && !force)) return;
+      curTag = t; $('meTagInput').value = '#' + t; sync(t);
+    };
+    startWith(localTag());                       // 0ms で開始（キャッシュがあれば描画も0ms）
+    if (window.CRAuth && CRAuth.onChange) {
+      CRAuth.onChange((user, profile) => {
+        const t = profile && profile.crTag ? cleanTag(profile.crTag) : null;
+        if (t) { saveLocalTag(t); startWith(t); }   // アカウントのタグを正とする
+      });
+    }
   });
 })();
