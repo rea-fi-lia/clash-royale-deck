@@ -76,7 +76,9 @@
       + (name ? '<span class="me-tag">#' + esc(data.tag) + '</span>' : '') + '</div>'
       + (tr != null ? '<div class="me-head-band">🏆 ' + tr.toLocaleString() + '<span>帯 ' + band + '–' + (band + 299) + '</span></div>' : '')
       + '<div class="me-head-total">' + B.length + '戦<small>／全' + ALL.length + '戦</small></div>'
-      + '</div>';
+      + '</div>'
+      // ★説明文はトロフィーのすぐ下に置く（上部を占領しないため・jo指示2026-08-11）
+      + '<p class="me-lead">あなたの戦績と、あなたのトロフィー帯のいま。</p>';
 
     /* 成績サマリ */
     const w = B.filter(b => b.win).length, l = B.length - w;

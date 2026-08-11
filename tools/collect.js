@@ -394,6 +394,112 @@ async function r2Request_(method, path, body, contentType) {
   headers.authorization = 'AWS4-HMAC-SHA256 Credential=' + R2_ACCESS_KEY_ID + '/' + scope + ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;
   return fetch('https://' + host + pathname, { method: method, headers: headers, body: body == null ? undefined : payload });
 }
+
+/* ★先駆けタグの毎時収集（2026-08-11・docs/monetization.md「開いていなくても毎時」の実体）
+ * サブスクの中核機能を、まずオーナー自身のタグで先行して回して価値を確かめる段階。
+ *   - 対象は環境変数 PILOT_TAGS のカンマ区切りのみ（既定＝オーナーのタグ1本）。
+ *     ★他のユーザーの登録タグは収集しない。課金者だけの優遇機能なので、
+ *       一般開放は Stripe の課金判定ができてから（工事順⑤）。
+ *   - 75分ルール：battlelog は直近25戦しか返らないが、25戦×最短3分=75分 ＞ 60分。
+ *     毎時取れば理論上こぼれない。
+ *   - 保存先は Worker の /api/me/sync と同じ private/me/{TAG}.json（同じ形・重複排除）。
+ *     これで「開いていない間の試合」もマイページにそのまま出る。 */
+function normTagStr_(t) {
+  return String(t == null ? '' : t).trim().toUpperCase().replace(/^#/, '').replace(/[^A-Z0-9]/g, '');
+}
+/* 毎時収集の対象タグを決める。★ここが唯一の供給元。
+ *   1) PILOT_TAGS（環境変数）… 先駆け。既定はオーナー1本
+ *   2) private/me/subscribers.json … 課金者の名簿。Stripeのwebhookが
+ *      課金成立の瞬間にここへタグを足す想定なので、名簿に載った時点で
+ *      次の毎時収集から自動的に対象になる（コード変更なしで即開始）。
+ *      形: { tags: ["XXXX", ...] } または { subs: [{tag, until}] }
+ *      until（課金の有効期限ISO）が過ぎているものは対象外＝解約で自然に止まる。 */
+async function pilotTargetTags_() {
+  var out = {}, order = [];
+  var add = function (t, src) { var n = normTagStr_(t); if (n.length >= 3 && !out[n]) { out[n] = src; order.push(n); } };
+  String(prop('PILOT_TAGS', 'G2YURG2R') || '').split(',').forEach(function (t) { add(t, 'pilot'); });
+  try {
+    var subs = await r2ReadJson_('me/subscribers.json');
+    if (subs) {
+      var now = Date.now();
+      (subs.tags || []).forEach(function (t) { add(t, 'sub'); });
+      (subs.subs || []).forEach(function (x) {
+        if (!x) return;
+        if (x.until && Date.parse(x.until) < now) return;   // 期限切れ＝収集しない
+        add(x.tag, 'sub');
+      });
+    }
+  } catch (e) { /* 名簿が無い間は先駆けだけ */ }
+  return order.map(function (t) { return { tag: t, src: out[t] }; });
+}
+async function collectPilotTags_(token) {
+  if (!r2Enabled_() || !token) return;
+  var targets = await pilotTargetTags_();
+  if (!targets.length) return;
+  var tags = targets.map(function (x) { return x.tag; });
+  var srcOf = {}; targets.forEach(function (x) { srcOf[x.tag] = x.src; });
+  console.log('pilot 対象' + tags.length + '件（先駆け' + targets.filter(function (x) { return x.src === 'pilot'; }).length
+    + ' / 課金' + targets.filter(function (x) { return x.src === 'sub'; }).length + '）');
+
+  function formOf(c) {                        // evolutionLevel 1=進化 / 2=英雄（900試合で実測した規約）
+    var lv = c && c.evolutionLevel;
+    return lv === 2 ? 'h' : (lv >= 1 ? 'e' : 'n');
+  }
+  function sideJp(side) {
+    if (!side || !side.cards || side.cards.length !== 8) return null;
+    var names = [], forms = '';
+    for (var i = 0; i < side.cards.length; i++) {
+      var jp = apiCardToJp(side.cards[i]);
+      if (!jp) return null;                   // 未対応カードが混じる試合は捨てる
+      names.push(jp); forms += formOf(side.cards[i]);
+    }
+    return { names: names, forms: forms };
+  }
+
+  for (var ti = 0; ti < tags.length; ti++) {
+    var tag = tags[ti];
+    try {
+      var log = await crGet('/players/%23' + tag + '/battlelog', token);
+      if (!log || !log.length) { console.log('pilot ' + tag + ' battlelog空'); continue; }
+      var path = 'me/' + tag + '.json';
+      var store = null;
+      try { store = await r2ReadJson_(path); } catch (e) {}
+      if (!store || !Array.isArray(store.battles)) store = { tag: tag, updated: 0, battles: [] };
+      var seen = {};
+      store.battles.forEach(function (b) { seen[b.t] = 1; });
+      var added = 0;
+      for (var i = 0; i < log.length; i++) {
+        var b = log[i];
+        if (!b.team || b.team.length !== 1 || !b.opponent || b.opponent.length !== 1) continue;
+        var me = b.team[0], opp = b.opponent[0];
+        var tc = me.crowns, oc = opp.crowns;
+        if (typeof tc !== 'number' || typeof oc !== 'number' || tc === oc) continue;
+        if (seen[b.battleTime]) continue;
+        var my = sideJp(me), op = sideJp(opp);
+        if (!my || !op) continue;
+        store.battles.push({
+          t: b.battleTime, win: tc > oc,
+          tr: (typeof me.startingTrophies === 'number' ? me.startingTrophies : null),
+          tc: tc, oc: oc,
+          deck: my.names, df: my.forms, opp: op.names, of: op.forms,
+          oppTag: String(opp.tag || '').replace(/^#/, '') || null,
+          src: srcOf[tag] || 'pilot'          // 毎時収集で入った分だと分かるように
+        });
+        seen[b.battleTime] = 1; added++;
+      }
+      if (added > 0) {
+        store.battles.sort(function (a, c) { return String(c.t).localeCompare(String(a.t)); });
+        store.updated = Date.now();
+        store.savedOnce = true;
+        await r2WriteJson_(path, store);
+      }
+      console.log('pilot ' + tag + ' 新規' + added + '戦 / 累計' + store.battles.length + '戦');
+    } catch (e) {
+      console.log('pilot ' + tag + ' error ' + ((e && e.message) || e));
+    }
+  }
+}
+
 async function r2ReadJson_(path) {
   if (!r2Enabled_()) return null;
   var lastErr = null;
@@ -2938,6 +3044,9 @@ async function updateDecks() {
   await mirrorExternalPublicToR2_();
   // ★GAS/旧ツール製の元データ・旧分析JSONもR2へ退避。削除/非公開化前の保険。
   await mirrorExternalPrivateToR2_();
+
+  // ★先駆けタグ（オーナー）の個人試合を毎時ためる。他ユーザーのタグは対象外。
+  await collectPilotTags_(CR_TOKEN);
 
   console.log('✅ done. players3d=' + players3d + ' decks=' + W3D.decks.length + ' winDecks=' + W3D.winDecks.length);
 }

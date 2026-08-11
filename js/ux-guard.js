@@ -28,6 +28,42 @@
     if (e.scale && Math.abs(e.scale - 1) < 0.1) e.preventDefault();
   });
 
+
+  /* ── いま開いているページ名をナビ左の空きへ出す（2026-08-11） ──
+   * nav-icons は右寄せなので左に余白がある。そこを「現在地」の表示に使う。
+   * ★アイコンを押し出さないこと：flex:0 1 auto + min-width:0 + 省略記号で、
+   *   狭い端末では文字側が縮む（アイコンは絶対に潰れない・折り返さない）。
+   * ★新しいページを作っても自動で出る：下の表に無ければ h1 → title の順で拾う。 */
+  (function currentPageLabel() {
+    var MAP = {
+      '': 'デッキ作成', 'index.html': 'デッキ作成', 'decks.html': '人気デッキ',
+      'strategy.html': 'デッキ分析', 'me.html': 'マイページ', 'guide.html': 'デッキ作成ガイド',
+      'faq.html': 'よくある質問', 'glossary.html': '用語集', 'about.html': 'このサイトについて',
+      'support.html': '支援', 'contact.html': 'お問い合わせ', 'privacy.html': 'プライバシーポリシー'
+    };
+    function label() {
+      var parts = location.pathname.split('/').filter(Boolean);
+      var file = parts.length ? parts[parts.length - 1] : '';
+      if (parts[0] === 'cards') return file === 'index.html' ? '全カードデータ' : 'カードデータ';
+      if (MAP[file] != null) return MAP[file];
+      var h1 = document.querySelector('main h1');
+      if (h1 && h1.textContent.trim()) return h1.textContent.trim().split('｜')[0];
+      return (document.title || '').split(/[｜|]/)[0].trim();
+    }
+    function mount() {
+      var nav = document.querySelector('.sitebar .nav-icons');
+      if (!nav || nav.querySelector('.nav-here')) return;
+      var txt = label();
+      if (!txt) return;
+      var el = document.createElement('span');
+      el.className = 'nav-here';
+      el.textContent = txt;
+      nav.insertBefore(el, nav.firstChild);
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
+    else mount();
+  })();
+
   /* ── 横スクロールの監視（?uxdebug=1 のときだけ犯人を報告） ──
      CSSで隠すのは対症療法なので、開発時ははみ出している要素そのものを特定できるようにする。 */
   if (/[?&]uxdebug=1/.test(location.search)) {
