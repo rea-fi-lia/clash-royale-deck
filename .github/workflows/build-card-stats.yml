@@ -46,3 +46,28 @@ jobs:
           else
             node tools/build-card-stats.js --from-r2 --publish
           fi
+
+      # 監修シートの実数値列（HP16/DPS16等）も同じ値へ揃える。
+      # ★2026-08-11まで手入力のままで、158行中153行が古い値だった。
+      #   人がタグを見直す土台がズレていては監修が成立しないので自動追従させる。
+      - name: Prepare Google credentials
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "GOOGLE_SERVICE_ACCOUNT_JSON secret is missing" >&2
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/google-service-account.json"
+
+      - name: Sync stats into supervision sheet
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/google-service-account.json
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET || 'crdb-data-private' }}
+          R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
+        run: node tools/sync-sheet-stats.js --from-r2
