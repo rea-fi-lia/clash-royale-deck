@@ -36,23 +36,62 @@
 - **復旧したときも1回**知らせる
 - 送り先は環境変数があるものだけ。**無ければ黙ってスキップ**＝設定した瞬間から動き出す
 
-| 送り先 | 必要なSecret |
-|---|---|
-| LINE（Messaging API push） | `LINE_PUSH_TOKEN`（チャネルアクセストークン）／`LINE_PUSH_TO`（送信先userId） |
-| Slack | `SLACK_WEBHOOK_URL`（Incoming Webhook） |
+| 送り先 | 必要なSecret | 手間 | 費用 |
+|---|---|---|---|
+| **Discord** ★推奨 | `DISCORD_WEBHOOK_URL` | Webhook URLを1本作るだけ（約3分） | ¥0・通数無制限 |
+| Slack | `SLACK_WEBHOOK_URL` | Webhook作成（約5分） | ¥0（無料枠は履歴90日） |
+| LINE | `LINE_PUSH_TOKEN`／`LINE_PUSH_TO` | 公式アカウント作成→Messaging APIチャネル→トークン発行→自分のuserId取得（約30分） | 無料枠 月200通 |
+
+### なぜ開発通知はDiscordを推すか（2026-08-11に検討）
+1. **立ち上げ摩擦がほぼゼロ**：サーバー内で「連携サービス→ウェブフック→URLをコピー」。審査もアプリ作成もトークン発行もない
+2. **ログが読める**：等幅フォントのコードブロックが使える。LINEは等幅が無く、スタックトレースが折り返して読めない
+3. **色で状態が分かる**：embedで赤＝障害／緑＝復旧。一目で判別できる
+4. **通数を気にしなくていい**：LINE公式アカウントの無料枠は月200通（配信数×人数）。開発通知でこれを食うのはもったいない
+5. **流れが残って検索できる**：「前も同じ落ち方したっけ」を後から追える
+
+→ `tools/notify.js` は3つ全部に対応。**Secretを入れたものだけが動く**ので、後から足しても引いてもコード変更は要らない。
 
 ### ⚠️ 園の公式LINEは使わない
 `line-harness` に登録されているのは**梅乃園幼稚園の公式アカウント1つだけ**（channelId 1657652010・フォロワー58）。
 これは保護者向けなので、**開発通知を混ぜてはいけない**。
 LINEで受け取るなら **ReA名義のLINE公式アカウントを別に作る**（joの作業）。
 
-**joがやること（LINEで受けたい場合）**
+**joがやること（Discordの場合・約3分）**
+1. Discordで自分用のサーバーを作る（無ければ。「+」→オリジナルの作成）
+2. 通知用チャンネルを作る（例 `#crdb-alerts`）
+3. チャンネルの⚙️→**連携サービス→ウェブフック→新しいウェブフック→ウェブフックURLをコピー**
+4. GitHubリポジトリの Settings → Secrets and variables → Actions → New repository secret
+   `DISCORD_WEBHOOK_URL` にURLを貼る
+
+**LINEで受けたい場合**
 1. LINE Official Account Manager で **ReA名義の公式アカウント**を作る（無料）
 2. LINE Developers で Messaging API チャネルを作り、**チャネルアクセストークン（長期）** を発行
-3. 自分のLINEでそのアカウントを友だち追加し、**自分のuserId** を取得（Webhookのログか、公式の確認画面から）
-4. GitHubのリポジトリ Secrets に `LINE_PUSH_TOKEN` と `LINE_PUSH_TO` を登録
+3. 自分のLINEでそのアカウントを友だち追加し、**自分のuserId** を取得
+4. Secrets に `LINE_PUSH_TOKEN` と `LINE_PUSH_TO` を登録
 
-Slackで済ませるなら、Incoming Webhook を作って `SLACK_WEBHOOK_URL` を登録するだけ。
+## ReAの公式LINE／Discordをどう位置づけるか（2026-08-11）
+
+**用途が2つある。混ぜない。**
+
+| | 開発通知（自分だけが見る） | ファン向け（外に出す） |
+|---|---|---|
+| 相手 | jo 1人 | ReAのリスナー |
+| 目的 | 落ちたら気づく | アルバム（11月末）・宇宙コンサート（2027年1月）を届ける |
+| 最適 | **Discord**（上の5点） | **まだ決めない**。11月に向けて別途 |
+
+ファン向けは性質が違う。**LINEは「届く」（日本の一般層への到達力が圧倒的・ただし通数課金）、Discordは「住める」（コミュニティとして機能する・無料・ただし来てくれる人は濃い層に偏る）。**
+ReAの目的が「入って住める世界をエクスポートする」ことなら、構造的にはDiscordの形（住人同士が話す場）の方が近い。
+ただしこれは**joが決めること**で、通知の都合で決めてはいけない。だから今は通知だけDiscordで通し、ファン向けは切り離しておく。
+
+### line-harnessに2つ目のアカウントを足す件（調査結果）
+- OSS本体は**マルチアカウント対応済み**。`POST /api/line-accounts` で `channelId / name / channelAccessToken / channelSecret` を登録するだけ
+- Webhookは**単一パス `/webhook`** のまま。**署名でどのアカウント宛かを判別**する（まず環境変数のsecretで試し、外れたら `line_accounts` を順に照合）。つまり2つ目のチャネルのWebhook URLも同じURLでよい
+- 友だち・タグ・配信は**アカウントごとに分離**され、`users` テーブルのUUIDで「同じ人が両方を友だち追加している」を横断把握できる
+- ⚠️ **ただし今のharnessは園（umenosonoai）のCloudflareアカウント・園のD1の上にある。**
+  ReAをそこに同居させると、園のAPIキー1本でReAの友だちデータも読めるし、逆も同じ。
+  園の都合（アカウント停止・支払い・退職者への鍵の扱い）がReAを巻き込む。
+  → **ReA用は jo 自身のCloudflareアカウント（cfjo）に別インスタンスを建てる**のが正しい。`npx create-line-harness` でもう1台。¥0。
+  MCPは2つ登録すればよく、混同も起きない。
 
 ## 上限を触るときの心得
 

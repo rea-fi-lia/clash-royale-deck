@@ -143,6 +143,7 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           LINE_PUSH_TOKEN: ${{ secrets.LINE_PUSH_TOKEN }}
           LINE_PUSH_TO: ${{ secrets.LINE_PUSH_TO }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -161,6 +162,7 @@ jobs:
         if: success()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           LINE_PUSH_TOKEN: ${{ secrets.LINE_PUSH_TOKEN }}
           LINE_PUSH_TO: ${{ secrets.LINE_PUSH_TO }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -7,10 +7,13 @@
  *   落ちたことに気づける仕組みが無いのが本当の問題なので、通知を入れる。
  *
  * 送り先は環境変数があるものだけ。無ければ黙ってスキップする（設定した瞬間に動き出す）。
+ *   DISCORD_WEBHOOK_URL … Discord Incoming Webhook ★推奨
+ *       Webhook URLを1本作るだけ。審査も月額も通数制限も無い。等幅フォントでログが読める。
+ *   SLACK_WEBHOOK_URL … Slack Incoming Webhook
  *   LINE_PUSH_TOKEN + LINE_PUSH_TO … LINE Messaging API の push
  *       ★ReA名義のLINE公式アカウントを想定。園（梅乃園幼稚園）の公式LINEは使わない。
  *         園のアカウントは保護者向けなので、開発通知を混ぜてはいけない。
- *   SLACK_WEBHOOK_URL … Slack Incoming Webhook
+ *       ※無料枠は月200通（配信数×人数）。開発通知でこれを食うのはもったいない。
  *
  * 使い方:
  *   node tools/notify.js "本文"
@@ -19,11 +22,29 @@
 const args = process.argv.slice(2);
 function argOne(name) { const i = args.indexOf(name); return i >= 0 && args[i + 1] ? args[i + 1] : null; }
 const title = argOne('--title');
+const level = argOne('--level') || (/(⚠|失敗|止ま|エラー)/.test(title || '') ? 'error' : 'ok');
 const body = argOne('--body') || args.filter(a => !a.startsWith('--') && args[args.indexOf(a) - 1] !== '--title' && args[args.indexOf(a) - 1] !== '--body').join(' ');
 const text = [title, body].filter(Boolean).join('\n');
 
 if (!text.trim()) { console.error('本文が空です'); process.exit(1); }
 
+async function sendDiscord() {
+  const url = process.env.DISCORD_WEBHOOK_URL;
+  if (!url) return null;
+  // 赤=障害 / 緑=復旧。本文は等幅ブロックにしてログを読めるようにする
+  const res = await fetch(url, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      embeds: [{
+        title: (title || 'CRDB').slice(0, 250),
+        description: body ? '```\n' + body.slice(0, 3800) + '\n```' : undefined,
+        color: level === 'error' ? 0xE03131 : 0x2F9E44,
+        footer: { text: 'CR Deck Builders / collect' }
+      }]
+    })
+  });
+  return 'Discord ' + res.status + (res.ok ? '' : ' :: ' + (await res.text()).slice(0, 200));
+}
 async function sendLine() {
   const token = process.env.LINE_PUSH_TOKEN, to = process.env.LINE_PUSH_TO;
   if (!token || !to) return null;
@@ -45,11 +66,12 @@ async function sendSlack() {
 }
 
 (async () => {
-  const results = (await Promise.all([sendLine(), sendSlack()])).filter(Boolean);
+  const results = (await Promise.all([sendDiscord(), sendSlack(), sendLine()])).filter(Boolean);
   if (!results.length) {
     console.log('通知の送り先が未設定のためスキップしました。');
-    console.log('  LINEを使う場合  : LINE_PUSH_TOKEN（ReA名義のチャネルアクセストークン）と LINE_PUSH_TO（送信先のuserId）');
-    console.log('  Slackを使う場合 : SLACK_WEBHOOK_URL');
+    console.log('  Discordを使う場合: DISCORD_WEBHOOK_URL ← 最短。Webhook URLを1本作るだけ');
+    console.log('  Slackを使う場合  : SLACK_WEBHOOK_URL');
+    console.log('  LINEを使う場合   : LINE_PUSH_TOKEN（ReA名義のチャネルアクセストークン）と LINE_PUSH_TO（送信先userId）');
     console.log('--- 送るはずだった内容 ---\n' + text);
     return;
   }
