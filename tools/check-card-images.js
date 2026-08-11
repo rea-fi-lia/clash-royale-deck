@@ -9,11 +9,19 @@
  *   さらに、公式に存在しない形態（エリートバーバリアンの進化）を集計が作り出し、
  *   ⚡バッジは付くのに画像は通常、という食い違いが本番に出ていた。
  *
- * チェックする4点:
- *   [1] 描画規約 … js/*.js の <img> が cards-data.js の cardImageSrc/cardImgTag を通っているか
- *   [2] 形態の正 … CARDS の evolved/hero が公式API(/cards)の evolutionMedium/heroMedium と一致するか
- *   [3] 画像の実在 … CARDS の全URLが実際に200を返すか（フォールバック頼みにしない）
- *   [4] 整合 … evolved なのに imgEvolved が無い等の取りこぼしが無いか
+ * チェックする項目:
+ *   [1]  描画規約 … js/*.js の <img> が cards-data.js の cardImageSrc/cardImgTag を通っているか
+ *   [1b] 検索規約 … 絞り込みが cardSearchMatch/cardSearchFilter を通っているか
+ *   [1c] 画像箇所の棚卸し … cardImgTag/cardImageSrc の全呼び出しを一覧化し、
+ *        形態（第2引数）の指定漏れを検出する。★2026-08-11追加。
+ *        「使用率/勝率/急上昇・環境シェア・デッキ分析…どこで画像を出しているか」の
+ *        一括管理はこの一覧が正。ヒーロー/進化なのに通常画像が出る事故は
+ *        ほぼ全て「呼び出し側が形態を渡し忘れた」ことが原因なので、
+ *        全呼び出しに形態の明示を強制する（'n'=意図して通常 / null=名前の⚡👑記号から決める）。
+ *        新しく画像を出す場所を作っても、この検査が自動で対象に含める。
+ *   [2]  形態の正 … CARDS の evolved/hero が公式API(/cards)と一致するか
+ *   [3]  画像の実在 … 全URLが実際に200を返すか（フォールバック頼みにしない）
+ *   [4]  整合 … evolved なのに imgEvolved が無い等の取りこぼしが無いか
  *
  * 使い方:
  *   node tools/check-card-images.js            … [1][3][4]（ネットワークのみ）
@@ -46,6 +54,17 @@ function lintRenderSites() {
   console.log('\n[1] 描画規約：<img> は cardImageSrc / cardImgTag を通す');
   const files = fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js') && !SKIP_FILES.has(f));
   let hits = 0;
+  // 静的生成側はHTML文字列を組むので <img> 直書きは許すが、形態フィールドの直接参照は禁止
+  ['tools/build-card-pages.js'].forEach(rel => {
+    const fp = path.join(ROOT, rel);
+    if (!fs.existsSync(fp)) return;
+    fs.readFileSync(fp, 'utf8').split('\n').forEach((line, i) => {
+      if (/^\s*(\/\/|\*)/.test(line)) return;
+      if (/\.(imgEvolved|imgHero)\b/.test(line)) {
+        fail(rel + ':' + (i + 1) + ' で imgEvolved/imgHero を直接参照している → cardImageSrc() を使う\n      ' + line.trim().slice(0, 120));
+      }
+    });
+  });
   files.forEach(f => {
     const lines = fs.readFileSync(path.join(JS_DIR, f), 'utf8').split('\n');
     lines.forEach((line, i) => {
@@ -89,6 +108,55 @@ function lintSearchSites() {
   const uses = files.reduce((a, f) => a + (fs.readFileSync(path.join(JS_DIR, f), 'utf8').match(/cardSearch(Match|Filter)\s*\(/g) || []).length, 0);
   console.log('  – 検索ボックス ' + boxes + '個 / 正本の呼び出し ' + uses + '箇所');
   if (boxes && !uses) fail('検索ボックスがあるのに cardSearchMatch を誰も呼んでいない');
+}
+
+/* ── [1c] 画像箇所の棚卸し＋形態指定の強制 ── */
+function inventoryImageSites() {
+  console.log('\n[1c] 画像を出している場所の棚卸し（形態の指定漏れを検出）');
+  // 静的生成側（カード個別ページ）も対象に含める
+  const targets = fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js') && !SKIP_FILES.has(f))
+    .map(f => ({ label: 'js/' + f, path: path.join(JS_DIR, f) }))
+    .concat([{ label: 'tools/build-card-pages.js', path: path.join(ROOT, 'tools', 'build-card-pages.js') }]);
+  let total = 0, missing = 0;
+  targets.forEach(t => {
+    if (!fs.existsSync(t.path)) return;
+    const lines = fs.readFileSync(t.path, 'utf8').split('\n');
+    const sites = [];
+    lines.forEach((line, i) => {
+      if (/^\s*(\/\/|\*)/.test(line)) return;
+      let idx = 0;
+      const re = /card(?:ImgTag|ImageSrc)\s*\(|(?:^|[^.\w])imgOf\s*\(/g;
+      let m;
+      while ((m = re.exec(line))) {
+        // 定義そのもの（function cardImgTag(...)）は除外
+        if (/function\s*$/.test(line.slice(0, m.index))) continue;
+        // 引数部分を括弧の釣り合いで取り出し、トップレベルのカンマを数える
+        const start = line.indexOf('(', m.index);
+        if (start < 0) continue;
+        let depth = 0, args = 1, end = -1, str = null;
+        for (let k = start; k < line.length; k++) {
+          const ch = line[k];
+          if (str) { if (ch === str && line[k - 1] !== '\\') str = null; continue; }
+          if (ch === "'" || ch === '"' || ch === '`') { str = ch; continue; }
+          if (ch === '(' || ch === '{' || ch === '[') depth++;
+          else if (ch === ')' || ch === '}' || ch === ']') { depth--; if (depth === 0) { end = k; break; } }
+          else if (ch === ',' && depth === 1) args++;
+        }
+        const snippet = line.slice(m.index, end > 0 ? end + 1 : Math.min(line.length, m.index + 80)).trim();
+        const oneArg = (end > 0 && args < 2);
+        sites.push({ line: i + 1, snippet, oneArg });
+        total++;
+        if (oneArg) missing++;
+      }
+    });
+    if (!sites.length) return;
+    console.log('  ' + t.label + '（' + sites.length + '箇所）');
+    sites.forEach(x => {
+      if (x.oneArg) fail(t.label + ':' + x.line + ' 形態（第2引数）が未指定 → 意図して通常なら \'n\'、名前の⚡👑記号から決めるなら null を明示する\n      ' + x.snippet.slice(0, 110));
+      else console.log('    L' + String(x.line).padEnd(5) + x.snippet.slice(0, 96));
+    });
+  });
+  console.log('  – 呼び出し合計 ' + total + '箇所 / 形態未指定 ' + missing + '箇所');
 }
 
 /* ── [4] 定義の整合 ── */
@@ -180,6 +248,7 @@ async function checkUrls(ctx) {
   const ctx = loadCards();
   lintRenderSites();
   lintSearchSites();
+  inventoryImageSites();
   lintDefs(ctx);
   if (!LINT_ONLY) { await checkAgainstApi(ctx); await checkUrls(ctx); }
   console.log('\n' + (failed ? '★ ' + failed + '件の問題あり' : '問題なし'));

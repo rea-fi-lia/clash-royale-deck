@@ -276,3 +276,11 @@
   @media (hover: hover) {
     .crank-detail:hover { color: var(--accent); border-color: var(--accent); }
   }
+
+  /* ── ページ下部の読み方ガイド（2026-08-11） ── */
+  .page-guide { max-width: 900px; margin: 32px auto 0; padding: 0 16px; }
+  .page-guide h2 { font-size: 17px; margin: 0 0 10px; color: var(--text); }
+  .page-guide p { font-size: 13.5px; line-height: 1.9; color: var(--text-muted); margin: 0 0 10px; }
+  .page-guide .page-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .page-guide .page-links a { font-size: 13px; padding: 7px 14px; border: 1px solid var(--border-hi); border-radius: 999px; color: var(--text); text-decoration: none; background: var(--surface2); }
+  @media (hover: hover) { .page-guide .page-links a:hover { border-color: var(--accent); color: var(--accent); } }

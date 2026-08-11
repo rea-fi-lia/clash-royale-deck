@@ -179,7 +179,7 @@ function renderCardPop(q) {
   _cardPop.innerHTML = matches.map(n => {
     const info = CARD_INFO[n] || {};
     return '<div class="pop-card" data-n="' + n.replace(/"/g, '&quot;') + '">'
-      + cardImgTag(n)
+      + cardImgTag(n, 'n')   // 検索候補は通常形態で見せる（意図した'n'）
       + '<div class="nm">' + n + '</div></div>';
   }).join('');
   _cardPop.classList.add('open');
@@ -380,7 +380,7 @@ function cardDetailUrl(name) {
   const slug = cardSlug(cardBaseName(name));
   return slug ? 'cards/' + slug + '.html' : '';
 }
-function _cardImg(name) { return cardImageSrc(name); }
+function _cardImg(name) { return cardImageSrc(name, 'n'); }
 function _cardCost(name) { const i = CARD_INFO[name]; return i ? i.c : ''; }
 // ★形態別カード（GASの cards に f:'e'(限界突破)/'h'(ヒーロー) が付く。f無し=ノーマル）
 function _ckey(c) { return c.name + (c.f ? '|' + c.f : ''); }           // 選択・識別キー
@@ -795,7 +795,7 @@ function renderMeMeta() {
     + '<div class="ms-note">' + _tr('相手デッキの勝ち筋分布＝あなたの現在トロフィー±150の近似メタ。使ったデッキに関係なく貯まる正確なサンプルです。勝率は対面3戦未満なら表示しません') + '</div>'
     + top.map(m => {
       const base = m.k;
-      const img = cardImgTag(base);
+      const img = cardImgTag(base, null);   // 勝ち筋キーの⚡👑接尾辞から形態を決める
       const winTxt = (m.win != null && m.games >= 3) ? _t('decks.winPct', { p: m.win }) : '';
       return '<div class="ms-row">'
         + '<span class="ms-ico">' + img + '</span>'
@@ -990,7 +990,7 @@ function renderMetaShare() {
     + '<div class="ms-list">' + top.map(m => {
       const base = cardBaseName(m.k);
       const suf = cardFormMark(m.k);   // ★存在しない形態なら無印になる
-      const img = cardImgTag(m.k);
+      const img = cardImgTag(m.k, null);   // ⚡👑接尾辞から形態を決める
       return '<div class="ms-row">'
         + '<span class="ms-ico">' + img + '</span>'
         + '<span class="ms-name"><span>' + _tr(base) + '</span>' + (suf ? '<span class="ms-suf">' + suf + '</span>' : '') + '</span>'

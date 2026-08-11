@@ -148,6 +148,7 @@ function tierOf(use) {
 
 /* ---- 1枚ぶんの本文 ---- */
 function cardBody(c, ctx, D) {
+  const imgOf = D.imgOf;   // 画像解決は cards-data.js の正本を通す
   const st = D.stats[c.name] || null;
   const attrs = (st && st.attrs) || {};
   const s16 = (st && st.s16) || {};
@@ -170,16 +171,16 @@ function cardBody(c, ctx, D) {
   out.push('<p class="lead">' + esc(c.name) + 'は' + (attrs.Cost ? 'コスト' + attrs.Cost + 'の' : '') + (rarity ? rarity + '' : '') + jpType + 'です。' +
     (c.role ? '役割は' + esc(c.role) + '。' : '') +
     (c.evolved && c.hero ? '進化と英雄の両方に対応しています。' : c.evolved ? '進化（限界突破）に対応しています。' : c.hero ? '英雄に対応しています。' : '') +
-    'このページの数値はレベル' + (st && st.lv ? st.lv : 16) + '基準で、公式Wikiから毎日取り直しています。</p>');
+    '掲載している数値はレベル' + (st && st.lv ? st.lv : 16) + '基準で、バランス調整にあわせて毎日更新しています。</p>');
   out.push('<div class="hero-actions"><a class="btn primary" href="../index.html?add=' + encodeURIComponent(c.name) + '">このカードでデッキを組む</a><a class="btn" href="../decks.html#cards">カード人気ランキング</a></div>');
   out.push('</section>');
 
   /* 形態と画像 */
   out.push('<section class="section"><h2>カードの姿</h2><div class="cardpage-forms">');
   const form = (label, src, note) => '<figure class="cpf"><img src="' + src + '" alt="' + esc(c.name + ' ' + label) + '" width="150" height="180" loading="lazy"><figcaption><b>' + label + '</b><span>' + note + '</span></figcaption></figure>';
-  out.push(form('通常', c.img, '基本の姿'));
-  if (c.evolved) out.push(form('⚡進化', c.imgEvolved, 'デッキの進化枠に入れたときの姿'));
-  if (c.hero) out.push(form('👑英雄', c.imgHero, '英雄枠に入れたときの姿'));
+  out.push(form('通常', imgOf(c.name, 'n'), '基本の姿'));
+  if (c.evolved) out.push(form('⚡進化', imgOf(c.name, 'e'), 'デッキの進化枠に入れたときの姿'));
+  if (c.hero) out.push(form('👑英雄', imgOf(c.name, 'h'), '英雄枠に入れたときの姿'));
   out.push('</div></section>');
 
   /* 実数値 */
@@ -202,7 +203,7 @@ function cardBody(c, ctx, D) {
   if (rows.length) {
     out.push('<section class="section"><h2>実数値（レベル' + (st && st.lv ? st.lv : 16) + '）</h2>');
     out.push('<table class="cardpage-stats"><tbody>' + rows.join('') + '</tbody></table>');
-    out.push('<p class="note">公式Wikiの数値を毎日取り直しているので、バランス調整の翌日には反映されます。</p></section>');
+    out.push('<p class="note">数値は毎日更新しているので、バランス調整の内容は翌日には反映されます。</p></section>');
   }
 
   /* 役割タグ */
@@ -210,7 +211,7 @@ function cardBody(c, ctx, D) {
   if (allTags.length) {
     out.push('<section class="section"><h2>このカードの役割</h2>');
     out.push('<ul class="cardpage-tags">' + allTags.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>');
-    out.push('<p>役割タグは、実数値から自動で導く分（対空・範囲攻撃・体力帯など）と、手で監修している分（タンクキラー・呪文枯渇・橋前特攻など）を合わせています。</p></section>');
+    out.push('<p>対空・範囲攻撃・体力帯のような性能にもとづく役割と、タンクキラー・呪文枯渇・橋前特攻のような実戦での使われ方にもとづく役割をまとめています。</p></section>');
   }
 
   /* 呪文圏内 ＝ 独自性の高い情報 */
@@ -253,11 +254,11 @@ function cardBody(c, ctx, D) {
   if (partners.length) {
     const tot = (D.decksOf[c.name] || []).reduce((a, d) => a + (d.uniq || d.count || 1), 0) || 1;
     out.push('<section class="section"><h2>よく一緒に使われるカード</h2>');
-    out.push('<p>直近のランク戦で' + esc(c.name) + 'が入っていたデッキ' + (D.decksOf[c.name] || []).length + '型を数えると、次のカードとの同居が多くなっています。</p>');
+    out.push('<p>よく使われている' + (D.decksOf[c.name] || []).length + 'の型の中では、' + esc(c.name) + 'は次のカードと一緒に採用されることが多くなっています。</p>');
     out.push('<div class="cardpage-rel">');
     partners.forEach(([nm, w]) => {
       const x = D.byName[nm]; if (!x) return;
-      out.push('<a class="cpr" href="' + slugOf(x.img) + '.html"><img src="' + x.img + '" alt="' + esc(nm) + '" width="80" height="96" loading="lazy"><span>' + esc(nm) + '</span><small>同居 ' + Math.round(w / tot * 100) + '%</small></a>');
+      out.push('<a class="cpr" href="' + slugOf(x.img) + '.html"><img src="' + imgOf(nm, 'n') + '" alt="' + esc(nm) + '" width="80" height="96" loading="lazy"><span>' + esc(nm) + '</span><small>併用 ' + Math.round(w / tot * 100) + '%</small></a>');
     });
     out.push('</div></section>');
   }
@@ -271,7 +272,8 @@ function cardBody(c, ctx, D) {
       d.slots.forEach((nm, i) => {
         const x = D.byName[nm]; if (!x) return;
         const f = (d.forms || [])[i];
-        const src = f === 'evo' ? (x.imgEvolved || x.img) : f === 'hero' ? (x.imgHero || x.img) : x.img;
+        // 形態つき画像も正本を通す（存在しない形態は自動で通常へ落ちる）
+        const src = imgOf(nm, f === 'evo' ? 'e' : f === 'hero' ? 'h' : 'n');
         out.push('<a href="' + slugOf(x.img) + '.html" title="' + esc(nm) + '"><img src="' + src + '" alt="' + esc(nm) + '" width="56" height="68" loading="lazy"></a>');
       });
       out.push('</div></div>');
@@ -300,13 +302,13 @@ function indexBody(cards, D) {
   cards.forEach(c => { (byCost[c.cost] || (byCost[c.cost] = [])).push(c); });
   const out = [];
   out.push('<section class="hero"><div class="eyebrow">Cards</div><h1>クラロワ 全カードデータ一覧</h1>');
-  out.push('<p class="lead">' + cards.length + '枚すべてのカードについて、体力・攻撃力・毎秒ダメージ・射程・攻撃対象といった実数値と、役割、どの呪文で落ちるか、ランク戦での使用率と勝率をまとめています。数値は公式Wikiから毎日取り直しています。</p>');
+  out.push('<p class="lead">' + cards.length + '枚すべてのカードについて、体力・攻撃力・毎秒ダメージ・射程・攻撃対象といった実数値と、役割、どの呪文で落ちるか、ランク戦での使用率と勝率をまとめています。数値はバランス調整にあわせて毎日更新しています。</p>');
   out.push('<div class="hero-actions"><a class="btn primary" href="../index.html">デッキを組む</a><a class="btn" href="../decks.html#cards">人気ランキングを見る</a></div></section>');
   Object.keys(byCost).sort((a, b) => a - b).forEach(cost => {
     out.push('<section class="section"><h2>コスト' + cost + '</h2><div class="cardpage-grid">');
     byCost[cost].forEach(c => {
       const u = D.use[c.name];
-      out.push('<a class="cpg" href="' + slugOf(c.img) + '.html"><img src="' + c.img + '" alt="' + esc(c.name) + '" width="80" height="96" loading="lazy">' +
+      out.push('<a class="cpg" href="' + slugOf(c.img) + '.html"><img src="' + D.imgOf(c.name, 'n') + '" alt="' + esc(c.name) + '" width="80" height="96" loading="lazy">' +
         '<span>' + esc(c.name) + '</span>' + (u ? '<small>使用' + u.use + '% / 勝率' + u.win + '%</small>' : '<small>' + esc(c.role || '') + '</small>') + '</a>');
     });
     out.push('</div></section>');
@@ -329,7 +331,8 @@ async function main() {
       : JSON.parse(fs.readFileSync(argOne('--meta', '/tmp/meta.json'), 'utf8'));
   } catch (e) { console.log('（メタ未取得: ' + e.message + '）'); }
 
-  const D = { stats: {}, tags: tagsJson.cards || {}, use: {}, opp: {}, band: {}, windowDays: 3 };
+  const D = { stats: {}, tags: tagsJson.cards || {}, use: {}, opp: {}, band: {}, windowDays: 3,
+    imgOf: (name, form) => ctx.cardImageSrc(name, form) };   // ★画像解決の正本（cards-data.js）を全セクションで使う
   (stats.cards || []).forEach(c => D.stats[c.jp] = c);
   if (meta && meta.decks) {
     D.windowDays = meta.decks.cardsWindowDays || meta.decks.windowDays || 3;
