@@ -1289,7 +1289,10 @@ async function updateDecks() {
   // ★seed母集団：過去に当たった相手tag＋クラン経由で発見したtagを履歴に保持し、
   //   毎回少しずつ（SEED_PER_RUN件）だけ追加収集する＝「一気にではなく」少しずつ広げる。
   if (!hist.oppSeeds) hist.oppSeeds = {}; // tag -> { tr, lastSeen, lastFetch, src }
-  var SEED_PER_RUN = parseInt(prop('SEED_PER_RUN', '1000'), 10);
+  // ★2026-08-11引き上げ：1000→4000。実測で本収集は4.5〜5分・timeout30分と時間に6倍の余裕があり、
+  //   ペース（40並列+300ms＝429ゼロを実証済み）は変えず、シード数だけ増やして全帯の標本を厚くする。
+  //   429が出始めたらログの rate429 カウンタに出るので、そこで見直す。
+  var SEED_PER_RUN = parseInt(prop('SEED_PER_RUN', '4000'), 10);
 
   // ================= クラン経由の発見（全トロフィー帯へ届く入口） =================
   // 2026-08-02計測で判明：/locations/{id}/rankings/players は空を返す（トロフィーランキングは事実上廃止）。
@@ -1299,7 +1302,7 @@ async function updateDecks() {
   // 1クラン1リクエストで最大50人のtagが得られるため発見効率が高い。国は毎ラン数か国ずつ巡回する。
   async function discoverViaClans() {
     var nowMsClan = Date.now();
-    var perRun = parseInt(prop('CLAN_COUNTRIES_PER_RUN', '8'), 10);
+    var perRun = parseInt(prop('CLAN_COUNTRIES_PER_RUN', '16'), 10);   // 2026-08-11: 8→16（新規タグの流入を倍に）
     if (perRun <= 0) return { countries: 0, clans: 0, found: 0 };
     if (!hist.clanCrawl) hist.clanCrawl = { locs: null, cursor: 0, lastFullAt: 0 };
     var cc = hist.clanCrawl;
@@ -1322,7 +1325,7 @@ async function updateDecks() {
       if (!clans.length) continue;
       stats.countries++;
       // 上位・中位・下位から均等に抜く＝1国の中で実力の幅をまたぐ。
-      var picks = parseInt(prop('CLAN_PICKS_PER_COUNTRY', '5'), 10);
+      var picks = parseInt(prop('CLAN_PICKS_PER_COUNTRY', '6'), 10);   // 2026-08-11: 5→6
       var idxs = [];
       for (var i = 0; i < picks; i++) idxs.push(Math.min(clans.length - 1, Math.floor(clans.length * i / Math.max(1, picks - 1))));
       idxs = idxs.filter(function (v, i, a) { return a.indexOf(v) === i; });
@@ -2717,8 +2720,10 @@ async function updateDecks() {
     //   静かな帯が押し出されて公開ラインを割る。実際 seed を 600→1000 に増やして
     //   カバー帯が 40→44 に増えたのに、公開帯は 33→31 へ減った（合計がちょうど20000で頭打ち）。
     //   帯ごとに配分すれば、どの帯も統計に足りる分だけ確実に残る。
-    var PER_BAND_KEEP = parseInt(prop('TROPHY_EVENT_KEEP_PER_BAND', '800'), 10);
-    var TOTAL_KEEP = parseInt(prop('TROPHY_EVENT_KEEP', '60000'), 10);
+    // ★2026-08-11引き上げ：800→2400。全47帯が800の上限に張り付いていた＝統計が上限で頭打ちだった。
+    //   1帯2400試合あればカード別勝率も語れる。JSONは概算42MB（毎時読み書きで問題ない規模）。
+    var PER_BAND_KEEP = parseInt(prop('TROPHY_EVENT_KEEP_PER_BAND', '2400'), 10);
+    var TOTAL_KEEP = parseInt(prop('TROPHY_EVENT_KEEP', '120000'), 10);
     var perBandCount = {}, keptEvents = [];
     for (var ei = 0; ei < events.length && keptEvents.length < TOTAL_KEEP; ei++) {
       var ev = events[ei];

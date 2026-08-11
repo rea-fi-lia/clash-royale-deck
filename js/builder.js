@@ -3019,18 +3019,22 @@ function initTouchDnD() {
     }, LONG_PRESS_MS);
   }, {passive:true});
 
-  // ★タップ＝即追加：動かさず離した瞬間に入れる（ネイティブclick頼みをやめる＝スクロール後の素早いタップも100%反応）
+  // ★タップ＝ピーク表示（2026-08-11）：以前は「タップ＝即追加」だったが、
+  //   PC側と同じく「＋追加 / カード詳細」の2択を出す本家風に統一した。
+  //   モバイルはネイティブclickを _suppressClickUntil で殺しているため、
+  //   ここ（touchend）を直さないとPCだけ直って携帯は即追加のまま、という食い違いが起きる。
   document.getElementById('cardList').addEventListener('touchend', e => {
     if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
     if (isDragging || _touchMoved) return;            // ドラッグ/スクロールはタップにしない
-    if (assistMode) return;                            // アシストON中はタップ追加しない（スクロールは効く）
+    if (assistMode) return;                            // アシストON中はタップ操作しない（スクロールは効く）
     if (e.target.closest('.fav-btn')) return;
+    if (e.target.closest('.card-actions')) return;    // 「＋追加/カード詳細」はネイティブclickに任せる（抑止しない）
     const cardEl = e.target.closest('.card');
     if (!cardEl || cardEl.classList.contains('in-deck')) return;
     const c = CARDS.find(x => x.name === cardEl.dataset.name);
     if (!c) return;
     _suppressClickUntil = Date.now() + 600;           // 直後のネイティブclick二重発火を抑止
-    toggleDeck(c);
+    openCardPeek(cardEl, c);
   }, { passive: true });
 
   // デッキスロット
