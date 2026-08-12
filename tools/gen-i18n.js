@@ -256,11 +256,26 @@ function setRobots(html, v) {
   return html.replace(/<meta\s+name="viewport"[^>]*>/i, m => m + '\n<meta name="robots" content="' + v + '">');
 }
 function setCanonical(html, url) { return html.replace(/(<link rel="canonical" href=")[^"]*(">)/i, (m, a, b) => a + url + b); }
+/* ルート直下の実在ディレクトリ（言語フォルダ・隠しフォルダは除く）。
+ * ★以前は css/ と js/ だけを名指しで絶対パス化していたため cards/ が漏れ、
+ *   17言語すべてのナビ「全カードデータ」が /<lang>/cards/index.html を指して404になっていた
+ *   （2026-08-12発見。noindex,follow なのでクローラーは辿っていた）。
+ *   名指しをやめ、実在ディレクトリを走査して全部絶対化する＝今後フォルダが増えても漏れない。 */
+function rootDirs() {
+  return fs.readdirSync(ROOT, { withFileTypes: true })
+    .filter(d => d.isDirectory() && !d.name.startsWith('.') &&
+                 !TARGETS.includes(d.name) && d.name !== 'node_modules')
+    .map(d => d.name);
+}
+const ROOT_DIRS = rootDirs();
+
 function absolutizeAssets(html) {
-  return html
-    .replace(/(href|src)="css\//g, '$1="/css/')
-    .replace(/(href|src)="js\//g, '$1="/js/')
-    .replace(/src="(auth\.js|i18n\.js|firebase-config\.js)/g, 'src="/$1');
+  let s = html.replace(/src="(auth\.js|i18n\.js|firebase-config\.js)/g, 'src="/$1');
+  ROOT_DIRS.forEach(d => {
+    const esc = d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    s = s.replace(new RegExp('(href|src)="' + esc + '\\/', 'g'), '$1="/' + d + '/');
+  });
+  return s;
 }
 
 /* ── 本文の静的翻訳（2026-08-11 追加） ─────────────────────────────
