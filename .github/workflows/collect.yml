@@ -63,8 +63,13 @@ jobs:
           function setOutput(key, value) {
             fs.appendFileSync(out, `${key}=${value}\n`);
           }
-          if (eventName !== 'schedule' && dispatchSource !== 'worker-cron') {
-            console.log(`manual/event=${eventName}; source=${dispatchSource || 'manual'}; run collector`);
+          // ★worker-cron は「本命の毎時起動」なので鮮度ゲートを通さず必ず収集する。
+          //   以前は schedule と同じ扱いで鮮度チェックに回していた。収集自体に約17分かかるため、
+          //   次の :15 時点で経過43分 → 閾値50分に届かずスキップ → 実際の間隔が60〜136分
+          //   （平均97分）に伸び、75分ルールを割って個人戦績を取りこぼしていた（2026-09-09発見）。
+          //   鮮度ゲートは GitHub schedule（＝遅延・欠落の保険）にだけかける。
+          if (eventName !== 'schedule') {
+            console.log(`primary/event=${eventName}; source=${dispatchSource || 'manual'}; run collector`);
             setOutput('run_collect', 'true');
             process.exit(0);
           }
