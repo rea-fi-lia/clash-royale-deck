@@ -47,6 +47,12 @@ function pad2(s, w) { // 全角を2幅として数える
     at: new Date().toISOString()
   };
 
+  // ★実行が全部successでも、収集ステップがスキップされ続けると半分しか働かない。
+  //   成否と鮮度では捕まらないので「実際に何回走ったか」を必ず見る（2026-09-09の障害）
+  let rate = null;
+  try { rate = JSON.parse(execFileSync('node', ['tools/collect-rate.js', '--json'], { encoding: 'utf8' })); }
+  catch (_) { /* 数えられなくてもサマリー自体は出す */ }
+
   let before = {};
   try { before = JSON.parse(fs.readFileSync(STATE, 'utf8')); } catch (_) { /* 初回 */ }
 
@@ -55,24 +61,32 @@ function pad2(s, w) { // 全角を2幅として数える
   const jst = new Date(updated.getTime() + 9 * 3600e3).toISOString().slice(5, 16).replace('T', ' ');
   const stale = ageMin > 90; // 毎時なので90分を超えたら異常
 
+  // ★カード枚数は「3日窓で1回でも使われたカード」の数なので、
+  //   不人気カードが数枚欠けるのは正常。122の決め打ちは誤警報を出していた（2026-09-09）。
+  //   本当に壊れた時（データ欠損・収集停止）は一桁単位で落ちるので115を下限にする。
   const lines = [
     pad2('収集した試合', 16) + num(now.games) + '戦' + delta(now.games, before.games),
     pad2('見たプレイヤー', 16) + num(now.players) + '人' + delta(now.players, before.players),
     pad2('毎時の新規', 16) + num(now.playersPerRun) + '人/回' + delta(now.playersPerRun, before.playersPerRun),
     pad2('トロフィー帯', 16) + now.bands + '/47 帯' + (now.bands < 47 ? ' ⚠️' : ''),
     pad2('帯データ', 16) + num(now.bandEvents) + '件' + delta(now.bandEvents, before.bandEvents),
-    pad2('カード', 16) + num(now.cards) + '枚' + (now.cards < 122 ? ' ⚠️' : ''),
-    pad2('最終更新', 16) + jst + ' JST（' + ageMin + '分前）' + (stale ? ' ⚠️停止の疑い' : '')
+    pad2('カード', 16) + num(now.cards) + '枚' + (now.cards < 115 ? ' ⚠️' : ''),
+    pad2('最終更新', 16) + jst + ' JST（' + ageMin + '分前）' + (stale ? ' ⚠️停止の疑い' : ''),
+    pad2('収集した回数', 16) + (rate && rate.count != null
+      ? rate.count + '/' + rate.expected + '回（最大間隔 ' + rate.maxGapMin + '分）' +
+        (rate.ok ? '' : ' ⚠️取りこぼし')
+      : '—（数えられず）')
   ];
 
-  const title = (stale || now.bands < 47 ? '⚠️' : '📊') + ' CRDB 日次サマリー';
+  const bad = stale || now.bands < 47 || now.cards < 115 || (rate && rate.ok === false);
+  const title = (bad ? '⚠️' : '📊') + ' CRDB 日次サマリー';
   const body = lines.join('\n');
   console.log(title + '\n' + body);
 
   fs.writeFileSync(STATE, JSON.stringify(now, null, 2));
 
   try {
-    execFileSync('node', ['tools/notify.js', '--level', stale ? 'error' : 'ok', '--title', title, '--body', body],
+    execFileSync('node', ['tools/notify.js', '--level', bad ? 'error' : 'ok', '--title', title, '--body', body],
       { stdio: 'inherit' });
   } catch (e) {
     console.error('通知に失敗: ' + ((e && e.message) || e));
