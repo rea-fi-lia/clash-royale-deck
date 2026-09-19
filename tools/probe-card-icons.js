@@ -73,6 +73,26 @@ async function main() {
   const unmatched = [...apiEvo, ...apiHero].filter(s => !bySlug[s]);
   if (unmatched.length) console.log('  （slug照合できず要確認: ' + [...new Set(unmatched)].join(', ') + '）');
 
+  // ★アップデートで**カードそのもの**が増えた時、素性（コスト・レア度・画像URL）が
+  //   すぐ分かるように公式の生データをそのまま出す。
+  //   2026-09-19、ミニオンジャイアントが追加されたのに手元に無く、
+  //   日本語Wikiもまだ「Coming soon」で素性が取れなかったため足した。
+  const newCards = (j.items || []).filter(c => !bySlug[apiSlug(c)]);
+  if (newCards.length) {
+    console.log('\n★手元に無いカード ' + newCards.length + '枚（公式の生データ）');
+    newCards.forEach(c => {
+      console.log('  ─ ' + c.name + '  slug=' + apiSlug(c));
+      console.log('     elixirCost=' + c.elixirCost + '  rarity=' + c.rarity +
+                  '  maxLevel=' + c.maxLevel + '  id=' + c.id);
+      const u = c.iconUrls || {};
+      console.log('     img   = ' + (u.medium || '-'));
+      if (u.evolutionMedium) console.log('     evo   = ' + u.evolutionMedium);
+      if (u.heroMedium) console.log('     hero  = ' + u.heroMedium);
+    });
+  } else {
+    console.log('\n手元に無いカード: なし');
+  }
+
   if (j.supportItems) console.log('\nsupportItems: ' + j.supportItems.length + '件 ' + j.supportItems.map(x => x.name).join(', '));
 }
 main().catch(e => { console.error(e); process.exit(1); });
