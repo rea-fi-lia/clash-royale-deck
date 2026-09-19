@@ -154,6 +154,16 @@ jobs:
           SAKANA_API_KEY: ${{ secrets.SAKANA_API_KEY }}
         run: |
           npm install -g @openai/codex >/dev/null 2>&1
+          # ★-s danger-full-access にしている理由（戻さないこと）
+          #   codex自身のサンドボックス(workspace-write)は GitHub Actions のコンテナ内では
+          #   機能せず、全コマンドが失敗する。2026-08-13に実測したとき、Fuguは
+          #   「修正案はあるがファイルに触れない」と150回以上リトライして力尽きていた。
+          #   ここはランナーのコンテナ自体が使い捨ての隔離環境なので、二重のサンドボックスは不要。
+          #   歯止めはサンドボックスではなく別の層で効かせている：
+          #     mainに直接触れない / 差分の検閲（禁止ファイル・node --check） /
+          #     検証に通らないとPRにしない / 自動マージは既定オフ。
+          #   このジョブが持つ鍵は GITHUB_TOKEN と SAKANA_API_KEY と Discord webhook だけで、
+          #   CR_TOKEN・R2の鍵・Googleのサービスアカウントは渡していない。
           if timeout 900 codex exec \
                -m fugu-ultra \
                -c model_provider=sakana \
@@ -162,7 +172,7 @@ jobs:
                -c model_providers.sakana.env_key="SAKANA_API_KEY" \
                -c model_providers.sakana.wire_api="responses" \
                -c model_reasoning_effort=high \
-               -s workspace-write \
+               -s danger-full-access \
                "$(cat /tmp/brief.md)"; then
             echo "ran=true" >> $GITHUB_OUTPUT
           else
