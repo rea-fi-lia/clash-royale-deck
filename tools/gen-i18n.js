@@ -491,9 +491,26 @@ function writeSitemap() {
      AdSense「有用性の低いコンテンツ」対策で122枚の実データページを静的生成したので、
      クロール対象に入れないと意味がない。日本語のみ（翻訳版は作らない）。 */
   const cardsDir = path.join(ROOT, 'cards');
-  let nCards = 0;
+  let nCards = 0, nThin = 0;
+  /* ★中身の薄いページはサイトマップに出さない（2026-09-19 追加）
+     CRDBは「有用性の低いコンテンツ」でAdSenseに落ちた前科がある。
+     新カードが出た直後は Wiki にまだ実数値が無く、実数値テーブルも導出タグも空のまま
+     ページだけ生成される（ガーゴイルジャイアントは267文字。通常は1,200文字前後）。
+     そういうページをGoogleへ差し出すのは自分から評価を下げに行く行為。
+     ページ自体は残してカード一覧からは辿れるので、ユーザーは普通に使える。
+     Wikiが数値を出せば厚くなり、次の生成で自動的にサイトマップへ戻る（手作業は要らない）。 */
+  const THIN_CHARS = 700; // build-card-pages.js の警告と同じ基準
+  const bodyChars = (file) => {
+    try {
+      const html = fs.readFileSync(file, 'utf8')
+        .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, '')
+        .replace(/<[^>]+>/g, '');
+      return html.replace(/\s+/g, '').length;
+    } catch (e) { return THIN_CHARS; } // 読めない時は落とさず載せる
+  };
   if (fs.existsSync(cardsDir)) {
     fs.readdirSync(cardsDir).filter(f => f.endsWith('.html')).sort().forEach(f => {
+      if (f !== 'index.html' && bodyChars(path.join(cardsDir, f)) < THIN_CHARS) { nThin++; return; }
       const url = 'https://crdeckbuilders.com/cards/' + f;
       out += '  <url>\n    <loc>' + url + '</loc>\n';
       out += '    <lastmod>' + lastmodOf('cards/' + f) + '</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>' + (f === 'index.html' ? '0.8' : '0.6') + '</priority>\n  </url>\n';
@@ -502,7 +519,8 @@ function writeSitemap() {
   }
   out += '</urlset>\n';
   fs.writeFileSync(path.join(ROOT, 'sitemap.xml'), out);
-  if (nCards) console.log('sitemap: カードページ ' + nCards + '件を追加');
+  if (nCards) console.log('sitemap: カードページ ' + nCards + '件を追加' +
+    (nThin ? '（中身が薄い ' + nThin + '件は除外。実数値が入れば自動で戻る）' : ''));
 }
 
 function main() {
