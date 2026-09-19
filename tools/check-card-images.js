@@ -238,6 +238,21 @@ async function checkAgainstApi(ctx) {
       } else { fail(c.name + ': ' + label + ' が公式にあるのに手元の定義に無い → 追加する'); bad++; }
     }
   }
+  // ★これまでは「手元にあるカードの形態」しか見ていなかったので、
+  //   アップデートで**カードそのものが増えた**時に番人が黙っていた。
+  //   2026-09-18 にアイスウィザードの英雄が入った時も、形態だからたまたま捕まえられただけ。
+  //   公式にあって手元に無いカードを必ず名指しする（2026-09-19 追加）。
+  const ourSlugs = new Set(ctx.CARDS.map(c => slugOf(c.img)).filter(Boolean));
+  const missing = items
+    .filter(x => !ourSlugs.has(apiSlug(x)))
+    .map(x => x.name + '（' + apiSlug(x) + '）');
+  if (missing.length) {
+    fail('公式にあって手元に無いカード ' + missing.length + '枚 → 追加する: ' + missing.join(' / '));
+    bad += missing.length;
+  } else {
+    ok('公式のカード ' + items.length + '枚すべてが手元にある');
+  }
+
   if (!bad) ok('公式 進化' + apiEvo.size + '枚 / 英雄' + apiHero.size + '枚 と整合' + (warn ? '（公式反映待ち ' + warn + '件）' : ''));
 }
 
