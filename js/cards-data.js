@@ -100,6 +100,7 @@ const CARDS = [
   {name:"マイティディガー", champion:true, yomi:"マイティディガー マイディガ MD マイティ",      cost:4, type:"troop",    role:"チャンピオン", img:"https://cdn.royaleapi.com/static/img/cards/mighty-miner.png"},
   {name:"フェニックス", yomi:"フェニックス フェニ",          cost:4, type:"troop",    role:"再生・対空", img:"https://cdn.royaleapi.com/static/img/cards/phoenix.png"},
   {name:"鍛冶屋ジャイアント", yomi:"かじやじゃいあんと かじジャイ ルーンジャイアント",  cost:4, type:"troop",    role:"味方2体にバフ付与", img:"https://cdn.royaleapi.com/static/img/cards/rune-giant.png"},
+  {name:"ガーゴイルジャイアント", yomi:"ガーゴイルジャイアント ガゴジャイ ミニオンジャイアント ガゴジャイアント ガーゴイルジャイ", cost:4, type:"troop",    role:"空中建物狙い", img:"https://cdn.royaleapi.com/static/img/cards/minion-giant.png"},
   {name:"ファイアボール", yomi:"ファイアボール ファイボ FB ファボ",        cost:4, type:"spell",    role:"中範囲高火力", img:"https://cdn.royaleapi.com/static/img/cards/fireball.png"},
   {name:"フリーズ", yomi:"フリーズ",              cost:4, type:"spell",    role:"全停止", img:"https://cdn.royaleapi.com/static/img/cards/freeze.png"},
   {name:"ポイズン", yomi:"ポイズン ポイズ",              cost:4, type:"spell",    role:"持続ダメージ", img:"https://cdn.royaleapi.com/static/img/cards/poison.png"},
