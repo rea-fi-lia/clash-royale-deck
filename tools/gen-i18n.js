@@ -18,8 +18,14 @@ const BASE = 'https://crdeckbuilders.com';
 const TARGETS = ['en', 'es', 'pt-br', 'fr', 'de', 'ru', 'ko', 'zh-cn', 'ar', 'tr', 'it', 'id', 'th', 'vi', 'zh-tw', 'fa', 'nl'];
 const ALL = ['ja'].concat(TARGETS);
 // AdSense審査中は、日本語ページだけをindex/広告対象にする。
-// 18言語広告化へ戻すときは REVIEW_MODE を false にし、各言語本文を厚くしてから再生成する。
-const REVIEW_MODE = true;
+// ★2026-09-19 開放。AdSense審査のあいだ17言語を noindex で閉じていたが、
+//   5週間経っても通らず、待ちに得るものが無くなったので開けた（joの判断）。
+//   開放の前提だった「各言語本文を厚くする」は実測で達成済み：
+//   en は ja の90〜95%（index 10,372/10,905字・strategy 22,064/22,912字）、
+//   全17言語で本文翻訳 311/311 置換・未訳0。内部リンクも 307ページ/10,415本すべて実在。
+//   再び閉じたい時は true に戻して再生成すれば元通り（noindex・hreflang無し・広告タグ無し・
+//   サイトマップから除外）。段階的に開けたい時は INDEX_LANGS を ['ja','en'] のように直接書く。
+const REVIEW_MODE = false;
 const INDEX_LANGS = REVIEW_MODE ? ['ja'] : ALL;
 const HTMLLANG = { ja: 'ja', en: 'en', es: 'es', 'pt-br': 'pt-BR', fr: 'fr', de: 'de', ru: 'ru', ko: 'ko', 'zh-cn': 'zh-CN', ar: 'ar', tr: 'tr', it: 'it', id: 'id', th: 'th', vi: 'vi', 'zh-tw': 'zh-TW', fa: 'fa', nl: 'nl' };
 const HREFLANG = HTMLLANG;
