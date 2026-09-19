@@ -269,11 +269,29 @@ function rootDirs() {
 }
 const ROOT_DIRS = rootDirs();
 
+/* ルート直下にあって、言語フォルダには作られないファイル（＝相対参照すると404になるもの）。
+ * ★2026-09-19、ロゴ画像 icon-192.png が src="icon-192.png" と相対で書かれており、
+ *   17言語すべてで /<lang>/icon-192.png → 404 になっていた（ヘッダーのロゴが表示されない）。
+ *   8/13の cards/ 404 と同じ原因＝「名指しで列挙していたから漏れた」。
+ *   実在するファイルを走査して自動で絶対化する。列挙をやめれば漏れようがない。 */
+function rootFiles() {
+  return fs.readdirSync(ROOT, { withFileTypes: true })
+    .filter(d => d.isFile() && !d.name.startsWith('.') && !GEN.includes(d.name))
+    .map(d => d.name);
+}
+
 function absolutizeAssets(html) {
-  let s = html.replace(/src="(auth\.js|i18n\.js|firebase-config\.js)/g, 'src="/$1');
+  let s = html;
   ROOT_DIRS.forEach(d => {
     const esc = d.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     s = s.replace(new RegExp('(href|src)="' + esc + '\\/', 'g'), '$1="/' + d + '/');
+  });
+  // ルート直下のファイル（icon-192.png / auth.js / i18n.js 等）も絶対化する。
+  // 言語フォルダに作られるページ（GEN）は相対のままで正しいので除いてある。
+  rootFiles().forEach(f => {
+    const esc = f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // キャッシュ避けの ?v=... や #... が付くので、閉じ引用符だけでなく ? # も終端として認める
+    s = s.replace(new RegExp('(href|src)="' + esc + '(["?#])', 'g'), '$1="/' + f + '$2');
   });
   return s;
 }

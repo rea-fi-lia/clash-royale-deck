@@ -274,12 +274,64 @@ async function checkUrls(ctx) {
   if (!bad.length) ok(urls.length + '枚すべて200');
 }
 
+
+/* ── [1e] 内部リンクの実在 ──
+   ★2026-08-13、17言語すべてのナビ「全カードデータ」が404を指していた。
+   gen-i18n.js が css/ と js/ だけを名指しで絶対パス化しており cards/ が漏れていたため、
+   /en/cards/index.html のような存在しないURLをクローラーが踏み続けていた。
+   その時の検査は使い捨てスクリプトだったので残らず、同じ壊れ方が静かに再発しうる。
+   常設の番人に格上げする。 */
+function lintInternalLinks() {
+  console.log('\n[1e] 内部リンクの実在：href の飛び先がファイルとして在るか');
+  const exts = new Set(['.html', '.css', '.js', '.json', '.xml', '.txt', '.png', '.jpg', '.svg', '.ico', '.webmanifest']);
+  const skipDirs = new Set(['node_modules', '.git', 'tools', 'docs', 'gas']);
+  const pages = [];
+  (function walk(dir, depth) {
+    if (depth > 2) return;
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (e.name.startsWith('.') || skipDirs.has(e.name)) continue;
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) walk(full, depth + 1);
+      else if (e.name.endsWith('.html')) pages.push(full);
+    }
+  })(ROOT, 0);
+
+  const broken = new Map();
+  let links = 0;
+  for (const file of pages) {
+    const html = fs.readFileSync(file, 'utf8');
+    for (const m of html.matchAll(/(?:href|src)="([^"]+)"/g)) {
+      const raw = m[1].split('#')[0].split('?')[0];
+      if (!raw || /^(https?:|\/\/|mailto:|tel:|javascript:|data:)/i.test(raw)) continue;
+      links++;
+      let target = raw.startsWith('/') ? path.join(ROOT, raw.slice(1)) : path.join(path.dirname(file), raw);
+      if (raw.endsWith('/')) target = path.join(target, 'index.html');
+      // 拡張子が無いものはディレクトリ扱い（/cards → /cards/index.html）
+      if (!path.extname(target)) target = path.join(target, 'index.html');
+      if (!exts.has(path.extname(target))) continue;
+      if (!fs.existsSync(target)) {
+        const rel = path.relative(ROOT, file);
+        if (!broken.has(raw)) broken.set(raw, new Set());
+        broken.get(raw).add(rel.split(path.sep)[0] || rel);
+      }
+    }
+  }
+  if (broken.size) {
+    for (const [href, where] of [...broken].sort((a, b) => b[1].size - a[1].size)) {
+      fail('壊れたリンク "' + href + '" → ' + where.size + '箇所（' + [...where].slice(0, 6).join(', ') + '）');
+    }
+  } else {
+    ok(pages.length + 'ページ / ' + links.toLocaleString() + '本の内部リンクすべて実在');
+  }
+}
+
 (async () => {
   const ctx = loadCards();
   lintRenderSites();
   lintSearchSites();
   inventoryImageSites();
   lintUxGuard();
+  lintInternalLinks();
   lintDefs(ctx);
   if (!LINT_ONLY) { await checkAgainstApi(ctx); await checkUrls(ctx); }
   console.log('\n' + (failed ? '★ ' + failed + '件の問題あり' : '問題なし'));
