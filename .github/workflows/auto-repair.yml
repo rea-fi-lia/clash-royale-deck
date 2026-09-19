@@ -277,10 +277,18 @@ jobs:
             echo "---"
             echo "🤖 Generated with [Claude Code](https://claude.com/claude-code)"
           } > /tmp/pr-body.md
+          # ★ラベルが無いだけでPRを作り損ねないこと。
+          #   2026-09-19、検証まで通ったFuguの修正が 'auto-repair' not found で捨てられた。
+          #   まずラベルを用意し、それでも駄目ならラベル無しで作る。
+          gh label create auto-repair --color B60205 --description "AIが自動生成した修理PR" 2>/dev/null || true
           URL=$(gh pr create \
             --title "🤖 自動修理: ${{ steps.gate.outputs.label }}（${{ steps.gate.outputs.workflow }}）" \
             --body-file /tmp/pr-body.md \
-            --label auto-repair --head "${{ steps.gate.outputs.branch }}" --base main)
+            --label auto-repair --head "${{ steps.gate.outputs.branch }}" --base main \
+            || gh pr create \
+            --title "🤖 自動修理: ${{ steps.gate.outputs.label }}（${{ steps.gate.outputs.workflow }}）" \
+            --body-file /tmp/pr-body.md \
+            --head "${{ steps.gate.outputs.branch }}" --base main)
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       # 既定はオフ。リポジトリ変数 AUTO_MERGE_FIX=1 にすると、検証を通った修正が自動で本番へ入る

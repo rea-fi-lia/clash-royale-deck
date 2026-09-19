@@ -325,6 +325,37 @@ function lintInternalLinks() {
   }
 }
 
+
+/* ── [1f] カード名の表が4箇所で一致しているか ──
+   ★2026-09-19、新カードを js/cards-data.js（表示層）にだけ足して満足していたら、
+   collect.js の slug→日本語名 が欠けたままで
+   `if (!jp) return null; // 未対応カードが混じる試合は捨てる` に引っかかり、
+   **そのカードを含む試合が丸ごと捨てられていた**（Fuguが検出）。
+   同じ一覧が4ファイルに散っている以上、ズレは必ず起きる。機械に毎日照合させる。 */
+function lintCardNameTables() {
+  console.log('\n[1f] カード名の表の一致：cards-data.js と収集側がズレていないか');
+  const read = f => { try { return fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { return null; } };
+  const names = loadCards().CARDS.map(c => c.name);
+  // gas/Code.gs は collect.js の移植元（2026-06-24に GAS→Actions 移行完了）。
+  // 今は動いていない歴史的な写しなので、ズレても実害が無い＝警告に留める。
+  // 落とすのは本番で動いているものだけ。狼少年にしないため。
+  const targets = [
+    ['tools/collect.js', 'slug→日本語名 と コスト表', true],
+    ['i18n.js', '日本語→英語名', true],
+    ['gas/Code.gs', '旧GAS側の写し（移行済み・参考）', false],
+  ];
+  let bad = 0;
+  for (const [file, what, isLive] of targets) {
+    const src = read(file);
+    if (src === null) { console.log('  – ' + file + ' が無いので省略'); continue; }
+    const missing = names.filter(n => !src.includes('"' + n + '"') && !src.includes("'" + n + "'"));
+    if (!missing.length) continue;
+    const msg = file + '（' + what + '）に ' + missing.length + '枚が無い → ' + missing.slice(0, 5).join(' / ');
+    if (isLive) { fail(msg); bad++; } else { console.log('  △ ' + msg); }
+  }
+  if (!bad) ok('カード' + names.length + '枚が本番の表（collect.js / i18n.js）すべてに載っている');
+}
+
 (async () => {
   const ctx = loadCards();
   lintRenderSites();
@@ -332,6 +363,7 @@ function lintInternalLinks() {
   inventoryImageSites();
   lintUxGuard();
   lintInternalLinks();
+  lintCardNameTables();
   lintDefs(ctx);
   if (!LINT_ONLY) { await checkAgainstApi(ctx); await checkUrls(ctx); }
   console.log('\n' + (failed ? '★ ' + failed + '件の問題あり' : '問題なし'));
