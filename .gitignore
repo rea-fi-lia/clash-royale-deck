@@ -52,3 +52,7 @@ trophy-band-card-intel-v1.json
 trophy-band-card-intel-public-v1.json
 pol-ranking-probe-v1.json
 pol-elo-intel-v1.json
+
+# 非公開の分析は crdb-tools(PRIVATE) へ。ここに置かない（番人: tools/check-private-leak.js）
+tools/analysis/
+*-private-*.json

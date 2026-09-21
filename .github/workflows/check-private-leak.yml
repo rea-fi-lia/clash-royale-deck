@@ -1,0 +1,29 @@
+name: check private leak
+
+# 非公開の分析コードが、この公開リポジトリに紛れ込んでいないかの番人（2026-09-21）。
+#
+# このリポジトリは PUBLIC（GitHub Pages で配信しているため private にできない）。
+# これから作る分析は rea-fi-lia/crdb-tools（PRIVATE）だけに置く決まりにしたので、
+# コピペや勘違いで持ち込まれた瞬間に止める。
+#
+# ⚠️ pull_request では起動しない。fork由来のPRでworkflowを動かさない方針を守るため
+#    （この方針が、公開リポジトリでSecretsが漏れない根拠になっている）。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 番人自身が壊れていないか（落ちることを確かめる）
+        run: node tools/check-private-leak.js --self-test
+      - name: 非公開コードの混入検査
+        run: node tools/check-private-leak.js
