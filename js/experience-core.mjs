@@ -62,3 +62,12 @@ export function mergeProgress(...sources) {
 export function pendingSteps(steps, progress) {
   return steps.filter(step => !progress[step.id]?.shownAt && !progress[step.id]?.skippedAt && !progress[step.id]?.completedAt);
 }
+
+// Presentation fallback only: never invent ranked rating points from road trophies.
+export function selectTrophySeries(data) {
+  const all=data.battles||[],ranked=all.filter(b=>b.competition==='ranked');
+  const requested=data.competitions?.default==='ranked';
+  const awaitingRanked=requested&&!ranked.some(b=>Number.isFinite(b.tr)&&b.tr>0);
+  const kind=requested&&!awaitingRanked?'ranked':'trophy';
+  return {kind,awaitingRanked,rows:kind==='ranked'?ranked:all.filter(b=>!b.competition||b.competition==='trophy'||b.competition==='unknown')};
+}

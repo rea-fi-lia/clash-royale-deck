@@ -4,10 +4,10 @@
   html { font-size:14px; }
   html, body { touch-action: manipulation; } /* ダブルタップ拡大無効（ピンチは可） */
   * { touch-action: manipulation; }
-  body { background:var(--bg); color:var(--text); font-family:var(--font-body); min-height:100vh; overflow-x:hidden; }
+  body { background:var(--bg); color:var(--text); font-family:CRDBSymbols,var(--font-body); min-height:100vh; overflow-x:hidden; }
   header { background:var(--surface); border-bottom:1px solid var(--border); padding:12px 20px; display:flex; align-items:center; gap:16px; position:sticky; top:0; z-index:100; }
-  .logo { font-family:var(--font-head); font-size:20px; font-weight:700; letter-spacing:2px; color:var(--accent); text-transform:uppercase; }
-  .logo span { color:var(--text-muted); font-size:11px; font-family:var(--font-body); font-weight:400; letter-spacing:0; display:block; margin-top:-3px; }
+  .logo { font-family:CRDBSymbols,var(--font-head); font-size:20px; font-weight:700; letter-spacing:2px; color:var(--accent); text-transform:uppercase; }
+  .logo span { color:var(--text-muted); font-size:11px; font-family:CRDBSymbols,var(--font-body); font-weight:400; letter-spacing:0; display:block; margin-top:-3px; }
   header { flex-wrap:wrap; align-items:flex-start; row-gap:6px; }
   .nav-icons { display:flex; gap:4px; order:2; flex-basis:100%; justify-content:flex-end; margin-left:0; }
   .nav-icon { width:34px; height:34px; display:flex; align-items:center; justify-content:center; border-radius:8px; text-decoration:none; border:1px solid var(--border); background:var(--surface2); transition:all 0.12s; }
@@ -15,7 +15,7 @@
   .nav-icon:hover { border-color:var(--border-hi); background:var(--surface); transform:translateY(-1px); }
   .nav-icon.active { border-color:var(--accent); background:rgba(232,160,32,0.12); }
   .seg-tabs { display:flex; gap:4px; max-width:900px; margin:20px auto 0; padding:0 20px; }
-  .seg-tab { flex:1; padding:12px; text-align:center; cursor:pointer; background:var(--surface); border:1px solid var(--border); border-radius:10px; font-weight:700; font-size:14px; color:var(--text-muted); transition:all 0.15s; font-family:var(--font-head); letter-spacing:1px; }
+  .seg-tab { flex:1; padding:12px; text-align:center; cursor:pointer; background:var(--surface); border:1px solid var(--border); border-radius:10px; font-weight:700; font-size:14px; color:var(--text-muted); transition:all 0.15s; font-family:CRDBSymbols,var(--font-head); letter-spacing:1px; }
   .seg-tab.active { background:rgba(232,160,32,0.12); border-color:var(--accent); color:var(--accent); }
   /* 初期描画のチラつき防止：JS実行前に html[data-seg] で正しいタブ/セクションを確定させる */
   #secCards { display:none; }
@@ -27,7 +27,7 @@
   .swipe-viewport { overflow:visible; max-width:900px; margin:0 auto; }
   .swipe-track { display:flex; transition:transform 0.3s ease; }
   .swipe-page { min-width:100%; padding:20px; }
-  .page-title { font-family:var(--font-head); font-size:22px; font-weight:700; letter-spacing:1px; margin-bottom:6px; }
+  .page-title { font-family:CRDBSymbols,var(--font-head); font-size:22px; font-weight:700; letter-spacing:1px; margin-bottom:6px; }
   .page-sub { color:var(--text-muted); font-size:13px; margin-bottom:20px; line-height:1.7; }
   .agg-note { font-size:11px; color:var(--text-dim); margin:-12px 0 14px; }
   .tab-desc { font-size:12px; color:var(--text-muted); margin:-4px 0 14px; line-height:1.7; }
@@ -70,7 +70,7 @@
   .deck-missing { font-size:11px; color:#e05050; margin-top:6px; }
   .deck-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
   .deck-card-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
-  .deck-rank { font-family:var(--font-head); font-size:20px; font-weight:700; color:var(--accent); min-width:30px; }
+  .deck-rank { font-family:CRDBSymbols,var(--font-head); font-size:20px; font-weight:700; color:var(--accent); min-width:30px; }
   .deck-stat-line { display:flex; align-items:baseline; flex-wrap:wrap; gap:4px 8px; font-size:15px; font-weight:700; }
   .deck-stat-line .stat-use { color:var(--text); }
   .deck-stat-line .stat-sep { color:var(--text-muted); font-weight:500; font-size:12px; }
@@ -94,7 +94,7 @@
   .coming-soon { text-align:center; padding:60px 20px; color:var(--text-muted); }
   .coming-soon .big { font-size:40px; margin-bottom:12px; }
   .note { font-size:11px; color:var(--text-dim); text-align:center; margin:4px 0 18px; line-height:1.6; }
-  .footer-signature { text-align:center; padding:24px 0; font-family:'Courier New',Courier,monospace; color:#888; letter-spacing:1px; border-top:1px solid var(--border); margin-top:40px; }
+  .footer-signature { text-align:center; padding:24px 0; font-family:CRDBSymbols,'Courier New',Courier,monospace; color:#888; letter-spacing:1px; border-top:1px solid var(--border); margin-top:40px; }
   .footer-signature .by-text { font-size:11px; opacity:0.6; margin-right:4px; }
   .footer-signature .creator-name { font-size:13px; font-weight:bold; color:#eaeaea; letter-spacing:3px; text-shadow:0 0 8px rgba(255,255,255,0.4); }
   /* ▼ 急上昇デッキ用のスタッツ表記 */
@@ -130,7 +130,7 @@
     border-radius:10px; cursor:pointer; transition:all 0.12s; }
   .crank-row:hover { border-color:var(--border-hi); }
   .crank-row.sel { border-color:var(--accent); background:rgba(232,160,32,0.10); }
-  .crank-rank { font-family:var(--font-head); font-weight:700; font-size:15px; color:var(--text-muted); min-width:28px; text-align:center; }
+  .crank-rank { font-family:CRDBSymbols,var(--font-head); font-weight:700; font-size:15px; color:var(--text-muted); min-width:28px; text-align:center; }
   .crank-row.sel .crank-rank { color:var(--accent); }
   .crank-ico { width:40px; height:48px; flex-shrink:0; display:flex; align-items:flex-end; justify-content:center; position:relative; }
   .crank-ico img { width:100%; height:100%; object-fit:contain; }
@@ -156,7 +156,7 @@
   /* 分布図マップを画面上部に固定（ヘッダーの高さぶん下げる）。下のランキングだけがスクロールする */
   .mm-sticky { position:sticky; top:var(--cr-header-h, 60px); z-index:30; background:var(--bg); padding-bottom:16px; }
   .mm-head { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin:10px 0 4px; flex-wrap:wrap; }
-  .mm-title { font-family:var(--font-head); font-size:17px; font-weight:700; letter-spacing:1px; }
+  .mm-title { font-family:CRDBSymbols,var(--font-head); font-size:17px; font-weight:700; letter-spacing:1px; }
   .mm-clear { background:var(--surface); border:1px solid var(--border-hi); color:var(--text-muted); border-radius:999px;
     padding:5px 12px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; }
   .mm-clear:hover { color:var(--text); }
@@ -233,7 +233,7 @@
 
 /* ★環境シェア（勝ち筋別） */
 .meta-share { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin:0 0 14px; }
-.ms-title { font-family:var(--font-head); font-size:14px; font-weight:700; letter-spacing:.5px; margin-bottom:8px; color:var(--text); }
+.ms-title { font-family:CRDBSymbols,var(--font-head); font-size:14px; font-weight:700; letter-spacing:.5px; margin-bottom:8px; color:var(--text); }
 .ms-note { font-size:10.5px; color:var(--text-dim); margin:-4px 0 8px; line-height:1.5; }
 .ms-list { max-height:320px; overflow-y:auto; margin:0 -2px; padding:0 2px; }
 .ms-row { display:flex; align-items:center; gap:8px; padding:3px 0; }

@@ -278,3 +278,7 @@ CRDBは「有用性の低いコンテンツ」でAdSenseに落ちた前科があ
 - PCの中央スロット1〜5、ホバー専用オーバーレイ、グラフ両軸の視覚的ハンドル。グラフボタンは全体リセットのみ。携帯ビルダーの配置は維持し、共通機能とマイページへ反映。
 - マイページはAPIの種別ごとにトロフィーロード/ランク戦/旧種別不明を切替。グラフ、効率、個人と全体のデッキ成績を同一種別で表示。収集側にも試合種別と実増減を保持し、再取得できた古い記録は欠損だけ補完する。分析本体は非公開実装を参照。
 - 検証入口: `node --test tools/test-input-auth.mjs tools/test-experience.mjs`（20件）、`node tools/check-card-images.js --lint-only`、`node tools/check-private-leak.js`。外部画像HTTP検査は通信制限下で接続失敗となるため、コードの描画規約検査と実ブラウザの画像表示とは区別する。
+
+### UI release checks (2026-09-22)
+
+`node --test tools/test-*.mjs` / `node tools/check-ui-icons.mjs` / `node tools/check-card-images.js --lint-only` / `node tools/check-private-leak.js` を確認後、17言語を生成。独自アイコンの追加は [ui-icons.md](ui-icons.md) に従う。

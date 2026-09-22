@@ -1,0 +1,217 @@
+{
+  "bolt": {
+    "codepoint": "0xe000",
+    "character": "",
+    "legacy": "⚡"
+  },
+  "crown": {
+    "codepoint": "0xe001",
+    "character": "",
+    "legacy": "👑"
+  },
+  "cup": {
+    "codepoint": "0xe002",
+    "character": "",
+    "legacy": "🏆"
+  },
+  "launch": {
+    "codepoint": "0xe003",
+    "character": "",
+    "legacy": "↗"
+  },
+  "clover": {
+    "codepoint": "0xe004",
+    "character": "",
+    "legacy": "♧"
+  },
+  "cards": {
+    "codepoint": "0xe005",
+    "character": "",
+    "legacy": "🃏"
+  },
+  "chart": {
+    "codepoint": "0xe006",
+    "character": "",
+    "legacy": "📊"
+  },
+  "medal": {
+    "codepoint": "0xe007",
+    "character": "",
+    "legacy": "🏅🥇🥈🥉"
+  },
+  "flame": {
+    "codepoint": "0xe008",
+    "character": "",
+    "legacy": "🔥"
+  },
+  "search": {
+    "codepoint": "0xe009",
+    "character": "",
+    "legacy": "🔍"
+  },
+  "person": {
+    "codepoint": "0xe00a",
+    "character": "",
+    "legacy": "👤"
+  },
+  "star": {
+    "codepoint": "0xe00b",
+    "character": "",
+    "legacy": "★"
+  },
+  "build": {
+    "codepoint": "0xe00c",
+    "character": "",
+    "legacy": "🛠"
+  },
+  "flask": {
+    "codepoint": "0xe00d",
+    "character": "",
+    "legacy": "🧪"
+  },
+  "drop": {
+    "codepoint": "0xe00e",
+    "character": "",
+    "legacy": "💧"
+  },
+  "shield": {
+    "codepoint": "0xe00f",
+    "character": "",
+    "legacy": "🛡"
+  },
+  "key": {
+    "codepoint": "0xe010",
+    "character": "",
+    "legacy": "🔑"
+  },
+  "edit": {
+    "codepoint": "0xe011",
+    "character": "",
+    "legacy": "✎"
+  },
+  "spark": {
+    "codepoint": "0xe012",
+    "character": "",
+    "legacy": "✨"
+  },
+  "theme": {
+    "codepoint": "0xe013",
+    "character": "",
+    "legacy": "🌗"
+  },
+  "folder": {
+    "codepoint": "0xe014",
+    "character": "",
+    "legacy": "📁"
+  },
+  "clipboard": {
+    "codepoint": "0xe015",
+    "character": "",
+    "legacy": "📋"
+  },
+  "compass": {
+    "codepoint": "0xe016",
+    "character": "",
+    "legacy": "🧭"
+  },
+  "warning": {
+    "codepoint": "0xe017",
+    "character": "",
+    "legacy": "⚠"
+  },
+  "close": {
+    "codepoint": "0xe018",
+    "character": "",
+    "legacy": "❌"
+  },
+  "play": {
+    "codepoint": "0xe019",
+    "character": "",
+    "legacy": "▶"
+  },
+  "pin": {
+    "codepoint": "0xe01a",
+    "character": "",
+    "legacy": "📍"
+  },
+  "idea": {
+    "codepoint": "0xe01b",
+    "character": "",
+    "legacy": "💡"
+  },
+  "check": {
+    "codepoint": "0xe01c",
+    "character": "",
+    "legacy": "✅"
+  },
+  "link": {
+    "codepoint": "0xe01d",
+    "character": "",
+    "legacy": "🔗"
+  },
+  "heart": {
+    "codepoint": "0xe01e",
+    "character": "",
+    "legacy": "♡❤"
+  },
+  "drag": {
+    "codepoint": "0xe01f",
+    "character": "",
+    "legacy": "↔"
+  },
+  "seed": {
+    "codepoint": "0xe020",
+    "character": "",
+    "legacy": "🌱"
+  },
+  "focus": {
+    "codepoint": "0xe021",
+    "character": "",
+    "legacy": "🎯"
+  },
+  "eye": {
+    "codepoint": "0xe022",
+    "character": "",
+    "legacy": "👀"
+  },
+  "info": {
+    "codepoint": "0xe023",
+    "character": "",
+    "legacy": "ℹ"
+  },
+  "power": {
+    "codepoint": "0xe024",
+    "character": "",
+    "legacy": "💪"
+  },
+  "settings": {
+    "codepoint": "0xe025",
+    "character": "",
+    "legacy": "⚙"
+  },
+  "brain": {
+    "codepoint": "0xe026",
+    "character": "",
+    "legacy": "🧠"
+  },
+  "battle": {
+    "codepoint": "0xe027",
+    "character": "",
+    "legacy": "⚔"
+  },
+  "like": {
+    "codepoint": "0xe028",
+    "character": "",
+    "legacy": "👍"
+  },
+  "research": {
+    "codepoint": "0xe029",
+    "character": "",
+    "legacy": "🔬"
+  },
+  "signal": {
+    "codepoint": "0xe02a",
+    "character": "",
+    "legacy": "📡"
+  }
+}

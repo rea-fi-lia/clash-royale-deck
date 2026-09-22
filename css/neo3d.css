@@ -31,7 +31,7 @@ html, body { height: 100%; }
 body.neo {
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font-body);
+  font-family: CRDBSymbols,var(--font-body);
   overflow: hidden;
   height: 100dvh;
   display: flex;
@@ -129,7 +129,7 @@ body.neo {
 }
 .hud-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); flex-shrink: 0; }
 .hud-logo img { border-radius: 7px; display: block; }
-.hud-logo-tx { font-family: var(--font-head); font-weight: 700; font-size: 13px; letter-spacing: .04em; line-height: 1.1; display: flex; flex-direction: column; }
+.hud-logo-tx { font-family: CRDBSymbols,var(--font-head); font-weight: 700; font-size: 13px; letter-spacing: .04em; line-height: 1.1; display: flex; flex-direction: column; }
 .hud-logo-tx b {
   font-size: 10px; letter-spacing: .34em; color: var(--accent);
   text-shadow: 0 0 12px rgba(232,160,32,.65);
@@ -177,7 +177,7 @@ body.neo {
 .exring-val {
   position: absolute; inset: 0;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  font-family: var(--font-head); font-weight: 700; line-height: 1;
+  font-family: CRDBSymbols,var(--font-head); font-weight: 700; line-height: 1;
 }
 .exring-val span { font-size: 15px; }
 .exring-val small { font-size: 7px; letter-spacing: .18em; color: var(--text-muted); margin-top: 1px; }
@@ -185,7 +185,7 @@ body.neo {
 @keyframes exPop { 40% { transform: scale(1.12); } }
 
 .hud-gyro {
-  font-family: var(--font-body); font-size: 11px;
+  font-family: CRDBSymbols,var(--font-body); font-size: 11px;
   color: var(--text-muted);
   background: var(--surface2); border: 1px solid var(--border-hi); border-radius: 999px;
   padding: 6px 11px; cursor: pointer;
@@ -208,7 +208,7 @@ body.neo {
 
 .deck-count-3d {
   position: absolute; top: -4px; left: 50%; transform: translateX(-50%);
-  font-family: var(--font-head); font-weight: 700; font-size: 13px;
+  font-family: CRDBSymbols,var(--font-head); font-weight: 700; font-size: 13px;
   color: var(--text-muted); letter-spacing: .12em;
   display: flex; align-items: baseline; gap: 1px;
 }
@@ -343,7 +343,7 @@ body.neo {
   flex-wrap: wrap;
 }
 .sbtn {
-  font-family: var(--font-body); font-size: 12px; font-weight: 500;
+  font-family: CRDBSymbols,var(--font-body); font-size: 12px; font-weight: 500;
   padding: 8px 14px; border-radius: 999px;
   border: 1px solid var(--border-hi);
   background: rgba(30,34,48,.6);
@@ -395,7 +395,7 @@ body.neo {
 }
 .dsearch input {
   flex: 1; background: none; border: none; outline: none;
-  color: var(--text); font-family: var(--font-body); font-size: 13px;
+  color: var(--text); font-family: CRDBSymbols,var(--font-body); font-size: 13px;
   min-width: 0;
 }
 .dsearch input::placeholder { color: var(--text-muted); }
@@ -406,14 +406,14 @@ body.neo {
 .dchips::-webkit-scrollbar { display: none; }
 .chip {
   flex-shrink: 0;
-  font-family: var(--font-body); font-size: 11px;
+  font-family: CRDBSymbols,var(--font-body); font-size: 11px;
   color: var(--text-muted);
   background: rgba(30,34,48,.55); border: 1px solid var(--border); border-radius: 999px;
   padding: 5px 11px; cursor: pointer;
   transition: color .15s, border-color .15s, background .15s;
 }
 .chip.active { color: var(--accent); border-color: rgba(232,160,32,.6); background: rgba(232,160,32,.13); }
-.chip.cost { font-family: var(--font-head); font-weight: 700; min-width: 34px; }
+.chip.cost { font-family: CRDBSymbols,var(--font-head); font-weight: 700; min-width: 34px; }
 .chip.cost.c1.active { color: #4caf50; border-color: #4caf50; background: rgba(76,175,80,.12); }
 .chip.cost.c2.active { color: #26c6a0; border-color: #26c6a0; background: rgba(38,198,160,.12); }
 .chip.cost.c3.active { color: #3a8ef0; border-color: #3a8ef0; background: rgba(58,142,240,.12); }
@@ -437,7 +437,7 @@ body.neo {
   cursor: pointer;
   -webkit-user-select: none; user-select: none;
   perspective: 500px;
-  font-family: var(--font-body);
+  font-family: CRDBSymbols,var(--font-body);
 }
 .ncard-inner {
   position: absolute; inset: 0;
@@ -468,7 +468,7 @@ body.neo {
   position: absolute; top: 5px; left: 5px;
   width: 21px; height: 21px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-head); font-weight: 700; font-size: 12px;
+  font-family: CRDBSymbols,var(--font-head); font-weight: 700; font-size: 12px;
   background: linear-gradient(180deg, #ff7ad9, #b04ce0);
   color: #fff;
   text-shadow: 0 1px 2px rgba(0,0,0,.45);
@@ -500,7 +500,7 @@ body.neo {
 .ncard.in-deck::after {
   content: "IN";
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  font-family: var(--font-head); font-weight: 700; font-size: 13px; letter-spacing: .22em;
+  font-family: CRDBSymbols,var(--font-head); font-weight: 700; font-size: 13px; letter-spacing: .22em;
   color: var(--accent); opacity: .9;
   text-shadow: 0 0 10px rgba(232,160,32,.6);
   pointer-events: none;
@@ -545,7 +545,7 @@ body.neo {
 }
 .fate-ring .fate-card img { width: 92%; height: 88%; object-fit: contain; filter: drop-shadow(0 8px 10px rgba(0,0,0,.5)); }
 .fate-label {
-  font-family: var(--font-head); font-weight: 700; font-size: 16px; letter-spacing: .3em;
+  font-family: CRDBSymbols,var(--font-head); font-weight: 700; font-size: 16px; letter-spacing: .3em;
   color: #ffd98a; text-shadow: 0 0 18px rgba(232,160,32,.8);
 }
 
@@ -561,7 +561,7 @@ body.neo {
 }
 @keyframes cFlash { from { opacity: 1; } to { opacity: 0; } }
 .complete-tx {
-  font-family: var(--font-head); font-weight: 700;
+  font-family: CRDBSymbols,var(--font-head); font-weight: 700;
   font-size: clamp(34px, 7vw, 58px); letter-spacing: .22em;
   color: #fff;
   text-shadow: 0 0 30px rgba(232,160,32,1), 0 0 60px rgba(139,92,246,.8);
@@ -621,7 +621,7 @@ body.neo {
 
 .footer-signature {
   position: fixed; right: 14px; bottom: calc(6px + env(safe-area-inset-bottom, 0px));
-  font-family: 'Courier New', Courier, monospace;
+  font-family: CRDBSymbols,'Courier New', Courier, monospace;
   font-size: 10px; color: var(--text-dim);
   z-index: 2; pointer-events: none;
 }

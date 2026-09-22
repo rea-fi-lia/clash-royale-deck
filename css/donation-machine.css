@@ -8,7 +8,7 @@
   position: relative;
   width: min(520px, 92vw);
   margin: 28px auto 0;
-  font-family: -apple-system, "Hiragino Kaku Gothic ProN", sans-serif;
+  font-family: CRDBSymbols,-apple-system, "Hiragino Kaku Gothic ProN", sans-serif;
   color: #fff;
   user-select: none;
 }

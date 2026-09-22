@@ -1060,6 +1060,7 @@ async function updateDecks() {
     addPolStats_(polNow, sig, t0, o0, tc, oc);
   }
   var typeSeen = {};    // 観測した type/gameMode の分布（→ api-tags-seen.json）
+  var rankedDeckObservations = []; // Exact observed forms; analysis stays in the private Worker.
   var runPlayerSig = {}; // ★今回ぶん：プレイヤータグ → そのプレイヤーの現在デッキ署名（ユニーク人数集計用）
   // ★battle-schema-sample用：先頭~80試合の実フィールド構造を観測（取れる値を確定し憶測実装を防ぐ）
   var schemaSample = { sampleSize: 0, topLevelKeys: {}, teamKeys: {}, cardKeys: {}, present: {} };
@@ -1314,7 +1315,7 @@ async function updateDecks() {
       var d = classifyDeck(cards);
       if (!d) continue;
       var ranked = isRanked_(b);
-      if (!seedMode && ranked && !gotPop) { if (tally(pop, d, null)) { gotPop = true; if (tag) runPlayerSig[tag] = sigKey(d); } }
+      if (!seedMode && ranked && !gotPop) { if (tally(pop, d, null)) { gotPop = true; if (tag) runPlayerSig[tag] = sigKey(d); if (rankingSource !== 'trophy') rankedDeckObservations.push({tag:tag,deck:d.jp,forms:d.fm}); } }
       var bt = b.battleTime || '';
       if (bt && bt > maxT) maxT = bt;
       var tc = b.team[0].crowns, oc = b.opponent[0].crowns;
@@ -2946,6 +2947,7 @@ async function updateDecks() {
       });
       return out;
     }
+    if (rankedDeckObservations.length) await writePrivateRunArchive_('ranked-deck-observations-v1', {updated:new Date().toISOString(),source:rankingSource,population:'top1000-latest-ranked-deck',observations:rankedDeckObservations});
     var rawRanked = dedupeEvents_(rawBattleEventsNow);
     if (rawRanked.length) await writePrivateRunArchive_('ranked-battle-events-v1', {
       updated: new Date().toISOString(), source: rankingSource, window: 'latest-run', count: rawRanked.length, events: rawRanked

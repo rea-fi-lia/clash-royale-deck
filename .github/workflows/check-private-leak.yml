@@ -27,3 +27,8 @@ jobs:
         run: node tools/check-private-leak.js --self-test
       - name: 非公開コードの混入検査
         run: node tools/check-private-leak.js
+
+      - name: 独自UIアイコンと操作の検査
+        run: |
+          node tools/check-ui-icons.mjs
+          node --test tools/test-*.mjs

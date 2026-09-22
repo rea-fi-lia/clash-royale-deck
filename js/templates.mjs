@@ -1,0 +1,12 @@
+import {buildDeckUrl} from './deck-build-link.mjs?v=260817';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+const form=(f,i)=>f?.[i]||'n';
+export async function showTemplates(){
+ const dialog=document.createElement('dialog');dialog.className='template-dialog';dialog.innerHTML='<header><div><small>DECK LIBRARY</small><h2>テンプレートから組む</h2></div><button type="button" aria-label="閉じる">×</button></header><div class="template-body" aria-live="polite">参考デッキを取得中…</div>';document.body.append(dialog);dialog.showModal();dialog.querySelector('button').onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove());
+ const body=dialog.querySelector('.template-body');
+ const cards=r=>'<article class="template-card"><div class="template-card-title"><h3>'+esc(r.name||'CRDB '+(r.kind==='template'?'テンプレート':'候補'))+'</h3><span>'+(r.kind==='historical-reference'?'公式の過去例':r.streak+'日継続')+'</span></div><div class="template-cards">'+r.deck.map((n,i)=>window.cardImgTag(n,form(r.forms,i),{alt:n,title:n})).join('')+'</div><div class="template-card-actions"><a href="'+esc(buildDeckUrl(r.deck,r.forms))+'">このデッキで組む</a>'+(r.source?'<a href="'+esc(r.source)+'" target="_blank" rel="noopener">出典 · '+esc(r.published)+'</a>':'<span>使用率 '+(r.share*100).toFixed(2)+'% · '+r.rank+'位</span>')+'</div></article>';
+ try{const response=await fetch('/api/templates',{cache:'no-store'});if(!response.ok)throw Error();const data=await response.json();if(!dialog.open)return;
+ body.innerHTML='<h3>CRDBの実測テンプレート</h3><p>暫定基準：日別使用率の上位'+data.policy.topN+'位・'+(data.policy.minShare*100)+'%以上。'+data.policy.candidateDays+'日連続で候補、'+data.policy.templateDays+'日連続でテンプレート。8枚と形態が同じデッキを判定します。</p><p class="template-note">世界上位から収集した最新ランク戦デッキの観測です。勝利を保証する正解ではなく、組み方の出発点です。日ごとに20時間以上・各時間500人以上を取得できた日だけ判定します。</p>'+(data.measured.length?'<div class="template-grid">'+data.measured.map(cards).join('')+'</div>':'<div class="template-empty">連続日数の記録を蓄積中です。条件を満たしたデッキから表示します。</div>')+'<p class="template-note">判定日 '+esc(data.asOf)+' UTC · 有効な日別記録 '+data.coverage.filter(d=>d.complete).length+'日</p><h3>過去の定番・公式参考デッキ</h3><p>Supercellが2018年に公開した12の構成例です。当時の通常形態を保持しています。現在の環境での強さを認定したものではありません。</p><div class="template-grid">'+data.classics.map(cards).join('')+'</div>';
+ }catch{if(dialog.open)body.textContent='参考デッキを取得できませんでした。通信を確認して開き直してください。';}
+}
+document.getElementById('templateLibrary')?.addEventListener('click',showTemplates);

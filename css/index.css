@@ -25,7 +25,7 @@
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: var(--font-body);
+    font-family: CRDBSymbols,var(--font-body);
     min-height: 100vh;
     display: grid;
     grid-template-rows: auto 1fr;
@@ -43,14 +43,14 @@
     z-index: 100;
   }
   .logo {
-    font-family: var(--font-head);
+    font-family: CRDBSymbols,var(--font-head);
     font-size: 22px;
     font-weight: 700;
     letter-spacing: 2px;
     color: var(--accent);
     text-transform: uppercase;
   }
-  .logo span { color: var(--text-muted); font-size: 12px; font-family: var(--font-body); font-weight: 400; letter-spacing: 0; display: block; margin-top: -4px; }
+  .logo span { color: var(--text-muted); font-size: 12px; font-family: CRDBSymbols,var(--font-body); font-weight: 400; letter-spacing: 0; display: block; margin-top: -4px; }
 
   /* ページ切替ナビ（全ページ共通） */
   .nav-icons { display: flex; gap: 4px; margin-left: auto; }
@@ -92,7 +92,7 @@
 
   .corner-guide {
     position: fixed; right: 10px; bottom: 2px; z-index: 998;
-    font-family: var(--font-body); color: var(--text);
+    font-family: CRDBSymbols,var(--font-body); color: var(--text);
   }
   .corner-guide summary {
     list-style: none; width: 34px; height: 34px; border-radius: 50%; cursor: pointer;
@@ -135,7 +135,7 @@
   input[type=text] {
     width: 100%; padding: 7px 10px 7px 30px;
     background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 6px; color: var(--text); font-family: var(--font-body);
+    border-radius: 6px; color: var(--text); font-family: CRDBSymbols,var(--font-body);
     font-size: 16px; outline: none; transition: border-color 0.15s;
   }
   input[type=text]:focus { border-color: var(--accent); }
@@ -144,7 +144,7 @@
     flex: 0 0 auto; min-width: 72px; height: 34px; padding: 0 10px;
     border-radius: 999px; border: 1px solid rgba(232,160,32,0.42);
     background: rgba(232,160,32,0.10); color: var(--accent);
-    font-family: var(--font-head); font-size: 12px; font-weight: 700;
+    font-family: CRDBSymbols,var(--font-head); font-size: 12px; font-weight: 700;
     cursor: pointer; white-space: nowrap; box-shadow: 0 0 0 1px rgba(232,160,32,0.06) inset;
     -webkit-tap-highlight-color: transparent;
   }
@@ -160,7 +160,7 @@
     display: flex; align-items: center; gap: 7px; width: 100%; min-height: 34px;
     border: 1px solid rgba(232,160,32,0.32); border-radius: 8px; padding: 5px 8px;
     background: rgba(232,160,32,0.08); color: var(--text); text-align: left;
-    font-family: var(--font-body); cursor: pointer; -webkit-tap-highlight-color: transparent;
+    font-family: CRDBSymbols,var(--font-body); cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
   .assist-top-info .ati-main { flex: 0 0 auto; color: var(--accent); font-size: 11px; font-weight: 900; white-space: nowrap; }
   .assist-top-info .ati-sub { flex: 1 1 auto; min-width: 0; color: var(--text-muted); font-size: 11px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -184,8 +184,8 @@
   .assist-extra:empty { display: none; }
   .assist-bottom-pad { height: 8px; flex: 0 0 auto; }
   .assist-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  .assist-title { font-family: var(--font-head); font-size: 14px; color: var(--accent); letter-spacing: .04em; display: inline-flex; align-items: center; gap: 6px; }
-  .assist-beta { font-family: var(--font-body); font-size: 9px; font-weight: 700; letter-spacing: .06em; color: #000; background: var(--accent); border-radius: 999px; padding: 1px 6px; line-height: 1.5; }
+  .assist-title { font-family: CRDBSymbols,var(--font-head); font-size: 14px; color: var(--accent); letter-spacing: .04em; display: inline-flex; align-items: center; gap: 6px; }
+  .assist-beta { font-family: CRDBSymbols,var(--font-body); font-size: 9px; font-weight: 700; letter-spacing: .06em; color: #000; background: var(--accent); border-radius: 999px; padding: 1px 6px; line-height: 1.5; }
   .assist-state { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .assist-chunks { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
   .assist-chunk {
@@ -269,7 +269,7 @@
     display: grid; grid-template-columns: 42px 1fr auto; gap: 7px; align-items: center;
     width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 6px;
     background: rgba(255,255,255,0.035); color: var(--text); text-align: left;
-    font-family: var(--font-body); cursor: pointer; -webkit-tap-highlight-color: transparent;
+    font-family: CRDBSymbols,var(--font-body); cursor: pointer; -webkit-tap-highlight-color: transparent;
   }
   .assist-card img { width: 42px; height: 42px; object-fit: contain; }
   .assist-card .ac-body { min-width: 0; display: flex; flex-direction: column; }
@@ -286,7 +286,7 @@
   .assist-card .ac-detail-toggle {
     margin-top: 6px; padding: 0; border: 0; background: none; cursor: pointer;
     color: var(--accent); font-size: 11px; line-height: 1.3; text-decoration: underline;
-    font-family: var(--font-body); -webkit-tap-highlight-color: transparent; align-self: flex-start;
+    font-family: CRDBSymbols,var(--font-body); -webkit-tap-highlight-color: transparent; align-self: flex-start;
   }
   .assist-card .ac-detail {
     display: block; margin-top: 4px; padding: 5px 7px; border-radius: 6px;
@@ -306,7 +306,7 @@
     display: grid; grid-template-columns: 30px 1fr auto; gap: 5px; align-items: center;
     border: 1px solid rgba(232,160,32,0.22); border-radius: 8px; padding: 4px 5px;
     background: rgba(232,160,32,0.07); color: var(--text); text-align: left; cursor: pointer;
-    font-family: var(--font-body); -webkit-tap-highlight-color: transparent;
+    font-family: CRDBSymbols,var(--font-body); -webkit-tap-highlight-color: transparent;
   }
   .assist-threat-card img { width: 30px; height: 30px; object-fit: contain; }
   .assist-threat-card b { display: block; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -345,13 +345,13 @@
   .assist-context-loading { margin-top: -2px; color: var(--text-muted); font-size: 10px; line-height: 1.2; opacity: .72; }
   /* 好み設定ダイアログ */
   .persona-box { width: min(440px, 94vw); max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  .persona-title { font-family: var(--font-head); font-size: 16px; color: var(--accent); margin-bottom: 4px; }
+  .persona-title { font-family: CRDBSymbols,var(--font-head); font-size: 16px; color: var(--accent); margin-bottom: 4px; }
   .persona-sub { font-size: 12px; color: var(--text-muted); line-height: 1.55; margin-bottom: 12px; }
   .persona-label { display: block; font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
   .persona-input {
     width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
     background: var(--surface2); color: var(--text); font-size: 16px; letter-spacing: .18em;
-    text-transform: uppercase; outline: none; font-family: var(--font-head);
+    text-transform: uppercase; outline: none; font-family: CRDBSymbols,var(--font-head);
   }
   .persona-input:focus { border-color: var(--accent); }
   .persona-mbti-hint { font-size: 11px; color: var(--text-muted); margin-top: 5px; line-height: 1.4; }
@@ -361,7 +361,7 @@
   .persona-opt {
     padding: 9px 8px; border-radius: 8px; border: 1px solid var(--border);
     background: rgba(255,255,255,0.035); color: var(--text); font-size: 12px; line-height: 1.35;
-    cursor: pointer; text-align: center; font-family: var(--font-body);
+    cursor: pointer; text-align: center; font-family: CRDBSymbols,var(--font-body);
     -webkit-tap-highlight-color: transparent; transition: border-color .12s, background .12s;
   }
   .persona-opt.on { border-color: var(--accent); background: rgba(232,160,32,0.16); color: var(--accent); font-weight: 700; }
@@ -373,7 +373,7 @@
   .ttab[data-type="hero"].active { background: #e8a020; border-color: #e8a020; color: #000; }
   .ttab[data-type="champion"].active { background: #e05050; border-color: #e05050; color: #fff; }
   .ttab {
-    padding: 5px 10px; font-size: 12px; font-family: var(--font-body);
+    padding: 5px 10px; font-size: 12px; font-family: CRDBSymbols,var(--font-body);
     border: 1px solid var(--border); background: transparent;
     color: var(--text-muted); border-radius: 4px; cursor: pointer; transition: all 0.1s; white-space: nowrap;
   }
@@ -519,19 +519,19 @@
   /* RIGHT PANEL */
   .deck-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
   .deck-title {
-    font-family: var(--font-head); font-size: 18px; font-weight: 700;
+    font-family: CRDBSymbols,var(--font-head); font-size: 18px; font-weight: 700;
     letter-spacing: 1px; color: var(--text); text-transform: uppercase;
     display: flex; align-items: baseline; gap: 8px;
   }
-  .deck-count { font-size: 13px; font-weight: 400; color: var(--text-muted); font-family: var(--font-body); }
+  .deck-count { font-size: 13px; font-weight: 400; color: var(--text-muted); font-family: CRDBSymbols,var(--font-body); }
   .avg-row { display: flex; align-items: baseline; gap: 6px; }
   .avg-label { font-size: 11px; color: var(--text-muted); }
-  .avg-val { font-family: var(--font-head); font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .avg-val { font-family: CRDBSymbols,var(--font-head); font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1; }
   .avg-sub { font-size: 11px; color: var(--text-muted); }
   /* ドラッグ中の平均コスト増減インジケータ（自作の三角アイコン＋差分） */
   .avg-trend { display: inline-flex; align-items: center; gap: 2px; }
   .avg-trend svg { display: block; }
-  .avg-trend .avg-diff { font-family: var(--font-head); font-weight: 700; font-size: 12px; }
+  .avg-trend .avg-diff { font-family: CRDBSymbols,var(--font-head); font-weight: 700; font-size: 12px; }
   .deck-header.previewing .avg-val { transition: color 0.1s; }
   /* 入れ替え確定時：平均コストが0.01刻みでロール（ドゥルル）＋上下バウンス */
   .avg-val.rolling { animation: avgRoll 0.34s cubic-bezier(.34,1.56,.64,1); transition: color 0.12s; }
@@ -612,9 +612,9 @@
     background: linear-gradient(150deg, #171a2b 0%, #0d0f17 100%); border: 7px solid rgba(255,255,255,.12);
     display: flex; flex-direction: column; justify-content: space-between; padding: 4.2% 5%; color: #fff; }
   .rep-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
-  .rep-h1 { font-family: var(--font-head); font-weight: 700; color: var(--accent); font-size: clamp(13px, 3.4vw, 24px); letter-spacing: 1px; line-height: 1; }
+  .rep-h1 { font-family: CRDBSymbols,var(--font-head); font-weight: 700; color: var(--accent); font-size: clamp(13px, 3.4vw, 24px); letter-spacing: 1px; line-height: 1; }
   .rep-h2 { color: #cdd2e0; font-size: clamp(7px, 1.7vw, 12px); margin-top: 3px; }
-  .rep-label { font-family: var(--font-head); font-weight: 700; font-size: clamp(7px, 1.7vw, 12px); padding: 3px 9px; border-radius: 999px; white-space: nowrap; align-self: flex-start; letter-spacing: .5px; }
+  .rep-label { font-family: CRDBSymbols,var(--font-head); font-weight: 700; font-size: clamp(7px, 1.7vw, 12px); padding: 3px 9px; border-radius: 999px; white-space: nowrap; align-self: flex-start; letter-spacing: .5px; }
   .rep-by { color: #d9b86a; font-weight: 700; font-size: clamp(8px, 2vw, 14px); min-height: 1em; }
   .rep-cards { display: flex; justify-content: center; gap: 1.4%; }
   .rep-card { position: relative; width: 11.2%; aspect-ratio: 128 / 168; border-radius: 8px; overflow: hidden; background: #1e2230; border: 2px solid rgba(255,255,255,.12); }
@@ -630,7 +630,7 @@
   .sdk-card.champ { border-color: #f0c54a; box-shadow: inset 0 0 7px rgba(240,197,74,0.55); }
   .sdk-pip { position: absolute; top: 2px; left: 2px; min-width: 14px; height: 14px; padding: 0 3px;
     border-radius: 4px; font-size: 9px; font-weight: 700; color: #fff; display: flex; align-items: center;
-    justify-content: center; font-family: var(--font-head); text-shadow: 0 1px 1px rgba(0,0,0,0.5); }
+    justify-content: center; font-family: CRDBSymbols,var(--font-head); text-shadow: 0 1px 1px rgba(0,0,0,0.5); }
   .sdk-bdg { position: absolute; top: 1px; right: 2px; font-size: 10px; }
   .share-hint { font-size: 11px; color: var(--text-muted); text-align: center; margin-top: 6px; line-height: 1.5; }
   /* 「名前を入れて投稿」トグル（光る＝ON） */
@@ -644,8 +644,8 @@
     background: var(--surface2); border: 1px solid var(--border-hi); color: var(--text); border-radius: 8px;
     width: 46px; min-height: 38px; padding: 3px 4px; cursor: pointer; font-family: inherit; line-height: 1;
     user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-  .slot-load-btn .sl-cap { font-size: 7px; letter-spacing: 1px; color: var(--text-muted); font-family: var(--font-head); }
-  .slot-load-btn #slotLoadNum { font-family: var(--font-head); font-weight: 700; font-size: 18px; color: var(--accent); }
+  .slot-load-btn .sl-cap { font-size: 7px; letter-spacing: 1px; color: var(--text-muted); font-family: CRDBSymbols,var(--font-head); }
+  .slot-load-btn #slotLoadNum { font-family: CRDBSymbols,var(--font-head); font-weight: 700; font-size: 18px; color: var(--accent); }
   /* 4アイコンは平均コスト行の右端へ */
   .deck-header .deck-nav { display: flex; gap: 4px; margin-left: auto; }
   /* コストバーは行の下に全幅で */
@@ -657,7 +657,7 @@
   .slot-strip { display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 10px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
   .slot-chip { scroll-snap-align: center; flex: 0 0 auto; width: 96px; min-height: 92px; border-radius: 12px; border: 1px solid var(--border);
     background: var(--surface2); cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px 6px; color: var(--text); }
-  .slot-chip .num { font-family: var(--font-head); font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .slot-chip .num { font-family: CRDBSymbols,var(--font-head); font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1; }
   .slot-chip .nm { font-size: 10px; color: var(--text-muted); text-align: center; line-height: 1.2; word-break: break-all; }
   /* 保存スロット選択：スクロールせず5枠を一度に表示（パッと選べる） */
   .slot-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; padding: 4px 0 10px; }
@@ -681,7 +681,7 @@
     background: var(--surface); border: 1px solid var(--border-hi); border-radius: 999px; padding: 8px 12px;
     display: flex; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.55); touch-action: none; user-select: none; -webkit-user-select: none; max-width: 94vw; overflow: hidden; }
   .scrub-seg { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    font-family: var(--font-head); font-weight: 700; color: var(--text-muted); background: var(--surface2); border: 1px solid var(--border); transition: transform 0.1s, background 0.1s; cursor: pointer; }
+    font-family: CRDBSymbols,var(--font-head); font-weight: 700; color: var(--text-muted); background: var(--surface2); border: 1px solid var(--border); transition: transform 0.1s, background 0.1s; cursor: pointer; }
   .scrub-seg .sn { font-size: 18px; line-height: 1; }
   .scrub-seg .snm { font-size: 7px; max-width: 42px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .scrub-seg.on { background: var(--accent); color: #000; transform: scale(1.15); }
@@ -852,7 +852,7 @@
     position: absolute; left: 50%; top: 48%; transform: translate(-50%, -50%);
     z-index: 6; display: none; align-items: center; gap: 8px;
     padding: 11px 18px; border-radius: 999px; text-decoration: none;
-    color: var(--text); font-size: 13px; font-weight: 700; font-family: var(--font-body);
+    color: var(--text); font-size: 13px; font-weight: 700; font-family: CRDBSymbols,var(--font-body);
     background: linear-gradient(135deg, rgba(232,160,32,0.22), rgba(232,160,32,0.10));
     border: 1px solid rgba(232,160,32,0.55);
     box-shadow: 0 6px 22px rgba(0,0,0,0.45), 0 0 0 4px rgba(232,160,32,0.06);
@@ -873,7 +873,7 @@
   /* SLOTが共有マークに変わった時のさりげないグロー＋タップで出る共有ボタン */
   @keyframes slotGlow { 0%,100% { box-shadow: 0 0 0 0 rgba(232,160,32,0); } 50% { box-shadow: 0 0 11px 1px rgba(232,160,32,.5); } }
   .slot-load-btn.share-glow { animation: slotGlow 1.7s ease-in-out infinite; border-color: var(--accent); }
-  .slot-share-pop { position: fixed; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--accent); background: var(--surface2); color: var(--accent); font-family: var(--font-head); font-weight: 700; font-size: 13px; z-index: 1001; cursor: pointer; white-space: nowrap; animation: slotGlow 1.7s ease-in-out infinite; }
+  .slot-share-pop { position: fixed; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: 999px; border: 1px solid var(--accent); background: var(--surface2); color: var(--accent); font-family: CRDBSymbols,var(--font-head); font-weight: 700; font-size: 13px; z-index: 1001; cursor: pointer; white-space: nowrap; animation: slotGlow 1.7s ease-in-out infinite; }
   .slot-share-pop svg { display: block; }
   .da-copy .da-copy-tx { display: block; width: 100%; text-align: center; line-height: 1.12; }
   .da-copy .da-copy-tx .ln { display: block; line-height: 1.12; white-space: nowrap; } /* 各段を確実に1行で2段表示 */
@@ -893,7 +893,7 @@
   /* 保存時に選択中のスロット */
   .slot-chip.selected { border-color: var(--accent); border-width: 2px; box-shadow: 0 0 0 2px rgba(232,160,32,0.3) inset; background: rgba(232,160,32,0.16); }
   .btn {
-    padding: 8px 12px; border-radius: 6px; font-family: var(--font-body);
+    padding: 8px 12px; border-radius: 6px; font-family: CRDBSymbols,var(--font-body);
     font-size: 12px; cursor: pointer; transition: all 0.12s; border: none;
     display: flex; align-items: center; justify-content: center; gap: 6px;
   }
@@ -1028,7 +1028,7 @@
   .footer-signature {
     text-align: center;
     padding: 40px 0 20px;
-    font-family: 'Courier New', Courier, monospace;
+    font-family: CRDBSymbols,'Courier New', Courier, monospace;
     color: #888;
     letter-spacing: 1px;
   }
@@ -1150,7 +1150,7 @@
     transform: translate(-50%, -50%) scale(0);
     z-index: 9999;
     pointer-events: none;
-    font-family: var(--font-head);
+    font-family: CRDBSymbols,var(--font-head);
     font-size: 48px;
     font-weight: 700;
     letter-spacing: 6px;

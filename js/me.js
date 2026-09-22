@@ -1,7 +1,7 @@
-import '../auth.js?v=260816';
-import { normalizeTag, bindTagInput, inPeriod, availablePeriod, graphBattles, battleTime } from './experience-core.mjs?v=260816';
-import { mountChart } from './me-chart.mjs?v=260816';
-import { showBattle, showDeck } from './me-details.mjs?v=260816';
+import '../auth.js?v=260817';
+import { normalizeTag, bindTagInput, inPeriod, availablePeriod, graphBattles, battleTime, selectTrophySeries } from './experience-core.mjs?v=260817';
+import { mountChart } from './me-chart.mjs?v=260817';
+import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from './me-details.mjs?v=260817';
 /* =============================================================
  *  マイページ（/me.html）— 2026-08-11
  *  docs/monetization.md が設計の正本。
@@ -22,7 +22,7 @@ import { showBattle, showDeck } from './me-details.mjs?v=260816';
   const TAG_KEY = 'cr_my_tag';
 
   const CACHE_KEY = t => 'cr_my_cache_' + t;      // 直近の /api/me/sync 結果（即描画用）
-  let STATE = { data: null, meta: null, days: 1, requestedDays: null, competition: null, requestedCompetition: null };
+  let STATE = { data: null, meta: null, days: 1, requestedDays: null, competition: null };
   let disposeChart = () => {};
   const chartViews = new Map();
 
@@ -49,7 +49,7 @@ import { showBattle, showDeck } from './me-details.mjs?v=260816';
   const bandOf = tr => (typeof tr === 'number' && tr >= 0) ? Math.floor(tr / 300) * 300 : null;
   // df/of は文字列8桁（新）と配列（初期の保存分）の両対応
   const fAt = (f, i) => !f ? 'n' : (typeof f === 'string' ? (f.charAt(i) || 'n') : (f[i] || 'n'));
-  const chip = (name, form) => '<span class="me-chip">' + cardImgTag(name, form || 'n', { alt: name }) + '</span>';
+  const chip = (name, form, link=true) => '<span class="me-chip">' + (link ? cardBuildLink(name,form||'n') : cardImgTag(name,form||'n',{alt:name})) + '</span>';
   const parseT = t => { const m = String(t || '').match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})/); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])) : null; };
   const fmtDate = d => d ? (d.getMonth() + 1) + '/' + d.getDate() : '';
 
@@ -71,21 +71,16 @@ import { showBattle, showDeck } from './me-details.mjs?v=260816';
   function rerender() { if (STATE.data) renderAll(STATE.data, STATE.meta); }
 
   function renderAll(data, meta) {
-    const groups = data.competitions?.groups || [];
-    STATE.competition = groups.some(g=>g.id===STATE.requestedCompetition) ? STATE.requestedCompetition : data.competitions?.default || null;
-    const scope = groups.find(g=>g.id===STATE.competition);
-    const ALL = (data.battles || []).filter(b=>!scope || b.competition===scope.id);
-    const picker = $('meCompetition');
-    picker.innerHTML = groups.map(g=>'<button type="button" data-competition="'+esc(g.id)+'" aria-pressed="'+(g.id===STATE.competition)+'" class="'+(g.id===STATE.competition?'on':'')+'">'+esc(g.label)+'<small>'+g.count+'戦</small></button>').join('');
-    picker.hidden = !groups.length;
-    picker.querySelectorAll('button').forEach(button=>button.onclick=()=>{STATE.requestedCompetition=button.dataset.competition;STATE.requestedDays=null;rerender();});
-    $('meCompetitionNote').textContent = STATE.competition==='unknown' ? '種別が保存されていない旧記録です。通常・ランク戦のどちらかを数値から推定せず、別に表示しています。' : STATE.competition==='ranked' ? 'ランク戦トロフィーの記録。シーズンのリセットをまたぐ場合があります。' : '';
-    updateRange(ALL);
+    const series=selectTrophySeries(data);
+    STATE.competition=series.kind;
+    const ALL = data.battles || [];
+    const chartHistory = series.rows;
+    updateRange(chartHistory);
     const B = inRange(ALL, STATE.days);
     $('meTagSetup').hidden = true;
     $('meBody').hidden = false;
 
-    const latest = ALL.find(b => Number.isFinite(b.tr) && b.tr > 0);
+    const latest = chartHistory.find(b => Number.isFinite(b.tr) && b.tr > 0);
     const tr = latest ? latest.tr : null, band = bandOf(tr);
     const w = B.filter(b => b.win).length, draws = B.filter(b => b.draw).length, l = B.length - w - draws;
     const wr = B.length ? Math.round(w / B.length * 1000) / 10 : null;
@@ -104,7 +99,7 @@ import { showBattle, showDeck } from './me-details.mjs?v=260816';
       + (name ? '<span class="me-tag">#' + esc(data.tag) + '</span>' : '') + '</div>'
       + (tr != null ? '<div class="me-head-band">🏆 ' + tr.toLocaleString() + '<span>'+ (STATE.competition==='ranked' ? 'ランク戦トロフィー' : STATE.competition==='trophy' ? 'トロフィーロード · 帯 '+band+'–'+(band+299) : '種別別の試合前記録') + '</span></div>' : '')
       + '</div>' + summary + '</div>'
-      + '<div class="me-head-bottom"><p class="me-lead">'+(data.history?.state === 'indexing' ? '保存済みの過去試合を照合中。見つかり次第、自動で反映します。' : data.history?.state === 'error' ? '過去分の照合を再試行しています。取得済みの記録を表示中。' : '登録前も含む、収集できた全履歴。')+'</p><span class="me-head-total">選択期間 ' + B.length + '戦 <small>／ 全' + ALL.length + '戦</small></span></div>';
+      + '<div class="me-head-bottom"><p class="me-lead">'+(series.awaitingRanked ? 'ランク戦の参加実績はありますが推移は未取得です。取得済みのトロフィーロードを表示しています。' : data.history?.state === 'indexing' ? '保存済みの過去試合を照合中。見つかり次第、自動で反映します。' : data.history?.state === 'error' ? '過去分の照合を再試行しています。取得済みの記録を表示中。' : '登録前も含む、収集できた全履歴。')+'</p><span class="me-head-total">選択期間 ' + B.length + '戦 <small>／ 全' + ALL.length + '戦</small></span></div>';
     $('meRecordBody').innerHTML = B.length
       ? '<div class="me-result-line"><span><b>' + B.length + '</b> 戦の記録</span><span>' + w + '勝 · ' + l + '敗'+(draws?' · '+draws+'分':'')+'</span></div>'
         + '<div class="me-result-bar" role="img" aria-label="勝率 ' + wr + '%"><span style="width:' + wr + '%"></span></div>'
@@ -135,19 +130,23 @@ import { showBattle, showDeck } from './me-details.mjs?v=260816';
     renderBand(B, meta, tr, oppCard);
 
     /* トロフィー推移（時間軸つき） */
-    renderTrend(B);
+    renderTrend(inRange(chartHistory, STATE.days));
 
     if (window.CRI18N) CRI18N.apply();
   }
 
   function renderDecks(B, meta) {
-    const decks = (STATE.data?.competitions?.groups?.find(g=>g.id===STATE.competition)?.periods || STATE.data?.periods)?.[STATE.days]?.decks || [];
-    $('meDecksBody').innerHTML = decks.length ? '<p class="note">デッキを選ぶと、相手デッキごとの勝敗と、相手カード別の対面勝率を確認できます。8枚が記録されている '+decks.reduce((n,d)=>n+d.games,0)+' / '+B.length+'戦が対象です。</p>'
-      + decks.map((dk, i) => '<button type="button" class="me-deck me-deck-open" data-deck="'+i+'" aria-label="デッキ '+(i+1)+' の対戦詳細">'
-      + '<div class="me-deck-cards">'+dk.deck.map((n,j)=>chip(n,fAt(dk.forms,j))).join('')+'</div>'
-      + '<div class="me-deck-stat"><b>'+dk.winRate+'%</b><span>'+dk.wins+'勝 '+dk.losses+'敗'+(dk.draws?' '+dk.draws+'分':'')+'</span><small>'+dk.games+'戦 · 対戦詳細 ↗</small></div></button>').join('')
+    const decks = STATE.data?.periods?.[STATE.days]?.decks || [];
+    $('meDecksBody').innerHTML = decks.length ? '<p class="note">デッキを選ぶと対戦詳細へ。カードを選ぶと、そのカードを軸にデッキを組めます。8枚が記録されている '+decks.reduce((n,d)=>n+d.games,0)+' / '+B.length+'戦が対象です。</p>'
+      + decks.map((dk, i) => '<div class="me-deck-item"><button type="button" class="me-deck me-deck-open" data-deck="'+i+'" aria-label="デッキ '+(i+1)+' の対戦詳細">'
+      + '<div class="me-deck-cards">'+dk.deck.map((n,j)=>chip(n,fAt(dk.forms,j),false)).join('')+'</div>'
+      + '<div class="me-deck-stat"><b>'+dk.winRate+'%</b><span>'+dk.wins+'勝 '+dk.losses+'敗'+(dk.draws?' '+dk.draws+'分':'')+'</span><small>'+dk.games+'戦 · 対戦詳細 ↗</small></div></button>'+deckBuildLink(dk.deck,dk.forms)+'</div>').join('')
       : '<p class="note">自分のデッキが記録されている試合を読み込むと表示します。</p>';
-    $('meDecksBody').querySelectorAll('[data-deck]').forEach(button=>button.addEventListener('click',()=>showDeck(decks[+button.dataset.deck],STATE.data.tag,STATE.days,STATE.competition)));
+    $('meDecksBody').querySelectorAll('[data-deck]').forEach(button=>{
+      const args=()=>[decks[+button.dataset.deck],STATE.data.tag,STATE.days];
+      button.addEventListener('click',()=>showDeck(...args()));
+      for(const event of ['pointerenter','focus'])button.addEventListener(event,()=>prefetchDeck(...args()).catch(()=>{}),{once:true});
+    });
   }
 
   /* あなたの帯のいま＋「最優先の対策」（帯で流行 × あなたが苦手 の交差＝このサイトにしか出せない掛け算） */

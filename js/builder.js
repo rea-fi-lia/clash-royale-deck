@@ -2947,7 +2947,7 @@ function createGhost(imgSrc, name, cost, size) {
   }
   const label = document.createElement('div');
   label.textContent = name;
-  label.style.cssText = 'font-size:9px;color:#e8eaf0;text-align:center;padding:0 4px;line-height:1.2;font-family:sans-serif;';
+  label.style.cssText = 'font-size:9px;color:#e8eaf0;text-align:center;padding:0 4px;line-height:1.2;font-family:CRDBSymbols,sans-serif;';
   ghost.appendChild(label);
   document.body.appendChild(ghost);
   return ghost;
@@ -4137,7 +4137,7 @@ window.addEventListener('pageshow', () => {
 });
 
 // URLパラメータ ?deck=カード名,カード名,... でデッキを読み込む（攻略ページからのワンタップ用）
-function loadDeckFromQuery() {
+async function loadDeckFromQuery() {
   const previous = readBuilderNavigation();
   if (previous) { restoreBuilderNavigation(previous); return; }
   let p = new URLSearchParams(location.search).get('deck');
@@ -4155,8 +4155,12 @@ function loadDeckFromQuery() {
     if (c) { next[i] = c; placed++; }
   });
   if (!placed) return;
-  deck = next;
+  const params=new URLSearchParams(location.search);
+  const imported=fromUrl&&params.has('f')?(await import('./deck-build-link.mjs?v=260817')).arrangeImportedDeck(names,params.get('f'),CARDS):null;
+  deck = imported?.deck || next;
+  if(imported)Object.assign(slot2Mode,imported.wild);
   renderDeck(); refreshInDeck();
+  if(imported&&!imported.exact){showToast('カードを読み込みました。現在のスロットで形態を調整してください');return;}
   if (fromUrl) showToast('デッキを読み込みました'); // 静かな復帰時はトーストを出さない
 }
 loadDeckFromQuery();
