@@ -1,3 +1,5 @@
+import '../auth.js?v=260813';
+import { normalizeTag, bindTagInput, inPeriod, availablePeriod, trophyEfficiency } from './experience-core.mjs?v=260813';
 /* =============================================================
  *  マイページ（/me.html）— 2026-08-11
  *  docs/monetization.md が設計の正本。
@@ -18,15 +20,13 @@
   const TAG_KEY = 'cr_my_tag';
 
   const CACHE_KEY = t => 'cr_my_cache_' + t;      // 直近の /api/me/sync 結果（即描画用）
-  const RANGE_KEY = 'cr_my_range';
-  let STATE = { data: null, meta: null, days: 30 };
+  let STATE = { data: null, meta: null, days: 1 };
 
   function localTag() { try { return (localStorage.getItem(TAG_KEY) || '').trim() || null; } catch (e) { return null; } }
   function readCache(t) { try { return JSON.parse(localStorage.getItem(CACHE_KEY(t)) || 'null'); } catch (e) { return null; } }
   function writeCache(t, d) { try { localStorage.setItem(CACHE_KEY(t), JSON.stringify(d)); } catch (e) {} }
-  function readRange() { try { const v = +localStorage.getItem(RANGE_KEY); return [1, 7, 30, 365].includes(v) ? v : 30; } catch (e) { return 30; } }
   function saveLocalTag(t) { try { localStorage.setItem(TAG_KEY, t); } catch (e) {} }
-  function cleanTag(raw) { return String(raw || '').trim().toUpperCase().replace(/^#/, '').replace(/[^A-Z0-9]/g, ''); }
+  const cleanTag = normalizeTag;
 
   /* 勝ち筋の分類（decks.js の ME_ARCH_WINCONS と同じ表・順序） */
   const WINCONS = ['ラヴァハウンド', 'ゴーレム', 'エレクトロジャイアント', 'エリクサーゴーレム', '三銃士',
@@ -51,49 +51,52 @@
 
   /* ---- 描画 ---- */
   // 期間で絞る（days=0/未指定なら全部）。battles は新しい順。
-  function inRange(list, days) {
-    if (!days) return list;
-    const cut = new Date(Date.now() - days * 864e5);
-    const cutStr = cut.toISOString().replace(/[-:]/g, '').slice(0, 15);
-    return list.filter(b => String(b.t) >= cutStr);
+  const inRange = inPeriod;
+  function updateRange(all) {
+    const result = availablePeriod(all, STATE.days);
+    STATE.days = result.days;
+    document.querySelectorAll('#meRange button').forEach(button => {
+      const days = Number(button.dataset.days), hasData = days ? result.available.includes(days) : all.length > 0;
+      button.disabled = !hasData;
+      if (days === 0) button.hidden = inRange(all, 365).length === all.length;
+      button.classList.toggle('on', days === STATE.days);
+      button.setAttribute('aria-pressed', String(days === STATE.days));
+      button.title = hasData ? '' : 'この期間の記録はありません';
+    });
   }
   function rerender() { if (STATE.data) renderAll(STATE.data, STATE.meta); }
 
   function renderAll(data, meta) {
     const ALL = data.battles || [];
+    updateRange(ALL);
     const B = inRange(ALL, STATE.days);
     $('meTagSetup').hidden = true;
     $('meBody').hidden = false;
 
-    /* ヘッダ（課金まわりの文言はまだ出さない） */
-    const latest = B.find(b => typeof b.tr === 'number');
-    const tr = latest ? latest.tr : null;
-    const band = bandOf(tr);
-    let name = null; try { name = localStorage.getItem('cr_name_' + data.tag) || null; } catch (e) {}
-    $('meHeader').innerHTML =
-      '<div class="me-head">'
-      + '<div class="me-head-id"><b>' + esc(name || ('#' + data.tag)) + '</b>'
-      + (name ? '<span class="me-tag">#' + esc(data.tag) + '</span>' : '') + '</div>'
-      + (tr != null ? '<div class="me-head-band">🏆 ' + tr.toLocaleString() + '<span>帯 ' + band + '–' + (band + 299) + '</span></div>' : '')
-      + '<div class="me-head-total">' + B.length + '戦<small>／全' + ALL.length + '戦</small></div>'
-      + '</div>'
-      // ★説明文はトロフィーのすぐ下に置く（上部を占領しないため・jo指示2026-08-11）
-      + '<p class="me-lead">あなたの戦績と、あなたのトロフィー帯のいま。</p>';
-
-    /* 成績サマリ */
+    const latest = ALL.find(b => Number.isFinite(b.tr) && b.tr > 0);
+    const tr = latest ? latest.tr : null, band = bandOf(tr);
     const w = B.filter(b => b.win).length, l = B.length - w;
     const wr = B.length ? Math.round(w / B.length * 1000) / 10 : null;
-    const cB = B.filter(b => typeof b.tc === 'number' && typeof b.oc === 'number');
-    const crownF = cB.reduce((a, b) => a + b.tc, 0), crownA = cB.reduce((a, b) => a + b.oc, 0);
-    $('meRecordBody').innerHTML = B.length === 0
-      ? '<p class="note">' + (ALL.length ? 'この期間の記録がありません。上の期間を広げてみてください。' : 'まだ試合の記録がありません。ランク戦（1v1）を遊ぶと、開くたびにここへ貯まっていきます。') + '</p>'
-      : '<div class="me-stats">'
-      + '<div class="me-stat"><b>' + wr + '%</b><span>勝率</span></div>'
-      + '<div class="me-stat"><b>' + w + '勝' + l + '敗</b><span>' + B.length + '戦</span></div>'
-      + (cB.length ? '<div class="me-stat"><b>' + (crownF - crownA >= 0 ? '+' : '') + (Math.round((crownF - crownA) / cB.length * 100) / 100) + '</b><span>クラウン差/戦'
-        + (cB.length < B.length ? '<i>' + cB.length + '戦分</i>' : '') + '</span></div>' : '')
-      + '</div>'
-      + crownQualityHtml(cB);
+    const cB = B.filter(b => Number.isFinite(b.tc) && Number.isFinite(b.oc));
+    const crownDiff = cB.reduce((sum, b) => sum + b.tc - b.oc, 0);
+    const crownAverage = cB.length ? crownDiff / cB.length : null;
+    const signed = n => (n >= 0 ? '+' : '') + Number(n.toFixed(2));
+    let name = null; try { name = localStorage.getItem('cr_name_' + data.tag) || null; } catch (e) {}
+    const summary = '<div class="me-stats" aria-label="選択期間の戦績">'
+      + '<div class="me-stat"><span>勝率</span><b>' + (wr == null ? '—' : wr + '<small>%</small>') + '</b></div>'
+      + '<div class="me-stat"><span>勝敗</span><b>' + w + '<small>勝</small> ' + l + '<small>敗</small></b></div>'
+      + '<div class="me-stat"><span>クラウン差 / 戦</span><b>' + (crownAverage == null ? '—' : signed(crownAverage)) + '</b>'
+      + (cB.length && cB.length < B.length ? '<small>' + cB.length + '戦分</small>' : '') + '</div></div>';
+    $('meHeader').innerHTML = '<div class="me-head"><div class="me-identity">'
+      + '<span class="me-eyebrow">PLAYER PROFILE</span><div class="me-head-id"><b>' + esc(name || ('#' + data.tag)) + '</b>'
+      + (name ? '<span class="me-tag">#' + esc(data.tag) + '</span>' : '') + '</div>'
+      + (tr != null ? '<div class="me-head-band">🏆 ' + tr.toLocaleString() + '<span>帯 ' + band + '–' + (band + 299) + '</span></div>' : '')
+      + '</div>' + summary + '</div>'
+      + '<div class="me-head-bottom"><p class="me-lead">あなたの戦績と、あなたのトロフィー帯のいま。</p><span class="me-head-total">選択期間 ' + B.length + '戦 <small>／ 全' + ALL.length + '戦</small></span></div>';
+    $('meRecordBody').innerHTML = B.length
+      ? '<div class="me-result-line"><span><b>' + B.length + '</b> 戦の記録</span><span>' + w + '勝 · ' + l + '敗</span></div>'
+        + '<div class="me-result-bar" role="img" aria-label="勝率 ' + wr + '%"><span style="width:' + wr + '%"></span></div>'
+      : '<p class="note">まだ試合の記録がありません。1対1の試合を遊ぶと、開くたびにここへ貯まっていきます。</p>';
 
     /* 使用デッキ別（全体データとの突合つき） */
     renderDecks(B, meta);
@@ -123,31 +126,6 @@
     renderTrend(B);
 
     if (window.CRI18N) CRI18N.apply();
-  }
-
-  /* 勝ち方・負け方（クラウン対の内訳。decksの「三冠の質」の個人版）
-   * 全体実測では 1:0 が勝ちの76.6%を占める＝「どう勝ち切っているか」は個人の型がよく出る */
-  function crownQualityHtml(cB) {
-    if (cB.length < 5) return '';
-    const wins = [0, 0, 0, 0, 0, 0], losses = [0, 0, 0, 0, 0, 0];   // [3:0,3:1,3:2,2:0,2:1,1:0]
-    const bucket = (hi, lo) => hi === 3 ? (lo === 0 ? 0 : lo === 1 ? 1 : 2) : hi === 2 ? (lo === 0 ? 3 : 4) : 5;
-    cB.forEach(b => {
-      const hi = Math.max(b.tc, b.oc), lo = Math.min(b.tc, b.oc);
-      if (hi === lo || hi === 0) return;
-      (b.win ? wins : losses)[bucket(hi, lo)]++;
-    });
-    const LBL = ['3-0', '3-1', '3-2', '2-0', '2-1', '1-0'];
-    const wTot = wins.reduce((a, b) => a + b, 0), lTot = losses.reduce((a, b) => a + b, 0);
-    if (!wTot && !lTot) return '';
-    const row = (label, arr, tot, cls) => '<div class="me-cq-row"><span class="me-cq-label">' + label + '</span>'
-      + arr.map((v, i) => '<span class="me-cq-cell' + (v ? ' ' + cls : '') + '" style="opacity:' + (v ? Math.max(.35, v / Math.max(1, Math.max(...arr))) : .15) + '">'
-        + '<b>' + v + '</b><small>' + LBL[i] + '</small></span>').join('') + '</div>';
-    // 押し切り度：三冠勝ちのうち3-0の割合（全体基準は約70%）
-    const tri = wins[0] + wins[1] + wins[2];
-    const note = tri >= 5
-      ? '<p class="note">三冠勝ち' + tri + '戦のうち3-0が' + Math.round(wins[0] / tri * 100) + '%（全体の平均はおよそ70%。高いほど押し切って勝てています）</p>' : '';
-    return '<h3>勝ち方・負け方（クラウン内訳）<small>' + cB.length + '戦分</small></h3><div class="me-cq">'
-      + row('勝ち', wins, wTot, 'win') + row('負け', losses, lTot, 'lose') + '</div>' + note;
   }
 
   /* 使用デッキ別（全体統計に同じ8枚があれば「みんなの勝率」を併記＝伸びしろが見える） */
@@ -232,43 +210,55 @@
    * 上部の主役として見せる：面グラフ＋現在値＋増減バッジ。時間軸は実時刻で配置する。 */
   function renderTrend(B) {
     const el = $('meTrendBody');
-    const seq = B.filter(b => typeof b.tr === 'number' && parseT(b.t)).slice().reverse();  // 古→新
-    if (seq.length < 2) { el.innerHTML = '<p class="note">記録が2戦以上たまるとトロフィーの推移が出ます。</p>'; return; }
+    const seq = B.filter(b => Number.isFinite(b.tr) && b.tr > 0 && parseT(b.t)).slice().sort((a,b) => parseT(a.t) - parseT(b.t));  // 古→新
+    const efficiency = efficiencyHtml(B);
+    if (seq.length < 2) { el.innerHTML = '<p class="note">トロフィーの記録が2戦以上たまると推移を表示します。</p>' + efficiency; return; }
     const pts = seq.map(b => b.tr);
     const t0 = parseT(seq[0].t), t1 = parseT(seq[seq.length - 1].t);
     const span = Math.max(1, t1 - t0);
+    const tick = d => fmtDate(d) + (span < 864e5 ? ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') : '');
     const rawMin = Math.min(...pts), rawMax = Math.max(...pts);
     const pad = Math.max(30, Math.round((rawMax - rawMin) * 0.18));
     const min = rawMin - pad, max = rawMax + pad, vspan = Math.max(1, max - min);
-    const W = 640, H = 168, L = 8, R = 8, T = 14, Bm = 26;
+    const W = Math.max(300, Math.round(el.clientWidth || 900));
+    const H = Math.max(210, Math.min(290, W * .29)), L = 56, R = 20, T = 20, Bm = 36;
     const X = i => L + (parseT(seq[i].t) - t0) / span * (W - L - R);
     const Y = v => (H - Bm) - (v - min) / vspan * (H - T - Bm);
-    const line = pts.map((v, i) => (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ');
-    const area = line + ' L' + X(pts.length - 1).toFixed(1) + ',' + (H - Bm) + ' L' + X(0).toFixed(1) + ',' + (H - Bm) + ' Z';
-    const grid = [rawMax, rawMin].map(v =>
+    const line = pts.map((v, i) => (i && parseT(seq[i].t) - parseT(seq[i-1].t) <= 864e5 && Math.abs(v - pts[i-1]) <= 60 ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ');
+    const area = line.split('M').filter(Boolean).map(part => { const coords = part.trim().split(/[ L]+/); return 'M' + part + ' L' + coords.at(-1).split(',')[0] + ',' + (H - Bm) + ' L' + coords[0].split(',')[0] + ',' + (H - Bm) + ' Z'; }).join(' ');
+    const grid = [...new Set([rawMax, Math.round((rawMax + rawMin) / 2), rawMin])].map(v =>
       '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '" class="me-grid"/>'
-      + '<text x="' + (L + 2) + '" y="' + (Y(v) - 4).toFixed(1) + '" class="me-ax">' + v.toLocaleString() + '</text>').join('');
+      + '<text x="' + (L - 12) + '" y="' + (Y(v) + 4).toFixed(1) + '" text-anchor="end" class="me-ax">' + v.toLocaleString() + '</text>').join('');
     const last = pts[pts.length - 1], first = pts[0], diff = last - first;
-    const dots = seq.map((b, i) => '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(b.tr).toFixed(1) + '" r="2.2" class="'
+    const dots = seq.map((b, i) => '<circle cx="' + X(i).toFixed(1) + '" cy="' + Y(b.tr).toFixed(1) + '" r="3" class="'
       + (b.win ? 'me-dot-w' : 'me-dot-l') + '"><title>' + fmtDate(parseT(b.t)) + ' ' + b.tr.toLocaleString()
       + (b.win ? ' 勝ち' : ' 負け') + '</title></circle>').join('');
     el.innerHTML =
       '<div class="me-trend-head">'
-      + '<div class="me-trend-now"><b>' + last.toLocaleString() + '</b><span>トロフィー</span></div>'
+      + '<div class="me-trend-now"><span>トロフィー推移</span><b>' + last.toLocaleString() + '</b><small>最終記録・試合前</small></div>'
       + '<div class="me-trend-diff ' + (diff >= 0 ? 'up' : 'down') + '">' + (diff >= 0 ? '+' : '') + diff.toLocaleString() + '</div>'
       + '<div class="me-trend-span">' + fmtDate(t0) + '〜' + fmtDate(t1) + '・' + seq.length + '戦</div>'
       + '</div>'
-      + '<svg viewBox="0 0 ' + W + ' ' + H + '" class="me-trend" role="img" aria-label="トロフィー推移">'
+      + '<div class="me-chart-scroll"><svg viewBox="0 0 ' + W + ' ' + H + '" class="me-trend" role="img" aria-label="トロフィー推移">'
       + '<defs><linearGradient id="meGrad" x1="0" y1="0" x2="0" y2="1">'
       + '<stop offset="0%" stop-color="var(--accent)" stop-opacity=".38"/>'
       + '<stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>'
       + grid
       + '<path d="' + area + '" fill="url(#meGrad)"/>'
-      + '<path d="' + line + '" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>'
+      + '<path d="' + line + '" fill="none" stroke="var(--accent)" stroke-width="2.8" stroke-linejoin="round" stroke-linecap="round"/>'
       + dots
-      + '<text x="' + L + '" y="' + (H - 8) + '" class="me-ax">' + fmtDate(t0) + '</text>'
-      + '<text x="' + (W - R) + '" y="' + (H - 8) + '" class="me-ax" text-anchor="end">' + fmtDate(t1) + '</text>'
-      + '</svg>';
+      + '<text x="' + L + '" y="' + (H - 8) + '" class="me-ax">' + tick(t0) + '</text>'
+      + '<text x="' + (W - R) + '" y="' + (H - 8) + '" class="me-ax" text-anchor="end">' + tick(t1) + '</text>'
+      + '</svg></div><p class="me-chart-caption"><span>● 勝ち</span><span>● 負け</span>各点は試合開始時のトロフィー。空白期間には未記録の試合が含まれる場合があります。</p>' + efficiency;
+  }
+
+  function efficiencyHtml(battles) {
+    const e = trophyEfficiency(battles);
+    const value = e.percent == null ? '—' : Math.round(e.percent) + '<small>%</small>';
+    return '<div class="me-efficiency"><div class="me-eff-title"><span>推定トロフィー効率</span><b>' + value + '</b></div>'
+      + '<div class="me-eff-detail"><div><span class="me-positive">獲得 +' + e.gain + '</span><span class="me-negative">減少 −' + e.loss + '</span><span>純増 ' + (e.net >= 0 ? '+' : '') + e.net + '</span></div>'
+      + '<p>獲得量 ÷（獲得量＋減少量）。30分以内の連続記録 ' + e.intervals + '区間から推定。50%を超えると獲得が減少を上回ります。長い空白・リセットと思われる変動・結果と矛盾する変動は除外。最新試合の増減はまだ含みません。</p>'
+      + (e.percent == null ? '<p>比較できる増減がたまると算出します。</p>' : '') + '</div></div>';
   }
 
   /* ---- 既存の端末内蓄積（カードページ時代の cr_me_{TAG}）を一度だけサーバーへ移す ---- */
@@ -300,7 +290,10 @@
     ['meRecordBody', 'meDecksBody', 'meEnvBody', 'meBandBody', 'meTrendBody']
       .forEach(id => { const e = $(id); if (e) e.innerHTML = '<div class="me-skel"></div>'; });
   }
+  let syncRevision = 0;
   async function sync(tag) {
+    const revision = ++syncRevision;
+    STATE.data = null; STATE.days = 1;
     const err = $('meTagError');
     err.hidden = true;
     const cached = readCache(tag);
@@ -320,11 +313,13 @@
 
     try {
       const [j, meta] = await Promise.all([syncP, metaP]);   // 並行
+      if (revision !== syncRevision) return;
       STATE.meta = meta || STATE.meta;
       STATE.data = j;
       saveLocalTag(tag); writeCache(tag, j);
       renderAll(j, STATE.meta);
     } catch (e) {
+      if (revision !== syncRevision) return;
       if (cached && cached.battles) return;                  // キャッシュが出ているなら黙って諦める
       err.textContent = '取得できませんでした：' + (e && e.message || e) + '（タグをもう一度確認してください）';
       err.hidden = false;
@@ -334,35 +329,38 @@
   }
 
   /* ---- 初期化 ---- */
-  document.addEventListener('DOMContentLoaded', () => {
-    $('meTagSave').addEventListener('click', () => {
+  function initMe() {
+    bindTagInput($('meTagInput'));
+    $('meTagSave').addEventListener('click', async () => {
       const t = cleanTag($('meTagInput').value);
       if (t.length < 3) { $('meTagError').textContent = 'タグが短すぎます'; $('meTagError').hidden = false; return; }
-      sync(t);
+      try {
+        if (window.CRAuth?.getUser()) await CRAuth.setCrTag(t);
+        saveLocalTag(t); startWith(t, true);
+      } catch { $('meTagError').textContent = 'タグを保存できませんでした。接続を確認して、もう一度お試しください。'; $('meTagError').hidden = false; }
     });
-    $('meTagInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('meTagSave').click(); });
+    $('meTagInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) $('meTagSave').click(); });
     $('meTagChange').addEventListener('click', () => {
       $('meBody').hidden = true; $('meTagSetup').hidden = false; $('meTagInput').value = '';
-      curTag = null;
+      curTag = null; syncRevision++; STATE.data = null;
       try { localStorage.removeItem(TAG_KEY); } catch (e) {}
       // ログイン中はアカウント側のタグが正なので、その旨を出す（勝手に戻って混乱しないように）
       const p = window.CRAuth && CRAuth.getProfile && CRAuth.getProfile();
       const err = $('meTagError');
       if (p && p.crTag) {
-        err.textContent = 'ログイン中のアカウントには #' + cleanTag(p.crTag) + ' が登録されています。別のタグを入れるとこの端末でだけ切り替わります。';
+        err.textContent = 'ログイン中のアカウントには #' + cleanTag(p.crTag) + ' が登録されています。ここで保存すると登録タグも更新されます。';
         err.hidden = false;
       }
     });
 
     // 期間の切り替え（再取得はしない＝手元のデータを絞るだけなので一瞬）
-    STATE.days = readRange();
+    STATE.days = 1;
     const rangeEl = $('meRange');
     if (rangeEl) {
       rangeEl.querySelectorAll('button').forEach(b => {
         b.classList.toggle('on', +b.dataset.days === STATE.days);
         b.addEventListener('click', () => {
           STATE.days = +b.dataset.days;
-          try { localStorage.setItem(RANGE_KEY, String(STATE.days)); } catch (e) {}
           rangeEl.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
           rerender();
         });
@@ -375,14 +373,20 @@
     let curTag = null;
     const startWith = (t, force) => {
       if (!t || (t === curTag && !force)) return;
-      curTag = t; $('meTagInput').value = '#' + t; sync(t);
+      curTag = cleanTag(t); $('meTagInput').value = curTag; sync(curTag);
     };
-    startWith(localTag());                       // 0ms で開始（キャッシュがあれば描画も0ms）
+    if (!window.CRAuth?.hasSession()) startWith(localTag());                       // 0ms で開始（キャッシュがあれば描画も0ms）
     if (window.CRAuth && CRAuth.onChange) {
       CRAuth.onChange((user, profile) => {
         const t = profile && profile.crTag ? cleanTag(profile.crTag) : null;
-        if (t) { saveLocalTag(t); startWith(t); }   // アカウントのタグを正とする
+        if (t) { saveLocalTag(t); startWith(t); }
+        else if (!user) startWith(localTag());   // アカウントのタグを正とする
       });
     }
-  });
+    window.addEventListener('cr-owned-cards', rerender);
+    let resizeTimer;
+    window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(rerender, 150); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMe, { once: true });
+  else initMe();
 })();

@@ -141,8 +141,8 @@
   .dp-desktop .count-info { color: var(--text-muted); font: 11px 'Courier New', monospace; }
   .dp-desktop .cost-sort-btn { border-radius: 6px; font-size: 10px; padding: 6px 10px; color: var(--text-muted); }
   html.dp-desktop .card-list { height: auto !important; overflow: visible !important; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px; padding: 18px 0 30px; }
-  .dp-desktop .card { min-height: 178px; height: 178px; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); transition: transform .2s, border-color .2s, box-shadow .2s, background .2s; isolation: isolate; }
-  .dp-desktop .card::before { content: ''; position: absolute; width: 84%; height: 58%; left: 8%; top: 16%; border-radius: 50%; background: radial-gradient(ellipse, #7e8caa16, transparent 70%); z-index: -1; }
+  .dp-desktop .card-list .card { min-height: 178px; height: 178px; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); transition: transform .2s, border-color .2s, box-shadow .2s, background .2s; isolation: isolate; }
+  .dp-desktop .card-list .card::before { content: ''; position: absolute; width: 84%; height: 58%; left: 8%; top: 16%; border-radius: 50%; background: radial-gradient(ellipse, #7e8caa16, transparent 70%); z-index: -1; pointer-events: none; }
   .dp-desktop .card-img { top: 27px; bottom: auto; right: 50%; width: 100px; height: 108px; transform: translateX(50%); object-fit: contain; opacity: 1; transition: transform .22s cubic-bezier(.2,.8,.2,1); filter: drop-shadow(0 8px 6px #0002); }
   .dp-desktop .card-top { display: contents; }
   .dp-desktop .card-top .cost-pip { position: absolute; top: 11px; left: 11px; width: 22px; height: 22px; font: 12px 'Rajdhani', sans-serif; border: 1px solid #b393ca33; background: #8569ac22; color: #c5aedf; border-radius: 7px; }
@@ -151,13 +151,13 @@
   .dp-desktop .card-role { position: absolute; bottom: 13px; left: 6px; right: 6px; padding: 0; text-align: center; font-size: 8px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dp-desktop .fav-btn { top: 8px; right: 6px; opacity: .6; }
   .dp-desktop .fav-btn svg { width: 13px; height: 13px; }
-  .dp-desktop .fav-btn.active, .dp-desktop .card:hover .fav-btn { opacity: 1; }
-  .dp-desktop .card:hover { transform: translateY(-5px); border-color: var(--border-hi); background: var(--surface2); box-shadow: 0 12px 22px #0002; }
-  .dp-desktop .card:hover .card-img { transform: translateX(50%) translateY(-3px) scale(1.055); }
-  .dp-desktop .card.in-deck { opacity: .64; border-color: #e8bf7655; background: var(--surface); }
-  .dp-desktop .card.in-deck .card-img { opacity: .7; filter: none; }
-  .dp-desktop .card.in-deck::after { content: '✓'; position: absolute; right: 10px; bottom: 63px; background: var(--accent); color: var(--bg); width: 18px; height: 18px; border-radius: 50%; font-size: 11px; display: grid; place-items: center; }
-  .dp-desktop .card.peek { border-color: var(--accent); transform: translateY(-5px); }
+  .dp-desktop .fav-btn.active, .dp-desktop .card-list .card:hover .fav-btn { opacity: 1; }
+  .dp-desktop .card-list .card:hover { transform: translateY(-5px); border-color: var(--border-hi); background: var(--surface2); box-shadow: 0 12px 22px #0002; }
+  .dp-desktop .card-list .card:hover .card-img { transform: translateX(50%) translateY(-3px) scale(1.055); }
+  .dp-desktop .card-list .card.in-deck { opacity: .64; border-color: #e8bf7655; background: var(--surface); }
+  .dp-desktop .card-list .card.in-deck .card-img { opacity: .7; filter: none; }
+  .dp-desktop .card-list .card.in-deck::after { content: '✓'; position: absolute; right: 10px; bottom: 63px; background: var(--accent); color: var(--bg); width: 18px; height: 18px; border-radius: 50%; font-size: 11px; display: grid; place-items: center; }
+  .dp-desktop .card-list .card.peek { border-color: var(--accent); transform: translateY(-5px); }
   /* Reset the old centered popup's transform and bottom anchor together. */
   .dp-desktop .card-actions {
     inset: calc(100% + 6px) 0 auto; transform: none; margin: 0; width: auto;

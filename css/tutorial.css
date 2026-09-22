@@ -1,0 +1,13 @@
+.cr-tour { position: fixed; inset: 0; z-index: 2147483000; pointer-events: none; font-family: inherit; }
+.cr-tour-shade { position: fixed; background: rgba(28,32,40,.70); pointer-events: auto; }
+.cr-tour-focus { position: fixed; border: 2px solid #efc57d; border-radius: 12px; box-shadow: 0 0 0 4px #efc57d26; pointer-events: auto; }
+.cr-tour-panel { position: fixed; box-sizing: border-box; width: min(360px,calc(100vw - 32px)); padding: 23px; border: 1px solid var(--border-hi,#444); border-radius: 16px; background: var(--surface,#191e27); color: var(--text,#fff); box-shadow: 0 24px 90px #0006; pointer-events: auto; line-height: 1.7; }
+.cr-tour-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; color: var(--accent,#efc57d); font-size: 11px; letter-spacing: .04em; }
+.cr-tour-panel h2 { margin: 16px 0 10px; color: inherit; font-size: 19px; line-height: 1.55; }
+.cr-tour-panel p { margin: 0 0 22px; color: var(--text-muted,#aaa); font-size: 13px; }
+.cr-tour-panel button { font: inherit; font-size: 12px; cursor: pointer; border: 1px solid var(--border-hi,#555); border-radius: 7px; padding: 8px 15px; background: transparent; color: inherit; }
+.cr-tour-panel button:focus-visible { outline: 2px solid var(--accent,#efc57d); outline-offset: 4px; }
+.cr-tour-panel .cr-tour-skip { border: 0; padding: 4px 0; color: var(--text-muted,#aaa); }
+.cr-tour-actions { display: flex; justify-content: flex-end; gap: 9px; }
+.cr-tour-panel .cr-tour-next { background: var(--accent,#efc57d); color: var(--bg,#101216); border-color: transparent; min-width: 96px; }
+.cr-tour-panel [hidden] { display: none; }

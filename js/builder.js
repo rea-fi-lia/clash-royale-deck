@@ -3755,6 +3755,7 @@ function openShareDialog(deckArr, deckName, notSaved) {
 
 // ===== 保存デッキの呼び出し（横スクロールで 1〜5 を選ぶ） =====
 let currentSlot = null;
+let _slotOwner = null;
 let _pendingLoginShare = false; // 未ログイン共有→ログイン直後に「空きスロット保存＋共有」を一度だけ走らせるフラグ
 const SHARE_SVG = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 13.4 7.4 4.3M15.7 6.3 8.3 10.6"/></svg>';
 let _loadedSig = null; // 最後にスロットから読込/保存したデッキ署名。これと違えば「変更あり」
@@ -3979,7 +3980,9 @@ init();
 document.body.classList.add('perk-drop', 'perk-bottle'); // 枠の光/8枚シャキーン/ドラッグ軌跡/お気に入り線・アニメを全員に
 (function hookPerks() {
   if (!window.CRAuth) { setTimeout(hookPerks, 100); return; }
-  CRAuth.onChange(() => {
+  CRAuth.onChange((user) => {
+    if (_slotOwner && _slotOwner !== (user && user.uid)) { currentSlot = null; _loadedSig = null; }
+    _slotOwner = user ? user.uid : null;
     document.body.classList.add('perk-drop', 'perk-bottle'); // 状態変化後も解放を維持
     try { updateDeckGlow(deck.filter(Boolean).length); } catch (e) {} // 状態が変わったらグローを反映
     try { updateSlotLoadBtn(); } catch (e) {} // SLOTボタンのアイコン（未ログイン=共有マーク）を反映
@@ -4085,8 +4088,64 @@ window.addEventListener('cr-owned-cards', (e) => applyOwned(e.detail));
   if (cached) applyOwned(cached);
 })();
 
+// Each browser history entry owns its snapshot. A different tab or share URL cannot overwrite it.
+function readBuilderNavigation() {
+  const s = history.state && history.state.crdbBuilder;
+  if (!s || s.version !== 1 || s.url !== location.pathname + location.search
+      || !Array.isArray(s.deck) || s.deck.length !== 8
+      || !s.deck.every(n => n === null || typeof n === 'string')) return null;
+  return s;
+}
+function saveBuilderNavigation() {
+  const scroll = {};
+  for (const selector of ['.app', '#cardList', '.left', '.right']) {
+    const el = document.querySelector(selector); if (el) scroll[selector] = el.scrollTop;
+  }
+  const snapshot = {
+    version: 1, url: location.pathname + location.search,
+    deck: deck.map(c => c ? c.name : null), slot: currentSlot, signature: _loadedSig,
+    owner: window.CRAuth?.getUser()?.uid || null,
+    search: document.getElementById('search').value,
+    types: [...activeTypes], costs: [...activeCosts], costDesc, favSort, assistMode,
+    pinned: document.querySelector('.dp-pin')?.getAttribute('aria-pressed') === 'true',
+    scroll, y: window.scrollY
+  };
+  try { history.replaceState({ ...history.state, crdbBuilder: snapshot }, ''); } catch (e) {}
+}
+window.addEventListener('pagehide', saveBuilderNavigation);
+function restoreBuilderNavigation(s) {
+  deck = s.deck.map(n => CARDS.find(c => c.name === n) || null);
+  currentSlot = [1,2,3,4,5].includes(s.slot) ? s.slot : null;
+  _loadedSig = typeof s.signature === 'string' ? s.signature : null;
+  _slotOwner = typeof s.owner === 'string' ? s.owner : null;
+  document.getElementById('search').value = typeof s.search === 'string' ? s.search : '';
+  document.getElementById('searchClear').classList.toggle('visible', !!s.search);
+  document.getElementById('search').classList.toggle('has-value', !!s.search);
+  activeTypes = new Set(Array.isArray(s.types) ? s.types : []);
+  activeCosts = new Set(Array.isArray(s.costs) ? s.costs : []);
+  costDesc = !!s.costDesc; favSort = !!s.favSort; assistMode = !!s.assistMode;
+  syncTabUI();
+  document.querySelectorAll('.cfbtn').forEach(el => el.classList.toggle('active', activeCosts.has(+el.dataset.c)));
+  document.querySelector('.ttab[data-type="fav"]')?.classList.toggle('active', favSort);
+  const arrows = document.querySelectorAll('#costSortBtn .cs-ar');
+  arrows.forEach((el, i) => el.classList.toggle('on', i === (costDesc ? 1 : 0)));
+  renderDeck(); render(); updateAssistPanel(); updateSlotLoadBtn();
+}
+window.addEventListener('pageshow', () => {
+  const s = readBuilderNavigation(); if (!s) return;
+  requestAnimationFrame(() => {
+    for (const [selector, top] of Object.entries(s.scroll || {})) {
+      if (!['.app', '#cardList', '.left', '.right'].includes(selector)) continue;
+      const el = document.querySelector(selector); if (el) el.scrollTop = Number(top) || 0;
+    }
+    if (matchMedia('(min-width: 721px)').matches) window.scrollTo(0, Number(s.y) || 0);
+  });
+});
+
 // URLパラメータ ?deck=カード名,カード名,... でデッキを読み込む（攻略ページからのワンタップ用）
 function loadDeckFromQuery() {
+  const previous = readBuilderNavigation();
+  if (previous) { restoreBuilderNavigation(previous); return; }
   let p = new URLSearchParams(location.search).get('deck');
   const fromUrl = !!p;
   if (!p) { try { p = localStorage.getItem('cr_workdeck') || ''; } catch (e) {} } // ?deck=無し（戻る/Safari戻り）→保存済みデッキを復帰

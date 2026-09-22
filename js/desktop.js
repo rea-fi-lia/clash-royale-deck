@@ -6,7 +6,8 @@
   const t = (ja, en) => ja; // Original text is translated by refreshLabels.
   let mobilePin = root.classList.contains('nopin'), active = false;
   const originals = new WeakMap();
-  let built = false, pinned = false;
+  const prior = history.state?.crdbBuilder;
+  let built = false, pinned = !!(prior?.version === 1 && prior.url === location.pathname + location.search && prior.pinned);
   const copy = {
   "ja": [
     "デッキ作成",
@@ -537,7 +538,7 @@
       const label = make('span', 'dp-section-label dp-only', 'YOUR DECK');
       dh.prepend(label);
       const pin = make('button', 'dp-pin dp-only', icons.pin + `<span>${t('デッキを固定', 'Pin deck')}</span>`);
-      pin.type = 'button'; pin.setAttribute('aria-pressed', 'false');
+      pin.type = 'button'; pin.setAttribute('aria-pressed', String(pinned));
       pin.addEventListener('click', () => {
         pinned = !pinned; root.classList.toggle('nopin', !pinned);
         pin.setAttribute('aria-pressed', String(pinned));

@@ -9,3 +9,7 @@ Root HTML files are the language generator inputs. Run `node tools/gen-i18n.js` 
 `/admin.html` is a noindex static shell. It only shows management data after `/api/admin/summary` verifies a signed Google/Firebase session and the server-side owner setting. The account-menu link appears only after `/api/admin/session` authorizes the user. Server source and credentials do not belong in this public repository. Missing integrations show their connection status, never invented zero values.
 
 Validation: syntax checks; 17 language directories regenerated; internal-link/card-image lint; desktop card add/detail navigation and aligned buttons at 1024 and 1440; pin/unpin footer; English/German language switching; mobile 390px comparison of 129 element rectangles/styles; private API authentication tests in the separate server project.
+
+## 2026-09-22 操作改善
+
+戻る操作の状態復元、項目単位の初回チュートリアル、ガイドの装飾の適用範囲、登録済みタグとマイページの改善は [操作仕様](user-experience.md) を参照。チュートリアルはPC用、携帯のデッキ画面構成は維持。

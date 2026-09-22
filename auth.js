@@ -22,6 +22,8 @@
 
 import { firebaseConfig, isConfigured, crPlayerApiUrl } from "./firebase-config.js";
 import { installAdminEntry } from "./js/admin-entry.js";
+import { normalizeTag, bindTagInput, mergeProgress } from "./js/experience-core.mjs?v=260813";
+import { installTutorial } from "./js/tutorial.js?v=260813";
 
 // ===== ダブルタップ拡大を全ページ・全要素で防止（ピンチ拡大は維持） =====
 // CSSのtouch-actionだけだと動的生成要素などで効かない場合があるためJSでも防ぐ
@@ -60,6 +62,7 @@ export const TIERS = {
 let app, auth, db;
 let currentUser = null;
 let currentProfile = null;
+let _authEpoch = 0;
 let _authReady = false; // Firebaseの認証状態が初回解決したか（解決前はラグ＝ログイン判定が確定しない）
 let _ownedCards = null; // クラロワID連携で取得した所持カード（日本語名の配列）
 let _crName = null;     // クラロワ ゲーム内の名前（プレイヤーAPIから取得）
@@ -109,10 +112,16 @@ if (!isConfigured) {
     fb.setPersistence(auth, fb.browserLocalPersistence).catch(() => {});
 
     fb.onAuthStateChanged(auth, async (user) => {
-      _authReady = true; // 認証の初回解決が済んだ
+      _authReady = false; // プロフィールまで解決してから通知する
+      const epoch = ++_authEpoch;
       currentUser = user;
+      currentProfile = null;
       if (user) {
-        currentProfile = await ensureProfile(user);
+        let profile = null;
+        try { profile = await ensureProfile(user); }
+        catch { console.warn('[CRAuth] Profile unavailable; account progress will retry next visit.'); }
+        if (epoch !== _authEpoch) return;
+        currentProfile = profile;
         _crName = cachedName(currentProfile && currentProfile.crTag); // 再読込でも即2択表示
         setLoggedInUI(user, currentProfile);
         writeHint({ displayName: resolveDisplayName(user, currentProfile), photoURL: user.photoURL || "", tier: (currentProfile && currentProfile.tier) || "free" });
@@ -128,6 +137,7 @@ if (!isConfigured) {
         closeMenu();          // アカウント詳細ホバーを自動で閉じる
         window.dispatchEvent(new CustomEvent("cr-owned-cards", { detail: null })); // 「組めるデッキだけ」を解除
       }
+      _authReady = true;
       changeCallbacks.forEach(fn => { try { fn(user, currentProfile); } catch (e) {} });
     });
 
@@ -217,11 +227,11 @@ const CRAuth = {
   // ログイン中の可能性が高いか（解決前でも前回ログインのヒントがあればtrue）。
   // 「読み込み中なのに未ログイン扱いでログイン要求」を防ぐのに使う。
   hasSession() { return !!currentUser || (!_authReady && !!readHint()); },
-  onChange(fn) { changeCallbacks.push(fn); if (currentUser !== null || currentProfile !== null) fn(currentUser, currentProfile); },
+  onChange(fn) { changeCallbacks.push(fn); if (_authReady) fn(currentUser, currentProfile); },
 
   async setCrTag(tag) {
     if (!currentUser || !FB) return;
-    const clean = String(tag).trim().toUpperCase().replace(/^#/, "").replace(/[^A-Z0-9]/g, "");
+    const clean = normalizeTag(tag);
     const prevTag = (currentProfile && currentProfile.crTag) || "";
     const patch = { crTag: clean, updatedAt: FB.serverTimestamp() };
     if (!clean) patch.nameMode = "account"; // ID解除時はゲーム内名が使えないのでアカウント名へ
@@ -234,6 +244,20 @@ const CRAuth = {
       window.dispatchEvent(new CustomEvent("cr-owned-cards", { detail: null }));
       setLoggedInUI(currentUser, currentProfile);
     }
+  },
+
+  // Account-owned progress; dot paths update only this step, never another user's map.
+  async saveTutorialProgress(uid, progress) {
+    if (!currentUser || currentUser.uid !== uid || !currentProfile || !FB) return false;
+    const clean = mergeProgress(progress);
+    const patch = {};
+    for (const [id, entry] of Object.entries(clean)) {
+      for (const [field, value] of Object.entries(entry)) patch['tutorialProgress.' + id + '.' + field] = value;
+    }
+    if (!Object.keys(patch).length) return true;
+    await FB.updateDoc(FB.doc(db, "users", uid), patch);
+    if (currentUser?.uid === uid && currentProfile) currentProfile.tutorialProgress = mergeProgress(currentProfile.tutorialProgress, clean);
+    return true;
   },
 
   // ── クラロワID連携の基礎：プレイヤータグから所持カードを取得 ──
@@ -392,6 +416,7 @@ const CRAuth = {
 };
 window.CRAuth = CRAuth;
 installAdminEntry(CRAuth);
+installTutorial(CRAuth);
 
 // =============================================================
 //  ヘッダーに差し込むアカウントUI（全ページ共通・自動生成）
@@ -642,9 +667,7 @@ function buildMenu(user, profile) {
   // 入力は自動で大文字＋英数字のみ（#不要・小文字や記号は弾く）
   const tagInput = document.getElementById("crTagInput");
   // 入力中は見た目だけ整形（大文字・英数字）。保存を押すまで登録内容は一切書き換えない（下書きは保持しない）
-  if (tagInput) tagInput.addEventListener("input", () => {
-    tagInput.value = tagInput.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  });
+  bindTagInput(tagInput);
   document.getElementById("crTagSave").onclick = async () => {
     const v = document.getElementById("crTagInput").value;
     await CRAuth.setCrTag(v); // 「保存」を押した時だけ登録を更新。空なら登録抹消
