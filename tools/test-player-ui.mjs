@@ -31,3 +31,15 @@ test('no ranked points yet keeps the road graph visible with an explicit pending
  const data={competitions:{default:'ranked'},battles:road};assert.deepEqual(selectTrophySeries(data),{kind:'trophy',awaitingRanked:true,rows:road});
  data.battles=[...road,{competition:'ranked',tr:2700}];assert.equal(selectTrophySeries(data).kind,'ranked');assert.equal(selectTrophySeries(data).rows.length,1);
 });
+
+test('popular detail requests preserve all forms and selected window and share in-flight work',async()=>{
+ const {fetchPopularDeck}=await import('../js/me-details.mjs');let calls=0,path;
+ globalThis.fetch=async url=>{calls++;path=url;return Response.json({global:{games:3}});};
+ const dk={deck:['a','b','c','d','e','f','g','h'],forms:'enhnnnnn',window:'1h',asOf:'2026-09-22T12:00:00.000Z'};
+ const [a,b]=await Promise.all([fetchPopularDeck(dk),fetchPopularDeck(dk)]);assert.equal(calls,1);assert.deepEqual(a,b);const q=new URL(path,'https://test').searchParams;assert.equal(q.get('f'),dk.forms);assert.equal(q.get('asOf'),dk.asOf);assert.equal(q.get('window'),'1h');assert.equal(q.has('tag'),false);
+});
+test('failed popular detail requests can be retried immediately',async()=>{
+ const {fetchPopularDeck}=await import('../js/me-details.mjs');const dk={deck:['z','b','c','d','e','f','g','h'],forms:'nnnnnnnn',window:'3d'};let calls=0;
+ globalThis.fetch=async()=>{calls++;return calls===1?new Response(null,{status:503}):Response.json({global:{games:1}});};
+ await assert.rejects(fetchPopularDeck(dk));assert.equal((await fetchPopularDeck(dk)).global.games,1);assert.equal(calls,2);
+});

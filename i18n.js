@@ -620,6 +620,25 @@
     "メガナイト": "Mega Knight", "見習い親衛隊": "Royal Recruits", "ゴーレム": "Golem", "三銃士": "Three Musketeers"
   };
   if (DICT.en) Object.assign(DICT.en, CARD_EN);
+  Object.assign(DICT.en, {"詳細を閉じる": "Close details", "ランク戦": "Ranked", "相手別の内訳を取得中…": "Loading matchup breakdown…", "この条件に一致する試合は、まだ取得できていません。": "No matching battles have been retrieved yet.", "{wins}勝 · {losses}敗 · {draws}分": "{wins} wins · {losses} losses · {draws} draws", "{games}戦": "{games} battles", "残り{n}件を見る": "Show {n} more", "少数": "Small sample", "何に勝って、何に負けたか": "Which decks it won and lost against", "相手の8枚・形態が同じ試合をまとめています。": "Grouped by the opponent’s exact eight cards and forms.", "相手にこのカードが入っていたとき": "When the opponent had this card", "対面勝率が低い順。カード単独が敗因とは限りません。": "Lowest matchup win rate first. One card alone does not establish the cause of a loss.", "相手カード": "Opponent card", "勝 / 敗": "Wins / losses", "試合数": "Battles", "同じ8枚・同じ形態のデッキが戦った、収集済みの試合です。一覧のランキング集計とは、取得範囲が異なる場合があります。": "Collected ranked battles with these exact eight cards and forms. Coverage may differ from the ranking totals.", "保存済みアーカイブとの照合が完了しています。": "Matching against the stored archive is complete.", "過去の保存データを取り込み中です。現在の数字は取得済みの試合分で、照合に応じて増えます。": "Historical matching is in progress. These figures cover retrieved battles and may grow as more records are matched.", "対戦詳細を取得できませんでした。": "Match details could not be loaded."});
+  Object.assign(DICT["en"], {"対戦成績": "Match results", "このデッキの対戦成績": "Deck match results", "再試行": "Retry"});
+  Object.assign(DICT["ko"], {"対戦成績": "대전 성적", "このデッキの対戦成績": "덱 대전 성적", "再試行": "다시 시도"});
+  Object.assign(DICT["zh-cn"], {"対戦成績": "对战成绩", "このデッキの対戦成績": "卡组对战成绩", "再試行": "重试"});
+  Object.assign(DICT["zh-tw"], {"対戦成績": "對戰成績", "このデッキの対戦成績": "牌組對戰成績", "再試行": "重試"});
+  Object.assign(DICT["es"], {"対戦成績": "Resultados", "このデッキの対戦成績": "Resultados del mazo", "再試行": "Reintentar"});
+  Object.assign(DICT["pt-br"], {"対戦成績": "Resultados", "このデッキの対戦成績": "Resultados do deck", "再試行": "Tentar novamente"});
+  Object.assign(DICT["fr"], {"対戦成績": "Résultats", "このデッキの対戦成績": "Résultats du deck", "再試行": "Réessayer"});
+  Object.assign(DICT["de"], {"対戦成績": "Kampfergebnisse", "このデッキの対戦成績": "Kampfergebnisse des Decks", "再試行": "Erneut versuchen"});
+  Object.assign(DICT["it"], {"対戦成績": "Risultati", "このデッキの対戦成績": "Risultati del mazzo", "再試行": "Riprova"});
+  Object.assign(DICT["ru"], {"対戦成績": "Результаты", "このデッキの対戦成績": "Результаты колоды", "再試行": "Повторить"});
+  Object.assign(DICT["tr"], {"対戦成績": "Maç sonuçları", "このデッキの対戦成績": "Deste maç sonuçları", "再試行": "Tekrar dene"});
+  Object.assign(DICT["ar"], {"対戦成績": "نتائج المعارك", "このデッキの対戦成績": "نتائج معارك التشكيلة", "再試行": "إعادة المحاولة"});
+  Object.assign(DICT["fa"], {"対戦成績": "نتایج نبردها", "このデッキの対戦成績": "نتایج نبردهای دسته", "再試行": "تلاش دوباره"});
+  Object.assign(DICT["id"], {"対戦成績": "Hasil laga", "このデッキの対戦成績": "Hasil laga dek", "再試行": "Coba lagi"});
+  Object.assign(DICT["th"], {"対戦成績": "ผลการต่อสู้", "このデッキの対戦成績": "ผลการต่อสู้ของเด็ค", "再試行": "ลองอีกครั้ง"});
+  Object.assign(DICT["vi"], {"対戦成績": "Kết quả trận đấu", "このデッキの対戦成績": "Kết quả trận đấu của bộ bài", "再試行": "Thử lại"});
+  Object.assign(DICT["nl"], {"対戦成績": "Wedstrijdresultaten", "このデッキの対戦成績": "Resultaten van dit deck", "再試行": "Opnieuw proberen"});
+
 
   function pickLang() {
     // /en/ /pt-br/ 等のパス接頭辞を最優先（言語別静的ページ＝海外SEO用。URL自体が言語を表す）
@@ -647,6 +666,25 @@
     if (DICT.en && DICT.en[src] != null) return DICT.en[src]; // 未訳は英語へフォールバック（カード名や未訳UI）
     return src;
   }
+
+  Object.assign(DICT["en"], {"このデッキで組む": "Build this deck"});
+  Object.assign(DICT["ko"], {"このデッキで組む": "이 덱으로 만들기"});
+  Object.assign(DICT["zh-cn"], {"このデッキで組む": "使用此卡组"});
+  Object.assign(DICT["zh-tw"], {"このデッキで組む": "使用此牌組"});
+  Object.assign(DICT["es"], {"このデッキで組む": "Crear este mazo"});
+  Object.assign(DICT["pt-br"], {"このデッキで組む": "Montar este deck"});
+  Object.assign(DICT["fr"], {"このデッキで組む": "Créer ce deck"});
+  Object.assign(DICT["de"], {"このデッキで組む": "Dieses Deck bauen"});
+  Object.assign(DICT["it"], {"このデッキで組む": "Crea questo mazzo"});
+  Object.assign(DICT["ru"], {"このデッキで組む": "Собрать колоду"});
+  Object.assign(DICT["tr"], {"このデッキで組む": "Bu desteyi oluştur"});
+  Object.assign(DICT["ar"], {"このデッキで組む": "إنشاء هذه التشكيلة"});
+  Object.assign(DICT["fa"], {"このデッキで組む": "ساخت این دسته"});
+  Object.assign(DICT["id"], {"このデッキで組む": "Buat dek ini"});
+  Object.assign(DICT["th"], {"このデッキで組む": "สร้างเด็คนี้"});
+  Object.assign(DICT["vi"], {"このデッキで組む": "Tạo bộ bài này"});
+  Object.assign(DICT["nl"], {"このデッキで組む": "Bouw dit deck"});
+  Object.assign(DICT.en, {"勝率":"Win rate","軸にして組む":"Build around this card","{name}を軸にして組む":"Build around {name}"});
 
   // プレースホルダ補間翻訳。JS生成文字列（トースト・動的注記など）用。
   // 探索順：現在言語 → 英語 → 日本語テンプレ → キーそのもの。{name}などをvarsで置換。

@@ -284,3 +284,6 @@
   .page-guide .page-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .page-guide .page-links a { font-size: 13px; padding: 7px 14px; border: 1px solid var(--border-hi); border-radius: 999px; color: var(--text); text-decoration: none; background: var(--surface2); }
   @media (hover: hover) { .page-guide .page-links a:hover { border-color: var(--accent); color: var(--accent); } }
+
+/* Preserve the 4-column / 2-row card grid above this equal split action bar. */
+.deck-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-radius:8px;background:var(--accent);overflow:hidden}.deck-actions .load-btn{display:flex;align-items:center;justify-content:center;min-width:0;min-height:44px;height:100%;border-radius:0;padding:10px 6px;font-family:inherit;font-size:12px;line-height:1.5;transition:background .15s}.deck-actions .deck-results-btn{border-left:1px solid #0003}.deck-actions .load-btn:focus-visible{outline:2px solid #171b26;outline-offset:-4px}.deck-actions .load-btn[aria-busy="true"]{cursor:wait;opacity:.65}

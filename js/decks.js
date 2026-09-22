@@ -251,6 +251,7 @@ function renderDecks(decks) {
     const forms = Array.isArray(d.forms) ? d.forms : null;
     const hasEvo = ('evo' in d);
     const evoSet = new Set(Array.isArray(d.evo) ? d.evo : (d.evo ? [d.evo] : []));
+    const detailForms = [];
     const mini = d.slots.map((n, i) => {
       const info = CARD_INFO[n] || {};
       let mode;
@@ -262,6 +263,7 @@ function renderDecks(decks) {
       }
       // ★存在しない形態を要求されても cardShownForm が 'n' に落とすので、バッジと画像が食い違わない
       const shown = mode==='champion' ? 'champion' : cardShownForm(n, mode);
+      detailForms.push(shown === 'e' ? 'e' : shown === 'h' ? 'h' : 'n');
       const badge = shown==='e' ? '<span class="slot-badge">⚡</span>' : shown==='h' ? '<span class="slot-badge">👑</span>' : mode==='champion' ? '<span class="slot-badge">🏆</span>' : '';
       const cls = 'mini-card' + (shown==='e'?' is-evo':'') + (shown==='h'?' is-hero':'') + (mode==='champion'?' is-champ':'');
       // ★2026-08-11：デッキ内のカードをタップしたらカード個別ページへ飛べるようにする。
@@ -279,7 +281,19 @@ function renderDecks(decks) {
       '<div class="deck-card-head"><span class="deck-rank">#'+rank+'</span>'+
       '<div class="deck-stat-line">'+headHtml+'</div></div>'+
       '<div class="deck-cards-grid">'+mini+'</div>'+
-      '<a class="load-btn" href="'+url+'">' + _tr('▶ このデッキを作成ツールで開く') + '</a>';
+      '<div class="deck-actions"><a class="load-btn" href="'+url+'">' + _tr('このデッキで組む') + '</a>' +
+      '<button type="button" class="load-btn deck-results-btn" aria-haspopup="dialog">' + _tr('対戦成績') + '</button></div>';
+    el.querySelector('.deck-results-btn').addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      if (button.getAttribute('aria-busy') === 'true') return;
+      button.setAttribute('aria-busy', 'true');
+      const selection = { deck: d.slots.slice(), forms: detailForms.join(''), window: CUR_WINDOW, asOf: DECKS_JSON?.updated };
+      try {
+        const { showPopularDeck } = await import('./me-details.mjs?v=260818');
+        showPopularDeck(selection);
+      } catch { button.textContent = _tr('再試行'); }
+      finally { button.removeAttribute('aria-busy'); }
+    });
     wrap.appendChild(el);
   });
 }

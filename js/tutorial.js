@@ -1,4 +1,4 @@
-import { mergeProgress, pendingSteps } from './experience-core.mjs?v=260817';
+import { mergeProgress, pendingSteps } from './experience-core.mjs?v=260818';
 
 // Add steps with a new stable ID. Existing IDs must never be repurposed.
 export const TUTORIAL_STEPS = [

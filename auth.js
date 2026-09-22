@@ -21,10 +21,10 @@
 // =============================================================
 
 import { firebaseConfig, isConfigured, crPlayerApiUrl } from "./firebase-config.js";
-import { createProfileSession } from "./js/auth-session.mjs?v=260817";
+import { createProfileSession } from "./js/auth-session.mjs?v=260818";
 import { installAdminEntry } from "./js/admin-entry.js";
-import { normalizeTag, bindTagInput, mergeProgress } from "./js/experience-core.mjs?v=260817";
-import { installTutorial } from "./js/tutorial.js?v=260817";
+import { normalizeTag, bindTagInput, mergeProgress } from "./js/experience-core.mjs?v=260818";
+import { installTutorial } from "./js/tutorial.js?v=260818";
 
 // ===== ダブルタップ拡大を全ページ・全要素で防止（ピンチ拡大は維持） =====
 // CSSのtouch-actionだけだと動的生成要素などで効かない場合があるためJSでも防ぐ

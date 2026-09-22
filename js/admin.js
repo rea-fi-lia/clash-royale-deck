@@ -151,7 +151,7 @@ if (isPreview) {
   refresh();
 } else {
   try {
-    await import('/auth.js?v=260817');
+    await import('/auth.js?v=260818');
     const auth = window.CRAuth;
     auth.onChange(user => { currentUser = user; lock(user ? '管理者権限を確認しています。' : '管理者のGoogleアカウントでログインしてください。', !user); if (user) refresh(); });
     // Existing CRAuth does not invoke onChange for initial signed-out state.

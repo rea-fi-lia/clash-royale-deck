@@ -4156,7 +4156,7 @@ async function loadDeckFromQuery() {
   });
   if (!placed) return;
   const params=new URLSearchParams(location.search);
-  const imported=fromUrl&&params.has('f')?(await import('./deck-build-link.mjs?v=260817')).arrangeImportedDeck(names,params.get('f'),CARDS):null;
+  const imported=fromUrl&&params.has('f')?(await import('./deck-build-link.mjs?v=260818')).arrangeImportedDeck(names,params.get('f'),CARDS):null;
   deck = imported?.deck || next;
   if(imported)Object.assign(slot2Mode,imported.wild);
   renderDeck(); refreshInDeck();
