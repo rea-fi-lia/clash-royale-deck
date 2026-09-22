@@ -21,9 +21,10 @@
 // =============================================================
 
 import { firebaseConfig, isConfigured, crPlayerApiUrl } from "./firebase-config.js";
+import { createProfileSession } from "./js/auth-session.mjs?v=260816";
 import { installAdminEntry } from "./js/admin-entry.js";
-import { normalizeTag, bindTagInput, mergeProgress } from "./js/experience-core.mjs?v=260814";
-import { installTutorial } from "./js/tutorial.js?v=260814";
+import { normalizeTag, bindTagInput, mergeProgress } from "./js/experience-core.mjs?v=260816";
+import { installTutorial } from "./js/tutorial.js?v=260816";
 
 // ===== ダブルタップ拡大を全ページ・全要素で防止（ピンチ拡大は維持） =====
 // CSSのtouch-actionだけだと動的生成要素などで効かない場合があるためJSでも防ぐ
@@ -67,6 +68,10 @@ let _authReady = false; // Firebaseの認証状態が初回解決したか（解
 let _ownedCards = null; // クラロワID連携で取得した所持カード（日本語名の配列）
 let _crName = null;     // クラロワ ゲーム内の名前（プレイヤーAPIから取得）
 let _tagDraft = null;   // CRID入力の下書き（保存を押すまで保持。メニュー開閉で消えない）
+let _slotsRequest = 0;
+let _loginBusy = false;
+let _sdkLoading = false;
+let profileSession;
 let _slotsCache = null; // 5スロットのキャッシュ（読み取り回数の節約）
 const changeCallbacks = [];
 
@@ -99,71 +104,67 @@ if (!isConfigured) {
   else setLoggedOutUI(false);
 }
 
-// ---- 設定があればFirebaseを動的ロードして起動 ----------------------
-if (!isConfigured) {
-  console.warn("[CRAuth] firebase-config.js が未設定です。ログインは準備中表示のままです。");
-} else {
-  loadFirebase().then((fb) => {
-    FB = fb;
-    app  = fb.initializeApp(firebaseConfig);
-    auth = fb.getAuth(app);
-    db   = fb.getFirestore(app);
-
-    fb.setPersistence(auth, fb.browserLocalPersistence).catch(() => {});
-
-    fb.onAuthStateChanged(auth, async (user) => {
-      _authReady = false; // プロフィールまで解決してから通知する
-      const epoch = ++_authEpoch;
-      currentUser = user;
-      currentProfile = null;
-      if (user) {
-        let profile = null;
-        try { profile = await ensureProfile(user); }
-        catch { console.warn('[CRAuth] Profile unavailable; account progress will retry next visit.'); }
-        if (epoch !== _authEpoch) return;
-        currentProfile = profile;
-        _crName = cachedName(currentProfile && currentProfile.crTag); // 再読込でも即2択表示
-        setLoggedInUI(user, currentProfile);
-        writeHint({ displayName: resolveDisplayName(user, currentProfile), photoURL: user.photoURL || "", tier: (currentProfile && currentProfile.tier) || "free" });
-        CRAuth.refreshOwnedCards(); // ログイン時、IDがあれば所持カードを取得（基礎）
-      } else {
-        currentProfile = null;
-        _slotsCache = null;
-        _ownedCards = null;   // ログアウトで所持カード情報を破棄（ログイン中だけ有効）
-        _crName = null;
-        _tagDraft = null;
-        setLoggedOutUI(false); // ログイン可能状態
-        clearHint();
-        closeMenu();          // アカウント詳細ホバーを自動で閉じる
-        window.dispatchEvent(new CustomEvent("cr-owned-cards", { detail: null })); // 「組めるデッキだけ」を解除
-      }
-      _authReady = true;
-      changeCallbacks.forEach(fn => { try { fn(user, currentProfile); } catch (e) {} });
+// The Firebase persistence hierarchy supports Safari with IndexedDB and storage fallbacks.
+function notifyAuth() { changeCallbacks.forEach(fn => { try { fn(currentUser, currentProfile); } catch {} }); }
+function applySession(user, profile) {
+  currentProfile = profile;
+  _crName = cachedName(profile?.crTag);
+  setLoggedInUI(user, profile);
+  writeHint({displayName:resolveDisplayName(user,profile),photoURL:user.photoURL||"",tier:profile?.tier||"free"});
+}
+async function startFirebase() {
+  if (!isConfigured || auth || _sdkLoading) return;
+  _sdkLoading = true;
+  try {
+    const fb = await loadFirebase(); FB = fb;
+    app = fb.getApps().length ? fb.getApp() : fb.initializeApp(firebaseConfig);
+    auth = fb.initializeAuth(app, {
+      persistence: [fb.indexedDBLocalPersistence, fb.browserLocalPersistence, fb.browserSessionPersistence],
+      popupRedirectResolver: fb.browserPopupRedirectResolver,
     });
-
-    // 長時間タブを開きっぱなしにした後など、トークンが失効していることがある。
-    // タブに戻ってきたら（再表示時）トークンを強制リフレッシュ＝Firestore操作が失効で失敗するのを防ぐ。
-    document.addEventListener("visibilitychange", () => {
-      if (!document.hidden && auth && auth.currentUser) {
-        auth.currentUser.getIdToken(true).catch(() => {});
-      }
+    db = fb.getFirestore(app);
+    profileSession = createProfileSession({
+      load: ensureProfile,
+      identity(user) {
+        ++_authEpoch; ++_slotsRequest;
+        _authReady = true; currentUser = user; currentProfile = null;
+        _slotsCache = null; _ownedCards = null; _crName = null; _tagDraft = null;
+        closeMenu();
+        window.dispatchEvent(new CustomEvent("cr-owned-cards", {detail:null}));
+        window.dispatchEvent(new CustomEvent("cr-slots-changed"));
+        if (user) applySession(user, null);
+        else { clearHint(); setLoggedOutUI(false); }
+        notifyAuth();
+      },
+      profile(user, profile) {
+        applySession(user, profile); notifyAuth();
+        CRAuth.refreshOwnedCards();
+        document.getElementById('cr-account')?.removeAttribute('title');
+      },
+      unavailable() {
+        // Only the profile is unavailable. Preserve the authenticated user and stored session.
+        const account = document.getElementById('cr-account');
+        if (account) account.title = 'ログイン済み。プロフィールは接続回復後に再読み込みします。';
+        setTimeout(() => { if (!document.hidden && navigator.onLine !== false) void profileSession.retry(); }, 15000);
+      },
     });
-  }).catch((e) => {
-    console.error("[CRAuth] Firebase SDKの読み込みに失敗:", e);
-    clearHint();            // 失敗時は前回アバターを残さず「ログイン」を出す（偽ログイン状態で固まらない）
-    setLoggedOutUI(false);
-  });
-
-  // ウォッチドッグ：一定時間たっても認証が解決しない＝SDK読み込み失敗等で固まっている。
-  // その場合は前回ヒント（アバター）を消して「ログイン」を出し、ユーザーが押し直せるようにする（無言で固まらせない）。
-  setTimeout(() => {
-    if (!_authReady) { clearHint(); setLoggedOutUI(false); }
-  }, 10000);
-
-  // オフラインから復帰したのに未解決なら、リロードで再初期化を促す（回線復旧時の自動回復）。
-  window.addEventListener("online", () => {
-    if (!_authReady) { try { location.reload(); } catch (e) {} }
-  });
+    fb.onAuthStateChanged(auth, user => { void profileSession.change(user); });
+  } catch {
+    console.warn('[CRAuth] Sign-in initialization unavailable; retry on reconnect or user action.');
+    const account = document.getElementById('cr-account');
+    if (account) account.title = 'ログインの接続を確認できません。タップして再試行できます。';
+  } finally { _sdkLoading = false; }
+}
+if (isConfigured) {
+  void startFirebase();
+  const recover = () => {
+    void startFirebase();
+    // getIdToken refreshes expired tokens itself. Avoid forcing a network refresh on every Safari resume.
+    auth?.currentUser?.getIdToken().catch(() => {});
+    void profileSession?.retry();
+  };
+  window.addEventListener('online', recover);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) recover(); });
 }
 
 // ---- Firestore: プロフィール作成/取得 ------------------------------
@@ -192,14 +193,23 @@ async function ensureProfile(user) {
 const CRAuth = {
   // ログインボタン → ログイン方法を選ぶモーダルを開く
   signIn() {
-    if (!isConfigured || !FB || !auth) { alert("ログインはまだ準備中です（firebase-config.js を設定してください）"); return; }
+    if (!isConfigured) { alert("ログインは準備中です"); return; }
+    if (!FB || !auth) { void startFirebase(); alert("ログインの接続を確認しています。通信が戻ってからもう一度お試しください。"); return; }
     openLoginModal();
   },
   async signInGoogle() {
+    if (_loginBusy || !FB || !auth) return;
+    _loginBusy = true;
+    const button = document.getElementById('crGoogleBtn');
+    if (button) button.disabled = true;
     try {
-      await FB.signInWithPopup(auth, new FB.GoogleAuthProvider());
+      const provider = new FB.GoogleAuthProvider();
+      provider.setCustomParameters({prompt:'select_account'});
+      // Open synchronously within the tap gesture; Safari blocks popups opened after unrelated awaits.
+      await FB.signInWithPopup(auth, provider);
       closeLoginModal();
     } catch (e) { handleAuthError(e); }
+    finally { _loginBusy = false; if (button) button.disabled = false; }
   },
   async signInEmail(email, password) {
     try {
@@ -358,13 +368,18 @@ const CRAuth = {
 
   async deleteDeck(id) {
     if (!currentUser || !FB) return;
-    await FB.deleteDoc(FB.doc(db, "users", currentUser.uid, "decks", id));
+    const uid = currentUser.uid;
+    await FB.deleteDoc(FB.doc(db, "users", uid, "decks", id));
+    if (currentUser?.uid !== uid) return;
+    ++_slotsRequest; _slotsCache = null;
+    window.dispatchEvent(new CustomEvent('cr-slots-changed'));
   },
 
   // ---- 5スロット保存（クラウド・作成途中でも保存可） ----
   // スロットは users/{uid}/decks/slot1..slot5 に固定IDで保存
   async saveDeckToSlot(slot, name, cards) {
     if (!currentUser) { CRAuth.signIn(); return; }
+    const uid = currentUser.uid;
     const s = Math.max(1, Math.min(5, slot | 0));
     const list = (cards || []).filter(Boolean);
     const avg = list.length ? (list.reduce((a, c) => a + (c.cost || 0), 0) / list.length) : 0;
@@ -375,18 +390,24 @@ const CRAuth = {
       avg: Math.round(avg * 100) / 100,
       createdAt: FB.serverTimestamp(),
     };
-    await FB.setDoc(FB.doc(db, "users", currentUser.uid, "decks", "slot" + s), data);
+    await FB.setDoc(FB.doc(db, "users", uid, "decks", "slot" + s), data);
+    if (currentUser?.uid !== uid) return;
+    ++_slotsRequest;
     // キャッシュも更新（再読み込み＝Firestore読み取りを増やさない）
     if (_slotsCache) {
       _slotsCache = _slotsCache.filter(x => x.slot !== s).concat([{ id: "slot" + s, ...data }]).sort((a, b) => (a.slot || 0) - (b.slot || 0));
     }
+    window.dispatchEvent(new CustomEvent('cr-slots-changed'));
   },
 
   // 5スロットの現在の中身を返す（キャッシュ優先で読み取り回数を節約）
   async getSlots(force) {
     if (!currentUser || !FB) return [];
     if (_slotsCache && !force) return _slotsCache;
-    const snap = await FB.getDocs(FB.collection(db, "users", currentUser.uid, "decks"));
+    const uid = currentUser.uid, revision = ++_slotsRequest;
+    const snap = await FB.getDocs(FB.collection(db, "users", uid, "decks"));
+    if (currentUser?.uid !== uid) return [];
+    if (revision !== _slotsRequest) return _slotsCache || [];
     _slotsCache = snap.docs
       .filter(d => /^slot[1-5]$/.test(d.id))
       .map(d => ({ id: d.id, ...d.data() }))
@@ -830,7 +851,7 @@ function setModalMsg(txt, ok) {
   m.classList.toggle("ok", !!ok);
 }
 function handleAuthError(e) {
-  console.error(e);
+  console.warn("[CRAuth]", e.code || "sign-in-failed");
   const map = {
     "auth/invalid-email": "メールアドレスの形式が正しくありません",
     "auth/missing-password": "パスワードを入力してください",
@@ -840,8 +861,12 @@ function handleAuthError(e) {
     "auth/wrong-password": "メールまたはパスワードが違います",
     "auth/user-not-found": "アカウントが見つかりません。新規登録してください",
     "auth/too-many-requests": "試行回数が多すぎます。少し待って再試行してください",
-    "auth/popup-closed-by-user": "",
+    "auth/popup-closed-by-user": "Googleの画面が閉じられました。もう一度ログインできます。",
+    "auth/cancelled-popup-request": "Googleのログイン画面で操作を続けてください。",
+    "auth/popup-blocked": "Safariがログイン画面を開けませんでした。Safariのポップアップ設定を確認して、もう一度Googleボタンを押してください。",
+    "auth/network-request-failed": "通信が途切れました。接続を確認して、もう一度お試しください。",
+    "auth/web-storage-unsupported": "ログインの保存先を利用できません。Safariの通常タブで開き直してください。",
   };
-  const msg = map[e.code] !== undefined ? map[e.code] : ("エラー: " + (e.message || e.code));
+  const msg = map[e.code] !== undefined ? map[e.code] : ("ログインを完了できませんでした。もう一度お試しください（" + (e.code || "connection") + "）");
   if (msg) setModalMsg(msg);
 }

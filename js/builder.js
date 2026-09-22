@@ -289,19 +289,13 @@ function init() {
       catch (_) { searchEl.focus(); }
     }
   });
-  // Enter/改行（確定後）でキーボードを閉じる
-  searchEl.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); searchEl.blur(); }
-  });
-  // フォーム化していないが、念のため送信相当の確定でもblur
-  searchEl.addEventListener('search', () => searchEl.blur());
-  searchEl.oninput = () => {
+  CRInputGuard.bindSearch(searchEl, () => {
     const has = searchEl.value.length > 0;
     clearBtn2.classList.toggle('visible', has);
     searchEl.classList.toggle('has-value', has);
     render();
-    if (!has) restoreListScroll(); // 手動で全部消したときも元の位置へ
-  };
+    if (!has) restoreListScroll();
+  });
   // ✕：テキストを消して、必ずキーボードを閉じる
   const doClear = (e) => {
     e.preventDefault();
@@ -3959,7 +3953,7 @@ function promptDeckName(placeholder) {
     ov.querySelector('#dnCancel').onclick = () => close(null);
     const inp = ov.querySelector('#deckNameInput');
     ov.querySelector('#dnOk').onclick = () => close(inp.value.trim());
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') close(inp.value.trim()); });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) close(inp.value.trim()); });
     document.body.appendChild(ov);
     setTimeout(() => inp.focus(), 30);
   });
@@ -4215,3 +4209,60 @@ window.CRDeckBridge = {
   },
   cards: CARDS
 };
+
+// Desktop quick slots. Hover paints an overlay only; it never loads/saves the working deck.
+(function initDesktopSlotNav() {
+  const mq = matchMedia('(min-width: 1024px)'), actions = document.querySelector('.deck-actions');
+  if (!actions) return;
+  const nav = document.createElement('div');nav.className = 'dp-slot-nav';nav.setAttribute('role','group');nav.setAttribute('aria-label','保存デッキのスロット');
+  nav.innerHTML = [1,2,3,4,5].map(n=>'<button type="button" data-slot="'+n+'" aria-label="スロット '+n+'">'+n+'</button>').join('');
+  document.getElementById('slotLoadBtn').after(nav);
+  let slots=[],owner=null,request=0,previewing=false;
+  function clear(){
+    document.querySelectorAll('.dp-slot-preview-art').forEach(e=>e.remove());
+    document.getElementById('deckSlots').classList.remove('dp-slot-preview');
+    if(previewing)clearPreviewStats();previewing=false;
+    nav.querySelectorAll('button').forEach(b=>b.classList.remove('previewing'));
+  }
+  function paint(){nav.querySelectorAll('button').forEach(b=>{
+    const n=+b.dataset.slot,s=slots.find(x=>x.slot===n);
+    b.classList.toggle('empty',!s?.slots?.length);b.classList.toggle('on',currentSlot===n);
+    b.setAttribute('aria-pressed',String(currentSlot===n));b.title='SLOT '+n+(s?.slots?.length?' · '+s.slots.length+'枚':' · 空き');
+  });}
+  async function refresh(){
+    const revision=++request,uid=window.CRAuth?.getUser()?.uid;clear();
+    if(uid!==owner){slots=[];owner=uid;paint();}
+    if(!uid)return;
+    try {const list=await CRAuth.getSlots();if(revision!==request||uid!==CRAuth.getUser()?.uid)return;slots=list;paint();}
+    catch {if(revision===request)nav.title='保存デッキを取得できません。接続回復後に再試行します。';}
+  }
+  function preview(button){
+    if(!mq.matches)return;clear();const s=slots.find(x=>x.slot===+button.dataset.slot);if(!s?.slots?.length)return;
+    const cards=s.slots.map(n=>CARDS.find(c=>c.name===n)||null);previewing=true;
+    document.querySelectorAll('#deckSlots > .slot').forEach((el,i)=>{
+      const box=document.createElement('span');box.className='dp-slot-preview-art';const c=cards[i];
+      if(c)box.innerHTML=cardImgTag(c.name,slotMode(c,i),{alt:cardName(c)})+'<small>'+esc(cardName(c))+'</small>';
+      el.append(box);
+    });
+    document.getElementById('deckSlots').classList.add('dp-slot-preview');button.classList.add('previewing');previewStats(cards);
+  }
+  nav.querySelectorAll('button').forEach(button=>{
+    button.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch')preview(button);});
+    button.addEventListener('focus',()=>preview(button));button.addEventListener('blur',clear);
+    button.addEventListener('click',async()=>{
+      clear();if(!window.CRAuth)return;
+      if(!CRAuth.getUser()){if(CRAuth.hasSession())showToast('ログイン確認中です');else CRAuth.signIn();return;}
+      const uid=CRAuth.getUser().uid;await refresh();if(CRAuth.getUser()?.uid!==uid)return;const n=+button.dataset.slot,s=slots.find(x=>x.slot===n);currentSlot=n;
+      if(s?.slots?.length){const cards=s.slots.map(n=>CARDS.find(c=>c.name===n)||null);_loadedSig=cards.map(c=>c?c.name:'').join(',');CRDeckBridge.setDeck(cards,{silent:true});}
+      updateSlotLoadBtn();paint();
+    });
+  });
+  nav.addEventListener('pointerleave',clear);
+  window.addEventListener('cr-slots-changed',refresh);
+  window.addEventListener('online',refresh);
+  window.addEventListener('blur',clear);
+  mq.addEventListener('change',()=>{clear();if(mq.matches)refresh();});
+  const observer=new MutationObserver(()=>{clear();paint();});observer.observe(document.getElementById('slotLoadNum'),{childList:true});
+  (function hook(){if(!window.CRAuth){setTimeout(hook,150);return;}CRAuth.onChange(refresh);refresh();})();
+  paint();
+})();

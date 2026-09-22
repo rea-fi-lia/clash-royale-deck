@@ -1,7 +1,7 @@
-import '../auth.js?v=260814';
-import { normalizeTag, bindTagInput, inPeriod, availablePeriod, graphBattles, battleTime } from './experience-core.mjs?v=260814';
-import { mountChart } from './me-chart.mjs?v=260814';
-import { showBattle, showDeck } from './me-details.mjs?v=260814';
+import '../auth.js?v=260816';
+import { normalizeTag, bindTagInput, inPeriod, availablePeriod, graphBattles, battleTime } from './experience-core.mjs?v=260816';
+import { mountChart } from './me-chart.mjs?v=260816';
+import { showBattle, showDeck } from './me-details.mjs?v=260816';
 /* =============================================================
  *  マイページ（/me.html）— 2026-08-11
  *  docs/monetization.md が設計の正本。
@@ -22,7 +22,7 @@ import { showBattle, showDeck } from './me-details.mjs?v=260814';
   const TAG_KEY = 'cr_my_tag';
 
   const CACHE_KEY = t => 'cr_my_cache_' + t;      // 直近の /api/me/sync 結果（即描画用）
-  let STATE = { data: null, meta: null, days: 1, requestedDays: null };
+  let STATE = { data: null, meta: null, days: 1, requestedDays: null, competition: null, requestedCompetition: null };
   let disposeChart = () => {};
   const chartViews = new Map();
 
@@ -71,7 +71,15 @@ import { showBattle, showDeck } from './me-details.mjs?v=260814';
   function rerender() { if (STATE.data) renderAll(STATE.data, STATE.meta); }
 
   function renderAll(data, meta) {
-    const ALL = data.battles || [];
+    const groups = data.competitions?.groups || [];
+    STATE.competition = groups.some(g=>g.id===STATE.requestedCompetition) ? STATE.requestedCompetition : data.competitions?.default || null;
+    const scope = groups.find(g=>g.id===STATE.competition);
+    const ALL = (data.battles || []).filter(b=>!scope || b.competition===scope.id);
+    const picker = $('meCompetition');
+    picker.innerHTML = groups.map(g=>'<button type="button" data-competition="'+esc(g.id)+'" aria-pressed="'+(g.id===STATE.competition)+'" class="'+(g.id===STATE.competition?'on':'')+'">'+esc(g.label)+'<small>'+g.count+'戦</small></button>').join('');
+    picker.hidden = !groups.length;
+    picker.querySelectorAll('button').forEach(button=>button.onclick=()=>{STATE.requestedCompetition=button.dataset.competition;STATE.requestedDays=null;rerender();});
+    $('meCompetitionNote').textContent = STATE.competition==='unknown' ? '種別が保存されていない旧記録です。通常・ランク戦のどちらかを数値から推定せず、別に表示しています。' : STATE.competition==='ranked' ? 'ランク戦トロフィーの記録。シーズンのリセットをまたぐ場合があります。' : '';
     updateRange(ALL);
     const B = inRange(ALL, STATE.days);
     $('meTagSetup').hidden = true;
@@ -94,7 +102,7 @@ import { showBattle, showDeck } from './me-details.mjs?v=260814';
     $('meHeader').innerHTML = '<div class="me-head"><div class="me-identity">'
       + '<span class="me-eyebrow">PLAYER PROFILE</span><div class="me-head-id"><b>' + esc(name || ('#' + data.tag)) + '</b>'
       + (name ? '<span class="me-tag">#' + esc(data.tag) + '</span>' : '') + '</div>'
-      + (tr != null ? '<div class="me-head-band">🏆 ' + tr.toLocaleString() + '<span>帯 ' + band + '–' + (band + 299) + '</span></div>' : '')
+      + (tr != null ? '<div class="me-head-band">🏆 ' + tr.toLocaleString() + '<span>'+ (STATE.competition==='ranked' ? 'ランク戦トロフィー' : STATE.competition==='trophy' ? 'トロフィーロード · 帯 '+band+'–'+(band+299) : '種別別の試合前記録') + '</span></div>' : '')
       + '</div>' + summary + '</div>'
       + '<div class="me-head-bottom"><p class="me-lead">'+(data.history?.state === 'indexing' ? '保存済みの過去試合を照合中。見つかり次第、自動で反映します。' : data.history?.state === 'error' ? '過去分の照合を再試行しています。取得済みの記録を表示中。' : '登録前も含む、収集できた全履歴。')+'</p><span class="me-head-total">選択期間 ' + B.length + '戦 <small>／ 全' + ALL.length + '戦</small></span></div>';
     $('meRecordBody').innerHTML = B.length
@@ -133,17 +141,26 @@ import { showBattle, showDeck } from './me-details.mjs?v=260814';
   }
 
   function renderDecks(B, meta) {
-    const decks = STATE.data?.periods?.[STATE.days]?.decks || [];
+    const decks = (STATE.data?.competitions?.groups?.find(g=>g.id===STATE.competition)?.periods || STATE.data?.periods)?.[STATE.days]?.decks || [];
     $('meDecksBody').innerHTML = decks.length ? '<p class="note">デッキを選ぶと、相手デッキごとの勝敗と、相手カード別の対面勝率を確認できます。8枚が記録されている '+decks.reduce((n,d)=>n+d.games,0)+' / '+B.length+'戦が対象です。</p>'
       + decks.map((dk, i) => '<button type="button" class="me-deck me-deck-open" data-deck="'+i+'" aria-label="デッキ '+(i+1)+' の対戦詳細">'
       + '<div class="me-deck-cards">'+dk.deck.map((n,j)=>chip(n,fAt(dk.forms,j))).join('')+'</div>'
       + '<div class="me-deck-stat"><b>'+dk.winRate+'%</b><span>'+dk.wins+'勝 '+dk.losses+'敗'+(dk.draws?' '+dk.draws+'分':'')+'</span><small>'+dk.games+'戦 · 対戦詳細 ↗</small></div></button>').join('')
       : '<p class="note">自分のデッキが記録されている試合を読み込むと表示します。</p>';
-    $('meDecksBody').querySelectorAll('[data-deck]').forEach(button=>button.addEventListener('click',()=>showDeck(decks[+button.dataset.deck],STATE.data.tag,STATE.days)));
+    $('meDecksBody').querySelectorAll('[data-deck]').forEach(button=>button.addEventListener('click',()=>showDeck(decks[+button.dataset.deck],STATE.data.tag,STATE.days,STATE.competition)));
   }
 
   /* あなたの帯のいま＋「最優先の対策」（帯で流行 × あなたが苦手 の交差＝このサイトにしか出せない掛け算） */
   function renderBand(B, meta, tr, oppCard) {
+    const ranked = STATE.competition==='ranked';
+    $('meBand').querySelector('h2').textContent = ranked ? 'ランク戦全体のいま' : STATE.competition==='trophy' ? 'あなたの帯のいま' : '対戦種別の記録';
+    $('meBandWhen').textContent = '';
+    if (STATE.competition !== 'trophy') {
+      const stats=ranked&&meta?.polCardIntel, rows=Object.entries(stats?.byOpponentCard||{}).sort((a,b)=>b[1].games-a[1].games).slice(0,10);
+      $('meBandBody').innerHTML=rows.length ? '<h3>収集したランク戦でよく対面するカード</h3><div class="me-weak">'+rows.map(([n,v])=>'<span class="me-weak-card">'+chip(n)+'<span class="me-card-name">'+esc(n)+'</span><b>'+v.games.toLocaleString()+'戦</b></span>').join('')+'</div><p class="note">CRDBが収集したランク戦全体の対面件数です。通常トロフィー帯の統計は混ぜていません。</p>' : '<p class="note">対応する種別の全体統計はありません。左側には実際に対面した相手を表示しています。</p>';
+      if(stats)$('meBandWhen').textContent='直近'+stats.windowDays+'日の集計';
+      return;
+    }
     let bandHtml = '<p class="note">帯のデータを読み込めませんでした。</p>';
     const tb = meta && meta.trophyBandIntel;
     if (tb && tb.byBand && tr != null) {
@@ -191,19 +208,19 @@ import { showBattle, showDeck } from './me-details.mjs?v=260814';
     disposeChart();
     const el = $('meTrendBody'), seq = graphBattles(B), last=seq.at(-1), first=seq[0];
     const diff=seq.length>=2?last.tr-first.tr:null;
-    el.innerHTML='<div class="me-trend-head"><div class="me-trend-now"><span>トロフィー推移</span><b>'+(last?last.tr.toLocaleString():'—')+'</b><small>最終記録・試合前</small></div>'
+    el.innerHTML='<div class="me-trend-head"><div class="me-trend-now"><span>'+ (STATE.competition==='ranked'?'ランク戦トロフィー推移':'トロフィー推移') +'</span><b>'+(last?last.tr.toLocaleString():'—')+'</b><small>最終記録・試合前</small></div>'
       +(diff!=null?'<div class="me-trend-diff '+(diff>=0?'up':'down')+'">'+(diff>=0?'+':'')+diff.toLocaleString()+'</div>':'')
       +'<div class="me-trend-span">'+(first?fmtDate(new Date(battleTime(first.t)))+'〜'+fmtDate(new Date(battleTime(last.t)))+' · '+seq.length+'件':'')+'</div></div><div id="meChart"></div>'+efficiencyHtml();
-    const key=STATE.data.tag+':'+STATE.days;
+    const key=STATE.data.tag+':'+STATE.competition+':'+STATE.days;
     if(!chartViews.has(key))chartViews.set(key,{});
     disposeChart=mountChart($('meChart'),B,chartViews.get(key),showBattle);
   }
   function efficiencyHtml() {
-    const e=STATE.data?.periods?.[STATE.days]?.efficiency;
+    const e=(STATE.data?.competitions?.groups?.find(g=>g.id===STATE.competition)?.periods || STATE.data?.periods)?.[STATE.days]?.efficiency;
     if(!e)return '<p class="note">トロフィー効率を確認中…</p>';
     const signed=n=>n==null?'—':(n>=0?'+':'')+Number(n.toFixed(1)).toLocaleString();
-    return '<div class="me-efficiency"><div class="me-eff-item"><span>記録期間の純増</span><b>'+signed(e.net)+'<small>🏆</small></b><small>'+Number(e.elapsedDays.toFixed(1))+'日間の始点 → 終点</small></div>'
-      +'<div class="me-eff-item"><span>暦日あたり</span><b>'+signed(e.perDay)+'<small>🏆 / 日</small></b><small>記録期間の純増 ÷ 経過日数</small></div>'
+    return '<div class="me-efficiency"><div class="me-eff-item"><span>記録期間の純増</span><b>'+signed(e.net)+'<small>🏆</small></b><small>'+(e.elapsedDays<1?(e.elapsedDays*1440<1?'1分未満':Math.round(e.elapsedDays*1440)+'分'):Number(e.elapsedDays.toFixed(1))+'日間')+'の始点 → 終点</small></div>'
+      +'<div class="me-eff-item"><span>暦日あたり</span><b>'+signed(e.perDay)+'<small>🏆 / 日</small></b><small>'+(e.elapsedDays<1?'1日未満の記録を24時間に換算':'記録期間の純増 ÷ 経過日数')+'</small></div>'
       +'<div class="me-eff-item"><span>1試合あたりの実増減</span><b>'+signed(e.perMatch)+'<small>🏆 / 戦</small></b><small>増減を取得できた '+e.exactMatches+' / '+e.totalMatches+'戦</small></div></div>'
       +'<p class="me-eff-note">暦日には遊んでいない日も含み、空白期間の未収集試合やシーズンリセットの影響を含む場合があります。1戦あたりは取得した実増減のみ。勝率や試合間隔をプレイ時間に換算していません。'+(e.perPlayHour!=null?'実時間を取得できた'+e.timedMatches+'戦では '+signed(e.perPlayHour)+' 🏆 / プレイ時間1時間。':'')+'</p>';
   }
@@ -240,7 +257,7 @@ import { showBattle, showDeck } from './me-details.mjs?v=260814';
   let syncRevision = 0;
   async function sync(tag) {
     const revision = ++syncRevision;
-    STATE.data = null; STATE.days = 1; STATE.requestedDays = null;
+    STATE.data = null; STATE.days = 1; STATE.requestedDays = null; STATE.competition = null; STATE.requestedCompetition = null;
     const err = $('meTagError');
     err.hidden = true;
     const cached = readCache(tag);

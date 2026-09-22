@@ -466,26 +466,33 @@ async function collectPilotTags_(token) {
       try { store = await r2ReadJson_(path); } catch (e) {}
       if (!store || !Array.isArray(store.battles)) store = { tag: tag, updated: 0, battles: [] };
       var seen = {};
-      store.battles.forEach(function (b) { seen[b.t] = 1; });
+      store.battles.forEach(function (b) { seen[b.t] = b; });
       var added = 0;
       for (var i = 0; i < log.length; i++) {
         var b = log[i];
         if (!b.team || b.team.length !== 1 || !b.opponent || b.opponent.length !== 1) continue;
         var me = b.team[0], opp = b.opponent[0];
         var tc = me.crowns, oc = opp.crowns;
-        if (typeof tc !== 'number' || typeof oc !== 'number' || tc === oc) continue;
-        if (seen[b.battleTime]) continue;
+        if (typeof tc !== 'number' || typeof oc !== 'number') continue;
+        var previous = seen[b.battleTime];
+        if (previous) {
+          if (!previous.mode) { previous.mode = b.type || (b.gameMode && b.gameMode.name) || 'unknown'; added++; }
+          if (previous.trophyChange == null && typeof me.trophyChange === 'number') { previous.trophyChange = me.trophyChange; added++; }
+          continue;
+        }
         var my = sideJp(me), op = sideJp(opp);
         if (!my || !op) continue;
         store.battles.push({
-          t: b.battleTime, win: tc > oc,
+          t: b.battleTime, win: tc > oc, draw: tc === oc,
+          mode: b.type || (b.gameMode && b.gameMode.name) || 'unknown',
+          trophyChange: typeof me.trophyChange === 'number' ? me.trophyChange : null,
           tr: (typeof me.startingTrophies === 'number' ? me.startingTrophies : null),
           tc: tc, oc: oc,
           deck: my.names, df: my.forms, opp: op.names, of: op.forms,
           oppTag: String(opp.tag || '').replace(/^#/, '') || null,
           src: srcOf[tag] || 'pilot'          // 毎時収集で入った分だと分かるように
         });
-        seen[b.battleTime] = 1; added++;
+        seen[b.battleTime] = store.battles[store.battles.length - 1]; added++;
       }
       if (added > 0) {
         store.battles.sort(function (a, c) { return String(c.t).localeCompare(String(a.t)); });
@@ -493,7 +500,7 @@ async function collectPilotTags_(token) {
         store.savedOnce = true;
         await r2WriteJson_(path, store);
       }
-      console.log('pilot ' + tag + ' 新規' + added + '戦 / 累計' + store.battles.length + '戦');
+      console.log('pilot ' + tag + ' 追加・補完' + added + '戦 / 累計' + store.battles.length + '戦');
     } catch (e) {
       console.log('pilot ' + tag + ' error ' + ((e && e.message) || e));
     }

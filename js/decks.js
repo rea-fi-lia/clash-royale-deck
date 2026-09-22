@@ -186,12 +186,10 @@ function renderCardPop(q) {
 }
 const _cardClear = document.getElementById('cardClear');
 function _syncClear() { _cardClear.style.display = _cardSearch.value ? 'flex' : 'none'; }
-_cardSearch.addEventListener('input', () => { renderCardPop(_cardSearch.value); _syncClear(); });
+CRInputGuard.bindSearch(_cardSearch, () => { renderCardPop(_cardSearch.value); _syncClear(); });
 _cardSearch.addEventListener('focus', () => { if (_cardSearch.value.trim()) renderCardPop(_cardSearch.value); });
 // Enterで検索確定＝キーボードを閉じる（候補はそのまま表示）
-_cardSearch.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); _cardSearch.blur(); }
-});
+
 // ×：打った文字を消して、いかなる時もキーボードを閉じる
 _cardClear.addEventListener('click', () => {
   _cardSearch.value = '';
@@ -526,14 +524,12 @@ function syncCrankClear() {
   if (_crankClear) _crankClear.style.display = _crankQuery ? 'flex' : 'none';
 }
 if (_crankSearch) {
-  _crankSearch.addEventListener('input', () => {
+  CRInputGuard.bindSearch(_crankSearch, () => {
     _crankQuery = _crankSearch.value.trim();
     syncCrankClear();
     renderCrank();
   });
-  _crankSearch.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); _crankSearch.blur(); }
-  });
+
 }
 if (_crankClear) {
   _crankClear.addEventListener('click', () => {

@@ -269,3 +269,12 @@ CRDBは「有用性の低いコンテンツ」でAdSenseに落ちた前科があ
 | 帯のカバー | collectログの `帯数` | 47 |
 | 発見の飽和 | collectログの `clan-crawl newPlayers=` | 0になるまで拡大の余地あり |
 | 先駆けタグ | collectログの `pilot ...` | `対象N件（先駆け1 / 課金M）` |
+
+## 2026-09-22 入力・ログイン・ランク戦表示
+
+- 日本語カード検索の変換確定Enterでblurしていた処理を、共通のcomposition対応入力ガードへ置換。ビルダーと人気デッキ内2箇所の計3検索。値の手動挿入/文字列の重複削除はしない。名前入力のEnterも変換中は確定しない。
+- 認証状態とFirestoreプロフィール取得を分離。プロフィール待ち10秒で認証ヒントを消すwatchdog、自動onlineリロード、復帰ごとの強制トークン再発行を除去。IndexedDB→local→sessionのFirebase永続化候補を初期化時に指定。プロフィールのみの失敗はログインを保持し、再接続/再表示/表示中の再試行で回復する。Google popupはタップに直結し、二重起動を防ぐ。アカウント切替後の古いプロフィール・保存スロット応答を破棄。
+- iPhone Safariとの本人申告を受けた対応。ただし実端末のエラー文言は未取得で、原因を単一に確定したものではない。Safariで問題になり得るcross-origin redirectへ勝手に切り替えていない。Firebase公式: https://firebase.google.com/docs/auth/web/redirect-best-practices 、https://firebase.google.com/docs/auth/web/custom-dependencies 、https://firebase.google.com/docs/auth/web/auth-state-persistence 。
+- PCの中央スロット1〜5、ホバー専用オーバーレイ、グラフ両軸の視覚的ハンドル。グラフボタンは全体リセットのみ。携帯ビルダーの配置は維持し、共通機能とマイページへ反映。
+- マイページはAPIの種別ごとにトロフィーロード/ランク戦/旧種別不明を切替。グラフ、効率、個人と全体のデッキ成績を同一種別で表示。収集側にも試合種別と実増減を保持し、再取得できた古い記録は欠損だけ補完する。分析本体は非公開実装を参照。
+- 検証入口: `node --test tools/test-input-auth.mjs tools/test-experience.mjs`（20件）、`node tools/check-card-images.js --lint-only`、`node tools/check-private-leak.js`。外部画像HTTP検査は通信制限下で接続失敗となるため、コードの描画規約検査と実ブラウザの画像表示とは区別する。

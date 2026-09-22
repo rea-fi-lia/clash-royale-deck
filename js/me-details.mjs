@@ -31,7 +31,7 @@ function scopeHTML(data){
     +'<h4>何に勝って、何に負けたか</h4><p class="note">相手の8枚・形態が同じ試合をまとめています。</p>'+extra(deckRows,8)
     +'<h4>相手にこのカードが入っていたとき</h4><p class="note">対面勝率が低い順。カード単独が敗因とは限りません。</p><div class="me-table-scroll"><table><thead><tr><th>相手カード</th><th>勝率</th><th>勝 / 敗</th><th>試合数</th></tr></thead><tbody>'+cardRows.join('')+'</tbody></table></div>';
 }
-export function showDeck(dk,tag,days){
+export function showDeck(dk,tag,days,competition){
   const el=dialog('この形のデッキの対戦成績'),body=el.querySelector('.me-dialog-body');
   body.innerHTML=deckCards(dk.deck,dk.forms)+'<p class="note">同じ8枚でも、通常・進化・ヒーローの形態が異なるものは分けています。選択期間：'+(days?days+'日':'全期間')+(dk.forms?'':' · 形態未記録。通常形態と確定した記録ではありません。')+'</p>'
     +'<div class="me-insight-scopes"><section><span class="me-eyebrow">YOUR MATCHES</span><h3>あなたが使ったとき</h3><p class="me-coverage me-scope-description">あなたがこの形で戦った、収集済みの試合。</p><div data-scope="personal"><p class="note">対戦記録を読み込み中…</p></div></section><section><span class="me-eyebrow">ALL COLLECTED MATCHES</span><h3>自分を含む、このデッキ全体</h3><p class="me-coverage me-scope-description">CRDBが収集した範囲。全プレイヤーの全試合ではありません。</p><div data-scope="global"><p class="note">同じ形のデッキを照合中…</p></div></section></div><p class="me-history-status" role="status"></p>';
@@ -39,7 +39,7 @@ export function showDeck(dk,tag,days){
   let lastPersonal='',lastGlobal='';
   async function load(){
     try{
-      const params=new URLSearchParams({tag,key:dk.key,days:String(days)}),r=await fetch('/api/me/deck?'+params,{signal:controller.signal,cache:'no-store'});if(!r.ok)throw new Error('取得できませんでした');
+      const params=new URLSearchParams({tag,key:dk.key,days:String(days),...(competition?{competition}:{})}),r=await fetch('/api/me/deck?'+params,{signal:controller.signal,cache:'no-store'});if(!r.ok)throw new Error('取得できませんでした');
       const j=await r.json();if(!el.open)return;
       const p=JSON.stringify(j.personal),g=JSON.stringify(j.global);
       if(p!==lastPersonal){body.querySelector('[data-scope="personal"]').innerHTML=scopeHTML(j.personal);lastPersonal=p;}
