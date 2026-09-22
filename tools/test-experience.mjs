@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import fs from 'node:fs';
-import { normalizeTag, bindTagInput, inPeriod, availablePeriod, trophyEfficiency, mergeProgress, pendingSteps } from '../js/experience-core.mjs';
+import { normalizeTag, bindTagInput, inPeriod, availablePeriod, graphBattles, mergeProgress, pendingSteps } from '../js/experience-core.mjs';
 
 const now = Date.UTC(2026,8,22,12);
 const time = ms => new Date(ms).toISOString().replace(/[-:]/g,'').replace(/\.\d+Z$/,'.000Z');
@@ -24,22 +24,22 @@ test('IME composition is preserved until committed, including cursor position', 
   assert.equal(input.value,'B39');assert.deepEqual(input.cursor,[2,2]);
 });
 for (const [age,days] of [[0.5,1],[3,7],[12,30],[60,365],[400,0]]) {
-  test(`empty selected period falls back to shortest available: ${age} days old`,()=>assert.equal(availablePeriod([battle(age)],1,now).days,days));
+  test(`graph selects shortest drawable period: ${age} days old`,()=>assert.equal(availablePeriod([battle(age,{tr:9000}),battle(age+.001,{tr:9030})],null,now).days,days));
 }
 test('a deliberate populated period is retained; no records is not an invented count',()=>{
-  assert.equal(availablePeriod([battle(.2)],30,now).days,30);
+  assert.equal(availablePeriod([battle(.2,{tr:9000}),battle(.3,{tr:9030})],30,now).days,30);
   assert.deepEqual(availablePeriod([],30,now),{days:1,available:[]});
   assert.equal(inPeriod([battle(2),{t:'invalid'},battle(-1)],7,now).length,1);
 });
-test('trophy efficiency uses observed gain/loss, not win rate or the last unfinished interval',()=>{
-  const b = [0,1,2].map((i)=>({t:time(now+i*4*60e3),tr:[9000,9030,9010][i],win:i!==1}));
-  const e=trophyEfficiency(b.reverse());
-  assert.deepEqual(e,{gain:30,loss:20,intervals:2,net:10,percent:60});
+test('one weekly record never hides the yearly graph',()=>{
+  const b=[battle(3,{tr:9000}),battle(50,{tr:8910}),battle(51,{tr:8940}),battle(1,{tr:null})];
+  assert.equal(availablePeriod(b,null,now).days,365);
+  assert.deepEqual(availablePeriod(b,null,now).available,[365]);
+  assert.equal(graphBattles([...b,b[0],{t:'bad',tr:9000}]).length,3);
 });
-test('missing trophies, long gaps, resets and incompatible results do not inflate efficiency',()=>{
-  const a={t:time(now),tr:9000,win:true};
-  for(const b of [ {...a,t:time(now+864e5),tr:9030}, {...a,t:time(now+60e3),tr:7000}, {...a,t:time(now+60e3),tr:null}, {...a,t:time(now+60e3),tr:8990}]) assert.equal(trophyEfficiency([a,b]).intervals,0);
-  assert.equal(trophyEfficiency([a]).percent,null);
+test('empty graph never fabricates records; single match still remains visible',()=>{
+ assert.equal(availablePeriod([battle(3,{tr:9000})],null,now).days,7);
+ assert.equal(graphBattles([battle(3,{tr:0}),battle(3,{tr:null})]).length,0);
 });
 test('progress retains earliest facts across devices and only new steps remain pending',()=>{
   const progress=mergeProgress({slot_v1:{shownAt:100,completedAt:300}},{slot_v1:{shownAt:200},pin_v1:{skippedAt:400}});
@@ -86,4 +86,13 @@ test('tutorial persistence cannot cross accounts even if auth changes during a w
 test('progress input cannot mutate prototypes',()=>{
   mergeProgress(JSON.parse('{"__proto__":{"shownAt":1},"constructor":{"shownAt":2}}'));
   assert.equal({}.shownAt,undefined);
+});
+
+const {zoomDomain,panDomain}=await import('../js/me-chart.mjs');
+test('chart zoom and pan remain within both axes and retain a nonzero range',()=>{
+ assert.deepEqual(zoomDomain([0,100],.5,[0,100],10),[25,75]);
+ assert.deepEqual(zoomDomain([25,75],100,[0,100],10),[0,100]);
+ assert.deepEqual(panDomain([25,75],100,[0,100]),[50,100]);
+ assert.deepEqual(panDomain([25,75],-100,[0,100]),[0,50]);
+ assert.deepEqual(zoomDomain([0,100],0,[0,100],10),[45,55]);
 });

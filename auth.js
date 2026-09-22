@@ -22,8 +22,8 @@
 
 import { firebaseConfig, isConfigured, crPlayerApiUrl } from "./firebase-config.js";
 import { installAdminEntry } from "./js/admin-entry.js";
-import { normalizeTag, bindTagInput, mergeProgress } from "./js/experience-core.mjs?v=260813";
-import { installTutorial } from "./js/tutorial.js?v=260813";
+import { normalizeTag, bindTagInput, mergeProgress } from "./js/experience-core.mjs?v=260814";
+import { installTutorial } from "./js/tutorial.js?v=260814";
 
 // ===== ダブルタップ拡大を全ページ・全要素で防止（ピンチ拡大は維持） =====
 // CSSのtouch-actionだけだと動的生成要素などで効かない場合があるためJSでも防ぐ

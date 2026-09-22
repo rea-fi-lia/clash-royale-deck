@@ -10,6 +10,8 @@
  * ============================================================= */
 (function () {
   'use strict';
+  // Includes the admin and 3D pages, which do not share the regular head template.
+  try { document.documentElement.classList.toggle('light', localStorage.getItem('cr_theme') === 'light'); } catch {}
 
   /* ── ダブルタップ拡大の防止（ピンチ拡大は残す） ── */
   var lastTouchEnd = 0;

@@ -52,7 +52,7 @@ function loadCards() {
 /* ── [1] 描画規約 ── */
 function lintRenderSites() {
   console.log('\n[1] 描画規約：<img> は cardImageSrc / cardImgTag を通す');
-  const files = fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js') && !SKIP_FILES.has(f));
+  const files = fs.readdirSync(JS_DIR).filter(f => /\.m?js$/.test(f) && !SKIP_FILES.has(f));
   let hits = 0;
   // 静的生成側はHTML文字列を組むので <img> 直書きは許すが、形態フィールドの直接参照は禁止
   ['tools/build-card-pages.js'].forEach(rel => {
@@ -85,7 +85,7 @@ function lintRenderSites() {
 /* ── [1b] 検索規約 ── */
 function lintSearchSites() {
   console.log('\n[1b] 検索規約：カードの絞り込みは cardSearchMatch / cardSearchFilter を通す');
-  const files = fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js') && !SKIP_FILES.has(f));
+  const files = fs.readdirSync(JS_DIR).filter(f => /\.m?js$/.test(f) && !SKIP_FILES.has(f));
   let bad = 0;
   files.forEach(f => {
     fs.readFileSync(path.join(JS_DIR, f), 'utf8').split('\n').forEach((line, i) => {
@@ -114,7 +114,7 @@ function lintSearchSites() {
 function inventoryImageSites() {
   console.log('\n[1c] 画像を出している場所の棚卸し（形態の指定漏れを検出）');
   // 静的生成側（カード個別ページ）も対象に含める
-  const targets = fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js') && !SKIP_FILES.has(f))
+  const targets = fs.readdirSync(JS_DIR).filter(f => /\.m?js$/.test(f) && !SKIP_FILES.has(f))
     .map(f => ({ label: 'js/' + f, path: path.join(JS_DIR, f) }))
     .concat([{ label: 'tools/build-card-pages.js', path: path.join(ROOT, 'tools', 'build-card-pages.js') }]);
   let total = 0, missing = 0;

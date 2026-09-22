@@ -31,27 +31,20 @@ export function inPeriod(battles, days, now = Date.now()) {
   if (!days) return battles;
   return battles.filter(b => battleTime(b.t) >= now - days * 864e5 && battleTime(b.t) <= now);
 }
+export function graphBattles(battles) {
+  const times = new Set();
+  return battles.filter(b => {
+    const t = battleTime(b.t);
+    if (!Number.isFinite(t) || !Number.isFinite(b.tr) || b.tr <= 0 || times.has(t)) return false;
+    times.add(t); return true;
+  }).sort((a, b) => battleTime(a.t) - battleTime(b.t));
+}
 export function availablePeriod(battles, requested, now = Date.now()) {
-  const available = PERIODS.filter(days => inPeriod(battles, days, now).length);
+  const available = PERIODS.filter(days => graphBattles(inPeriod(battles, days, now)).length >= 2);
   // Records older than a year still remain accessible via an All tab.
   if (requested === 0 && battles.length) return { days: 0, available };
-  return { days: available.includes(requested) ? requested : (available[0] ?? (battles.length ? 0 : 1)), available };
-}
-
-export function trophyEfficiency(battles) {
-  const seq = battles.slice().sort((a, b) => battleTime(a.t) - battleTime(b.t));
-  let gain = 0, loss = 0, intervals = 0;
-  for (let i = 1; i < seq.length; i++) {
-    const a = seq[i - 1], b = seq[i];
-    const elapsed = battleTime(b.t) - battleTime(a.t), delta = b.tr - a.tr;
-    // Avoid bridging missing trophies, long gaps, resets or incompatible results.
-    if (!Number.isFinite(a.tr) || !Number.isFinite(b.tr) || a.tr <= 0 || b.tr <= 0
-      || !(elapsed > 0 && elapsed <= 30 * 60e3) || Math.abs(delta) > 60
-      || (delta > 0 && !a.win) || (delta < 0 && a.win)) continue;
-    intervals++;
-    gain += Math.max(0, delta); loss += Math.max(0, -delta);
-  }
-  return { gain, loss, intervals, net: gain - loss, percent: gain + loss ? gain / (gain + loss) * 100 : null };
+  const fallback = PERIODS.find(days => inPeriod(battles, days, now).length) ?? (battles.length ? 0 : 1);
+  return { days: available.includes(requested) ? requested : (available[0] ?? fallback), available };
 }
 
 // Stable IDs include a revision. Append a new ID when an explanation changes.

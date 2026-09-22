@@ -1,0 +1,62 @@
+/* Site-wide light appearance, inherited through guard.css on every page. */
+html.light.light.light{color-scheme:light;--bg:#f3f5f8;--surface:#fff;--surface2:#eaf0f5;--panel:#fff;--text:#202c3b;--text-muted:#4c5e72;--text-dim:#5d6c7e;--muted:#4c5e72;--dim:#4c5e72;--border:#cad3de;--border-hi:#8e9db0;--line:#cad3de;--accent:#825615;--accent2:#734707;--gold:#825615;--evo:#6333b5;--hero:#825615;--red:#ac283b;--green:#136c53;--blue:#245ba4}
+html.light body{background:var(--bg);color:var(--text)}
+html.light :is(.sitebar,.dp-tabs,.admin-header,.admin-nav,.admin-footer){background:var(--surface)!important;border-color:var(--border)!important}
+html.light :is(.content-shell .card,.content-shell .section,.content-shell .hero,.admin-page .panel,.admin-page .kpi,.admin-page .gate){background:var(--surface);box-shadow:0 4px 18px #28374c0a;border-color:var(--border)}
+html.light .content-shell .hero{background:linear-gradient(125deg,#fff9e9,#fff 65%)}
+html.light :is(.footer-signature,.dp-footer){background:var(--surface);color:var(--text-muted);border-color:var(--border)}
+html.light .footer-signature .creator-name{color:var(--text);text-shadow:none}
+html.light :is(.nav-icon,.btn,.filter-btn,.sort-btn,.tab-btn,.assist-toggle,.admin-page button,.admin-page select){color:var(--text);border-color:var(--border-hi);background:var(--surface2)}
+html.light :is(.btn.primary,.load-btn,#analyzeBtn,.dp-desktop #analyzeBtn){color:#fff!important;background:var(--accent)!important;border-color:var(--accent)!important}
+html.light :is(input,textarea,select){color:var(--text);background-color:var(--surface);border-color:var(--border-hi)}
+html.light ::placeholder{color:var(--text-muted);opacity:1}
+html.light :is(a,button,input,select,summary,[tabindex]):focus-visible{outline:2px solid #1d5fa7;outline-offset:3px}
+html.light .dp-desktop .card-top .cost-pip,html.dp-desktop.light .card-top .cost-pip{color:#663696;background:#f0e7ff;border-color:#c4afe4}
+html.light .slot.slot-evolved{background:linear-gradient(145deg,#f0e8fc,var(--surface));border-color:#ac91cc}
+html.light .slot.slot-hero{background:linear-gradient(145deg,#fff1d8,var(--surface));border-color:#b5935d}
+html.light .slot.slot-wild{background:linear-gradient(145deg,#f4edfc,#fff4df);border-color:#b59bc0}
+html.light :is(.me-ax,.chart-label){fill:var(--text-muted)}
+html.light :is(.me-grid,.chart-grid){stroke:var(--border)}
+html.light :is(.me-positive,.positive,.me-trend-diff.up),html.light #meRoot :is(.me-positive,.me-chart-caption span:first-child){color:#126b52}
+html.light :is(.me-negative,.negative,.me-trend-diff.down),html.light #meRoot :is(.me-negative,.me-chart-caption span:nth-child(2)){color:#ac283b}
+html.light #meRoot .me-dot-w{fill:#16745a}html.light #meRoot .me-dot-l{fill:#b33145}
+html.light #meRoot .me-range button:disabled{color:#647184;opacity:.65}
+html.light :is(.me-chart-tip,.me-dialog){background:var(--surface);color:var(--text)}
+html.light .admin-page :is(.notice,.empty,.stat,.raw pre){background:var(--surface2);color:var(--text-muted);border-color:var(--border)}
+html.light .admin-page :is(.empty strong,.kpi-label,.post p,.pill){color:var(--text-muted)}
+html.light .admin-page :is(.bar-track,.stat){background:var(--surface2)}
+html.light .admin-page .pill.good{color:var(--green)}html.light .admin-page .pill.bad{color:var(--red)}html.light .admin-page .pill.warn{color:var(--gold)}
+html.light .mm-qlabel.tl{color:#146f52}html.light .mm-qlabel.tr{color:#235e9b}html.light .mm-qlabel.bl{color:#5b625f}html.light .mm-qlabel.br{color:#92461d}
+html.light :is(.stat-trend,.deck-stat-line .cq-crush){color:#88570a}html.light .deck-stat-line .cq-grind{color:#984b15}
+/* Account controls use an injected stylesheet: keep their surfaces and secondary labels legible. */
+html.light :is(.cr-dropdown,.cr-menu,.cr-account-menu,.cr-modal,.cr-modal-card,.cr-login-panel){color:var(--text);background:var(--surface);border-color:var(--border-hi)}
+html.light :is(.cr-dropdown,.cr-menu,.cr-account-menu,.cr-modal-card) :is(button,a){color:var(--text)}
+html.light :is(.dg-good,.sr-good,.cap-strong,.mu-good){color:#176b4b}
+html.light :is(.dg-warn,.sr-bad,.mu-bad){color:#a23328}
+html.light :is(.dg-beta,.prep-banner){color:#845606}
+html.light .sr-swap{color:#fff;background:var(--accent)}
+html.light .grade-card{background:linear-gradient(150deg,#fff,#edf1f6);border-color:var(--border-hi)}
+html.light :is(.g-1,.g-2) .grade-name{color:#166c60}html.light :is(.g-3,.g-4) .grade-name{color:#345f9d}html.light :is(.g-5,.g-6) .grade-name{color:#7940a7}html.light .g-7 .grade-name{color:#a3365b}html.light :is(.g-8,.g-9) .grade-name{color:#89550e}
+html.light :is(.corner-guide summary,.cg-panel,.controls.assist-active .assist-panel){background:var(--surface);border-color:var(--border-hi)}
+html.light :is(.assist-toggle[aria-pressed="true"],.assist-beta,.ttab.active,.card.assist-suggest::after,.share-b.sns-native,.scrub-seg.on,.slot-chip .cur-badge,.btn-primary,.cr-primary,.cr-login-btn,.card-actions .ca-add){color:#fff;background:var(--accent)}
+html.light .ttab[data-type="evolved"].active{background:#6333b5;color:#fff}html.light .ttab[data-type="hero"].active{background:#825615;color:#fff}html.light .ttab[data-type="champion"].active{background:#ac283b;color:#fff}
+html.light .tag-troop{color:#235da3}html.light :is(.tag-spell,.evolved-badge){color:#6333b5}html.light :is(.tag-building,.tag-hero,.hero-badge){color:#825615}html.light .tag-champion{color:#ac283b}
+html.light :is(.cr-menu .cr-logout,.cr-deckitem .del,.cr-msg,.deck-missing){color:#ac283b}html.light .cr-msg.ok{color:#126b52}
+html.light .scrub-hint{color:#fff;background:#243346e8}
+html.light a{color:var(--accent)}
+html.light :is(.submit-btn,.donate-btn.primary){color:#fff;background:linear-gradient(135deg,#7040c6,#a13363)}
+html.light .donate-btn.primary .label small{color:#fff}
+html.light .grade-info{background:#344359;color:#fff}
+html.light a[href*="supercell.com"][href*="fan"]{color:var(--text-muted)!important}
+html.light .footer-signature i{color:var(--text-muted)}
+/* The optional 3D lab shares the same accessible light palette. */
+html.light .neo :is(.hud-read,.drawer,.dsearch,.sbtn,.chip,.toast,.nslot-frame,.ncard-inner){background:var(--surface);color:var(--text);border-color:var(--border-hi)}
+html.light .neo .nslot-frame{box-shadow:inset 0 0 18px #dce3ed,0 5px 14px #2839511f}
+html.light .neo .sbtn.gold,html.light .neo .chip.active{background:#fff1d9;color:#784c09;border-color:#b18546}
+html.light .neo .sbtn.violet{background:#eee5fb;color:#6333a2}
+html.light .neo .ncard-name{background:linear-gradient(to top,#fffffffa 65%,#ffffffb8);color:var(--text)}
+html.light .neo .ncard-cost{background:#9336a5;color:#fff;text-shadow:none}
+html.light .neo .nslot-type{opacity:1}
+html.light .neo .fate-label{color:#ffdc95}
+html.light .neo .complete-tx{color:#784c09;text-shadow:0 2px 18px #fff}
+html.light .footer-signature i,html.light .dp-footnote i{color:var(--text-muted)}
