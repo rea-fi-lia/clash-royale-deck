@@ -88,7 +88,7 @@ import { showBattle, showDeck } from './me-details.mjs?v=260814';
     let name = null; try { name = localStorage.getItem('cr_name_' + data.tag) || null; } catch (e) {}
     const summary = '<div class="me-stats" aria-label="選択期間の戦績">'
       + '<div class="me-stat"><span>勝率</span><b>' + (wr == null ? '—' : wr + '<small>%</small>') + '</b></div>'
-      + '<div class="me-stat"><span>勝敗</span><b>' + w + '<small>勝</small> ' + l + '<small>敗</small></b></div>'
+      + '<div class="me-stat"><span>勝敗</span><b>' + w + '<small>勝</small> ' + l + '<small>敗</small>'+(draws?' '+draws+'<small>分</small>':'')+'</b></div>'
       + '<div class="me-stat"><span>クラウン差 / 戦</span><b>' + (crownAverage == null ? '—' : signed(crownAverage)) + '</b>'
       + (cB.length && cB.length < B.length ? '<small>' + cB.length + '戦分</small>' : '') + '</div></div>';
     $('meHeader').innerHTML = '<div class="me-head"><div class="me-identity">'
@@ -98,7 +98,7 @@ import { showBattle, showDeck } from './me-details.mjs?v=260814';
       + '</div>' + summary + '</div>'
       + '<div class="me-head-bottom"><p class="me-lead">'+(data.history?.state === 'indexing' ? '保存済みの過去試合を照合中。見つかり次第、自動で反映します。' : data.history?.state === 'error' ? '過去分の照合を再試行しています。取得済みの記録を表示中。' : '登録前も含む、収集できた全履歴。')+'</p><span class="me-head-total">選択期間 ' + B.length + '戦 <small>／ 全' + ALL.length + '戦</small></span></div>';
     $('meRecordBody').innerHTML = B.length
-      ? '<div class="me-result-line"><span><b>' + B.length + '</b> 戦の記録</span><span>' + w + '勝 · ' + l + '敗</span></div>'
+      ? '<div class="me-result-line"><span><b>' + B.length + '</b> 戦の記録</span><span>' + w + '勝 · ' + l + '敗'+(draws?' · '+draws+'分':'')+'</span></div>'
         + '<div class="me-result-bar" role="img" aria-label="勝率 ' + wr + '%"><span style="width:' + wr + '%"></span></div>'
       : '<p class="note">まだ試合の記録がありません。1対1の試合を遊ぶと、開くたびにここへ貯まっていきます。</p>';
 
@@ -134,7 +134,7 @@ import { showBattle, showDeck } from './me-details.mjs?v=260814';
 
   function renderDecks(B, meta) {
     const decks = STATE.data?.periods?.[STATE.days]?.decks || [];
-    $('meDecksBody').innerHTML = decks.length ? '<p class="note">デッキを選ぶと、相手デッキごとの勝敗と、相手カード別の対面勝率を確認できます。</p>'
+    $('meDecksBody').innerHTML = decks.length ? '<p class="note">デッキを選ぶと、相手デッキごとの勝敗と、相手カード別の対面勝率を確認できます。8枚が記録されている '+decks.reduce((n,d)=>n+d.games,0)+' / '+B.length+'戦が対象です。</p>'
       + decks.map((dk, i) => '<button type="button" class="me-deck me-deck-open" data-deck="'+i+'" aria-label="デッキ '+(i+1)+' の対戦詳細">'
       + '<div class="me-deck-cards">'+dk.deck.map((n,j)=>chip(n,fAt(dk.forms,j))).join('')+'</div>'
       + '<div class="me-deck-stat"><b>'+dk.winRate+'%</b><span>'+dk.wins+'勝 '+dk.losses+'敗'+(dk.draws?' '+dk.draws+'分':'')+'</span><small>'+dk.games+'戦 · 対戦詳細 ↗</small></div></button>').join('')
