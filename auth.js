@@ -21,6 +21,7 @@
 // =============================================================
 
 import { firebaseConfig, isConfigured, crPlayerApiUrl } from "./firebase-config.js";
+import { installAdminEntry } from "./js/admin-entry.js";
 
 // ===== ダブルタップ拡大を全ページ・全要素で防止（ピンチ拡大は維持） =====
 // CSSのtouch-actionだけだと動的生成要素などで効かない場合があるためJSでも防ぐ
@@ -390,6 +391,7 @@ const CRAuth = {
   },
 };
 window.CRAuth = CRAuth;
+installAdminEntry(CRAuth);
 
 // =============================================================
 //  ヘッダーに差し込むアカウントUI（全ページ共通・自動生成）
