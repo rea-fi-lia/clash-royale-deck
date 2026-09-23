@@ -664,6 +664,7 @@
     const d = DICT[lang];
     if (d && d[src] != null) return d[src];
     if (DICT.en && DICT.en[src] != null) return DICT.en[src]; // 未訳は英語へフォールバック（カード名や未訳UI）
+    if (typeof CARDS !== 'undefined') { const card=CARDS.find(c=>c.name===src); if(card?.english) return card.english; }
     return src;
   }
 

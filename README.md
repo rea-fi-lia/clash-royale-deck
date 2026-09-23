@@ -17,14 +17,9 @@
 
 ## カードの追加・編集
 
-`index.html` の `CARDS` 配列を編集するだけです（コメントで明記してあります）。
+正本は `catalogue/cards.json`。`node tools/update-card-catalogue.js --images` でサイト・収集・Worker配信用の共通台帳を生成します。生成物のCARDSを直接編集しないでください。
 
-```js
-{name:"カード名", cost:4, type:"troop", role:"説明"},
-```
-
-- `type`: `"troop"` / `"spell"` / `"building"`
-- チャンピオンは `champion: true` を追加
+日次更新、詳細取得、形態追加、画像差し替え、公開検査、未確認データの扱いは [カード更新の共通経路](docs/card-updates.md) を参照。
 
 ## 設計メモ（docs/）
 

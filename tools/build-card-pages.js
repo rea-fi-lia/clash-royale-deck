@@ -171,7 +171,7 @@ function cardBody(c, ctx, D) {
   out.push('<p class="lead">' + esc(c.name) + 'は' + (attrs.Cost ? 'コスト' + attrs.Cost + 'の' : '') + (rarity ? rarity + '' : '') + jpType + 'です。' +
     (c.role ? '役割は' + esc(c.role) + '。' : '') +
     (c.evolved && c.hero ? '進化と英雄の両方に対応しています。' : c.evolved ? '進化（限界突破）に対応しています。' : c.hero ? '英雄に対応しています。' : '') +
-    '掲載している数値はレベル' + (st && st.lv ? st.lv : 16) + '基準で、バランス調整にあわせて毎日更新しています。</p>');
+    (st && st.lv ? '確認できた数値をレベル' + st.lv + '基準で掲載しています。' : '詳細数値は出典を確認して掲載します。') + '</p>');
   out.push('<div class="hero-actions"><a class="btn primary" href="../index.html?add=' + encodeURIComponent(c.name) + '">このカードでデッキを組む</a><a class="btn" href="../decks.html#cards">カード人気ランキング</a></div>');
   out.push('</section>');
 
@@ -203,7 +203,18 @@ function cardBody(c, ctx, D) {
   if (rows.length) {
     out.push('<section class="section"><h2>実数値（レベル' + (st && st.lv ? st.lv : 16) + '）</h2>');
     out.push('<table class="cardpage-stats"><tbody>' + rows.join('') + '</tbody></table>');
-    out.push('<p class="note">数値は毎日更新しているので、バランス調整の内容は翌日には反映されます。</p></section>');
+    const last = st?.freshness?.lastSuccessAt;
+    out.push('<p class="note">出典：コミュニティWiki。' + (last ? '取得確認：' + esc(last.slice(0,10)) + '。' : '最終確認日は未記録です。') + 'ゲーム内の最新調整と差がある場合があります。</p></section>');
+  }
+  if (!st || !Object.keys(s16).length || (st.freshness && st.freshness.status !== 'current')) out.push('<p class="note">詳細データを確認中です。確認できた直近の値がある場合は、その値を表示しています。</p>');
+  for (const [form,label] of [['e','限界突破'],['h','ヒーロー']]) {
+    if (!(form==='e'?c.evolved:c.hero)) continue;
+    const data=st?.formStats?.[form];
+    out.push('<section class="section"><h2>'+label+'の数値</h2>');
+    if (data?.status==='current' && Object.keys(data.s16 || {}).length) {
+      out.push('<table class="cardpage-stats"><tbody>'+Object.entries(data.s16).filter(([,v])=>typeof v==='number').map(([k,v])=>'<tr><th>'+esc(k)+'</th><td>'+esc(v)+'</td></tr>').join('')+'</tbody></table>');
+    } else out.push('<p class="note">この形態の詳細データは確認中です。通常形態の数値とは区別しています。</p>');
+    out.push('</section>');
   }
 
   /* 役割タグ */
@@ -302,7 +313,7 @@ function indexBody(cards, D) {
   cards.forEach(c => { (byCost[c.cost] || (byCost[c.cost] = [])).push(c); });
   const out = [];
   out.push('<section class="hero"><div class="eyebrow">Cards</div><h1>クラロワ 全カードデータ一覧</h1>');
-  out.push('<p class="lead">' + cards.length + '枚すべてのカードについて、体力・攻撃力・毎秒ダメージ・射程・攻撃対象といった実数値と、役割、どの呪文で落ちるか、ランク戦での使用率と勝率をまとめています。数値はバランス調整にあわせて毎日更新しています。</p>');
+  out.push('<p class="lead">' + cards.length + '枚すべてのカードについて、体力・攻撃力・毎秒ダメージ・射程・攻撃対象といった実数値と、役割、どの呪文で落ちるか、ランク戦での使用率と勝率をまとめています。数値の取得を毎日確認し、未取得・未確認の情報は区別して表示します。</p>');
   out.push('<div class="hero-actions"><a class="btn primary" href="../index.html">デッキを組む</a><a class="btn" href="../decks.html#cards">人気ランキングを見る</a></div></section>');
   Object.keys(byCost).sort((a, b) => a - b).forEach(cost => {
     out.push('<section class="section"><h2>コスト' + cost + '</h2><div class="cardpage-grid">');
@@ -321,7 +332,7 @@ async function main() {
   const ctx = loadCards();
   const CARDS = ctx.CARDS;
 
-  const stats = hasArg('--from-r2') ? await r2ReadJson('card-stats.json')
+  const stats = hasArg('--from-r2') && !hasArg('--stats') ? await r2ReadJson('card-stats.json')
     : JSON.parse(fs.readFileSync(argOne('--stats', '/tmp/card-stats.json'), 'utf8'));
   let tagsJson = { cards: {} };
   try { tagsJson = hasArg('--from-r2') ? await r2ReadJson('card-tags.json') : JSON.parse(fs.readFileSync(argOne('--tags', '/tmp/card-tags.json'), 'utf8')); } catch (e) { console.log('（タグ未取得: ' + e.message + '）'); }
@@ -333,7 +344,8 @@ async function main() {
 
   const D = { stats: {}, tags: tagsJson.cards || {}, use: {}, opp: {}, band: {}, windowDays: 3,
     imgOf: (name, form) => ctx.cardImageSrc(name, form) };   // ★画像解決の正本（cards-data.js）を全セクションで使う
-  (stats.cards || []).forEach(c => D.stats[c.jp] = c);
+  const nameBySlug = Object.fromEntries(CARDS.map(c=>[c.slug,c.name]));
+  (stats.cards || []).forEach(c => D.stats[nameBySlug[c.slug] || c.jp] = c);
   if (meta && meta.decks) {
     D.windowDays = meta.decks.cardsWindowDays || meta.decks.windowDays || 3;
     // 同名で形態違いが並ぶので、games が最大のものを代表にする

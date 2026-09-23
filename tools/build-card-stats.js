@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * card-stats.json を Clash Royale 公式Wiki(fandom)から再生成する。
+ * card-stats.json を Clash Royale コミュニティWiki(fandom)から再生成する。
  *
  * 背景（2026-08-02 判明）:
  *   card-stats.json には生成コードが存在せず、一度作られたきりの静的資産だった。
@@ -12,7 +12,7 @@
  *   node tools/build-card-stats.js --base <既存card-stats.json> --out <出力.json> [--limit N] [--only slug1,slug2]
  *
  * 仕様:
- *   - カード一覧(jp/slug/page)は --base から引き継ぐ（日本語名の対応表は手作業の資産なので壊さない）
+ *   - カード一覧(jp/slug/page)は catalogue/cards.json から構成し、--base の既存値と監修情報を引き継ぐ
  *   - 各カードのWikiページを action=parse&prop=wikitext で取得し
  *       unit-attributes-table          → attrs（Cost/Hit Speed/Range/Target/Rarity 等）
  *       unit-statistics-table          → 各レベルの数値。最大レベル行を stats / s16 に採用
@@ -23,6 +23,14 @@
  */
 const fs = require('fs');
 const crypto = require('crypto');
+const {seedStats, readCatalogue, buildManifest, digest} = require('./card-catalogue.cjs');
+function validateRelease(prepared, catalogue) {
+  if (prepared.catalogueRevision !== buildManifest(catalogue).revision || prepared.cards?.length !== catalogue.cards.length || prepared.refresh?.partialSelection || !prepared.refresh || prepared.refresh.total !== prepared.refresh.succeeded + prepared.refresh.failed) throw Error('Unverified stats release');
+  for (const c of catalogue.cards) {
+    const rows=prepared.cards.filter(s=>s.slug===c.slug);
+    if(rows.length!==1 || rows[0].jp!==c.name || !['current','stale','missing'].includes(rows[0].freshness?.status)) throw Error('Incomplete stats coverage: '+c.slug);
+  }
+}
 
 const API = 'https://clashroyale.fandom.com/api.php';
 const UA = 'crdb-card-stats-builder';
@@ -91,7 +99,7 @@ function normalizeStatKey(k) {
 //   未評価のまま残り数値が取れない（Wiki側はレベル別の値を式で持っている）。
 async function pageHtml(page, depth) {
   const url = API + '?action=parse&page=' + encodeURIComponent(page) + '&format=json&prop=text';
-  const res = await fetch(url, { headers: { 'User-Agent': UA } });
+  const res = await fetch(url, { headers: { 'User-Agent': UA }, signal:AbortSignal.timeout(10000) });
   if (!res.ok) throw new Error('wiki ' + res.status);
   const j = await res.json();
   if (j.error) throw new Error('wiki error ' + j.error.code);
@@ -301,6 +309,17 @@ function buildN(attrs, prev) {
 }
 
 async function main() {
+  if (hasArg('--publish-file')) {
+    const prepared = JSON.parse(fs.readFileSync(argOne('--publish-file'), 'utf8'));
+    const catalogue = readCatalogue();
+    validateRelease(prepared,catalogue);
+    const latest=await r2ReadJson('card-stats.json');
+    if (prepared._baseHash!==digest(latest)) throw Error('Stats changed while building: rebuild from current R2');
+    delete prepared._baseHash;
+    await r2WriteJson('card-stats.json', prepared);
+    console.log('Verified stats published');
+    return;
+  }
   const basePath = argOne('--base');
   const outPath = argOne('--out');
   const limit = parseInt(argOne('--limit', '0'), 10);
@@ -319,19 +338,24 @@ async function main() {
     base = JSON.parse(fs.readFileSync(basePath, 'utf8'));
     console.log('土台: ' + basePath + '（updated=' + base.updated + '）');
   }
-  let cards = base.cards || [];
+  const baseHash=digest(base);
+  base = seedStats(base);
+  base._baseHash=baseHash;
+  let cards = base.cards;
   if (only.length) cards = cards.filter(c => only.includes(c.slug));
   if (limit > 0) cards = cards.slice(0, limit);
 
   const changed = [], failed = [];
+  const checkedAt = new Date().toISOString();
+  const targets = cards.flatMap(c => [c, ...Object.entries(c.formStats || {}).filter(([,s])=>s.page).map(([form,s])=>Object.assign(s,{slug:c.slug+'/'+form}))]);
   let done = 0;
 
-  for (const card of cards) {
+  for (const card of targets) {
     try {
       const wt = await pageHtml(card.page);
       const attrs = buildAttrs(wt);
       const { stats, maxLevel } = buildStats(wt);
-      if (!Object.keys(stats).length) { failed.push(card.slug + '(統計表なし)'); continue; }
+      if (!Object.keys(stats).length) throw Error('統計表なし');
 
       const s16 = {};
       Object.keys(stats).forEach(k => {
@@ -348,7 +372,11 @@ async function main() {
       card.stats = stats;
       card.s16 = s16;
       card.lv = maxLevel || card.lv;
+      card.freshness = {status:'current',checkedAt,lastSuccessAt:checkedAt,source:'https://clashroyale.fandom.com/wiki/'+encodeURIComponent(card.page)};
+      card.status = 'current';
       card.n = buildN(card.attrs || {}, card.n || {});
+      const known = readCatalogue().cards.find(c=>c.slug===card.slug);
+      if (known) {card.n.cost=known.cost;card.attrs.Cost=String(known.cost);}
       const hp = numFrom(s16, pickStatKey(s16, /hitpoints/i, card.slug, 'hp'));
       if (hp != null) card.hp16 = hp;
       const dps = numFrom(s16, pickStatKey(s16, /damage per second/i, card.slug, 'dps'));
@@ -359,6 +387,8 @@ async function main() {
       done++;
       if (done % 20 === 0) console.log('  ...' + done + '/' + cards.length);
     } catch (e) {
+      card.freshness = {...card.freshness,status:Object.keys(card.s16 || {}).length?'stale':'missing',checkedAt,error:String(e.message || e).slice(0,200)};
+      card.status = card.freshness.status;
       failed.push(card.slug + '(' + ((e && e.message) || e) + ')');
     }
     await sleep(120); // Wikiに優しく
@@ -367,7 +397,10 @@ async function main() {
   // ★実数値を取り直したら導出タグも必ず引き直す（ここが抜けていて6/11の判定が残っていた）
   const retag = retagAll(base.cards || []);
 
-  base.updated = new Date().toISOString();
+  base.lastAttemptAt = checkedAt;
+  base.refresh = {total:targets.length,succeeded:done,failed:failed.length,partialSelection:!!(only.length || limit)};
+  // A successful HTTP fetch is not proof that the wiki has incorporated the latest balance patch.
+  if (!failed.length && !only.length && !limit) base.updated = checkedAt;
   base.source = 'clashroyale.fandom.com';
   base.generator = 'tools/build-card-stats.js';
   if (outPath) fs.writeFileSync(outPath, JSON.stringify(base, null, 1));
@@ -391,10 +424,13 @@ async function main() {
 
   if (publish) {
     // 全滅（例: Wikiの構造変更やネットワーク障害）で本番を壊さないための安全弁
-    if (done < cards.length * 0.8) throw new Error('取得成功が8割未満（' + done + '/' + cards.length + '）のため公開を中止');
+    validateRelease(base,readCatalogue());
+    if(base._baseHash!==digest(await r2ReadJson('card-stats.json'))) throw Error('Stats changed while building');
+    delete base._baseHash;
     await r2WriteJson('card-stats.json', base);
     console.log('R2へ公開: private/card-stats.json（' + base.cards.length + '枚 / 変更 ' + changed.length + '枚）');
   }
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+module.exports={validateRelease};
+if(require.main===module) main().catch(e => { console.error(e); process.exit(1); });

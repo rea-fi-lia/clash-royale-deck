@@ -1,8 +1,8 @@
 name: build card stats
 
-# カードの実数値(card-stats.json)を公式Wikiから取り直してR2へ公開する。
+# カードの実数値(card-stats.json)をコミュニティWikiから取り直してR2へ公開する。
 # 背景: 生成コードが存在せず6/11で凍結していたため、バランス調整に追従できていなかった。
-# 毎日1回まわしておけば、調整の翌日には自動で最新化される。
+# 台帳・画像内容・詳細値・全ページを同じ処理で更新。Wiki未反映は鮮度として保持。
 
 on:
   schedule:
@@ -37,7 +37,38 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Build card stats from wiki
+      - name: Refresh official catalogue and verify artwork
+        env:
+          CR_TOKEN: ${{ secrets.CR_TOKEN }}
+        run: |
+          node tools/update-card-catalogue.js --refresh --report "$RUNNER_TEMP/catalogue-report.json"
+          node tools/update-card-catalogue.js --check
+          node --test tools/test-card-catalogue.mjs
+
+      - name: Save public catalogue review (no battle or private stats data)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-catalogue-review
+          path: |
+            catalogue/cards.json
+            catalogue/manifest.json
+            ${{ runner.temp }}/catalogue-report.json
+          retention-days: 7
+
+      - name: Stage card stats from current R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET || 'crdb-data-private' }}
+          R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
+        run: node tools/build-card-stats.js --from-r2 --out "$RUNNER_TEMP/card-stats.json"
+
+      # カード個別ページ（/cards/*.html）を最新の実数値・タグ・実戦データで焼き直す。
+      # ★2026-08-11追加。AdSense「有用性の低いコンテンツ」対策で作った122枚の静的ページ。
+      #   数値が古いと「役に立たないページ」に戻るので、実数値の更新と同じ便で回す。
+      - name: Rebuild card pages
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -45,11 +76,34 @@ jobs:
           R2_BUCKET: ${{ vars.R2_BUCKET || 'crdb-data-private' }}
           R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
         run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            node tools/build-card-stats.js --from-r2
+          node tools/build-card-pages.js --from-r2 --stats "$RUNNER_TEMP/card-stats.json" --from-api
+          node tools/gen-i18n.js
+          node tools/check-card-images.js --lint-only
+          node tools/check-private-leak.js
+
+      - name: Commit card pages
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add catalogue js/cards-data.js cards sitemap.xml
+          git add -u -- '*.html'
+          if git diff --cached --quiet; then
+            echo "カードページに差分なし"
           else
-            node tools/build-card-stats.js --from-r2 --publish
+            git commit -m "chore(cards): 共通台帳・画像版・詳細ページを更新"
+            git push
           fi
+
+      - name: Publish verified stats snapshot
+        if: github.event.inputs.dry_run != 'true'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET || 'crdb-data-private' }}
+          R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
+        run: node tools/build-card-stats.js --publish-file "$RUNNER_TEMP/card-stats.json"
 
       # 監修シートの実数値列（HP16/DPS16等）も同じ値へ揃える。
       # ★2026-08-11まで手入力のままで、158行中153行が古い値だった。
@@ -76,38 +130,14 @@ jobs:
           R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
         run: node tools/sync-sheet-stats.js --from-r2
 
-      # カード個別ページ（/cards/*.html）を最新の実数値・タグ・実戦データで焼き直す。
-      # ★2026-08-11追加。AdSense「有用性の低いコンテンツ」対策で作った122枚の静的ページ。
-      #   数値が古いと「役に立たないページ」に戻るので、実数値の更新と同じ便で回す。
-      - name: Rebuild card pages
-        if: github.event.inputs.dry_run != 'true'
-        env:
-          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_BUCKET: ${{ vars.R2_BUCKET || 'crdb-data-private' }}
-          R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
+      - name: Report stale or missing detail sources
         run: |
-          node tools/build-card-pages.js --from-r2 --from-api
-          node tools/gen-i18n.js
-
-      - name: Commit card pages
-        if: github.event.inputs.dry_run != 'true'
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add cards sitemap.xml
-          if git diff --cached --quiet; then
-            echo "カードページに差分なし"
-          else
-            git commit -m "chore(cards): カード個別ページを最新データで再生成"
-            git push
-          fi
+          node -e 'const s=require(process.env.RUNNER_TEMP+"/card-stats.json");if(s.refresh.failed)throw Error(s.refresh.failed+" card detail sources need review; last good values retained")'
 
       # ★通知は .github/actions/notify に一本化してある。
       #   鳴らし方を変えたいときはあのファイル1枚を直せば全ワークフローに効く。
       - name: 結果を通知
-        if: always()
+        if: always() && github.event.inputs.dry_run != 'true'
         uses: ./.github/actions/notify
         with:
           status: ${{ job.status }}

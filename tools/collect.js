@@ -47,6 +47,7 @@ const crypto = require('crypto');
 const { createReadStream } = require('node:fs');
 const { finished } = require('node:stream/promises');
 const { openRollingStore } = require('./event-store.cjs');
+const { UnmappedCardStore } = require('./unmapped-card-store.cjs');
 const { selectSeeds, noteAttempt, seedBand, retainSeeds, retainBookmarks } = require('./collector-schedule.cjs');
 
 const PROXY = 'https://proxy.royaleapi.dev/v1';
@@ -76,73 +77,14 @@ const PUBLIC_GH_MIRROR = String(prop('PUBLIC_GH_MIRROR', (R2_ACCOUNT_ID && R2_AC
 const MIRROR_EXTERNAL_PUBLIC_TO_R2 = String(prop('MIRROR_EXTERNAL_PUBLIC_TO_R2', PUBLIC_GH_MIRROR ? '1' : '0')) === '1';
 const MIRROR_EXTERNAL_PRIVATE_TO_R2 = String(prop('MIRROR_EXTERNAL_PRIVATE_TO_R2', PRIVATE_GH_MIRROR ? '1' : '0')) === '1';
 
-var SLUG2JP = {
-  "skeletons": "スケルトン", "ice-spirit": "アイススピリット", "fire-spirit": "ファイアスピリット",
-  "electro-spirit": "エレクトロスピリット", "heal-spirit": "ヒールスピリット", "goblins": "ゴブリン",
-  "bomber": "ボンバー", "spear-goblins": "槍ゴブリン", "bats": "コウモリの群れ", "ice-golem": "アイスゴーレム",
-  "wall-breakers": "ウォールブレイカー", "berserker": "バーサーカー", "zap": "ザップ", "giant-snowball": "巨大雪玉",
-  "barbarian-barrel": "ローリングバーバリアン", "the-log": "ローリングウッド", "rage": "レイジ",
-  "suspicious-bush": "ステルスブッシュ", "goblin-curse": "ゴブリンの呪い", "knight": "ナイト", "archers": "アーチャー",
-  "minions": "ガーゴイル", "goblin-gang": "ゴブリンギャング", "skeleton-barrel": "スケルトンバレル",
-  "firecracker": "ロケット砲士", "mega-minion": "メガガーゴイル", "dart-goblin": "吹き矢ゴブリン",
-  "elixir-golem": "エリクサーゴーレム", "ice-wizard": "アイスウィザード", "princess": "プリンセス", "miner": "ディガー",
-  "skeleton-army": "スケルトン部隊", "guards": "盾の戦士", "bandit": "アサシン ユーノ", "fisherman": "漁師トリトン",
-  "royal-ghost": "ロイヤルゴースト", "arrows": "矢の雨", "tornado": "トルネード", "earthquake": "アースクエイク",
-  "royal-delivery": "ロイヤルデリバリー", "goblin-barrel": "ゴブリンバレル", "clone": "クローン", "vines": "ヴァイン",
-  "void": "ボイド", "mirror": "ミラー", "cannon": "大砲", "tombstone": "墓石", "valkyrie": "バルキリー",
-  "musketeer": "マスケット銃士", "mini-pekka": "ミニペッカ", "hog-rider": "ホグライダー", "battle-ram": "攻城バーバリアン",
-  "skeleton-dragons": "スケルトンドラゴン", "zappies": "ザッピー", "flying-machine": "ホバリング砲",
-  "battle-healer": "バトルヒーラー", "goblin-demolisher": "ダイナマイトゴブリン", "dark-prince": "ダークプリンス",
-  "hunter": "ハンター", "baby-dragon": "ベビードラゴン", "electro-wizard": "エレクトロウィザード",
-  "inferno-dragon": "インフェルノドラゴン", "lumberjack": "ランバージャック", "magic-archer": "マジックアーチャー",
-  "mother-witch": "マザーネクロマンサー", "night-witch": "ダークネクロ", "golden-knight": "ゴールドナイト",
-  "skeleton-king": "スケルトンキング", "mighty-miner": "マイティディガー", "phoenix": "フェニックス",
-  "rune-giant": "鍛冶屋ジャイアント", "minion-giant": "ガーゴイルジャイアント", "fireball": "ファイアボール", "freeze": "フリーズ", "poison": "ポイズン",
-  "goblin-cage": "ゴブリンの檻", "goblin-drill": "ゴブリンドリル", "goblin-hut": "ゴブリンの小屋",
-  "bomb-tower": "ボムタワー", "tesla": "テスラ", "mortar": "迫撃砲", "furnace": "オーブン", "barbarians": "バーバリアン",
-  "minion-horde": "ガーゴイルの群れ", "giant": "ジャイアント", "wizard": "ウィザード", "balloon": "エアバルーン",
-  "witch": "ネクロマンサー", "bowler": "ボウラー", "executioner": "執行人ファルチェ", "cannon-cart": "60式ムート",
-  "royal-hogs": "ロイヤルホグ", "rascals": "アウトロー", "electro-dragon": "ライトニングドラゴン", "prince": "プリンス",
-  "ram-rider": "ラムライダー", "little-prince": "リトルプリンス", "monk": "モンク", "goblinstein": "ゴブリンシュタイン",
-  "boss-bandit": "ボスアサシン", "archer-queen": "アーチャークイーン", "goblin-machine": "ゴブリンマシン", "ronin": "ローニン",
-  "graveyard": "スケルトンラッシュ", "inferno-tower": "インフェルノタワー", "royal-giant": "ロイヤルジャイアント",
-  "elite-barbarians": "エリートバーバリアン", "giant-skeleton": "巨大スケルトン", "goblin-giant": "ゴブジャイアント",
-  "sparky": "スパーキー", "spirit-empress": "スピリットエンプレス", "rocket": "ロケット", "lightning": "ライトニング",
-  "elixir-collector": "エリクサーポンプ", "barbarian-hut": "バーバリアンの小屋", "x-bow": "巨大クロスボウ",
-  "pekka": "ペッカ", "lava-hound": "ラヴァハウンド", "electro-giant": "エレクトロジャイアント", "mega-knight": "メガナイト",
-  "royal-recruits": "見習い親衛隊", "golem": "ゴーレム", "three-musketeers": "三銃士"
-};
-
-var COST = {
-  "スケルトン": 1, "アイススピリット": 1, "ファイアスピリット": 1, "エレクトロスピリット": 1, "ヒールスピリット": 1,
-  "ゴブリン": 2, "ボンバー": 2, "槍ゴブリン": 2, "コウモリの群れ": 2, "アイスゴーレム": 2, "ウォールブレイカー": 2,
-  "バーサーカー": 2, "ザップ": 2, "巨大雪玉": 2, "ローリングバーバリアン": 2, "ローリングウッド": 2, "レイジ": 2,
-  "ステルスブッシュ": 2, "ゴブリンの呪い": 2, "ナイト": 3, "アーチャー": 3, "ガーゴイル": 3, "ゴブリンギャング": 3,
-  "スケルトンバレル": 3, "ロケット砲士": 3, "メガガーゴイル": 3, "吹き矢ゴブリン": 3, "エリクサーゴーレム": 3,
-  "アイスウィザード": 3, "プリンセス": 3, "ディガー": 3, "スケルトン部隊": 3, "盾の戦士": 3, "アサシン ユーノ": 3,
-  "漁師トリトン": 3, "ロイヤルゴースト": 3, "矢の雨": 3, "トルネード": 3, "アースクエイク": 3, "ロイヤルデリバリー": 3,
-  "ゴブリンバレル": 3, "クローン": 3, "ヴァイン": 3, "ボイド": 3, "ミラー": 1, "大砲": 3, "墓石": 3,
-  "バルキリー": 4, "マスケット銃士": 4, "ミニペッカ": 4, "ホグライダー": 4, "攻城バーバリアン": 4, "スケルトンドラゴン": 4,
-  "ザッピー": 4, "ホバリング砲": 4, "バトルヒーラー": 4, "ダイナマイトゴブリン": 4, "ダークプリンス": 4, "ハンター": 4,
-  "ベビードラゴン": 4, "エレクトロウィザード": 4, "インフェルノドラゴン": 4, "ランバージャック": 4, "マジックアーチャー": 4,
-  "マザーネクロマンサー": 4, "ダークネクロ": 4, "ゴールドナイト": 4, "スケルトンキング": 4, "マイティディガー": 4,
-  "フェニックス": 4, "鍛冶屋ジャイアント": 4, "ガーゴイルジャイアント": 4, "ファイアボール": 4, "フリーズ": 4, "ポイズン": 4, "ゴブリンの檻": 4,
-  "ゴブリンドリル": 4, "ゴブリンの小屋": 4, "ボムタワー": 4, "テスラ": 4, "迫撃砲": 4, "オーブン": 4,
-  "バーバリアン": 5, "ガーゴイルの群れ": 5, "ジャイアント": 5, "ウィザード": 5, "エアバルーン": 5, "ネクロマンサー": 5,
-  "ボウラー": 5, "執行人ファルチェ": 5, "60式ムート": 5, "ロイヤルホグ": 5, "アウトロー": 5, "ライトニングドラゴン": 5,
-  "プリンス": 5, "ラムライダー": 5, "リトルプリンス": 3, "モンク": 5, "ゴブリンシュタイン": 5, "ボスアサシン": 6,
-  "アーチャークイーン": 5, "ゴブリンマシン": 5, "ローニン": 5, "スケルトンラッシュ": 5, "インフェルノタワー": 5, "ロイヤルジャイアント": 6,
-  "エリートバーバリアン": 6, "巨大スケルトン": 6, "ゴブジャイアント": 6, "スパーキー": 6, "スピリットエンプレス": 6,
-  "ロケット": 6, "ライトニング": 6, "エリクサーポンプ": 6, "バーバリアンの小屋": 6, "巨大クロスボウ": 6,
-  "ペッカ": 7, "ラヴァハウンド": 7, "エレクトロジャイアント": 7, "メガナイト": 7, "見習い親衛隊": 7, "ゴーレム": 8, "三銃士": 9
-};
+const {SLUG2JP, COST, ID2JP} = require('./card-catalogue.cjs').collectorMaps();
 
 function normSlug(name) {
   return String(name).toLowerCase()
     .replace(/\./g, '').replace(/'/g, '').replace(/&/g, 'and')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 }
-function apiCardToJp(card) { return SLUG2JP[normSlug(card.name)] || null; }
+function apiCardToJp(card) { return ID2JP[card.id] || SLUG2JP[normSlug(card.name)] || null; }
 function normTag_(tag) { return String(tag || '').toUpperCase().replace(/[^0-9A-Z]/g, ''); }
 function eloBand_(elo) {
   if (typeof elo !== 'number' || !isFinite(elo)) return null;
@@ -1164,6 +1106,7 @@ async function updateDecks() {
   //   ＝「瞬間の上限」より「持続できる上限」の方がかなり低い。40は長時間の実運用で無事故のため既定を維持し、
   //   上げる時は CHUNK / CHUNK_SLEEP を環境変数で調整して429ログを見ながら詰める。
   var pop = {}, win = {}, unmapped = {};
+  const unmappedArchive = new UnmappedCardStore();
   var CHUNK = parseInt(prop('FETCH_CHUNK', '40'), 10);
   var CHUNK_SLEEP = parseInt(prop('FETCH_CHUNK_SLEEP_MS', '300'), 10);
   var muNow = {};       // ' 自分arch|相手arch' → [試合数, 勝ち数]（今回ぶん）
@@ -1360,6 +1303,7 @@ async function updateDecks() {
     cards.forEach(function (c) {
       var name = apiCardToJp(c);
       if (!name) { ok = false; unmapped[c.name] = (unmapped[c.name] || 0) + 1; return; }
+      if ((c.evolutionLevel || 0)>2) {ok=false;unmapped[c.name+'/form-'+c.evolutionLevel]=(unmapped[c.name+'/form-'+c.evolutionLevel]||0)+1;return;}
       jp.push(name);
       var f = 'norm';
       if (c.rarity === 'champion') f = 'champ';
@@ -1432,6 +1376,7 @@ async function updateDecks() {
     for (var i = 0; i < battles.length; i++) {
       var b = battles[i];
       if (!isStd(b)) continue;
+      if ([...b.team[0].cards,...(b.opponent[0].cards || [])].some(c=>!apiCardToJp(c)||(c.evolutionLevel || 0)>2)) unmappedArchive.add({tag,seedMode:!!seedMode,battle:b});
       observeSchema_(b);
       var tk = (b.type || '?') + '/' + ((b.gameMode && b.gameMode.name) || '?');
       typeSeen[tk] = (typeSeen[tk] || 0) + 1;
@@ -1683,6 +1628,7 @@ async function updateDecks() {
   var aggregated = Object.keys(pop).reduce(function (s, k) { return s + pop[k].count; }, 0);
   var winBattles = Object.keys(win).reduce(function (s, k) { return s + win[k].count; }, 0);
   console.log('ranking ' + players.length + ' / players(pop) ' + aggregated + ' / win-battles ' + winBattles + ' / unmapped ' + JSON.stringify(unmapped));
+  await unmappedArchive.flush((part,observations)=>writePrivateRunArchive_('unmapped-card-battles-v1/part-'+part,{updated:new Date().toISOString(),observations}));
   if (!Object.keys(pop).length) throw new Error('集計0件 unmapped=' + JSON.stringify(unmapped)); // API失敗時は履歴を汚さない
 
   // ---- デッキ確定（形＋ゲームと同じスロット配置）。pop/win共通 ----

@@ -1,0 +1,2586 @@
+{
+  "schemaVersion": 1,
+  "cards": [
+    {
+      "id": 26000010,
+      "slug": "skeletons",
+      "name": "スケルトン",
+      "yomi": "スケルトン スケ",
+      "cost": 1,
+      "type": "troop",
+      "role": "サイクル・防衛",
+      "wiki": {
+        "page": "Skeletons"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/skeletons.png",
+          "sha256": "577c897f22f0270ed7f7297f9f8e52c72557b43e673e7ea2368e00309bdece6b"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/skeletons-ev1.png",
+          "sha256": "0c431594bb59ca31f70be9b631ca5c26947c42b5a9621c649fc6a75bd588b7dd"
+        }
+      },
+      "english": "Skeletons"
+    },
+    {
+      "id": 26000030,
+      "slug": "ice-spirit",
+      "name": "アイススピリット",
+      "yomi": "アイススピリット アイスピ アイス",
+      "cost": 1,
+      "type": "troop",
+      "role": "凍結・サイクル",
+      "wiki": {
+        "page": "Ice_Spirit"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/ice-spirit.png",
+          "sha256": "634e23f7cfe7508f8833216a4c657abb90bd47916364eba4701dd7e622f028d5"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/ice-spirit-ev1.png",
+          "sha256": "2d70efbd0387e3e5ea3858cfabb24e8da65504dc026e643b372aad2af1c58689"
+        }
+      },
+      "english": "Ice Spirit"
+    },
+    {
+      "id": 26000031,
+      "slug": "fire-spirit",
+      "name": "ファイアスピリット",
+      "yomi": "ファイアスピリット ファイスピ ファイア",
+      "cost": 1,
+      "type": "troop",
+      "role": "小型処理・対空",
+      "wiki": {
+        "page": "Fire_Spirit"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/fire-spirit.png",
+          "sha256": "12fa2adbe28b57b8caa1d9bd7fa6d6c22e8e2f7196f1591fdbb00a8cdf0104b5"
+        }
+      },
+      "english": "Fire Spirit"
+    },
+    {
+      "id": 26000084,
+      "slug": "electro-spirit",
+      "name": "エレクトロスピリット",
+      "yomi": "エレクトロスピリット エレスピ エレクトロ",
+      "cost": 1,
+      "type": "troop",
+      "role": "チェーン感電・サイクル",
+      "wiki": {
+        "page": "Electro_Spirit"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/electro-spirit.png",
+          "sha256": "b3ad3838e1889fa60b4c94558834765de8b3b3fb5e26d86cda51827c6dd1d2c3"
+        }
+      },
+      "english": "Electro Spirit"
+    },
+    {
+      "id": 28000016,
+      "slug": "heal-spirit",
+      "name": "ヒールスピリット",
+      "yomi": "ヒールスピリット ヒースピ ヒルスピ ヒール ヒスピ",
+      "cost": 1,
+      "type": "troop",
+      "role": "回復サポート",
+      "wiki": {
+        "page": "Heal_Spirit"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/heal-spirit.png",
+          "sha256": "fdcce46eee982d7cf67e68bf7e3c319363448af9527836fdced5421b03741b61"
+        }
+      },
+      "english": "Heal Spirit"
+    },
+    {
+      "id": 26000002,
+      "slug": "goblins",
+      "name": "ゴブリン",
+      "yomi": "ゴブリン ゴブ",
+      "cost": 2,
+      "type": "troop",
+      "role": "小型高DPS",
+      "wiki": {
+        "page": "Goblins"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblins.png",
+          "sha256": "c0bb707e824b63babb8890925ad889d50838e8c94dcaf567f3e8061bb2404f40"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblins-hero.png",
+          "sha256": "87b7a9cdc58db54ea10a08023742ea6aaaecdba619629207e3c5afe2a7ac3092"
+        }
+      },
+      "english": "Goblins"
+    },
+    {
+      "id": 26000013,
+      "slug": "bomber",
+      "name": "ボンバー",
+      "yomi": "ボンバー ボンバ",
+      "cost": 2,
+      "type": "troop",
+      "role": "範囲攻撃・防衛",
+      "wiki": {
+        "page": "Bomber"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/bomber.png",
+          "sha256": "aee0f0da304a067388f1203a931b8bc42e50cac923c1fa9b3eb7dfa4e78de9b0"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/bomber-ev1.png",
+          "sha256": "8ffc4f9a248e397b86c991120dfca8fef10293151ea1f632e78e1add16640242"
+        }
+      },
+      "english": "Bomber"
+    },
+    {
+      "id": 26000019,
+      "slug": "spear-goblins",
+      "name": "槍ゴブリン",
+      "yomi": "やりごぶりん やり ゴブ",
+      "cost": 2,
+      "type": "troop",
+      "role": "対空・遠距離",
+      "wiki": {
+        "page": "Spear_Goblins"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/spear-goblins.png",
+          "sha256": "f73d718dcc1fad6cc5696a9ef532cdb07154e503f891d01ca549f40435b49eb2"
+        }
+      },
+      "english": "Spear Goblins"
+    },
+    {
+      "id": 26000049,
+      "slug": "bats",
+      "name": "コウモリの群れ",
+      "yomi": "コウモリの群れ コウモリ バット バツ",
+      "cost": 2,
+      "type": "troop",
+      "role": "対空・サイクル",
+      "wiki": {
+        "page": "Bats"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/bats.png",
+          "sha256": "f22cf5787dbb8cd32f3e4015766b64733f86ccedc5cb5be709b3ee06df400850"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/bats-ev1.png",
+          "sha256": "c64a902fa255688b7408b4df7461e5de51a19635ee34438fb24b485bc3eabed9"
+        }
+      },
+      "english": "Bats"
+    },
+    {
+      "id": 26000038,
+      "slug": "ice-golem",
+      "name": "アイスゴーレム",
+      "yomi": "アイスゴーレム アイゴレ アイスゴレ ヒーローアイゴレ",
+      "cost": 2,
+      "type": "troop",
+      "role": "タンク・デス凍結",
+      "wiki": {
+        "page": "Ice_Golem"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/ice-golem.png",
+          "sha256": "e2baf07b238430895c67e5f6b433430a9ac4b5e254c81401b12503180cf0d372"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/ice-golem-hero.png",
+          "sha256": "251e1089256cae641f2d69f870444c0e7d191f9427d0b6897448614bf479d47a"
+        }
+      },
+      "english": "Ice Golem"
+    },
+    {
+      "id": 26000058,
+      "slug": "wall-breakers",
+      "name": "ウォールブレイカー",
+      "yomi": "ウォールブレイカー ウォールブレ ウォルブレ WB ウォール",
+      "cost": 2,
+      "type": "troop",
+      "role": "建物狙い・サイクル",
+      "wiki": {
+        "page": "Wall_Breakers"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/wall-breakers.png",
+          "sha256": "aa5e1e6f1293b1b58dcbcd518892075a467b731adb988b3d53f97fcc455050f8"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/wall-breakers-ev1.png",
+          "sha256": "2c695eb52de82311b4b4d1e82eac18dd1e2317f75498e4b37ac0a9f4f2d8cff5"
+        }
+      },
+      "english": "Wall Breakers"
+    },
+    {
+      "id": 26000102,
+      "slug": "berserker",
+      "name": "バーサーカー",
+      "yomi": "バーサーカー バーサカ バサ子",
+      "cost": 2,
+      "type": "troop",
+      "role": "高速高DPS近接",
+      "wiki": {
+        "page": "Berserker"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/berserker.png",
+          "sha256": "56b8d9fb5da59ee7be72ad4794b966bbea15350dc765b4a7722d3fba24929c4f"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/berserker-hero.png",
+          "sha256": "7090a54a581311b86eb00df1e6931518c527ab0ee8ebeccb5e7d585161a69c3e"
+        }
+      },
+      "english": "Berserker"
+    },
+    {
+      "id": 28000008,
+      "slug": "zap",
+      "name": "ザップ",
+      "yomi": "ザップ",
+      "cost": 2,
+      "type": "spell",
+      "role": "即時感電・リセット",
+      "wiki": {
+        "page": "Zap"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/zap.png",
+          "sha256": "8d02f5743a858ba2a6ddee722a297c515f23d0cbb5ac04ff2e7db1058d686a24"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/zap-ev1.png",
+          "sha256": "fb6998a97889188293c48dcf3406b53852aedc4019ef9d0a5eb56138fb19ad42"
+        }
+      },
+      "english": "Zap"
+    },
+    {
+      "id": 28000017,
+      "slug": "giant-snowball",
+      "name": "巨大雪玉",
+      "yomi": "きょだいゆきだま ゆきだま 雪玉",
+      "cost": 2,
+      "type": "spell",
+      "role": "ノックバック・減速",
+      "wiki": {
+        "page": "Giant_Snowball"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/giant-snowball.png",
+          "sha256": "a543a3229799214bb4c8f8ec9948496458bcec445295e2cf143459d8049ace13"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/giant-snowball-ev1.png",
+          "sha256": "36576bd2ab91ceda5e9676828c4a9fdac78b6eae88a1cdc5921f850300b9226b"
+        }
+      },
+      "english": "Giant Snowball"
+    },
+    {
+      "id": 28000015,
+      "slug": "barbarian-barrel",
+      "name": "ローリングバーバリアン",
+      "yomi": "ローリングバーバリアン バーバレル ロリバーバ ロリババ",
+      "cost": 2,
+      "type": "spell",
+      "role": "転がし＋バーバリアン",
+      "wiki": {
+        "page": "Barbarian_Barrel"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/barbarian-barrel.png",
+          "sha256": "84529d1a0e5c57a4f8e39f7844e0ec3dd9373fdcfe236db04325c580c79694ac"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/barbarian-barrel-hero.png",
+          "sha256": "9f217795ae851eb489342b82ace1c7bae87b9ce0ff97c4deb5c8a54320c766c6"
+        }
+      },
+      "english": "Barbarian Barrel"
+    },
+    {
+      "id": 28000011,
+      "slug": "the-log",
+      "name": "ローリングウッド",
+      "yomi": "ローリングウッド ログ THE LOG ウッド 丸太",
+      "cost": 2,
+      "type": "spell",
+      "role": "広範囲ローリング",
+      "wiki": {
+        "page": "The_Log"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/the-log.png",
+          "sha256": "2d9202b67ebd1ae3fd9d0d343b0809c63922f81b3a2afc45d7ef058ae5a1400a"
+        }
+      },
+      "english": "The Log"
+    },
+    {
+      "id": 28000002,
+      "slug": "rage",
+      "name": "レイジ",
+      "yomi": "レイジ",
+      "cost": 2,
+      "type": "spell",
+      "role": "速度・火力アップ",
+      "wiki": {
+        "page": "Rage"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/rage.png",
+          "sha256": "bfa631dd55d66fa19c585279ecc07ead74f0db65c1aa19566b98254a43f3880a"
+        }
+      },
+      "english": "Rage"
+    },
+    {
+      "id": 26000097,
+      "slug": "suspicious-bush",
+      "name": "ステルスブッシュ",
+      "yomi": "ステルスブッシュ ブッシュ 茂み あやしいしげみ しげみ",
+      "cost": 2,
+      "type": "troop",
+      "role": "茂みに隠れて潜伏",
+      "wiki": {
+        "page": "Suspicious_Bush"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/suspicious-bush.png",
+          "sha256": "5f304e3bd75863064c7b9a1ccde8c9ae1a5065d574fe8cbe79ff82b5e873467c"
+        }
+      },
+      "english": "Suspicious Bush"
+    },
+    {
+      "id": 28000024,
+      "slug": "goblin-curse",
+      "name": "ゴブリンの呪い",
+      "yomi": "ごぶりんののろい のろい カース ゴブカース 呪い",
+      "cost": 2,
+      "type": "spell",
+      "role": "範囲呪い・倒すとゴブ化",
+      "wiki": {
+        "page": "Goblin_Curse"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-curse.png",
+          "sha256": "d8df2ab4decb29dc9a893d9f4b5765b7e10c65358c822d364ec24c3242f15379"
+        }
+      },
+      "english": "Goblin Curse"
+    },
+    {
+      "id": 26000000,
+      "slug": "knight",
+      "name": "ナイト",
+      "yomi": "ナイト",
+      "cost": 3,
+      "type": "troop",
+      "role": "タンク・防衛",
+      "wiki": {
+        "page": "Knight"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/knight.png",
+          "sha256": "bc85a17a817c5e29d0e12adc854499670b648e710985a8d05dea9ccfcaa95abe"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/knight-ev1.png",
+          "sha256": "cc9ca1f124d7f05e2574e4fb0fd1aeb5451718bf3bba15f6cba117eb56698c06"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/knight-hero.png",
+          "sha256": "78794c9d6e1eb586d6407f2a36994052fc4f0ea1c1c4d03fea6dc92156f009f1"
+        }
+      },
+      "english": "Knight"
+    },
+    {
+      "id": 26000001,
+      "slug": "archers",
+      "name": "アーチャー",
+      "yomi": "アーチャー アチャ",
+      "cost": 3,
+      "type": "troop",
+      "role": "対空・遠距離",
+      "wiki": {
+        "page": "Archers"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/archers.png",
+          "sha256": "7427cdce681c78eb61fc97c849a4ff6e8bc1739e1a46b56da9d62d8ee610ef85"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/archers-ev1.png",
+          "sha256": "15b7370a48fec57dbbf1cae72453565e4a19d14923e61915d6ae92c19202ff1e"
+        }
+      },
+      "english": "Archers"
+    },
+    {
+      "id": 26000005,
+      "slug": "minions",
+      "name": "ガーゴイル",
+      "yomi": "ガーゴイル ミニオン ガゴ",
+      "cost": 3,
+      "type": "troop",
+      "role": "対空・高DPS",
+      "wiki": {
+        "page": "Minions"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/minions.png",
+          "sha256": "aa00d7b23fd564665c76aee4f03f508d0ce727f3c39cee306a98fa657e97f1f5"
+        }
+      },
+      "english": "Minions"
+    },
+    {
+      "id": 26000041,
+      "slug": "goblin-gang",
+      "name": "ゴブリンギャング",
+      "yomi": "ゴブリンギャング ゴブギャ ギャング",
+      "cost": 3,
+      "type": "troop",
+      "role": "地上・対空mix",
+      "wiki": {
+        "page": "Goblin_Gang"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-gang.png",
+          "sha256": "6cf6e06d7c94ad938f94dfd57c0308b1d1081e898001b1df5963e42a5a990031"
+        }
+      },
+      "english": "Goblin Gang"
+    },
+    {
+      "id": 26000056,
+      "slug": "skeleton-barrel",
+      "name": "スケルトンバレル",
+      "yomi": "スケルトンバレル スケバレ バレル スケブ",
+      "cost": 3,
+      "type": "troop",
+      "role": "空中突撃・デス処理",
+      "wiki": {
+        "page": "Skeleton_Barrel"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/skeleton-barrel.png",
+          "sha256": "2b9de9e4b07dcfdd490d20dbe2617f2dec284de7cac9e3b460564a5ece78b250"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/skeleton-barrel-ev1.png",
+          "sha256": "10c551d28983ada8c963cdbc463792931777282af25a7973b85353216f861451"
+        }
+      },
+      "english": "Skeleton Barrel"
+    },
+    {
+      "id": 26000064,
+      "slug": "firecracker",
+      "name": "ロケット砲士",
+      "yomi": "ロケット砲士 ロケホウ ロケコ ファイクラ ファイアクラッカー ロケ子 ロケ 砲士",
+      "cost": 3,
+      "type": "troop",
+      "role": "遠距離・小型処理",
+      "wiki": {
+        "page": "Firecracker"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/firecracker.png",
+          "sha256": "c9b61bfc05a737878256dd01909f70cc9a885008bef5dc84b0c74f31b32621a9"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/firecracker-ev1.png",
+          "sha256": "065ce667d5094d2164147b315d84b7677d20d71f44d3ae119ad8ac9bad7d53f2"
+        }
+      },
+      "english": "Firecracker"
+    },
+    {
+      "id": 26000039,
+      "slug": "mega-minion",
+      "name": "メガガーゴイル",
+      "yomi": "メガガーゴイル メガゴ メガガゴ メガミニオン メガミニ ヒーローメガゴ",
+      "cost": 3,
+      "type": "troop",
+      "role": "対空高火力",
+      "wiki": {
+        "page": "Mega_Minion"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/mega-minion.png",
+          "sha256": "575506997a5282c7cd762e25fc6fe1900d002b90623ce36f5f48ad2325e155f7"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/mega-minion-hero.png",
+          "sha256": "6023c31972efce199e7f9b56d8cfe3f4b46e052d2a76196ed79a4d15e0114fc3"
+        }
+      },
+      "english": "Mega Minion"
+    },
+    {
+      "id": 26000040,
+      "slug": "dart-goblin",
+      "name": "吹き矢ゴブリン",
+      "yomi": "ふきやごぶりん ふきや ダートゴブ ダーゴブ 吹き矢",
+      "cost": 3,
+      "type": "troop",
+      "role": "超長射程・速射",
+      "wiki": {
+        "page": "Dart_Goblin"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/dart-goblin.png",
+          "sha256": "9635504b4b4c9d3ef1644793cdf1a79d1c68fc5cde9b6214d13fd58ec2c06bae"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/dart-goblin-ev1.png",
+          "sha256": "8ce06f9233335881163816fdf568c5e819d7d6dca2c7162e56e561b4a96b2fd6"
+        }
+      },
+      "english": "Dart Goblin"
+    },
+    {
+      "id": 26000067,
+      "slug": "elixir-golem",
+      "name": "エリクサーゴーレム",
+      "yomi": "エリクサーゴーレム エリゴレ",
+      "cost": 3,
+      "type": "troop",
+      "role": "タンク・敵にエリ付与",
+      "wiki": {
+        "page": "Elixir_Golem"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/elixir-golem.png",
+          "sha256": "19d53b0cef561265f10956e04fc3e31e21c17ffbdc1300b78043cb5070cff02c"
+        }
+      },
+      "english": "Elixir Golem"
+    },
+    {
+      "id": 26000023,
+      "slug": "ice-wizard",
+      "name": "アイスウィザード",
+      "yomi": "アイスウィザード アイウィザ アイスウィズ アイウィズ",
+      "cost": 3,
+      "type": "troop",
+      "role": "全体減速",
+      "wiki": {
+        "page": "Ice_Wizard"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/ice-wizard.png",
+          "sha256": "2b4701fc766c9cf3f33e469638e7d00eb96daceec605b35739fff201c9b2bb2f"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/ice-wizard-hero.png",
+          "sha256": "815472320fed5b62a0c4d638627d6216b03675e9ed15061a47a448129bb5d2fb"
+        }
+      },
+      "english": "Ice Wizard"
+    },
+    {
+      "id": 26000026,
+      "slug": "princess",
+      "name": "プリンセス",
+      "yomi": "ぷりんせす プリセス プリン",
+      "cost": 3,
+      "type": "troop",
+      "role": "超長射程・範囲",
+      "wiki": {
+        "page": "Princess"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/princess.png",
+          "sha256": "89a93eecf6caecd5734310221edd712b0e2c8a986cbab06d1276174708fe768e"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/princess-ev1.png",
+          "sha256": "e8b5f96a69037be05a972fdae1938dbf6f3f873ab730f28421c91c2022f0c7ce"
+        }
+      },
+      "english": "Princess"
+    },
+    {
+      "id": 26000032,
+      "slug": "miner",
+      "name": "ディガー",
+      "yomi": "ディガー マイナー ディガ",
+      "cost": 3,
+      "type": "troop",
+      "role": "建物狙い奇襲",
+      "wiki": {
+        "page": "Miner"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/miner.png",
+          "sha256": "de39cd5d5bad2a83f0c8bbc403cf205ae10cf0f282101b760287b0bcb99a2305"
+        }
+      },
+      "english": "Miner"
+    },
+    {
+      "id": 26000012,
+      "slug": "skeleton-army",
+      "name": "スケルトン部隊",
+      "yomi": "スケルトン部隊 スケブ スケ部 スケアミ スケルトンアーミー",
+      "cost": 3,
+      "type": "troop",
+      "role": "防衛・大量展開",
+      "wiki": {
+        "page": "Skeleton_Army"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/skeleton-army.png",
+          "sha256": "4fe348d2115ffa1d08d3e418863b9013c928f3e5e9e60b98f431dd3c48f9fd18"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/skeleton-army-ev1.png",
+          "sha256": "cbaf4a2cb7b2c24015f83a3e0b45ef8cc2d9c75bff294dcc33fe90703aee2a6a"
+        }
+      },
+      "english": "Skeleton Army"
+    },
+    {
+      "id": 26000025,
+      "slug": "guards",
+      "name": "盾の戦士",
+      "yomi": "たてのせんし たて ガーズ",
+      "cost": 3,
+      "type": "troop",
+      "role": "盾持ち防衛",
+      "wiki": {
+        "page": "Guards"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/guards.png",
+          "sha256": "bfc68221b68ab264d95ac45961d5ea6d59324692b78f19e6740cb55f7a8bd9a9"
+        }
+      },
+      "english": "Guards"
+    },
+    {
+      "id": 26000046,
+      "slug": "bandit",
+      "name": "アサシン ユーノ",
+      "yomi": "アサシンユーノ ユーノ バンディット ユノ",
+      "cost": 3,
+      "type": "troop",
+      "role": "ダッシュ高火力",
+      "wiki": {
+        "page": "Bandit"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/bandit.png",
+          "sha256": "9cdb41da44849bc7a839c85803671fe2bc3462f68371723130b538863973842a"
+        }
+      },
+      "english": "Bandit"
+    },
+    {
+      "id": 26000061,
+      "slug": "fisherman",
+      "name": "漁師トリトン",
+      "yomi": "りょうしとりとん トリトン フィッシャーマン フィッシャ トリト",
+      "cost": 3,
+      "type": "troop",
+      "role": "引き寄せ・妨害",
+      "wiki": {
+        "page": "Fisherman"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/fisherman.png",
+          "sha256": "fd4262293b23208785e5ff999de30a8668b7dfa733266e92101c1a34833cca4a"
+        }
+      },
+      "english": "Fisherman"
+    },
+    {
+      "id": 26000050,
+      "slug": "royal-ghost",
+      "name": "ロイヤルゴースト",
+      "yomi": "ロイヤルゴースト ロイゴ ゴースト",
+      "cost": 3,
+      "type": "troop",
+      "role": "透明・奇襲",
+      "wiki": {
+        "page": "Royal_Ghost"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/royal-ghost.png",
+          "sha256": "309a3b5e39e38233c29a205cb676041f678788e8c249487c9781ae035318b7f4"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/royal-ghost-ev1.png",
+          "sha256": "766fb2d2fd97c9f9cc6fc2612be533d1f1041b4cdff14dbe696161e381890496"
+        }
+      },
+      "english": "Royal Ghost"
+    },
+    {
+      "id": 28000001,
+      "slug": "arrows",
+      "name": "矢の雨",
+      "yomi": "やのあめ アロー 矢 矢雨",
+      "cost": 3,
+      "type": "spell",
+      "role": "範囲・対空",
+      "wiki": {
+        "page": "Arrows"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/arrows.png",
+          "sha256": "3edcaaafe1d1955ad274896bb15efb85172bb8d44aea79083239b813bebddd99"
+        }
+      },
+      "english": "Arrows"
+    },
+    {
+      "id": 28000012,
+      "slug": "tornado",
+      "name": "トルネード",
+      "yomi": "トルネード トルネ トル",
+      "cost": 3,
+      "type": "spell",
+      "role": "引き寄せ・集中",
+      "wiki": {
+        "page": "Tornado"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/tornado.png",
+          "sha256": "1d7c4187b27b44fe16f4cb4664c128e02553961665d701b9c1295d5040c5f26d"
+        }
+      },
+      "english": "Tornado"
+    },
+    {
+      "id": 28000014,
+      "slug": "earthquake",
+      "name": "アースクエイク",
+      "yomi": "アースクエイク 地震 じしん クエイク",
+      "cost": 3,
+      "type": "spell",
+      "role": "建物特効ダメージ",
+      "wiki": {
+        "page": "Earthquake"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/earthquake.png",
+          "sha256": "8e69b4ad266b158daab08600279cc4e5c6af94e60864a76cf179034f4630096e"
+        }
+      },
+      "english": "Earthquake"
+    },
+    {
+      "id": 28000018,
+      "slug": "royal-delivery",
+      "name": "ロイヤルデリバリー",
+      "yomi": "ろいやるでりばりー デリバリー",
+      "cost": 3,
+      "type": "spell",
+      "role": "範囲＋兵士展開",
+      "wiki": {
+        "page": "Royal_Delivery"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/royal-delivery.png",
+          "sha256": "8aa6c48ec9da412e073d92eb7162f81cc1de86961242bdf6ebe0aad5851c5b5d"
+        }
+      },
+      "english": "Royal Delivery"
+    },
+    {
+      "id": 28000004,
+      "slug": "goblin-barrel",
+      "name": "ゴブリンバレル",
+      "yomi": "ゴブリンバレル ゴブバレ バレル",
+      "cost": 3,
+      "type": "spell",
+      "role": "奇襲ゴブリン3体",
+      "wiki": {
+        "page": "Goblin_Barrel"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-barrel.png",
+          "sha256": "6d34267ad6f5d42a8e88f840e36d6a11e25f16f3d111c716bee2e31b03330c4c"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-barrel-ev1.png",
+          "sha256": "eebc3871686fa75718a6846a04022fc4713967561c4a31f6a69e9d1066a79bb8"
+        }
+      },
+      "english": "Goblin Barrel"
+    },
+    {
+      "id": 28000013,
+      "slug": "clone",
+      "name": "クローン",
+      "yomi": "クローン",
+      "cost": 3,
+      "type": "spell",
+      "role": "ユニット複製",
+      "wiki": {
+        "page": "Clone"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/clone.png",
+          "sha256": "f2f67ff3f60392cfcdfb419b8f495be4f4ba08c51e3f9a4b455d5b675acdf28c"
+        }
+      },
+      "english": "Clone"
+    },
+    {
+      "id": 28000026,
+      "slug": "vines",
+      "name": "ヴァイン",
+      "yomi": "ヴァイン バイン ツタ つた",
+      "cost": 3,
+      "type": "spell",
+      "role": "高HP3体を拘束・空→地",
+      "wiki": {
+        "page": "Vines"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/vines.png",
+          "sha256": "d70904f654f19c226250f45a80aeed6c5f4d273bca93b873b9db6cf2cb581a91"
+        }
+      },
+      "english": "Vines"
+    },
+    {
+      "id": 28000023,
+      "slug": "void",
+      "name": "ボイド",
+      "yomi": "ボイド ぼいど",
+      "cost": 3,
+      "type": "spell",
+      "role": "少数ほど高ダメージ",
+      "wiki": {
+        "page": "Void"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/void.png",
+          "sha256": "851c5cc01906c4fdd51afda4cced7d09109a4d351b54985d7705607d6298fa5d"
+        }
+      },
+      "english": "Void"
+    },
+    {
+      "id": 28000006,
+      "slug": "mirror",
+      "name": "ミラー",
+      "yomi": "ミラー みらー",
+      "cost": 1,
+      "type": "spell",
+      "role": "直前カードを+1コスで複製",
+      "wiki": {
+        "page": "Mirror"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/mirror.png",
+          "sha256": "7b3a3b042574ede94cbcdf321e3f963657cd8497a3aaa6fe7c272d4a86e2ee6e"
+        }
+      },
+      "english": "Mirror"
+    },
+    {
+      "id": 27000000,
+      "slug": "cannon",
+      "name": "大砲",
+      "yomi": "おおづつ たいほう 大砲 キャノン",
+      "cost": 3,
+      "type": "building",
+      "role": "単体遠距離防衛",
+      "wiki": {
+        "page": "Cannon"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/cannon.png",
+          "sha256": "6d830474c1f3d710cebcc233844af30333aec010f25debee1f875d69d74acb7e"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/cannon-ev1.png",
+          "sha256": "2d43f201022f008ddb5ddea9950364a7cf45e4ac1cb90bc9ea89e0ee63e12a5c"
+        }
+      },
+      "english": "Cannon"
+    },
+    {
+      "id": 27000009,
+      "slug": "tombstone",
+      "name": "墓石",
+      "yomi": "はかいし ぼせき はか いし トゥームストーン",
+      "cost": 3,
+      "type": "building",
+      "role": "スケルトン生成",
+      "wiki": {
+        "page": "Tombstone"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/tombstone.png",
+          "sha256": "7acb3b6eabc76c2637fb93ddbd24ef3f451e4ead50f6b8c8aded2da809d36016"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/tombstone-hero.png",
+          "sha256": "3f174d67f41b0339ae1222d635667490b043ee6a421ae0f3515d28c0c49960a3"
+        }
+      },
+      "english": "Tombstone"
+    },
+    {
+      "id": 26000011,
+      "slug": "valkyrie",
+      "name": "バルキリー",
+      "yomi": "バルキリー バルキ バルキリ バルキー",
+      "cost": 4,
+      "type": "troop",
+      "role": "範囲防衛・タンク",
+      "wiki": {
+        "page": "Valkyrie"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/valkyrie.png",
+          "sha256": "ed98ea746360fdca51628b5ce3e16ad40f15ba296478409a52e8c6ba0aed682e"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/valkyrie-ev1.png",
+          "sha256": "6d51e5de38146aa12a2938aa57a4be6a8feed3e0529ecc24b44e93bd40cc8879"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/valkyrie-hero.png",
+          "sha256": "068e67e1a3c4b81dfc180e51721b4ab49191f9139c9a5807033137b23f0d3094"
+        }
+      },
+      "english": "Valkyrie"
+    },
+    {
+      "id": 26000014,
+      "slug": "musketeer",
+      "name": "マスケット銃士",
+      "yomi": "マスケット銃士 マスケ ヒーローマスケ マスキ",
+      "cost": 4,
+      "type": "troop",
+      "role": "遠距離高火力",
+      "wiki": {
+        "page": "Musketeer"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/musketeer.png",
+          "sha256": "db28ed3c9eec23740bba7ae86cda7226479291c147f7453ccb3009f87e5d754b"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/musketeer-ev1.png",
+          "sha256": "715df846e1b2329b04df359be64c8a9998418346919b0905d6be92a7f8f9030e"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/musketeer-hero.png",
+          "sha256": "929af1441446ad59b3dd16b31a3f56a8adef1ca67b855eb0e353ef17bb8ccbcb"
+        }
+      },
+      "english": "Musketeer"
+    },
+    {
+      "id": 26000018,
+      "slug": "mini-pekka",
+      "name": "ミニペッカ",
+      "yomi": "ミニペッカ ミニペ ミニピ ヒーローミニペ",
+      "cost": 4,
+      "type": "troop",
+      "role": "単体超高DPS",
+      "wiki": {
+        "page": "Mini_P.E.K.K.A"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/mini-pekka.png",
+          "sha256": "dcf726551fb3c83db8bc304bdeaff48e1f7553127567b5669573674b81204a1f"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/mini-pekka-hero.png",
+          "sha256": "46f6569df610918cfcb82cae7894f43b99ae77c6a2b2ca1b2c116a1f0d80d26e"
+        }
+      },
+      "english": "Mini P.E.K.K.A"
+    },
+    {
+      "id": 26000021,
+      "slug": "hog-rider",
+      "name": "ホグライダー",
+      "yomi": "ホグライダー ホグ",
+      "cost": 4,
+      "type": "troop",
+      "role": "建物狙い突撃",
+      "wiki": {
+        "page": "Hog_Rider"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/hog-rider.png",
+          "sha256": "b34fb968d5843729c24cca9b65271345092a2e2ddde5647381d7186446a9b928"
+        }
+      },
+      "english": "Hog Rider"
+    },
+    {
+      "id": 26000036,
+      "slug": "battle-ram",
+      "name": "攻城バーバリアン",
+      "yomi": "こうじょうばーばりあん 攻城 攻城バーバリアン バトルラム ラム",
+      "cost": 4,
+      "type": "troop",
+      "role": "建物狙い＋バーバリアン",
+      "wiki": {
+        "page": "Battle_Ram"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/battle-ram.png",
+          "sha256": "0b949a9e7781c8c782f6ca3b7d357475fa12cc2246f6bad172f64d11cadea633"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/battle-ram-ev1.png",
+          "sha256": "8f81decff0d6aa6ba2715328ab4f3a2e97d9170793c479d1f5ed949a431ccbda"
+        }
+      },
+      "english": "Battle Ram"
+    },
+    {
+      "id": 26000080,
+      "slug": "skeleton-dragons",
+      "name": "スケルトンドラゴン",
+      "yomi": "スケルトンドラゴン スケドラ",
+      "cost": 4,
+      "type": "troop",
+      "role": "対空範囲",
+      "wiki": {
+        "page": "Skeleton_Dragons"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/skeleton-dragons.png",
+          "sha256": "2f0d93a8bb519efdb8fe9e2f10aa0d8226c2eb04e8562a2ef4d0d9142b9d5225"
+        }
+      },
+      "english": "Skeleton Dragons"
+    },
+    {
+      "id": 26000052,
+      "slug": "zappies",
+      "name": "ザッピー",
+      "yomi": "ザッピー ザピ",
+      "cost": 4,
+      "type": "troop",
+      "role": "感電・防衛",
+      "wiki": {
+        "page": "Zappies"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/zappies.png",
+          "sha256": "10cd81d6143a32d876bf50dfb2453018828865edcc8d35f2b2fa546184abc703"
+        }
+      },
+      "english": "Zappies"
+    },
+    {
+      "id": 26000057,
+      "slug": "flying-machine",
+      "name": "ホバリング砲",
+      "yomi": "ホバリング砲 ホバリング フライングマシン フラマシ ホバ マシン",
+      "cost": 4,
+      "type": "troop",
+      "role": "対空・超長射程",
+      "wiki": {
+        "page": "Flying_Machine"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/flying-machine.png",
+          "sha256": "d702061c8362ef5ba78c44782010b1c127b7e058cbbcc454a352db711cbe4dbe"
+        }
+      },
+      "english": "Flying Machine"
+    },
+    {
+      "id": 26000068,
+      "slug": "battle-healer",
+      "name": "バトルヒーラー",
+      "yomi": "バトルヒーラー ヒーラー バトヒ",
+      "cost": 4,
+      "type": "troop",
+      "role": "HP回復タンク",
+      "wiki": {
+        "page": "Battle_Healer"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/battle-healer.png",
+          "sha256": "ec79db0ae4ebfa1dada2d68ba74fb048d4eae49cb594e3fcbfd62b7417adac83"
+        }
+      },
+      "english": "Battle Healer"
+    },
+    {
+      "id": 26000095,
+      "slug": "goblin-demolisher",
+      "name": "ダイナマイトゴブリン",
+      "yomi": "ダイナマイトゴブリン ゴブデモ デモリッシャー",
+      "cost": 4,
+      "type": "troop",
+      "role": "建物狙い・デス爆発",
+      "wiki": {
+        "page": "Goblin_Demolisher"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-demolisher.png",
+          "sha256": "fdb5735bfef582e8e528a227c1cc83ae56d47b1fd0e5b5cacf72e34b32b80730"
+        }
+      },
+      "english": "Goblin Demolisher"
+    },
+    {
+      "id": 26000027,
+      "slug": "dark-prince",
+      "name": "ダークプリンス",
+      "yomi": "ダークプリンス ダクプリ DP",
+      "cost": 4,
+      "type": "troop",
+      "role": "盾＋範囲チャージ",
+      "wiki": {
+        "page": "Dark_Prince"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/dark-prince.png",
+          "sha256": "54f58879127b4dba76557b6580ab3242d0463d5e218ccc10433266f0ed145a55"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/dark-prince-hero.png",
+          "sha256": "b939e4b8a5466f5b7fbb5580d19ce5f1e1d7a5a06e01c4bca7572850bb1f0e7c"
+        }
+      },
+      "english": "Dark Prince"
+    },
+    {
+      "id": 26000044,
+      "slug": "hunter",
+      "name": "ハンター",
+      "yomi": "ハンター",
+      "cost": 4,
+      "type": "troop",
+      "role": "近距離超高火力",
+      "wiki": {
+        "page": "Hunter"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/hunter.png",
+          "sha256": "f5aad01512ac537ca0823329e3633c54e43d97036b6619552593a717f2b65302"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/hunter-ev1.png",
+          "sha256": "49888941feef44a253c9f97aa1474e1b75d88df2c2fb91e048009f531653a174"
+        }
+      },
+      "english": "Hunter"
+    },
+    {
+      "id": 26000015,
+      "slug": "baby-dragon",
+      "name": "ベビードラゴン",
+      "yomi": "ベビードラゴン ベビドラ ベビー ベビ",
+      "cost": 4,
+      "type": "troop",
+      "role": "対空範囲",
+      "wiki": {
+        "page": "Baby_Dragon"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/baby-dragon.png",
+          "sha256": "eda98b83fee22aa1e2da87fa8c407221d1a83f44b75941e45bd97564b7ae22b2"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/baby-dragon-ev1.png",
+          "sha256": "6936af0b1074dc0fef38e525ea8877c0680933a4f9a6602ea2608ccd2b09f240"
+        }
+      },
+      "english": "Baby Dragon"
+    },
+    {
+      "id": 26000042,
+      "slug": "electro-wizard",
+      "name": "エレクトロウィザード",
+      "yomi": "エレクトロウィザード エレウィザ エレウィズ EW エレキ",
+      "cost": 4,
+      "type": "troop",
+      "role": "感電・リセット",
+      "wiki": {
+        "page": "Electro_Wizard"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/electro-wizard.png",
+          "sha256": "f05db16d2920f2771c06bf99e3fdb5b4f0f37e5a412810798379fd45bfd8a395"
+        }
+      },
+      "english": "Electro Wizard"
+    },
+    {
+      "id": 26000037,
+      "slug": "inferno-dragon",
+      "name": "インフェルノドラゴン",
+      "yomi": "インフェルノドラゴン インドラ インフェ",
+      "cost": 4,
+      "type": "troop",
+      "role": "単体集中加熱",
+      "wiki": {
+        "page": "Inferno_Dragon"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/inferno-dragon.png",
+          "sha256": "09b3d010aaba0c5aa3d8d4df30b9c29d2dd51007c8702fb435133b57cc44e793"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/inferno-dragon-ev1.png",
+          "sha256": "5791c046c79aad4ef61d2fcd9e4108b724364de112520aa133e484c4e3d65a5e"
+        }
+      },
+      "english": "Inferno Dragon"
+    },
+    {
+      "id": 26000035,
+      "slug": "lumberjack",
+      "name": "ランバージャック",
+      "yomi": "ランバージャック ランバー ランバジャ",
+      "cost": 4,
+      "type": "troop",
+      "role": "高速＋デスレイジ",
+      "wiki": {
+        "page": "Lumberjack"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/lumberjack.png",
+          "sha256": "3ba375ac15a33a7fdae7ec896b7201e2c38d8c471b38ed3cd11fcd61089ae293"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/lumberjack-ev1.png",
+          "sha256": "f3a7000a168fd12e322ebc24f294cda0a0d03efc949abb1b4b5ef29eb7da7b84"
+        }
+      },
+      "english": "Lumberjack"
+    },
+    {
+      "id": 26000062,
+      "slug": "magic-archer",
+      "name": "マジックアーチャー",
+      "yomi": "マジックアーチャー マジアチャ MA マジア マジアチ ヒーローマジア",
+      "cost": 4,
+      "type": "troop",
+      "role": "超射程貫通",
+      "wiki": {
+        "page": "Magic_Archer"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/magic-archer.png",
+          "sha256": "f6e90c58f95db311c2fb5a56d44f6af8933419ea0b3e2c8badb5ec13301b9ce7"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/magic-archer-hero.png",
+          "sha256": "ab68a0bdadcf11f0cbc7356d2b64decc072d1dbe8ae5121feca9feef0556412d"
+        }
+      },
+      "english": "Magic Archer"
+    },
+    {
+      "id": 26000083,
+      "slug": "mother-witch",
+      "name": "マザーネクロマンサー",
+      "yomi": "マザーネクロマンサー マザネク マザー マザネ",
+      "cost": 4,
+      "type": "troop",
+      "role": "呪い→ホグ変換",
+      "wiki": {
+        "page": "Mother_Witch"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/mother-witch.png",
+          "sha256": "95206cffaa253c7039974890ba6acd551426de4af29b98a7b2c1a801711b433a"
+        }
+      },
+      "english": "Mother Witch"
+    },
+    {
+      "id": 26000048,
+      "slug": "night-witch",
+      "name": "ダークネクロ",
+      "yomi": "ダークネクロ ダクネ ナイトウィッチ ナイウィチ ダネ",
+      "cost": 4,
+      "type": "troop",
+      "role": "コウモリ生成",
+      "wiki": {
+        "page": "Night_Witch"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/night-witch.png",
+          "sha256": "4d3b3a1cdf93fe3f8a67d959044bbdc91740a9e2c102bad0ed0633ad322b096f"
+        }
+      },
+      "english": "Night Witch"
+    },
+    {
+      "id": 26000074,
+      "slug": "golden-knight",
+      "name": "ゴールドナイト",
+      "yomi": "ゴールドナイト ゴルナイ GK ゴルナ",
+      "cost": 4,
+      "type": "troop",
+      "role": "チャンピオン",
+      "champion": true,
+      "wiki": {
+        "page": "Golden_Knight"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/golden-knight.png",
+          "sha256": "ede8d99133f406487759986ecdf0a9eeec2e4fb56576532ed26a896bb5266e48"
+        }
+      },
+      "english": "Golden Knight"
+    },
+    {
+      "id": 26000069,
+      "slug": "skeleton-king",
+      "name": "スケルトンキング",
+      "yomi": "スケルトンキング スケキン SK",
+      "cost": 4,
+      "type": "troop",
+      "role": "チャンピオン",
+      "champion": true,
+      "wiki": {
+        "page": "Skeleton_King"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/skeleton-king.png",
+          "sha256": "8954bfcf74f10127f200f84892834ae00ee373bc0f3f3dcdfdb4f3bd46f97448"
+        }
+      },
+      "english": "Skeleton King"
+    },
+    {
+      "id": 26000065,
+      "slug": "mighty-miner",
+      "name": "マイティディガー",
+      "yomi": "マイティディガー マイディガ MD マイティ",
+      "cost": 4,
+      "type": "troop",
+      "role": "チャンピオン",
+      "champion": true,
+      "wiki": {
+        "page": "Mighty_Miner"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/mighty-miner.png",
+          "sha256": "a31a17c2284d9ac01f1c7e899cd035eba9006384ede3b7582d2be5fbe68174c0"
+        }
+      },
+      "english": "Mighty Miner"
+    },
+    {
+      "id": 26000087,
+      "slug": "phoenix",
+      "name": "フェニックス",
+      "yomi": "フェニックス フェニ",
+      "cost": 4,
+      "type": "troop",
+      "role": "再生・対空",
+      "wiki": {
+        "page": "Phoenix"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/phoenix.png",
+          "sha256": "610f1f2f2b18b067c8315920266d43e8af3822cd11c74803c487682a05779eee"
+        }
+      },
+      "english": "Phoenix"
+    },
+    {
+      "id": 26000101,
+      "slug": "rune-giant",
+      "name": "鍛冶屋ジャイアント",
+      "yomi": "かじやじゃいあんと かじジャイ ルーンジャイアント",
+      "cost": 4,
+      "type": "troop",
+      "role": "味方2体にバフ付与",
+      "wiki": {
+        "page": "Rune_Giant"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/rune-giant.png",
+          "sha256": "0b85ac0605d5f77a7cb199c88eed4d04a70acd0e0eb5da0f4cfb8e04ccd076bd"
+        }
+      },
+      "english": "Rune Giant"
+    },
+    {
+      "id": 26000107,
+      "slug": "minion-giant",
+      "name": "ガーゴイルジャイアント",
+      "yomi": "ガーゴイルジャイアント ガゴジャイ ミニオンジャイアント ガゴジャイアント ガーゴイルジャイ",
+      "cost": 4,
+      "type": "troop",
+      "role": "空中建物狙い",
+      "wiki": {
+        "page": "Minion_Giant"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/minion-giant.png",
+          "sha256": "e76d6589225a31f15e4d44a741c2cc5464efad3ad50c1c5e76e43b814c1f55f0"
+        }
+      },
+      "english": "Minion Giant"
+    },
+    {
+      "id": 28000000,
+      "slug": "fireball",
+      "name": "ファイアボール",
+      "yomi": "ファイアボール ファイボ FB ファボ",
+      "cost": 4,
+      "type": "spell",
+      "role": "中範囲高火力",
+      "wiki": {
+        "page": "Fireball"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/fireball.png",
+          "sha256": "6bbe17a15330f6c0b9020f149023f728a97bffbd8a373d18a69ee09784ac571a"
+        }
+      },
+      "english": "Fireball"
+    },
+    {
+      "id": 28000005,
+      "slug": "freeze",
+      "name": "フリーズ",
+      "yomi": "フリーズ",
+      "cost": 4,
+      "type": "spell",
+      "role": "全停止",
+      "wiki": {
+        "page": "Freeze"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/freeze.png",
+          "sha256": "bcbccf3289dc362eaa9e553b886d59e2255c82d62abcfe8c2f8d83560b2ec58d"
+        }
+      },
+      "english": "Freeze"
+    },
+    {
+      "id": 28000009,
+      "slug": "poison",
+      "name": "ポイズン",
+      "yomi": "ポイズン ポイズ",
+      "cost": 4,
+      "type": "spell",
+      "role": "持続ダメージ",
+      "wiki": {
+        "page": "Poison"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/poison.png",
+          "sha256": "4f28bc86f2b1a236bc02e7abace6e4904c1a51773cc666eaa10618e450a91d35"
+        }
+      },
+      "english": "Poison"
+    },
+    {
+      "id": 27000012,
+      "slug": "goblin-cage",
+      "name": "ゴブリンの檻",
+      "yomi": "ごぶりんのおり ゴブオリ おり ケージ 檻",
+      "cost": 4,
+      "type": "building",
+      "role": "処理後ブロウラー生成",
+      "wiki": {
+        "page": "Goblin_Cage"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-cage.png",
+          "sha256": "26e52b413e13c2e9e7ebff09f2ba53ec103ab78a16d31c118865064dfbaa6a23"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-cage-ev1.png",
+          "sha256": "c8187d5ffbbc3fd17fb5ea72e17e65fb101ac172d1b92342b46d1eb7c1048afb"
+        }
+      },
+      "english": "Goblin Cage"
+    },
+    {
+      "id": 27000013,
+      "slug": "goblin-drill",
+      "name": "ゴブリンドリル",
+      "yomi": "ゴブリンドリル ゴブドリ ドリル",
+      "cost": 4,
+      "type": "building",
+      "role": "地中攻撃",
+      "wiki": {
+        "page": "Goblin_Drill"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-drill.png",
+          "sha256": "00c6d6cfb27d89f365b5a6376fce49c2f162ad9e65be9b590c0aef4d5a79dfe7"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-drill-ev1.png",
+          "sha256": "0b31d7baa950ebae86ac4b6b3af1eb05aef8c62f9247ad0904c0dc795b0742d3"
+        }
+      },
+      "english": "Goblin Drill"
+    },
+    {
+      "id": 27000001,
+      "slug": "goblin-hut",
+      "name": "ゴブリンの小屋",
+      "yomi": "ごぶりんのこや ゴブゴヤ ゴブコヤ ゴブ小屋 ゴブこや ハット",
+      "cost": 4,
+      "type": "building",
+      "role": "槍ゴブリン生成",
+      "wiki": {
+        "page": "Goblin_Hut"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-hut.png",
+          "sha256": "ae097ff5e26e203b67e0df0c9fc6f91e355d38feb8d45022cfc371411c0cd7dc"
+        }
+      },
+      "english": "Goblin Hut"
+    },
+    {
+      "id": 27000004,
+      "slug": "bomb-tower",
+      "name": "ボムタワー",
+      "yomi": "ボムタワー ボムタワ",
+      "cost": 4,
+      "type": "building",
+      "role": "範囲防衛",
+      "wiki": {
+        "page": "Bomb_Tower"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/bomb-tower.png",
+          "sha256": "ef3956d4a5aec9ecbfe37f0bc65b66b4ce6299726f4575b8e336fbf3f66cb640"
+        }
+      },
+      "english": "Bomb Tower"
+    },
+    {
+      "id": 27000006,
+      "slug": "tesla",
+      "name": "テスラ",
+      "yomi": "テスラ",
+      "cost": 4,
+      "type": "building",
+      "role": "感電防衛",
+      "wiki": {
+        "page": "Tesla"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/tesla.png",
+          "sha256": "4dce8e5c833db04903b51b6495e774914ed3c7a8b0e26c14c1378bf6a18f5590"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/tesla-ev1.png",
+          "sha256": "c27332d115344ecd808c2cc416d11aedb3447cf9a726c3f89b58ab947d182fe8"
+        }
+      },
+      "english": "Tesla"
+    },
+    {
+      "id": 27000002,
+      "slug": "mortar",
+      "name": "迫撃砲",
+      "yomi": "はくげきほう 迫撃 モーター モルタル",
+      "cost": 4,
+      "type": "building",
+      "role": "超長射程建物狙い",
+      "wiki": {
+        "page": "Mortar"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/mortar.png",
+          "sha256": "ae586599383e1459a025ca6a465513d7ab6124a7d643b38c091f8d6b1e15fb70"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/mortar-ev1.png",
+          "sha256": "be084968496a319e2fbe2516b63827f69553d5e9443337f508bbbbb31c5afd84"
+        }
+      },
+      "english": "Mortar"
+    },
+    {
+      "id": 27000010,
+      "slug": "furnace",
+      "name": "オーブン",
+      "yomi": "オーブン かまど 炉",
+      "cost": 4,
+      "type": "building",
+      "role": "ファイアスピリット生成",
+      "wiki": {
+        "page": "Furnace"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/furnace.png",
+          "sha256": "9211b0b56f03f06e7b88a5d2f8d327199536da29d9102ef7544f4b6fdd581bb5"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/furnace-ev1.png",
+          "sha256": "3a1ab05573e610274656e252c265806c141c6e648771dce518de44b079d63cc5"
+        }
+      },
+      "english": "Furnace"
+    },
+    {
+      "id": 26000008,
+      "slug": "barbarians",
+      "name": "バーバリアン",
+      "yomi": "バーバリアン ババ バーバリアン",
+      "cost": 5,
+      "type": "troop",
+      "role": "高体力集団",
+      "wiki": {
+        "page": "Barbarians"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/barbarians.png",
+          "sha256": "46198a754608d8086ec40aa01638da639257194c336adca0247b67f02e30d785"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/barbarians-ev1.png",
+          "sha256": "053fe38dee27039d4c6d3dbc0e3908bf51872f89f412a2983dc984a5c89e7359"
+        }
+      },
+      "english": "Barbarians"
+    },
+    {
+      "id": 26000022,
+      "slug": "minion-horde",
+      "name": "ガーゴイルの群れ",
+      "yomi": "ガーゴイルの群れ ガゴムレ ガゴ群れ ミニオンホード ガゴ群",
+      "cost": 5,
+      "type": "troop",
+      "role": "大量対空",
+      "wiki": {
+        "page": "Minion_Horde"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/minion-horde.png",
+          "sha256": "b02861160a1aa9ffbc474304098a86f486da71734eb9d258e0a08ad300503fce"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/minion-horde-ev1.png",
+          "sha256": "437175e85794cdfdbf4f3a02bc9e53def94491e2aeaf5069f342fb5f0feb13c5"
+        }
+      },
+      "english": "Minion Horde"
+    },
+    {
+      "id": 26000003,
+      "slug": "giant",
+      "name": "ジャイアント",
+      "yomi": "ジャイアント ジャイ ヒーロージャイ",
+      "cost": 5,
+      "type": "troop",
+      "role": "建物狙いタンク",
+      "wiki": {
+        "page": "Giant"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/giant.png",
+          "sha256": "390277aa877d9b952d0b2c8843ee080b1fd5a40eb68acf8760ad18f106985367"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/giant-hero.png",
+          "sha256": "2cc6761fca91b2c9193c98250c5da8112dd9217f95d11e44f7609b01d12c2549"
+        }
+      },
+      "english": "Giant"
+    },
+    {
+      "id": 26000017,
+      "slug": "wizard",
+      "name": "ウィザード",
+      "yomi": "ウィザード ウィズ ヒーローウィズ",
+      "cost": 5,
+      "type": "troop",
+      "role": "範囲スプラッシュ",
+      "wiki": {
+        "page": "Wizard"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/wizard.png",
+          "sha256": "12254947e7486740288b315062fdb1c415ffd2482d8b00fd6ac4dd65cfc0561a"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/wizard-ev1.png",
+          "sha256": "2b32e1d617ad67ff9224d199da0b9748bf2551aaa61c7c079fdaccd913f28453"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/wizard-hero.png",
+          "sha256": "30accd938694f0d12d4aac715d9d1c2294609ca12a7974a1ba63e9eb9ed99f1f"
+        }
+      },
+      "english": "Wizard"
+    },
+    {
+      "id": 26000006,
+      "slug": "balloon",
+      "name": "エアバルーン",
+      "yomi": "エアバルーン バルーン ヒーローバルーン バルン ヒーローバルン",
+      "cost": 5,
+      "type": "troop",
+      "role": "建物狙い爆撃",
+      "wiki": {
+        "page": "Balloon"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/balloon.png",
+          "sha256": "81cedea30710838650fbc2dab748ffc6709707cdae2081c4831b255f0e33d96c"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/balloon-hero.png",
+          "sha256": "fb16e3d94abe18aec6e55c0ba95864aac2b4d1d83af438f99a67aaea999b055f"
+        }
+      },
+      "english": "Balloon"
+    },
+    {
+      "id": 26000007,
+      "slug": "witch",
+      "name": "ネクロマンサー",
+      "yomi": "ネクロマンサー ネクロ ウィッチ",
+      "cost": 5,
+      "type": "troop",
+      "role": "スケルトン生成＋範囲",
+      "wiki": {
+        "page": "Witch"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/witch.png",
+          "sha256": "37287bf62936eae84fd5d898110381af59e033841a707b91d33bb4ebe995d8af"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/witch-ev1.png",
+          "sha256": "08e3303f390edd6c2eb4d7f6b2a779e2e0b02f27f7ca38e7f0c6f6f14c544436"
+        }
+      },
+      "english": "Witch"
+    },
+    {
+      "id": 26000034,
+      "slug": "bowler",
+      "name": "ボウラー",
+      "yomi": "ボウラー ボラ",
+      "cost": 5,
+      "type": "troop",
+      "role": "貫通プッシュ",
+      "wiki": {
+        "page": "Bowler"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/bowler.png",
+          "sha256": "2f6c52a8628dded53ea6f6d0902d65b5c85e8e9ee20a094e2336fabea94b5929"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/bowler-hero.png",
+          "sha256": "57b1c7a10b0343bbd0eab348f35c508464d41d973902ac623eae3cf820dffab6"
+        }
+      },
+      "english": "Bowler"
+    },
+    {
+      "id": 26000045,
+      "slug": "executioner",
+      "name": "執行人ファルチェ",
+      "yomi": "しっこうにんふぁるちぇ ファルチェ エクスキュ エグゼ ファルチ ファル",
+      "cost": 5,
+      "type": "troop",
+      "role": "貫通往復斧",
+      "wiki": {
+        "page": "Executioner"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/executioner.png",
+          "sha256": "ed03e02c470b63564f52aaafab99ac17eddf01ad55257815573ed7a05ad20082"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/executioner-ev1.png",
+          "sha256": "958e948007af4cf2a529e1cd9755dbbf6afd8968f9a92431e6581529676293e9"
+        }
+      },
+      "english": "Executioner"
+    },
+    {
+      "id": 26000054,
+      "slug": "cannon-cart",
+      "name": "60式ムート",
+      "yomi": "60式ムート ムート キャノンカート",
+      "cost": 5,
+      "type": "troop",
+      "role": "遠距離＋盾",
+      "wiki": {
+        "page": "Cannon_Cart"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/cannon-cart.png",
+          "sha256": "e8387dbc1f03cf8688a48d92aa0b3ce602398b5ffc6edc4c6b59394078a3e148"
+        }
+      },
+      "english": "Cannon Cart"
+    },
+    {
+      "id": 26000059,
+      "slug": "royal-hogs",
+      "name": "ロイヤルホグ",
+      "yomi": "ロイヤルホグ ロイホグ",
+      "cost": 5,
+      "type": "troop",
+      "role": "建物狙い4体",
+      "wiki": {
+        "page": "Royal_Hogs"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/royal-hogs.png",
+          "sha256": "3b1bb97256e255b4bc4d8eb7ffbe15de6aa6030733d3bbaa2ab6b93fbb646c67"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/royal-hogs-ev1.png",
+          "sha256": "6513eb731ae661cef66a4af54458f993e7243cd0694595e1e139b8c3e126f8d8"
+        }
+      },
+      "english": "Royal Hogs"
+    },
+    {
+      "id": 26000053,
+      "slug": "rascals",
+      "name": "アウトロー",
+      "yomi": "アウトロー ラスカルズ",
+      "cost": 5,
+      "type": "troop",
+      "role": "地空混合群",
+      "wiki": {
+        "page": "Rascals"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/rascals.png",
+          "sha256": "ea104537198c008e8c8bb5d3ff58f8ebfcd8cf667e35d776ab71fed0a1c47b21"
+        }
+      },
+      "english": "Rascals"
+    },
+    {
+      "id": 26000063,
+      "slug": "electro-dragon",
+      "name": "ライトニングドラゴン",
+      "yomi": "ライトニングドラゴン ライドラ エレドラ 電気ドラゴン",
+      "cost": 5,
+      "type": "troop",
+      "role": "チェーン感電",
+      "wiki": {
+        "page": "Electro_Dragon"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/electro-dragon.png",
+          "sha256": "b11234e409c5167fe9dd3df71699bfb19b7405b51328b9f22340a9dae80d335f"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/electro-dragon-ev1.png",
+          "sha256": "318c591a29a5f0f8bd1622198adb84b68f2037f0044973f931eb9237ff822808"
+        }
+      },
+      "english": "Electro Dragon"
+    },
+    {
+      "id": 26000016,
+      "slug": "prince",
+      "name": "プリンス",
+      "yomi": "プリンス プリン",
+      "cost": 5,
+      "type": "troop",
+      "role": "チャージ高火力",
+      "wiki": {
+        "page": "Prince"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/prince.png",
+          "sha256": "0b35ecc5f4821656f8066cc8d6ea2f65fc8985b536c056ed0d63225676cdfa0a"
+        }
+      },
+      "english": "Prince"
+    },
+    {
+      "id": 26000051,
+      "slug": "ram-rider",
+      "name": "ラムライダー",
+      "yomi": "ラムライダー ラム",
+      "cost": 5,
+      "type": "troop",
+      "role": "建物狙い＋スネア",
+      "wiki": {
+        "page": "Ram_Rider"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/ram-rider.png",
+          "sha256": "647467373a0896bcb1112d3bae65249543739062b1ec133d72de9e6e6597d668"
+        }
+      },
+      "english": "Ram Rider"
+    },
+    {
+      "id": 26000093,
+      "slug": "little-prince",
+      "name": "リトルプリンス",
+      "yomi": "リトルプリンス リトプリ LP",
+      "cost": 3,
+      "type": "troop",
+      "role": "チャンピオン・盾持ち",
+      "champion": true,
+      "wiki": {
+        "page": "Little_Prince"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/little-prince.png",
+          "sha256": "2d3f33d7f7e56e3eafcabc089c028e81222fecf3469fc0331b7b918f1e68f098"
+        }
+      },
+      "english": "Little Prince"
+    },
+    {
+      "id": 26000077,
+      "slug": "monk",
+      "name": "モンク",
+      "yomi": "モンク もんく",
+      "cost": 5,
+      "type": "troop",
+      "role": "チャンピオン・攻防一体",
+      "champion": true,
+      "wiki": {
+        "page": "Monk"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/monk.png",
+          "sha256": "52eed14e0b21d503d109632180c8748b504d4958a0733b2178d785c41ebe5c3f"
+        }
+      },
+      "english": "Monk"
+    },
+    {
+      "id": 26000099,
+      "slug": "goblinstein",
+      "name": "ゴブリンシュタイン",
+      "yomi": "ゴブリンシュタイン ゴブリンスタイン ゴブシュタ シュタイン",
+      "cost": 5,
+      "type": "troop",
+      "role": "チャンピオン・博士＋モンスター",
+      "champion": true,
+      "wiki": {
+        "page": "Goblinstein"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblinstein.png",
+          "sha256": "3edd4cdc5c68122a8e05ce9c7704ec45a120a66a48e669a759688618256f5e72"
+        }
+      },
+      "english": "Goblinstein"
+    },
+    {
+      "id": 26000103,
+      "slug": "boss-bandit",
+      "name": "ボスアサシン",
+      "yomi": "ボスアサシン ボスバンディット ボスバン ボス",
+      "cost": 6,
+      "type": "troop",
+      "role": "チャンピオン",
+      "champion": true,
+      "wiki": {
+        "page": "Boss_Bandit"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/boss-bandit.png",
+          "sha256": "6dc4be88ffb2f3dcecec14cce45efaafa43c49a3fad5f6ff7b57616337f0fb2f"
+        }
+      },
+      "english": "Boss Bandit"
+    },
+    {
+      "id": 26000072,
+      "slug": "archer-queen",
+      "name": "アーチャークイーン",
+      "yomi": "アーチャークイーン AQ アチャクイ クイーン",
+      "cost": 5,
+      "type": "troop",
+      "role": "チャンピオン・高火力",
+      "champion": true,
+      "wiki": {
+        "page": "Archer_Queen"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/archer-queen.png",
+          "sha256": "22c6dcbec95aaa49513fed5cfc83b1276d844ffd9e24df91c725e5cbb97a9bac"
+        }
+      },
+      "english": "Archer Queen"
+    },
+    {
+      "id": 26000096,
+      "slug": "goblin-machine",
+      "name": "ゴブリンマシン",
+      "yomi": "ゴブリンマシン ゴブマシン マシン",
+      "cost": 5,
+      "type": "troop",
+      "role": "ロケット移動砲台",
+      "wiki": {
+        "page": "Goblin_Machine"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-machine.png",
+          "sha256": "55d075b115df56b37e1f306ed411de071693aa9bc2524c8a5a3ab2b801c3e18c"
+        }
+      },
+      "english": "Goblin Machine"
+    },
+    {
+      "id": null,
+      "slug": "ronin",
+      "name": "ローニン",
+      "yomi": "ローニン ろーにん 浪人 スサノオ 浪人スサノオ Susanoo Susano Ronin スノ",
+      "cost": 5,
+      "type": "troop",
+      "role": "受け流し近接反撃アタッカー",
+      "wiki": {
+        "page": "Ronin"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/ronin.png",
+          "sha256": "47d4b879cbcd8e792da68255219289ddb0329b34a7459b6b5cbe2ce29e3c96f6"
+        }
+      },
+      "english": "Ronin"
+    },
+    {
+      "id": 28000010,
+      "slug": "graveyard",
+      "name": "スケルトンラッシュ",
+      "yomi": "スケルトンラッシュ スケラ グレイブヤード グレヤ 墓場",
+      "cost": 5,
+      "type": "spell",
+      "role": "スケルトン大量召喚",
+      "wiki": {
+        "page": "Graveyard"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/graveyard.png",
+          "sha256": "5478b3a4af71d885046367f65614928f0b6f2a95b075b22ee9e83f58998647d4"
+        }
+      },
+      "english": "Graveyard"
+    },
+    {
+      "id": 27000003,
+      "slug": "inferno-tower",
+      "name": "インフェルノタワー",
+      "yomi": "インフェルノタワー インタワ IT インフェ",
+      "cost": 5,
+      "type": "building",
+      "role": "単体集中加熱",
+      "wiki": {
+        "page": "Inferno_Tower"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/inferno-tower.png",
+          "sha256": "180ef438e5f57c6292680ee107314c1a7581a1dea2cdaf3a36995e38f2e83196"
+        }
+      },
+      "english": "Inferno Tower"
+    },
+    {
+      "id": 26000024,
+      "slug": "royal-giant",
+      "name": "ロイヤルジャイアント",
+      "yomi": "ロイヤルジャイアント ロイジャイ RG",
+      "cost": 6,
+      "type": "troop",
+      "role": "建物狙い超射程",
+      "wiki": {
+        "page": "Royal_Giant"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/royal-giant.png",
+          "sha256": "e44b5250b97ffd4dd85c33fdc0d89a7d5bf737a667ef26a14851a65abdf08be0"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/royal-giant-ev1.png",
+          "sha256": "a7f05307c33421703eaac5e36fc68c8659e8789661d576e01a81784fecac0561"
+        }
+      },
+      "english": "Royal Giant"
+    },
+    {
+      "id": 26000043,
+      "slug": "elite-barbarians",
+      "name": "エリートバーバリアン",
+      "yomi": "エリートバーバリアン エリババ EB エリバ",
+      "cost": 6,
+      "type": "troop",
+      "role": "高速高火力2体",
+      "wiki": {
+        "page": "Elite_Barbarians"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/elite-barbarians.png",
+          "sha256": "8ea6b12aa61a277f5bba5c5b4ff2f1580bf181ffac74af58fa14bb2e03b955ca"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/elite-barbarians-ev1.png",
+          "sha256": "debdf533320d885822174739972f4e782a023e4fe29492315d8c7180f3ee0267"
+        }
+      },
+      "english": "Elite Barbarians"
+    },
+    {
+      "id": 26000020,
+      "slug": "giant-skeleton",
+      "name": "巨大スケルトン",
+      "yomi": "きょだいすけるとん キョスケ ジャイスケ 巨大スケルトン 巨スケ",
+      "cost": 6,
+      "type": "troop",
+      "role": "タンク＋デス爆弾",
+      "wiki": {
+        "page": "Giant_Skeleton"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/giant-skeleton.png",
+          "sha256": "70d69153dd8485a6a508e8d3a8753c57ec17a969530f9808d09cf0931c307af1"
+        }
+      },
+      "english": "Giant Skeleton"
+    },
+    {
+      "id": 26000060,
+      "slug": "goblin-giant",
+      "name": "ゴブジャイアント",
+      "yomi": "ゴブジャイアント ゴブジャイ",
+      "cost": 6,
+      "type": "troop",
+      "role": "タンク＋槍ゴブリン",
+      "wiki": {
+        "page": "Goblin_Giant"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-giant.png",
+          "sha256": "64ec527f1df3e8fa6ff3e72187edf53e9be014a72b16314b2dae4ecc041ab1fd"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/goblin-giant-ev1.png",
+          "sha256": "a5c0d3fc70507738b63b00822674fced4686e78c87b9e62307dcf1f0696e9501"
+        }
+      },
+      "english": "Goblin Giant"
+    },
+    {
+      "id": 26000033,
+      "slug": "sparky",
+      "name": "スパーキー",
+      "yomi": "スパーキー スパキ スパ",
+      "cost": 6,
+      "type": "troop",
+      "role": "蓄電超高火力",
+      "wiki": {
+        "page": "Sparky"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/sparky.png",
+          "sha256": "e0e3db0f5f9ce635bd6a11c4fd2eeebe2a33499d1e1efa075e8f460dabc67102"
+        }
+      },
+      "english": "Sparky"
+    },
+    {
+      "id": 28000025,
+      "slug": "spirit-empress",
+      "name": "スピリットエンプレス",
+      "yomi": "スピリットエンプレス エンプレス せいれい",
+      "cost": 6,
+      "type": "troop",
+      "role": "3コス陸/6コス空の二形態",
+      "wiki": {
+        "page": "Spirit_Empress"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/spirit-empress.png",
+          "sha256": "3a2c8777a1654c71b234d82b4d281245b32c9d2d76c91da4336659a352cfd688"
+        }
+      },
+      "english": "Spirit Empress"
+    },
+    {
+      "id": 28000003,
+      "slug": "rocket",
+      "name": "ロケット",
+      "yomi": "ロケット ロケ",
+      "cost": 6,
+      "type": "spell",
+      "role": "超高火力単発",
+      "wiki": {
+        "page": "Rocket"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/rocket.png",
+          "sha256": "4fc948e1cace137e9ef2828ebda5fdafe9b17c02c9ef6f8074770a2c65629c07"
+        }
+      },
+      "english": "Rocket"
+    },
+    {
+      "id": 28000007,
+      "slug": "lightning",
+      "name": "ライトニング",
+      "yomi": "ライトニング 雷 ライト",
+      "cost": 6,
+      "type": "spell",
+      "role": "3体感電高火力",
+      "wiki": {
+        "page": "Lightning"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/lightning.png",
+          "sha256": "47c994fc25232801eed483458395ad9d73d2aa692d736d8fcc7a119ae61f4587"
+        }
+      },
+      "english": "Lightning"
+    },
+    {
+      "id": 27000007,
+      "slug": "elixir-collector",
+      "name": "エリクサーポンプ",
+      "yomi": "えりくさーぽんぷ ポンプ エリポン",
+      "cost": 6,
+      "type": "building",
+      "role": "エリクサー生成",
+      "wiki": {
+        "page": "Elixir_Collector"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/elixir-collector.png",
+          "sha256": "e2f12455481b6742b488c92a12cf2021e2ef34c1c437331942252ae2dbe9b59a"
+        }
+      },
+      "english": "Elixir Collector"
+    },
+    {
+      "id": 27000005,
+      "slug": "barbarian-hut",
+      "name": "バーバリアンの小屋",
+      "yomi": "ばーばりあんのこや ババこや バーバハット ババ小屋",
+      "cost": 6,
+      "type": "building",
+      "role": "バーバリアン生成",
+      "wiki": {
+        "page": "Barbarian_Hut"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/barbarian-hut.png",
+          "sha256": "cbee8ebf5514af11551937db69cc44365e1196aef16628f6f37c8d58c8e88bbb"
+        }
+      },
+      "english": "Barbarian Hut"
+    },
+    {
+      "id": 27000008,
+      "slug": "x-bow",
+      "name": "巨大クロスボウ",
+      "yomi": "きょだいくろすぼう Xボウ クロスボウ クロス",
+      "cost": 6,
+      "type": "building",
+      "role": "超長射程建物狙い",
+      "wiki": {
+        "page": "X-Bow"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/x-bow.png",
+          "sha256": "c09cfc7cf5b8e12029ac9dd21ff0a3f52aef8529b5e22ce73df52970a73f1b3c"
+        }
+      },
+      "english": "X-Bow"
+    },
+    {
+      "id": 26000004,
+      "slug": "pekka",
+      "name": "ペッカ",
+      "yomi": "ペッカ PEKKA",
+      "cost": 7,
+      "type": "troop",
+      "role": "単体超高DPS",
+      "wiki": {
+        "page": "P.E.K.K.A"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/pekka.png",
+          "sha256": "e00b43b02ae1a7b2c1517577f7bbaf96cd405f2ed549df195d6ed38beef90d45"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/pekka-ev1.png",
+          "sha256": "2759b17022c65762a7de5fd4a2fcff22a0b25259b0d64cc15082e67470ab600e"
+        }
+      },
+      "english": "P.E.K.K.A"
+    },
+    {
+      "id": 26000029,
+      "slug": "lava-hound",
+      "name": "ラヴァハウンド",
+      "yomi": "ラヴァハウンド ラヴァ ラバ",
+      "cost": 7,
+      "type": "troop",
+      "role": "空中タンク",
+      "wiki": {
+        "page": "Lava_Hound"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/lava-hound.png",
+          "sha256": "a060c867d885328462d29974de873a3e566ff7b51719398e918000514c9a7830"
+        }
+      },
+      "english": "Lava Hound"
+    },
+    {
+      "id": 26000085,
+      "slug": "electro-giant",
+      "name": "エレクトロジャイアント",
+      "yomi": "エレクトロジャイアント エレジャイ EG",
+      "cost": 7,
+      "type": "troop",
+      "role": "感電反射タンク",
+      "wiki": {
+        "page": "Electro_Giant"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/electro-giant.png",
+          "sha256": "279d6a86053a4f1688720c6ed7d30d3ac9fb487c23db682e44588e160270cbf6"
+        }
+      },
+      "english": "Electro Giant"
+    },
+    {
+      "id": 26000055,
+      "slug": "mega-knight",
+      "name": "メガナイト",
+      "yomi": "メガナイト メガナイ MK メガナ",
+      "cost": 7,
+      "type": "troop",
+      "role": "スポーン＋ジャンプ範囲",
+      "wiki": {
+        "page": "Mega_Knight"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/mega-knight.png",
+          "sha256": "53e65d46cf12c77ddbd7cb66002a79906477c2fe3a61ac264dad6bf279f1e7ce"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/mega-knight-ev1.png",
+          "sha256": "760431cf696b1b2b1ab101f74e81c3b86066a1e7e7c6e693957b61c9da8aa947"
+        }
+      },
+      "english": "Mega Knight"
+    },
+    {
+      "id": 26000047,
+      "slug": "royal-recruits",
+      "name": "見習い親衛隊",
+      "yomi": "みならいしんえいたい 親衛隊 ロイリク リクルート",
+      "cost": 7,
+      "type": "troop",
+      "role": "壁役6体",
+      "wiki": {
+        "page": "Royal_Recruits"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/royal-recruits.png",
+          "sha256": "c822b24b5b42d34fc2289e341f746274f0d9b666900d2966bc32c45df865226a"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/royal-recruits-ev1.png",
+          "sha256": "4728c9e70fab1b89b74e1d2ef2af34e395b3daff9a64e8132d5965a5193cd6d9"
+        }
+      },
+      "english": "Royal Recruits"
+    },
+    {
+      "id": 26000009,
+      "slug": "golem",
+      "name": "ゴーレム",
+      "yomi": "ゴーレム ゴレ",
+      "cost": 8,
+      "type": "troop",
+      "role": "最大タンク",
+      "wiki": {
+        "page": "Golem"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/golem.png",
+          "sha256": "3104284ac5620aa3fe11da23bf7b6676a138b7fba356a3a6ca4000c1542ef699"
+        }
+      },
+      "english": "Golem"
+    },
+    {
+      "id": 26000028,
+      "slug": "three-musketeers",
+      "name": "三銃士",
+      "yomi": "さんじゅうし 三銃士 スリーマスケット",
+      "cost": 9,
+      "type": "troop",
+      "role": "超高火力3体",
+      "wiki": {
+        "page": "Three_Musketeers"
+      },
+      "forms": {
+        "n": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/three-musketeers.png",
+          "sha256": "562e00986f6e4f6e63ebf6a5a07d5342317b1aaac5e42875fc199ec4e5fede82"
+        }
+      },
+      "english": "Three Musketeers"
+    }
+  ]
+}

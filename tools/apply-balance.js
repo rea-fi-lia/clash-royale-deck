@@ -17,6 +17,37 @@
  *   - トップレベルに appliedBalances / balanceOutOfScope / updated を記録。
  */
 const fs = require('fs');
+const {digest} = require('./card-catalogue.cjs');
+
+function applyPatch(input, meta, now = Date.now()) {
+  const data=structuredClone(input), id=`season-${meta.season}-${meta.kind}`;
+  if ((data.appliedBalances || []).includes(id)) return data;
+  if (!meta.source || !Number.isFinite(Date.parse(meta.liveAt)) || Date.parse(meta.liveAt)>now) throw Error('Balance patch is not effective');
+  if ((meta.outOfScope || []).length) throw Error('Unimplemented balance changes: cannot mark patch applied');
+  if (!meta.baseHash || meta.baseHash !== digest(input)) throw Error('Balance baseHash mismatch: rebase against current verified stats');
+  const bySlug=Object.fromEntries((data.cards || []).map(c=>[c.slug,c])), targets=[];
+  for (const ch of meta.changes || []) {
+    const base=bySlug[ch.slug], card=ch.form && ch.form!=='n' ? base?.formStats?.[ch.form] : base;
+    if (!card) throw Error('Missing card/form: '+ch.slug+'/'+(ch.form || 'n'));
+    const [ns,key]=ch.field.split(/\.(.+)/);
+    if (!['s16','attrs'].includes(ns) || card[ns]?.[key] == null) throw Error('Missing/unsupported field: '+ch.field);
+    if (ns==='s16' && (!Array.isArray(ch.ratio) || ch.ratio.length!==2 || !ch.ratio.every(n=>Number.isFinite(n)&&n>0))) throw Error('Invalid balance ratio');
+    if (ns==='attrs' && String(card.attrs[key]) !== String(ch.before)) throw Error('Balance before value mismatch');
+    for (const extra of ch.alsoScale || []) {
+      const [en,ek]=extra.split(/\.(.+)/);
+      if (en!=='s16' || typeof card.s16?.[ek]!=='number') throw Error('Missing linked field: '+extra);
+    }
+    targets.push([card,ch]);
+  }
+  if (!targets.length) throw Error('Empty balance patch');
+  const log=[];
+  for(const [card,ch] of targets) {card.balance ||= [];applyChange(card,ch,meta,log);}
+  if(log.some(s=>s.startsWith('SKIP'))) throw Error('Incomplete balance patch');
+  data.appliedBalances=[...(data.appliedBalances || []),id];
+  data.updated=new Date(now).toISOString();
+  data.balanceSources={...(data.balanceSources || {}),[id]:{source:meta.source,liveAt:meta.liveAt,baseHash:meta.baseHash}};
+  return data;
+}
 
 function argAll(name) {
   const out = [];
@@ -98,34 +129,19 @@ function main() {
     console.error('usage: apply-balance.js --in <in.json> --out <out.json> --changes <c1.json> [c2.json...]');
     process.exit(1);
   }
-  const data = JSON.parse(fs.readFileSync(inPath, 'utf8'));
-  const bySlug = {};
-  for (const c of data.cards || []) { c.balance = c.balance || []; bySlug[c.slug] = c; }
-
-  data.appliedBalances = data.appliedBalances || [];
-  data.balanceOutOfScope = data.balanceOutOfScope || [];
+  let data = JSON.parse(fs.readFileSync(inPath, 'utf8'));
   const log = [];
 
   for (const f of changeFiles) {
     const meta = JSON.parse(fs.readFileSync(f, 'utf8'));
-    const id = `season-${meta.season}-${meta.kind}`;
-    if (data.appliedBalances.includes(id)) { log.push(`SKIP ${id}: 適用済み`); continue; }
-    for (const ch of meta.changes || []) {
-      const card = bySlug[ch.slug];
-      if (!card) { log.push(`SKIP ${ch.slug}: カード無し`); continue; }
-      applyChange(card, ch, meta, log);
-    }
-    for (const o of meta.outOfScope || []) {
-      data.balanceOutOfScope.push({ season: meta.season, date: meta.liveAt, ...o });
-    }
-    data.appliedBalances.push(id);
+    data=applyPatch(data,meta);
   }
 
-  data.updated = new Date().toISOString();
-  data.balanceNote = 'appliedBalances の確定版差分を適用済み。ヒーロー/進化/スポーン数系は balanceOutOfScope 参照。';
+  data.balanceNote = '新しい差分は元データのハッシュ・全変更・発効日を確認して適用。過去のbalanceOutOfScopeは未解消の履歴。';
   fs.writeFileSync(outPath, JSON.stringify(data, null, 1));
   console.log(log.join('\n'));
   console.log(`\nwrote: ${outPath} (cards=${(data.cards || []).length}, applied=${data.appliedBalances.join(',')})`);
 }
 
-main();
+module.exports={applyPatch};
+if(require.main===module) main();

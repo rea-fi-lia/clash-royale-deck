@@ -155,7 +155,10 @@ async function main() {
     const rowNo = i + 2;
     const raw = String(row[nameCol] == null ? '' : row[nameCol]).trim();
     if (!raw) return;
-    const c = S[raw.replace(/[⚡👑]/g, '')];
+    const base = S[raw.replace(/[⚡👑]/g, '')];
+    const form = raw.includes('👑') ? 'h' : raw.includes('⚡') ? 'e' : 'n';
+    const c = form === 'n' ? base : base?.formStats?.[form];
+    if (form !== 'n' && c?.status !== 'current') { missing.push(raw + '（形態別の確認待ち）'); return; }
     if (!c) { missing.push(raw); return; }
     const want = cellsFor(c);
     let changedRow = false;

@@ -189,8 +189,8 @@ function lintDefs(ctx) {
   if (!bad) ok('通常' + CARDS.length + ' / 進化' + CARDS.filter(c => c.evolved).length + ' / 英雄' + CARDS.filter(c => c.hero).length + ' すべて整合');
   // 解決関数そのものの振る舞い（存在しない形態は通常へ落ちる）
   const noEvo = CARDS.find(c => !c.evolved);
-  if (noEvo && ctx.cardImageSrc(noEvo.name, 'e') !== noEvo.img) fail('cardImageSrc: 存在しない進化が通常画像へ落ちていない（' + noEvo.name + '）');
-  else ok('存在しない形態は通常画像へ落ちる');
+  if (noEvo && !ctx.cardImageSrc(noEvo.name, 'e').startsWith('data:image/svg+xml')) fail('cardImageSrc: 未登録の進化が別形態の画像に置き換わっている（' + noEvo.name + '）');
+  else ok('存在しない形態は確認中の画像として明示');
   if (noEvo && ctx.cardFormMark(noEvo.name, 'e') !== '') fail('cardFormMark: 存在しない形態に⚡が付いている（' + noEvo.name + '）');
   else ok('存在しない形態にバッジが付かない');
   // 検索：略称・かな/カナ・半角/全角・英語名が全部拾えるか（実況で使われる形が入口）
@@ -336,12 +336,14 @@ function lintCardNameTables() {
   console.log('\n[1f] カード名の表の一致：cards-data.js と収集側がズレていないか');
   const read = f => { try { return fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { return null; } };
   const names = loadCards().CARDS.map(c => c.name);
+  const {collectorMaps,readCatalogue}=require('./card-catalogue.cjs');
+  const maps=collectorMaps(), source=readCatalogue();
+  for(const c of loadCards().CARDS) if(maps.SLUG2JP[c.slug]!==c.name || maps.COST[c.name]!==c.cost || !source.cards.find(x=>x.slug===c.slug)?.english) fail('共通台帳の不一致: '+c.name);
+  if(!read('tools/collect.js').includes("require('./card-catalogue.cjs').collectorMaps()")) fail('collector must use catalogue');
   // gas/Code.gs は collect.js の移植元（2026-06-24に GAS→Actions 移行完了）。
   // 今は動いていない歴史的な写しなので、ズレても実害が無い＝警告に留める。
   // 落とすのは本番で動いているものだけ。狼少年にしないため。
   const targets = [
-    ['tools/collect.js', 'slug→日本語名 と コスト表', true],
-    ['i18n.js', '日本語→英語名', true],
     ['gas/Code.gs', '旧GAS側の写し（移行済み・参考）', false],
   ];
   let bad = 0;
@@ -353,7 +355,7 @@ function lintCardNameTables() {
     const msg = file + '（' + what + '）に ' + missing.length + '枚が無い → ' + missing.slice(0, 5).join(' / ');
     if (isLive) { fail(msg); bad++; } else { console.log('  △ ' + msg); }
   }
-  if (!bad) ok('カード' + names.length + '枚が本番の表（collect.js / i18n.js）すべてに載っている');
+  if (!bad) ok('カード' + names.length + '枚が共通台帳・収集・表示と一致');
 }
 
 (async () => {

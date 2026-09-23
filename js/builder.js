@@ -3457,11 +3457,7 @@ function clearPreviewStats() {
 // ── 「📋 コピー」: 公式クラロワのデッキリンク(link.clashroyale.com/deck)をクリップボードへ。
 //    card-ids.json（dataブランチ・slug→公式数値ID。GASの dumpCardIds が出力）を読んで生成する。
 //    まだ card-ids.json が無い／IDが揃わない時はデッキのテキストにフォールバック（壊れない）。
-let CARD_IDS = {};
-fetch(dataFreshUrl('https://raw.githubusercontent.com/rea-fi-lia/clash-royale-deck/data/card-ids.json'), { cache: 'no-store' })
-  .then(r => r.ok ? r.json() : null)
-  .then(j => { if (j && j.ids) CARD_IDS = j.ids; })
-  .catch(() => {});
+const CARD_IDS = Object.fromEntries(CARDS.filter(c => c.id).map(c => [c.slug, c.id]));
 
 // baseカード画像のファイル名 = RoyaleAPIスラッグ（card-ids.json / GASのSLUG2JP と一致）
 function cardSlug(card) {

@@ -30,5 +30,6 @@ jobs:
 
       - name: 独自UIアイコンと操作の検査
         run: |
+          node tools/update-card-catalogue.js --check
           node tools/check-ui-icons.mjs
           node --test tools/test-*.mjs
