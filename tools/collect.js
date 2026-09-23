@@ -47,7 +47,7 @@ const crypto = require('crypto');
 const { createReadStream } = require('node:fs');
 const { finished } = require('node:stream/promises');
 const { openRollingStore } = require('./event-store.cjs');
-const { selectSeeds, noteAttempt, seedBand, retainSeeds } = require('./collector-schedule.cjs');
+const { selectSeeds, noteAttempt, seedBand, retainSeeds, retainBookmarks } = require('./collector-schedule.cjs');
 
 const PROXY = 'https://proxy.royaleapi.dev/v1';
 const WINDOW_DAYS = parseInt(prop('WINDOW_DAYS', '3'), 10); // ローリング期間（日）。デッキ・カード共通。
@@ -1150,7 +1150,8 @@ async function updateDecks() {
   }
   if (!hist.dinfo) hist.dinfo = {};
   var lastT = hist.lastT || {};   // tag → 前回処理した最新の battleTime
-  var newLastT = {};
+  // An unselected seed still needs its last processed timestamp on its next rotation.
+  var newLastT = Object.assign({}, lastT);
 
   // ---- バトルログから集計 ----
   // ★同時実行数とチャンク間待機（2026-08-02実測に基づく）。
@@ -2948,7 +2949,7 @@ async function updateDecks() {
       updated: new Date().toISOString(), source: rankingSource, window: 'latest-run',
       trophyRange: { min: trophyEventMin, max: trophyEventMax }, count: rawTrophy.length, events: rawTrophy
     });
-  } catch (e) { console.log('R2 raw archive error ' + ((e && e.message) || e)); }
+  } catch (e) { throw new Error('raw_archive_not_saved: ' + ((e && e.message) || e)); }
 
   // ★API棚卸し：観測した type/gameMode を bucket 分類して保存（混ぜず将来別集計の土台）
   try {
@@ -3000,6 +3001,7 @@ async function updateDecks() {
     }
     console.log('opp seeds stored=' + Object.keys(hist.oppSeeds).length);
   } catch (e) { console.log('opp seed store error ' + ((e && e.message) || e)); }
+  hist.lastT = retainBookmarks(newLastT,hist.oppSeeds,TAGSET);
 
   var windowsOut = {
     '1h': { players: W1H.players, uniquePlayers: W1H.uniquePlayers, games: W1H.games, decks: W1H.decks, winDecks: W1H.winDecks, trending: W1H.trending, cards: W1H.cards, meta: W1H.meta },
@@ -3064,6 +3066,7 @@ if (require.main === module) (process.argv.includes('--trophy-backfill') ? updat
   process.exit(1);
 }).then(function () {
   if (process.exitCode) return;
+  if (process.argv.includes('--trophy-backfill')) return;
   if (String(prop('RUN_TROPHY_SIDELOAD', '0')) !== '1') return;
   if (String(prop('RANKING_SOURCE', 'pol')).toLowerCase() !== 'pol') return;
   console.log('▶ trophy side collect 10000-14000 start (experimental seedless ranking mode)');

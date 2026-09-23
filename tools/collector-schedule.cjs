@@ -38,4 +38,7 @@ function retainSeeds(seeds,budget) {
   for(let i=0;count<budget;i++){let more=false;for(const tags of groups){if(tags[i]){out[tags[i]]=seeds[tags[i]];count++;more=true;}if(count>=budget)break;}if(!more)break;}
   return out;
 }
-module.exports={seedBand,revisitMs,selectSeeds,noteAttempt,retainSeeds};
+function retainBookmarks(bookmarks,seeds,tracked) {
+  return Object.fromEntries(Object.entries(bookmarks).filter(([tag])=>{const key=tag.replace(/^#/,'').toUpperCase();return seeds[key]||tracked[key];}));
+}
+module.exports={seedBand,revisitMs,selectSeeds,noteAttempt,retainSeeds,retainBookmarks};

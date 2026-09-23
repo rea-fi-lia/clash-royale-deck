@@ -112,3 +112,9 @@ test('collector publishes all retained rows and does not overwrite output when s
   const child=spawnSync(process.execPath,['-e',code],{cwd:new URL('..',import.meta.url),encoding:'utf8',env:{...process.env,R2_ACCOUNT_ID:'fixture',R2_ACCESS_KEY_ID:'fixture',R2_SECRET_ACCESS_KEY:'fixture',R2_BUCKET:'crdb-data-private',R2_PRIVATE_PREFIX:'private/',PRIVATE_GH_MIRROR:'0',PUBLIC_GH_MIRROR:'0'}});
   assert.equal(child.status,0,child.stderr+'\n'+child.stdout);
 });
+
+test('unselected players retain processing bookmarks while evicted candidates are pruned',()=>{
+  const bookmarks={'#A':'time-a','#B':'time-b','#C':'time-c','#TOP':'time-top'};
+  const retained=schedule.retainBookmarks(bookmarks,{A:{},B:{}},{TOP:true});
+  assert.deepEqual(retained,{'#A':'time-a','#B':'time-b','#TOP':'time-top'});
+});
