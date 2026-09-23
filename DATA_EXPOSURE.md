@@ -8,6 +8,7 @@
 
 - `tools/collect.js` はR2設定がある時、private集計JSONをR2へ保存する。R2未設定時だけ従来どおりdataブランチへfallbackする。
 - `trophy-battle-events-v1.json` とは別に、再集計用のラン単位生試合liteをR2 `private/raw/ranked-battle-events-v1/YYYY-MM-DD/run-*.json` と `private/raw/trophy-battle-events-v1/YYYY-MM-DD/run-*.json` へ保存する。
+- 2026-09-23更新：帯別の直近7日作業表はR2 privateの `trophy-events-v2.sqlite.gz` へ移行。旧 `trophy-battle-events-v1.json` は初回移行元としてのみ利用し、更新を停止する。元の全履歴は上記rawアーカイブへ継続保存する。処理済み履歴・対象期間・集計件数だけを表示用JSONの `coverage` に含め、SQLiteや生試合を公開APIへ渡さない。詳細は [収集と保存](docs/collection-storage.md)。
 - `cr-deck-ogp-worker` に `/api/assist/bootstrap`, `/api/assist/context`, `/api/strategy`, `/api/meta` を追加。ビルダー/診断/ランキング表示はAPI優先。本番では旧公開JSONへ直接fallbackしない（ローカル開発時だけ許可。`?publicJsonFallback=1` は非本番ホストでのみ有効）。Worker側のraw fallbackも既定OFFで、移行/緊急時だけ `PUBLIC_JSON_FALLBACK=1` で許可する。
 - `/api/assist/bootstrap` は全カードの軽い定義だけ返す。巨大な2枚シナジー/3枚目シナジー/苦しい相手表は `/api/assist/context?deck=...` で選択中デッキに関係する行だけ返し、ブラウザに全量を渡さない。
 - `PUBLIC_GH_MIRROR=0` かつR2設定ありなら、`writePublicJson_` は表示用JSONもR2へだけ書く。R2未設定時、または `PUBLIC_GH_MIRROR=1` の時だけdataブランチへミラーする。現在のworkflow既定は `PRIVATE_GH_MIRROR=0` / `PUBLIC_GH_MIRROR=0` で、dataブランチには鮮度マーカーだけを残す。緊急時だけRepository Variablesで両方 `1` に戻す。
@@ -51,6 +52,7 @@
 - `matchups.json`, `sighist-*.json`, `cardhist.json`, `synergy.json`, `band-meta.json`: 再集計・診断の核。`synergy/band-meta` は旧GAS/旧ツール製としてcollector末尾でR2へ退避する。
 - `pol-ranking-probe-v1.json`, `pol-battle-intel-v1.json`, `pol-matchup-intel-v1.json`, `pol-card-intel-v1.json`, `pol-elo-intel-v1.json`: PoL/ランク戦分析用。
 - `trophy-battle-events-v1.json`, `trophy-band-card-intel-v1.json`: 生試合寄りのイベント保存と帯別分析。R2 privateへ移す。
+- `trophy-events-v2.sqlite.gz`, `collection-quality-v1.json`: 直近7日の集計作業表と通信・配分の品質記録。R2 privateだけに保存し、GitHubへミラーしない。
 - `api-tags-seen.json`, `battle-schema-sample.json`, `battle-feature-buckets.json`: API棚卸し用。`battle-feature-buckets` は旧GAS/旧ツール製としてcollector末尾でR2へ退避する。
 
 ## strategy.js の運用
