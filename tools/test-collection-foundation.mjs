@@ -6,6 +6,7 @@ import {createHash} from 'node:crypto';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {gzipSync} from 'node:zlib';
+import collector from './collect.js';
 import reader from './read-battle-journal.cjs';
 import journalModule from './battle-log-journal.cjs';
 import schedule from './collector-schedule.cjs';
@@ -54,4 +55,10 @@ test('transient failures retry next hour and removed players back off even with 
  const stale={lastOk:now-10*86400000,lastBattle:now-10*86400000};
  for(const lastStatus of [0,429,500,503])assert.equal(schedule.revisitMs({...stale,lastStatus},now),3600000);
  assert.equal(schedule.revisitMs({...stale,lastBattle:now,lastStatus:404},now),24*3600000);
+});
+
+test('invalid or rolled calendar dates cannot advance processing bookmarks',()=>{
+ for(const t of ['20260230T010000.000Z','20261301T010000.000Z','20260923T250000.000Z','20260923T125999.000Z','20260923T120000.000Zgarbage','not-a-date'])assert.equal(collector.parseBattleTimeMs_(t),0);
+ assert.equal(collector.parseBattleTimeMs_('20260923T120000.000Z'),now);
+ assert.equal(collector.parseBattleTimeMs_('20260923T120000Z'),now);
 });

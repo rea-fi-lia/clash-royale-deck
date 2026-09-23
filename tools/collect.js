@@ -887,8 +887,10 @@ function modeBucketOf(type, gm) {
 }
 
 function parseBattleTimeMs_(s) {
-  var m = String(s || '').match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
-  return m ? Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]) : 0;
+  var m = String(s || '').match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(?:\.\d{3})?Z$/);
+  if(!m)return 0;
+  const t=Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]),d=new Date(t);
+  return d.getUTCFullYear()===+m[1]&&d.getUTCMonth()===+m[2]-1&&d.getUTCDate()===+m[3]&&d.getUTCHours()===+m[4]&&d.getUTCMinutes()===+m[5]&&d.getUTCSeconds()===+m[6]?t:0;
 }
 function trophyEventIdentity_(e) {
   if (!e || !e.team || !e.opponent || !e.battleTime || !Number.isFinite(e.trophyMid)) return null;
@@ -1374,8 +1376,9 @@ async function updateDecks() {
     return true;
   }
   function isStd(b) {
-    return b && b.team && b.team.length === 1 && b.opponent && b.opponent.length === 1
-      && b.team[0] && b.team[0].cards && b.team[0].cards.length === 8;
+    return b && Array.isArray(b.team) && b.team.length === 1 && Array.isArray(b.opponent) && b.opponent.length === 1
+      && Array.isArray(b.team[0]?.cards) && b.team[0].cards.length === 8
+      && b.team[0].cards.every(c=>c && typeof c==='object') && Array.isArray(b.opponent[0]?.cards) && b.opponent[0].cards.every(c=>c && typeof c==='object');
   }
   function evoCnt(cards) { var k = 0; for (var j = 0; j < cards.length; j++) if (cards[j].evolutionLevel > 0) k++; return k; }
   function sameSig_(a, b) { return a.slice().sort().join('|') === b.slice().sort().join('|'); }
@@ -1387,7 +1390,7 @@ async function updateDecks() {
     var maxT = newLastT[tag] || seenT;
     for (var i = 0; i < battles.length; i++) {
       var b = battles[i];
-      if (!isStd(b)) continue;
+      if (!isStd(b) || !parseBattleTimeMs_(b.battleTime) || parseBattleTimeMs_(b.battleTime)>Date.now()) continue;
       if ([...b.team[0].cards,...(b.opponent[0].cards || [])].some(c=>!apiCardToJp(c)||(c.evolutionLevel || 0)>2)) unmappedArchive.add({tag,seedMode:!!seedMode,battle:b});
       observeSchema_(b);
       var tk = (b.type || '?') + '/' + ((b.gameMode && b.gameMode.name) || '?');
@@ -1605,12 +1608,12 @@ async function updateDecks() {
             const previousOk=seed?seed.lastOk:hist.trackedFetch[tag];
             const logWindowMs=observeLog(telemetry,requestBands[pending[i]],logs,previousOk,fetchedAt,parseBattleTimeMs_);
             if(!seedMode)hist.trackedFetch[tag]=fetchedAt;
-            const times = logs.map(b=>parseBattleTimeMs_(b.battleTime)).filter(Boolean);
+            const times = logs.map(b=>parseBattleTimeMs_(b?.battleTime)).filter(t=>t>0&&t<=fetchedAt);
             if(logs.length>=25) fetchQuality.fullLogs++;
             if(previousOk && logs.length>=25 && times.length===logs.length && Math.min(...times)>previousOk) fetchQuality.possibleRollover++;
             if(seed) {
               seed.lastOk=fetchedAt; seed.lastStatus=200; seed.logWindowMs=logWindowMs;
-              const road=logs.find(b=>['ladder_pvp','ladder_trail'].includes(modeBucketOf(b.type,b.gameMode?.name)));
+              const road=logs.find(b=>['ladder_pvp','ladder_trail'].includes(modeBucketOf(b?.type,b?.gameMode?.name)));
               if(road){seed.lastBattle=parseBattleTimeMs_(road.battleTime); const p=road.team?.[0]; if(Number.isFinite(p?.startingTrophies))seed.tr=p.startingTrophies+(Number.isFinite(p.trophyChange)?p.trophyChange:0);}
               const band=seedBand(seed); fetchQuality.byBand[band]=(fetchQuality.byBand[band]||0)+1;
             }
