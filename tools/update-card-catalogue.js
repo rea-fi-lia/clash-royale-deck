@@ -27,7 +27,10 @@ function reconcileOfficial(source, api) {
       c.forms[form].officialIcon=url;
     }
     for (const [key,form] of Object.entries(keys)) if (c.forms[form] && !item.iconUrls?.[key]) issues.push({kind:'removed-form',slug:c.slug,form});
-    if ((item.maxEvolutionLevel || 0)>2) issues.push({kind:'unknown-evolution-level',slug:c.slug,value:item.maxEvolutionLevel});
+    // /cards maxEvolutionLevel=3 is already returned for the four cards with both icons.
+    // It is not the same field as a played card's battlelog evolutionLevel.
+    const max=item.maxEvolutionLevel || 0;
+    if (max>2 && !(max===3 && item.iconUrls?.evolutionMedium && item.iconUrls?.heroMedium)) issues.push({kind:'unknown-evolution-level',slug:c.slug,value:max});
     if (before!==JSON.stringify(c)) changes.push(c.slug);
   }
   for (const c of next.cards) if (!seen.has(c.slug)) issues.push({kind:'missing-official-card',slug:c.slug});
