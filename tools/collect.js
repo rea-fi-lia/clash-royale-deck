@@ -946,6 +946,12 @@ function trophyEventIdentity_(e) {
   // Both players' API responses describe the same battle, regardless of team/opponent orientation.
   return crypto.createHash('sha256').update(JSON.stringify([e.battleTime, e.mode || '', [side(e.team), side(e.opponent)].sort()])).digest('hex');
 }
+function trophyStorageRow_(e) {
+  // The immutable raw archive retains every original field. This rolling work table needs only
+  // the fields consumed by the existing aggregation, avoiding duplicate tags/forms/level metadata.
+  const side=p=>({deck:p.deck,crowns:p.crowns,kingTowerHitPoints:p.kingTowerHitPoints,princessTowersHitPoints:p.princessTowersHitPoints,elixirLeaked:p.elixirLeaked});
+  return {trophyMid:e.trophyMid,reachedTripleElixir:e.reachedTripleElixir,team:side(e.team),opponent:side(e.opponent)};
+}
 async function updateTrophyIntel_(trophyEventsNow = [], ghPath = GH_PATH) {
   if (!r2Enabled_()) throw new Error('R2 is required for uncapped trophy history');
   const now = Date.now(), eventCut = now - 7 * 864e5;
@@ -954,7 +960,7 @@ async function updateTrophyIntel_(trophyEventsNow = [], ghPath = GH_PATH) {
   const rolling = await openRollingStore({
     request: (method, path, body, type, options) => r2Request_(method, path.startsWith(root) ? path.slice(root.length) : path, body, type, options),
     prefix: root + 'raw/trophy-battle-events-v1/', snapshot:'trophy-events-v2.sqlite.gz', legacy:'trophy-battle-events-v1.json',
-    identity:trophyEventIdentity_, time:e => parseBattleTimeMs_(e.battleTime), cutoff:eventCut, through:now,
+    identity:trophyEventIdentity_, time:e => parseBattleTimeMs_(e.battleTime), project:trophyStorageRow_, cutoff:eventCut, through:now,
     budgetMs:Math.max(60000, Math.min(1200000, Number(prop('TROPHY_BACKFILL_MS', '240000')))),
     onProgress: p => console.log('trophy-backfill ' + JSON.stringify(p))
   });

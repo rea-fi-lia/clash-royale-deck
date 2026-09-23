@@ -43,18 +43,22 @@ test('interrupted archive is retried without duplicate records or a false comple
 test('R2 snapshot survives restart, archive pagination and day/window expiry',async()=>{
   const objects=new Map(), source='private/raw/events/2026-09-23/run-1.json';
   objects.set(source,Buffer.from(JSON.stringify({events:[event(1),event(2)]})));
+  objects.set(source.replace('run-1','run-2'),Buffer.from(JSON.stringify({events:[event(2),event(3)]})));
+  let paged=false;
   let puts=0;
   const request=async(method,key,body,type,options={})=>{
     if(options.query){const entries=[...objects].filter(([k])=>k.startsWith(options.query.prefix)&&k.endsWith('.json'));
-      return new Response('<ListBucketResult><IsTruncated>false</IsTruncated>'+entries.map(([k])=>'<Contents><Key>'+k+'</Key><ETag>&quot;v1&quot;</ETag><Size>20</Size></Contents>').join('')+'</ListBucketResult>');}
+      const next=entries.length>1&&!options.query['continuation-token']; if(options.query['continuation-token'])paged=true;
+      const page=options.query['continuation-token']?entries.slice(1):entries.slice(0,1);
+      return new Response('<ListBucketResult><IsTruncated>'+next+'</IsTruncated>'+(next?'<NextContinuationToken>page2</NextContinuationToken>':'')+page.map(([k])=>'<Contents><Key>'+k+'</Key><ETag>&quot;v1&quot;</ETag><Size>20</Size></Contents>').join('')+'</ListBucketResult>');}
     if(method==='PUT'){objects.set(key,readFileSync(options.file));puts++;return new Response(null,{status:200});}
     return objects.has(key)?new Response(objects.get(key)):new Response(null,{status:404});
   };
   const args={request,prefix:'private/raw/events/',snapshot:'db.gz',identity:opts.identity,time:opts.time,cutoff,through:now};
   let rolling=await openRollingStore(args);
-  assert.equal((await rolling.backfill()).state,'complete');assert.equal(rolling.store.count(),2);
-  await rolling.save();rolling.cleanup();assert.equal(puts,1);
-  rolling=await openRollingStore(args);assert.equal((await rolling.backfill()).added,0);assert.equal(rolling.store.count(),2);rolling.cleanup();
+  assert.equal((await rolling.backfill()).state,'complete');assert.equal(rolling.store.count(),3);
+  await rolling.save();rolling.cleanup();assert.equal(puts,1);assert.equal(paged,true);
+  rolling=await openRollingStore(args);assert.equal((await rolling.backfill()).added,0);assert.equal(rolling.store.count(),3);rolling.cleanup();
   rolling=await openRollingStore({...args,cutoff:now});assert.equal(rolling.store.count(),0);rolling.cleanup();
 });
 test('unknown/tagless legacy identities are orientation independent',()=>{

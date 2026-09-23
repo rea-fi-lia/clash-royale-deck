@@ -39,12 +39,13 @@ async function* jsonItems(body, field = 'events') {
 }
 
 class EventStore {
-  constructor(path, { identity, time, cutoff, through = Date.now() }) {
+  constructor(path, { identity, time, cutoff, through = Date.now(), project = item => item }) {
     this.db = new DatabaseSync(path); chmodSync(path, 0o600);
     this.db.exec('PRAGMA journal_mode=DELETE; PRAGMA cache_size=-16384; PRAGMA temp_store=FILE;');
     this.db.exec('CREATE TABLE IF NOT EXISTS events(id TEXT PRIMARY KEY, t INTEGER NOT NULL, payload TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX IF NOT EXISTS events_t ON events(t); CREATE TABLE IF NOT EXISTS sources(key TEXT PRIMARY KEY, etag TEXT NOT NULL) WITHOUT ROWID;');
     this.db.prepare('DELETE FROM events WHERE t < ? OR t > ?').run(cutoff, through);
     this.identity = identity; this.time = time; this.cutoff = cutoff; this.through = through;
+    this.project = project;
     this.put = this.db.prepare('INSERT OR IGNORE INTO events VALUES(?,?,?)');
     // Retain the statement while its iterator is active (Node 22.15 may otherwise finalize it during GC).
     this.scan = this.db.prepare('SELECT payload FROM events');
@@ -56,7 +57,7 @@ class EventStore {
       for await (const item of items) {
         const t = this.time(item), id = this.identity(item);
         if (!id || !Number.isFinite(t) || t < this.cutoff || t > this.through) { excluded++; continue; }
-        observed++; added += Number(this.put.run(id, t, JSON.stringify(item)).changes);
+        observed++; added += Number(this.put.run(id, t, JSON.stringify(this.project(item))).changes);
         if (observed % 2000 === 0) { this.db.exec('COMMIT; BEGIN'); }
       }
       if (source) this.db.prepare('INSERT OR REPLACE INTO sources VALUES(?,?)').run(source.key, source.etag || '');
@@ -78,14 +79,14 @@ function listXml(xml) {
 }
 async function fileDigest(path) { const hash = createHash('sha256'); for await (const chunk of createReadStream(path)) hash.update(chunk); return hash.digest('hex'); }
 
-async function openRollingStore({ request, prefix, snapshot, legacy, identity, time, cutoff, through, budgetMs = 240000, onProgress = () => {} }) {
+async function openRollingStore({ request, prefix, snapshot, legacy, identity, time, project, cutoff, through, budgetMs = 240000, onProgress = () => {} }) {
   const dir = mkdtempSync(join(tmpdir(), 'crdb-events-')), dbPath = join(dir, 'events.sqlite');
   let store;
   try {
     const restored = await request('GET', snapshot);
     if (restored.status === 200) await pipeline(restored.body, createGunzip(), createWriteStream(dbPath, {mode:0o600}));
     else if (restored.status !== 404) throw new Error('event_snapshot_read_' + restored.status);
-    store = new EventStore(dbPath, {identity, time, cutoff, through});
+    store = new EventStore(dbPath, {identity, time, project, cutoff, through});
     if (restored.status === 404 && legacy) {
       const prior = await request('GET', legacy);
       if (prior.status === 200) await store.ingest(jsonItems(prior.body));
