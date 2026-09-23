@@ -43,3 +43,32 @@ test('failed popular detail requests can be retried immediately',async()=>{
  globalThis.fetch=async()=>{calls++;return calls===1?new Response(null,{status:503}):Response.json({global:{games:1}});};
  await assert.rejects(fetchPopularDeck(dk));assert.equal((await fetchPopularDeck(dk)).global.games,1);assert.equal(calls,2);
 });
+
+test('stalled detail response bodies time out and release the request for retry',async t=>{
+ const {fetchPopularDeck,prefetchDeck}=await import('../js/me-details.mjs');
+ t.mock.timers.enable({apis:['setTimeout']});
+ const dk={deck:['timeout','b','c','d','e','f','g','h'],forms:'nnnnnnnn',key:'timeout-test'};
+ for(const get of [()=>fetchPopularDeck(dk),()=>prefetchDeck(dk,'FIXTURE',7)]){
+  let signal;globalThis.fetch=async(_,o)=>{signal=o.signal;return {ok:true,json:()=>new Promise(()=>{})};};
+  const pending=get();const rejected=assert.rejects(pending,/detail_timeout/);
+  await Promise.resolve();t.mock.timers.tick(12001);await rejected;assert.equal(signal.aborted,true);
+  globalThis.fetch=async()=>Response.json({global:{games:1}});assert.equal((await get()).global.games,1);
+ }
+});
+
+test('a rejected popular query replaces loading text and exposes a working retry',async()=>{
+ const {showPopularDeck}=await import('../js/me-details.mjs');
+ const make=()=>({innerHTML:'',textContent:'',attrs:{},children:[],listeners:{},classList:{add(){}},setAttribute(k,v){this.attrs[k]=v;},addEventListener(k,fn){this.listeners[k]=fn;},append(...x){this.children.push(...x);}});
+ const scope=make(),status=make(),body=make(),close=make(),dialog=make();
+ dialog.showModal=()=>{dialog.open=true;};dialog.close=()=>{dialog.open=false;};
+ body.querySelector=s=>s==='[data-scope="global"]'?scope:status;
+ dialog.querySelector=s=>s==='.me-dialog-body'?body:close;
+ globalThis.window={cardImgTag:()=>'<img>'};globalThis.document={body:{append(){}},createElement:t=>t==='dialog'?dialog:make()};
+ let attempts=0;globalThis.fetch=async()=>++attempts===1?new Response(null,{status:400}):Response.json({global:{games:0},history:{state:'complete',latestComplete:true}});
+ const dk={deck:['rejected','b','c','d','e','f','g','h'],forms:'nnnnnnnn'};
+ showPopularDeck(dk);await new Promise(r=>setImmediate(r));
+ assert.equal(scope.attrs['aria-busy'],'false');assert.doesNotMatch(scope.innerHTML,/取得中/);assert.match(scope.innerHTML,/取得できません/);
+ const retry=status.children.find(x=>typeof x==='object');assert.equal(retry.textContent,'再試行');retry.listeners.click();
+ await new Promise(r=>setImmediate(r));assert.equal(attempts,2);assert.match(scope.innerHTML,/まだ取得できていません/);assert.doesNotMatch(scope.innerHTML,/取得中/);
+ dialog.close();
+});

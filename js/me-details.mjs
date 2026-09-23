@@ -37,10 +37,21 @@ function scopeHTML(data){
     +'<h4>'+esc(tr('相手にこのカードが入っていたとき'))+'</h4><p class="note">'+esc(tr('対面勝率が低い順。カード単独が敗因とは限りません。'))+'</p><div class="me-table-scroll"><table><thead><tr><th>'+esc(tr('相手カード'))+'</th><th>'+esc(tr('勝率'))+'</th><th>'+esc(tr('勝 / 敗'))+'</th><th>'+esc(tr('試合数'))+'</th></tr></thead><tbody>'+cardRows.join('')+'</tbody></table></div>';
 }
 const detailCache=new Map();
+async function detailJSON(url){
+  const controller=new AbortController();let timer;
+  const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>{reject(new Error('detail_timeout'));controller.abort();},12000);});
+  try{
+    return await Promise.race([timeout,(async()=>{
+      const r=await fetch(url,{cache:'no-store',signal:controller.signal});
+      if(!r.ok)throw new Error('detail_unavailable');
+      return r.json();
+    })()]);
+  }finally{clearTimeout(timer);}
+}
 export function prefetchDeck(dk,tag,days){
   const params=new URLSearchParams({tag,key:dk.key,days:String(days)}),key=params.toString(),old=detailCache.get(key);
   if(old&&Date.now()-old.at<10000)return old.promise;
-  const promise=fetch('/api/me/deck?'+params,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('detail_unavailable');return r.json();}).catch(e=>{if(detailCache.get(key)?.promise===promise)detailCache.delete(key);throw e;});
+  const promise=detailJSON('/api/me/deck?'+params).catch(e=>{if(detailCache.get(key)?.promise===promise)detailCache.delete(key);throw e;});
   detailCache.set(key,{at:Date.now(),promise});if(detailCache.size>24)detailCache.delete(detailCache.keys().next().value);return promise;
 }
 export function showDeck(dk,tag,days){
@@ -57,7 +68,10 @@ export function showDeck(dk,tag,days){
       if(g!==lastGlobal){body.querySelector('[data-scope="global"]').innerHTML=scopeHTML(j.global);lastGlobal=g;}
       body.querySelector('[role="status"]').textContent=j.history?.state==='complete'?'保存済みアーカイブとの照合が完了しています。':'過去の保存データを取り込み中です。現在の数字は取得済みの試合分で、照合に応じて増えます。';
       if(j.history?.state!=='complete')timer=setTimeout(load,12000);
-    }catch(e){if(!el.open)return;body.querySelector('[role="status"]').textContent='対戦詳細を取得できませんでした。通信を確認して開き直してください。';}
+    }catch(e){if(!el.open)return;
+      if(!lastPersonal)body.querySelector('[data-scope="personal"] .note').textContent=tr('対戦詳細を取得できませんでした。');
+      if(!lastGlobal)body.querySelector('[data-scope="global"]').innerHTML='<p class="me-empty">'+esc(tr('対戦詳細を取得できませんでした。'))+'</p>';
+      body.querySelector('[role="status"]').textContent='対戦詳細を取得できませんでした。通信を確認して開き直してください。';}
   }
   load();
 }
@@ -68,7 +82,7 @@ export function fetchPopularDeck(dk){
   if(dk.asOf)params.set('asOf',dk.asOf);
   const key=params.toString(),old=popularCache.get(key);
   if(old&&Date.now()-old.at<15000)return old.promise;
-  const promise=fetch('/api/decks/matchups?'+params,{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('detail_unavailable');return r.json();}).catch(e=>{if(popularCache.get(key)?.promise===promise)popularCache.delete(key);throw e;});
+  const promise=detailJSON('/api/decks/matchups?'+params).catch(e=>{if(popularCache.get(key)?.promise===promise)popularCache.delete(key);throw e;});
   popularCache.set(key,{at:Date.now(),promise});if(popularCache.size>24)popularCache.delete(popularCache.keys().next().value);return promise;
 }
 export function showPopularDeck(dk){
@@ -79,6 +93,9 @@ export function showPopularDeck(dk){
     +'<div data-scope="global" aria-busy="true"><p class="me-empty">'+esc(tr('相手別の内訳を取得中…'))+'</p></div><p class="me-history-status" role="status"></p>';
   let timer,last='';el.addEventListener('close',()=>clearTimeout(timer));
   async function load(){
+    const scope=body.querySelector('[data-scope="global"]'),status=body.querySelector('[role="status"]');
+    if(!last){scope.setAttribute('aria-busy','true');scope.innerHTML='<p class="me-empty">'+esc(tr('相手別の内訳を取得中…'))+'</p>';}
+    status.textContent='';
     try{
       const j=await fetchPopularDeck(dk);if(!el.open)return;
       const scope=body.querySelector('[data-scope="global"]'),next=JSON.stringify(j.global);
@@ -87,8 +104,9 @@ export function showPopularDeck(dk){
       if(j.history?.state!=='complete'||!j.history.latestComplete)timer=setTimeout(load,20000);
       window.CRI18N?.applyTo(el);
     }catch{
-      if(!el.open)return;body.querySelector('[data-scope="global"]').setAttribute('aria-busy','false');
-      const status=body.querySelector('[role="status"]');status.textContent=tr('対戦詳細を取得できませんでした。');
+      if(!el.open)return;scope.setAttribute('aria-busy','false');
+      if(!last)scope.innerHTML='<p class="me-empty">'+esc(tr('対戦詳細を取得できませんでした。'))+'</p>';
+      status.textContent=last?tr('対戦詳細を取得できませんでした。'):'';
       const retry=document.createElement('button');retry.type='button';retry.className='me-build-action';retry.textContent=tr('再試行');status.append(' ',retry);retry.addEventListener('click',()=>{retry.disabled=true;load();});
     }
   }

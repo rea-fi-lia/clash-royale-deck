@@ -289,7 +289,7 @@ function renderDecks(decks) {
       button.setAttribute('aria-busy', 'true');
       const selection = { deck: d.slots.slice(), forms: detailForms.join(''), window: CUR_WINDOW, asOf: DECKS_JSON?.updated };
       try {
-        const { showPopularDeck } = await import('./me-details.mjs?v=260818');
+        const { showPopularDeck } = await import('./me-details.mjs?v=260820');
         showPopularDeck(selection);
       } catch { button.textContent = _tr('再試行'); }
       finally { button.removeAttribute('aria-busy'); }

@@ -1,7 +1,7 @@
 import '../auth.js?v=260818';
 import { normalizeTag, bindTagInput, inPeriod, availablePeriod, graphBattles, battleTime, selectTrophySeries } from './experience-core.mjs?v=260818';
 import { mountChart } from './me-chart.mjs?v=260818';
-import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from './me-details.mjs?v=260818';
+import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from './me-details.mjs?v=260820';
 /* =============================================================
  *  マイページ（/me.html）— 2026-08-11
  *  docs/monetization.md が設計の正本。
