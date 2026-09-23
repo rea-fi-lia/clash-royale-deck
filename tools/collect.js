@@ -3056,7 +3056,9 @@ async function updateDecks() {
   // ★先駆けタグ（オーナー）の個人試合を毎時ためる。他ユーザーのタグは対象外。
   await collectPilotTags_(CR_TOKEN);
 
-  await updateTrophyIntel_(trophyEventsNow, ghPath);
+  // Actions starts the disk-backed scan in a fresh process after durable raw/history writes.
+  // Keep the direct CLI's combined behavior for existing callers.
+  if (!process.argv.includes('--collect-only')) await updateTrophyIntel_(trophyEventsNow, ghPath);
 
   console.log('✅ done. players3d=' + players3d + ' decks=' + W3D.decks.length + ' winDecks=' + W3D.winDecks.length);
 }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,rmSync,readFileSync,copyFileSync} from 'node:fs';
+import {mkdtempSync,rmSync,readFileSync,copyFileSync,writeFileSync,chmodSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {Readable} from 'node:stream';
@@ -133,4 +133,15 @@ test('unselected players retain processing bookmarks while evicted candidates ar
   const bookmarks={'#A':'time-a','#B':'time-b','#C':'time-c','#TOP':'time-top'};
   const retained=schedule.retainBookmarks(bookmarks,{A:{},B:{}},{TOP:true});
   assert.deepEqual(retained,{'#A':'time-a','#B':'time-b','#TOP':'time-top'});
+});
+
+test('production phases use fresh processes and stop before aggregation if collection fails',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'collector-phases-')),log=join(dir,'calls'),stub=join(dir,'node');
+  try {
+    writeFileSync(stub,'#!/bin/sh\nprintf "%s|%s|%s\\n" "$1" "$2" "${TROPHY_BACKFILL_MS:-default}" >> "$CALL_LOG"\nif [ "$2" = "--collect-only" ] && [ "${FAIL_COLLECT:-0}" = "1" ]; then exit 7; fi\n');chmodSync(stub,0o700);
+    const run=(env={})=>spawnSync('bash',['tools/run-collector.sh'],{cwd:new URL('..',import.meta.url),encoding:'utf8',env:{...process.env,PATH:dir+':'+process.env.PATH,CALL_LOG:log,REBUILD_TROPHY:'false',TROPHY_BACKFILL_MS:'240000',...env}});
+    assert.equal(run().status,0);assert.equal(readFileSync(log,'utf8'),'tools/collect.js|--collect-only|240000\ntools/collect.js|--trophy-backfill|240000\n');
+    writeFileSync(log,'');assert.equal(run({FAIL_COLLECT:'1'}).status,7);assert.equal(readFileSync(log,'utf8'),'tools/collect.js|--collect-only|240000\n');
+    writeFileSync(log,'');assert.equal(run({REBUILD_TROPHY:'true'}).status,0);assert.equal(readFileSync(log,'utf8'),'tools/collect.js|--trophy-backfill|1200000\n');
+  } finally {rmSync(dir,{recursive:true,force:true});}
 });
