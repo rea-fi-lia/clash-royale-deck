@@ -145,3 +145,15 @@ test('production phases use fresh processes and stop before aggregation if colle
     writeFileSync(log,'');assert.equal(run({REBUILD_TROPHY:'true'}).status,0);assert.equal(readFileSync(log,'utf8'),'tools/collect.js|--trophy-backfill|1200000\n');
   } finally {rmSync(dir,{recursive:true,force:true});}
 });
+
+test('discovery requests honor long Retry-After values and both header formats use the same parser',async(t)=>{
+  assert.equal(collector.retryAfterMs_('60',now),60000);
+  assert.equal(collector.retryAfterMs_(new Date(now+90000).toUTCString(),now),90000);
+  assert.equal(collector.retryAfterMs_('invalid',now),0);
+  assert.equal(collector.retryAfterMs_(new Date(now-1000).toUTCString(),now),0);
+  t.mock.timers.enable({apis:['setTimeout']});let calls=0;
+  t.mock.method(globalThis,'fetch',async()=>++calls===1 ? new Response('',{status:429,headers:{'Retry-After':'60'}}) : new Response('{"items":[]}'));
+  const pending=collector.crGet('/fixture','fixture');await Promise.resolve();
+  t.mock.timers.tick(59999);await Promise.resolve();assert.equal(calls,1);
+  t.mock.timers.tick(1);assert.deepEqual(await pending,{items:[]});assert.equal(calls,2);
+});

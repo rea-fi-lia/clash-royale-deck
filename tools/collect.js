@@ -151,15 +151,20 @@ function eloBand_(elo) {
   return lo + '-' + (lo + size - 1);
 }
 
+function retryAfterMs_(header, now = Date.now()) {
+  if (!header) return 0;
+  const ms = /^\d+$/.test(header) ? Number(header) * 1000 : Date.parse(header) - now;
+  return Number.isFinite(ms) ? Math.max(0, ms) : 0;
+}
 async function crGet(path, token) {
   // ★429（レート制限）は指数バックオフで再試行する。実測上限＝同時60件、90件で429が出る（2026-08-02計測）。
   var waits = [1200, 3000, 7000];
   for (var i = 0; i <= waits.length; i++) {
-    const res = await fetch(PROXY + path, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json', 'User-Agent': UA } });
+    const res = await fetch(PROXY + path, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json', 'User-Agent': UA }, signal: AbortSignal.timeout(20000) });
     if (res.status === 200) return res.json();
     if (res.status === 429 && i < waits.length) {
-      var ra = parseInt(res.headers.get('retry-after') || '0', 10);
-      await new Promise(function (r) { setTimeout(r, ra > 0 ? Math.min(ra * 1000, 15000) : waits[i]); });
+      var wait = retryAfterMs_(res.headers.get('retry-after')) || waits[i];
+      await new Promise(function (r) { setTimeout(r, wait); });
       continue;
     }
     throw new Error('CR API ' + res.status + ' for ' + path + ' :: ' + (await res.text()).slice(0, 300));
@@ -1617,9 +1622,7 @@ async function updateDecks() {
           return fetch(PROXY + '/players/' + encodeURIComponent(t) + '/battlelog', { headers: headers, signal: AbortSignal.timeout(20000) })
             .then(async function (r) {
               if (r.status === 200) return { ok: true, body: await r.json() };
-              const ra=r.headers.get('retry-after');
-              const seconds=ra ? (/^\d+$/.test(ra)?Number(ra):Math.max(0,Math.ceil((Date.parse(ra)-Date.now())/1000))) : 0;
-              return { ok: false, body: null, status: r.status, retryAfter: Number.isFinite(seconds)?seconds:0 };
+              return { ok: false, body: null, status: r.status, retryAfter: retryAfterMs_(r.headers.get('retry-after')) / 1000 };
             })
             .catch(function () { return { ok: false, body: null, status: 0 }; });
         }));
@@ -3084,4 +3087,4 @@ if (require.main === module) (process.argv.includes('--trophy-backfill') ? updat
   if (r.status) process.exit(r.status);
 });
 
-module.exports = {trophyEventIdentity_, parseBattleTimeMs_, updateTrophyIntel_};
+module.exports = {trophyEventIdentity_, parseBattleTimeMs_, updateTrophyIntel_, retryAfterMs_, crGet};
