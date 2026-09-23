@@ -282,3 +282,7 @@ CRDBは「有用性の低いコンテンツ」でAdSenseに落ちた前科があ
 ### UI release checks (2026-09-22)
 
 `node --test tools/test-*.mjs` / `node tools/check-ui-icons.mjs` / `node tools/check-card-images.js --lint-only` / `node tools/check-private-leak.js` を確認後、17言語を生成。独自アイコンの追加は [ui-icons.md](ui-icons.md) に従う。
+
+## 2026-09-23 取得件数と集計件数の分離
+
+[収集と保存の現行仕様](collection-storage.md)を参照。8月11日の1帯1,600件はAPIの制限ではなくメモリ不足への応急対応だった。全配列展開をSQLiteと逐次処理へ置き換え、期間内の全保存試合を集計する。取得速度の制御は別に維持する。

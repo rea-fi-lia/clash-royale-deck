@@ -56,3 +56,7 @@ pol-elo-intel-v1.json
 # 非公開の分析は crdb-tools(PRIVATE) へ。ここに置かない（番人: tools/check-private-leak.js）
 tools/analysis/
 *-private-*.json
+*.sqlite
+*.sqlite-*
+*.sqlite.gz
+collection-quality-v1.json

@@ -11,7 +11,7 @@
  *   - シート系（exportTagSheetV2 等＝SpreadsheetApp依存）は移植しない＝GASに残す（ハイブリッド）。
  *
  * 環境変数（GitHub Actions の env/secrets で渡す）:
- *   CR_TOKEN            … RoyaleAPI トークン（secret・必須）
+ *   CR_TOKEN            … Supercell公式APIトークン（secret・必須）
  *   GITHUB_TOKEN        … Actions が自動付与（contents:write 権限が要る・必須）
  *   GITHUB_REPOSITORY   … "owner/repo"（Actions が自動付与）。手動時は GITHUB_REPO でも可
  *   TARGET_BRANCH       … 書き込み先ブランチ（既定 "data-test"。検証OK後に "data" へ）
@@ -44,6 +44,10 @@
 
 const { spawnSync } = require('child_process');
 const crypto = require('crypto');
+const { createReadStream } = require('node:fs');
+const { finished } = require('node:stream/promises');
+const { openRollingStore } = require('./event-store.cjs');
+const { selectSeeds, noteAttempt, seedBand, retainSeeds } = require('./collector-schedule.cjs');
 
 const PROXY = 'https://proxy.royaleapi.dev/v1';
 const WINDOW_DAYS = parseInt(prop('WINDOW_DAYS', '3'), 10); // ローリング期間（日）。デッキ・カード共通。
@@ -370,13 +374,14 @@ function r2SigningKey_(date) {
 function r2EncodeKey_(key) {
   return String(key || '').split('/').map(encodeURIComponent).join('/');
 }
-async function r2Request_(method, path, body, contentType) {
+async function r2Request_(method, path, body, contentType, options = {}) {
   if (!r2Enabled_()) return { status: 0, text: async function () { return ''; } };
   var key = r2ObjectKey_(path);
   var host = R2_ACCOUNT_ID + '.r2.cloudflarestorage.com';
-  var pathname = '/' + encodeURIComponent(R2_BUCKET) + '/' + r2EncodeKey_(key);
+  var pathname = '/' + encodeURIComponent(R2_BUCKET) + '/' + (options.query ? '' : r2EncodeKey_(key));
+  var query = Object.entries(options.query || {}).sort((a,b) => a[0].localeCompare(b[0], 'en')).map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v)).join('&');
   var payload = body == null ? '' : body;
-  var payloadHash = r2Sha256Hex_(payload);
+  var payloadHash = options.payloadHash || r2Sha256Hex_(payload);
   var amzDate = r2IsoStamp_();
   var date = amzDate.slice(0, 8);
   var headers = {
@@ -387,12 +392,17 @@ async function r2Request_(method, path, body, contentType) {
   if (contentType) headers['content-type'] = contentType;
   var signedHeaders = Object.keys(headers).sort().join(';');
   var canonicalHeaders = Object.keys(headers).sort().map(function (h) { return h + ':' + headers[h] + '\n'; }).join('');
-  var canonicalRequest = [method, pathname, '', canonicalHeaders, signedHeaders, payloadHash].join('\n');
+  var canonicalRequest = [method, pathname, query, canonicalHeaders, signedHeaders, payloadHash].join('\n');
   var scope = date + '/auto/s3/aws4_request';
   var stringToSign = ['AWS4-HMAC-SHA256', amzDate, scope, r2Sha256Hex_(canonicalRequest)].join('\n');
   var signature = r2Hmac_(r2SigningKey_(date), stringToSign, 'hex');
   headers.authorization = 'AWS4-HMAC-SHA256 Credential=' + R2_ACCESS_KEY_ID + '/' + scope + ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;
-  return fetch('https://' + host + pathname, { method: method, headers: headers, body: body == null ? undefined : payload });
+  if (options.file) headers['content-length'] = String(options.length);
+  const stream = options.file ? createReadStream(options.file) : null;
+  const closed = stream ? finished(stream).catch(()=>{}) : null;
+  try {
+    return await fetch('https://' + host + pathname + (query ? '?' + query : ''), { method, headers, body: stream || (body == null ? undefined : payload), ...(stream ? {duplex:'half'} : {}) });
+  } finally { if (stream) { stream.destroy(); await closed; } }
 }
 
 /* ★先駆けタグの毎時収集（2026-08-11・docs/monetization.md「開いていなくても毎時」の実体）
@@ -400,8 +410,8 @@ async function r2Request_(method, path, body, contentType) {
  *   - 対象は環境変数 PILOT_TAGS のカンマ区切りのみ（既定＝オーナーのタグ1本）。
  *     ★他のユーザーの登録タグは収集しない。課金者だけの優遇機能なので、
  *       一般開放は Stripe の課金判定ができてから（工事順⑤）。
- *   - 75分ルール：battlelog は直近25戦しか返らないが、25戦×最短3分=75分 ＞ 60分。
- *     毎時取れば理論上こぼれない。
+ *   - battlelogは直近25戦。3分未満で終わる試合もあるので毎時取得でも全件保証ではない。
+ *     取得間に25戦以上進んだ可能性は、最古ログ時刻と前回成功時刻で監視する。
  *   - 保存先は Worker の /api/me/sync と同じ private/me/{TAG}.json（同じ形・重複排除）。
  *     これで「開いていない間の試合」もマイページにそのまま出る。 */
 function normTagStr_(t) {
@@ -924,6 +934,113 @@ function modeBucketOf(type, gm) {
   return 'other';
 }
 
+function parseBattleTimeMs_(s) {
+  var m = String(s || '').match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
+  return m ? Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]) : 0;
+}
+function trophyEventIdentity_(e) {
+  if (!e || !e.team || !e.opponent || !e.battleTime || !Number.isFinite(e.trophyMid)) return null;
+  if ([e.team,e.opponent].some(p=>!Array.isArray(p.deck)||p.deck.length!==8||!Number.isFinite(p.crowns))) return null;
+  const side = p => p.tag ? 'tag:' + String(p.tag).replace(/^#/, '').toUpperCase()
+    : JSON.stringify([p.trophies, p.crowns, (p.deck || []).slice().sort()]);
+  // Both players' API responses describe the same battle, regardless of team/opponent orientation.
+  return crypto.createHash('sha256').update(JSON.stringify([e.battleTime, e.mode || '', [side(e.team), side(e.opponent)].sort()])).digest('hex');
+}
+async function updateTrophyIntel_(trophyEventsNow = [], ghPath = GH_PATH) {
+  if (!r2Enabled_()) throw new Error('R2 is required for uncapped trophy history');
+  const now = Date.now(), eventCut = now - 7 * 864e5;
+  const trophyEventMin = parseInt(prop('TROPHY_EVENT_MIN', '0'), 10), trophyEventMax = parseInt(prop('TROPHY_EVENT_MAX', '14000'), 10);
+  const root = r2ObjectKey_('');
+  const rolling = await openRollingStore({
+    request: (method, path, body, type, options) => r2Request_(method, path.startsWith(root) ? path.slice(root.length) : path, body, type, options),
+    prefix: root + 'raw/trophy-battle-events-v1/', snapshot:'trophy-events-v2.sqlite.gz', legacy:'trophy-battle-events-v1.json',
+    identity:trophyEventIdentity_, time:e => parseBattleTimeMs_(e.battleTime), cutoff:eventCut, through:now,
+    budgetMs:Math.max(60000, Math.min(1200000, Number(prop('TROPHY_BACKFILL_MS', '240000')))),
+    onProgress: p => console.log('trophy-backfill ' + JSON.stringify(p))
+  });
+  try {
+    const current = await rolling.store.ingest(trophyEventsNow);
+    const coverage = await rolling.backfill();
+    coverage.windowStart = new Date(eventCut).toISOString(); coverage.windowEnd = new Date(now).toISOString();
+    coverage.countLimit = null; coverage.identity = 'unordered-player-pair-and-time';
+    const eventCount = rolling.store.count();
+    console.log('trophy-current ' + JSON.stringify(current));
+    function playerFromEvent_(e, side) {
+      var p = side === 'team' ? e.team : e.opponent;
+      return {
+        crowns: p.crowns,
+        kingTowerHitPoints: p.kingTowerHitPoints,
+        princessTowersHitPoints: p.princessTowersHitPoints,
+        elixirLeaked: p.elixirLeaked
+      };
+    }
+    function addEventSideStats_(map, key, e, side) {
+      var mine = playerFromEvent_(e, side), opp = playerFromEvent_(e, side === 'team' ? 'opponent' : 'team');
+      addPolStats_(map, key, mine, opp, mine.crowns, opp.crowns);
+    }
+    var cardAgg = {}, bandAgg = {}, triple = { known: 0, reached: 0, notReached: 0 };
+    for (const e of rolling.store.events()) {
+      var band = Math.floor(e.trophyMid / 300) * 300;
+      var bandKey = band + '-' + (band + 299);
+      var b = bandAgg[bandKey] || (bandAgg[bandKey] = { games: 0, cards: {} });
+      b.games++;
+      if (e.reachedTripleElixir === true) { triple.known++; triple.reached++; }
+      else if (e.reachedTripleElixir === false) { triple.known++; triple.notReached++; }
+      [['team', e.team], ['opponent', e.opponent]].forEach(function (pair) {
+        var side = pair[0], p = pair[1], unique = {};
+        (p.deck || []).forEach(function (name) {
+          if (unique[name]) return; unique[name] = 1;
+          addEventSideStats_(cardAgg, name, e, side);
+          var ba = b.cards[name] || (b.cards[name] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+          var tmp = {}; addEventSideStats_(tmp, name, e, side);
+          var v = tmp[name]; for (var i = 0; i < 15; i++) ba[i] += (v[i] || 0);
+        });
+      });
+    }
+    var byCard = {};
+    Object.keys(cardAgg).forEach(function (name) { var s = polSummary_(cardAgg[name]); if (s) byCard[name] = Object.assign({ name: name }, s); });
+    var byBand = {};
+    Object.keys(bandAgg).forEach(function (bk) {
+      var cards = {};
+      Object.keys(bandAgg[bk].cards).forEach(function (name) { var s = polSummary_(bandAgg[bk].cards[name]); if (s) cards[name] = Object.assign({ name: name }, s); });
+      byBand[bk] = { games: bandAgg[bk].games, cards: cards };
+    });
+    var trophyUpdated = new Date().toISOString();
+    // Commit the durable input before publishing derived results. A failed upload never replaces the last good output.
+    const snapshotBytes = await rolling.save();
+    console.log('trophy-store unique=' + eventCount + ' archives=' + coverage.processed + '/' + coverage.archives + ' snapshotBytes=' + snapshotBytes);
+    try {
+      await writePrivateJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-v1.json'),
+        { updated: trophyUpdated, windowDays: 7, trophyRange: { min: trophyEventMin, max: trophyEventMax },
+          count: eventCount, coverage: coverage, duration: triple, byCard: byCard, byBand: byBand },
+        'chore: update trophy-band-card-intel-v1.json');
+    } catch (eBand) { console.log('trophy-band-card-intel write error ' + ((eBand && eBand.message) || eBand)); }
+    // ★全トロフィー帯を集めるようにした結果、試合数の少ない帯が生まれる。
+    //   サンプル不足の帯をそのまま出すと誤った傾向を断定してしまうので、公開側は下限を設ける。
+    //   （非公開版 byBand は全帯そのまま残すので、後から窓を広げて再集計できる）
+    var BAND_MIN_GAMES = parseInt(prop('BAND_MIN_GAMES', '30'), 10);
+    var publicBand = {}, bandKept = 0, bandThin = 0;
+    Object.keys(byBand).forEach(function (bk) {
+      if (byBand[bk].games < BAND_MIN_GAMES) { bandThin++; return; }
+      publicBand[bk] = { games: byBand[bk].games, cards: publicPolMap_(byBand[bk].cards) };
+      bandKept++;
+    });
+    // 帯ごとの試合数を昇順で出す＝どの帯が埋まっていてどこが手薄かを毎ラン把握する
+    var bandDist = Object.keys(byBand)
+      .sort(function (a, b) { return parseInt(a, 10) - parseInt(b, 10); })
+      .map(function (bk) { return bk.split('-')[0] + ':' + byBand[bk].games; }).join(' ');
+    console.log('trophy-bands 公開=' + bandKept + ' 除外(サンプル不足<' + BAND_MIN_GAMES + ')=' + bandThin);
+    console.log('trophy-band 分布 ' + bandDist);
+    await writePublicJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-public-v1.json'),
+      { updated: trophyUpdated, version: 1, visibility: 'public-display', windowDays: 7,
+        trophyRange: { min: trophyEventMin, max: trophyEventMax }, count: eventCount, coverage: coverage,
+        byCard: publicPolMap_(byCard), byBand: publicBand },
+      'chore: update trophy-band-card-intel-public-v1.json');
+    console.log('trophy-events ' + eventCount + ' events / cards ' + Object.keys(byCard).length);
+  } finally { rolling.cleanup(); }
+
+}
+
 async function updateDecks() {
   var token = CR_TOKEN;
   if (!token) throw new Error('CR_TOKEN 未設定');
@@ -1095,10 +1212,6 @@ async function updateDecks() {
       return typeof tr === 'number' && tr >= trophyMin && tr <= trophyMax && (bucket === 'ladder_pvp' || bucket === 'ladder_trail');
     }
     return t === 'pathOfLegend' || /ranked|path.?of.?legend/i.test(t) || /ranked|path.?of.?legend/i.test(gm);
-  }
-  function parseBattleTimeMs_(s) {
-    var m = String(s || '').match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);
-    return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) : 0;
   }
   function durationSec_(b) {
     var fs = ['durationSeconds', 'duration', 'gameDuration', 'matchDuration'];
@@ -1470,66 +1583,65 @@ async function updateDecks() {
   catch (e) { console.log('clan-crawl error ' + ((e && e.message) || e)); }
   console.log('clan-crawl countries=' + clanStats.countries + ' clans=' + clanStats.clans + ' newPlayers=' + clanStats.found);
 
-  // ================= 帯を均した seed 選択 =================
-  // 単純に「最も長く取得していない順」だと、母集団の多い帯（上位層）ばかり選ばれて低帯がいつまでも埋まらない。
-  // トロフィー1000刻みの帯ごとに取り、帯を順番に回して均等に選ぶ。
-  var seedAll = Object.keys(hist.oppSeeds).filter(function (t) { return !TAGSET[t]; });
-  var BAND_W = 1000;
-  var byBand = {};
-  seedAll.forEach(function (t) {
-    var tr = hist.oppSeeds[t].tr;
-    var b = (typeof tr === 'number') ? Math.floor(tr / BAND_W) * BAND_W : 'unknown';
-    (byBand[b] || (byBand[b] = [])).push(t);
-  });
-  Object.keys(byBand).forEach(function (b) {
-    // 各帯の中では「未取得優先→最も長く取得していない順」
-    byBand[b].sort(function (a, c) { return (hist.oppSeeds[a].lastFetch || 0) - (hist.oppSeeds[c].lastFetch || 0); });
-  });
-  var bandKeys = Object.keys(byBand).sort();
-  var picked = [];
-  for (var round = 0; picked.length < SEED_PER_RUN && bandKeys.length; round++) {
-    var progressed = false;
-    for (var bi = 0; bi < bandKeys.length && picked.length < SEED_PER_RUN; bi++) {
-      var arr = byBand[bandKeys[bi]];
-      if (round < arr.length) { picked.push(arr[round]); progressed = true; }
-    }
-    if (!progressed) break;
-  }
+  // 300刻みで表示帯と収集帯を合わせる。取得件数・速度の予算は別に維持する。
+  const seedSelection = selectSeeds(hist.oppSeeds, TAGSET, SEED_PER_RUN, Date.now());
+  var picked = seedSelection.picked;
   var seedTags = picked.map(function (t) { return '#' + t; });
-  var bandSummary = bandKeys.map(function (b) { return b + ':' + byBand[b].length; }).join(' ');
-  console.log('seeds total=' + seedAll.length + ' fetchingThisRun=' + seedTags.length);
-  console.log('seed bands ' + bandSummary);
+  console.log('seeds total=' + Object.values(seedSelection.candidates).reduce((n,v)=>n+v,0) + ' fetchingThisRun=' + seedTags.length + ' due=' + seedSelection.due);
+  console.log('seed bands ' + JSON.stringify(seedSelection.candidates));
+  console.log('seed selected ' + JSON.stringify(seedSelection.selected));
 
   // ★バトルログ取得は crGet を通らないため、ここに独自の429対策を持つ（2026-08-02）。
   //   実測: 単発バーストは同時80件まで成功・85件で429。ただし同時70件を連続すると3ラウンド目で429が多発
   //   ＝瞬間値は出せても持続できない。よってチャンクごとの待機と429時の追加待機で自律的に減速する。
   var rate429 = { hits: 0, retried: 0, gaveUp: 0, extraWaitMs: 0 };
+  var fetchQuality = {requested:0, apiCalls:0, succeeded:0, failed:0, fullLogs:0, possibleRollover:0, byBand:{}};
   async function fetchTags(tags, seedMode) {
     var got = [];
     for (var off = 0; off < tags.length; off += CHUNK) {
       var slice = tags.slice(off, off + CHUNK);
+      fetchQuality.requested += slice.length;
+      if(seedMode) noteAttempt(hist.oppSeeds, slice, Date.now());
       var pending = slice.slice();
-      // 429になったものだけを最大3回まで再試行する（成功分は捨てない）
+      // 429・一時的なサーバー/通信失敗だけ最大3回再試行する（成功分は再取得しない）。
       for (var attempt = 0; attempt <= 3 && pending.length; attempt++) {
+        fetchQuality.apiCalls += pending.length;
         var resps = await Promise.all(pending.map(function (t) {
-          return fetch(PROXY + '/players/' + encodeURIComponent(t) + '/battlelog', { headers: headers })
+          return fetch(PROXY + '/players/' + encodeURIComponent(t) + '/battlelog', { headers: headers, signal: AbortSignal.timeout(20000) })
             .then(async function (r) {
               if (r.status === 200) return { ok: true, body: await r.json() };
-              return { ok: false, body: null, status: r.status, retryAfter: parseInt(r.headers.get('retry-after') || '0', 10) };
+              const ra=r.headers.get('retry-after');
+              const seconds=ra ? (/^\d+$/.test(ra)?Number(ra):Math.max(0,Math.ceil((Date.parse(ra)-Date.now())/1000))) : 0;
+              return { ok: false, body: null, status: r.status, retryAfter: Number.isFinite(seconds)?seconds:0 };
             })
             .catch(function () { return { ok: false, body: null, status: 0 }; });
         }));
         var next = [], maxRa = 0;
         resps.forEach(function (res, i) {
-          if (res.ok) { got.push(pending[i]); try { processLog(res.body, pending[i], seedMode); } catch (e) {} }
-          else if (res.status === 429) { rate429.hits++; next.push(pending[i]); if (res.retryAfter > maxRa) maxRa = res.retryAfter; }
+          if (res.ok) {
+            got.push(pending[i]); fetchQuality.succeeded++;
+            const tag = pending[i].replace(/^#/,''), seed = seedMode && hist.oppSeeds[tag];
+            const logs = Array.isArray(res.body) ? res.body : [];
+            const times = logs.map(b=>parseBattleTimeMs_(b.battleTime)).filter(Boolean);
+            if(logs.length>=25) fetchQuality.fullLogs++;
+            if(seed?.lastOk && logs.length>=25 && times.length && Math.min(...times)>seed.lastOk) fetchQuality.possibleRollover++;
+            if(seed) {
+              seed.lastOk=Date.now(); seed.lastStatus=200;
+              const road=logs.find(b=>['ladder_pvp','ladder_trail'].includes(modeBucketOf(b.type,b.gameMode?.name)));
+              if(road){seed.lastBattle=parseBattleTimeMs_(road.battleTime); const p=road.team?.[0]; if(Number.isFinite(p?.startingTrophies))seed.tr=p.startingTrophies+(Number.isFinite(p.trophyChange)?p.trophyChange:0);}
+              const band=seedBand(seed); fetchQuality.byBand[band]=(fetchQuality.byBand[band]||0)+1;
+            }
+            try { processLog(res.body, pending[i], seedMode); } catch (e) { throw new Error('battle_log_processing_failed'); }
+          }
+          else if (res.status === 429 || res.status === 0 || res.status >= 500) { if(res.status===429)rate429.hits++; next.push(pending[i]); if (res.retryAfter > maxRa) maxRa = res.retryAfter; }
+          else if(seedMode && hist.oppSeeds[pending[i].replace(/^#/,'')]) hist.oppSeeds[pending[i].replace(/^#/,'')].lastStatus=res.status;
         });
         pending = next;
         if (!pending.length) break;
         if (attempt === 3) { rate429.gaveUp += pending.length; break; }
         rate429.retried += pending.length;
         // 429が出た＝速すぎる。retry-afterがあれば従い、無ければ指数的に待つ。
-        var wait = maxRa > 0 ? Math.min(maxRa * 1000, 15000) : [1500, 4000, 9000][attempt];
+        var wait = maxRa > 0 ? maxRa * 1000 : [1500, 4000, 9000][attempt];
         rate429.extraWaitMs += wait;
         await sleep(wait);
       }
@@ -1542,27 +1654,21 @@ async function updateDecks() {
   var miss = allTags.filter(function (t) { return got1.indexOf(t) < 0; });
   if (miss.length) { await sleep(1200); await fetchTags(miss); }
   console.log('typeSeen ' + JSON.stringify(typeSeen));
-  // ★レート制限の当たり具合を毎ラン可視化する。hits>0 なら速すぎる＝CHUNKを下げるか待機を伸ばす判断材料。
-  console.log('rate-limit 429hits=' + rate429.hits + ' 再試行=' + rate429.retried + ' 諦め=' + rate429.gaveUp +
-    ' 追加待機=' + Math.round(rate429.extraWaitMs / 1000) + 's | chunk=' + CHUNK + ' sleep=' + CHUNK_SLEEP + 'ms');
-
   // ★seed（Top1000以外）を少しずつ追加収集。PoLメタは汚さず、trophy eventのみ拾う。
   if (seedTags.length) {
     try {
       var gotSeed = await fetchTags(seedTags, true);
-      var nowMs = Date.now();
-      // ★試行した全seedの lastFetch を進める＝不達tagでローテーションが止まらない。
-      seedAll.slice(0, SEED_PER_RUN).forEach(function (t) {
-        if (hist.oppSeeds[t]) hist.oppSeeds[t].lastFetch = nowMs;
-      });
-      // ★成功tagは別途 lastOk を記録（将来の品質フィルタ用）。
-      gotSeed.forEach(function (raw) {
-        var t = String(raw).toUpperCase().replace(/[^0-9A-Z]/g, '');
-        if (hist.oppSeeds[t]) hist.oppSeeds[t].lastOk = nowMs;
-      });
       console.log('seed fetched=' + gotSeed.length + '/' + seedTags.length);
     } catch (e) { console.log('seed fetch error ' + ((e && e.message) || e)); }
   }
+
+  // ★レート制限の当たり具合を毎ラン可視化する。hits>0 なら速すぎる＝CHUNKを下げるか待機を伸ばす判断材料。
+  console.log('rate-limit 429hits=' + rate429.hits + ' 再試行=' + rate429.retried + ' 諦め=' + rate429.gaveUp +
+    ' 追加待機=' + Math.round(rate429.extraWaitMs / 1000) + 's | chunk=' + CHUNK + ' sleep=' + CHUNK_SLEEP + 'ms');
+
+  fetchQuality.failed = fetchQuality.requested-fetchQuality.succeeded;
+  console.log('fetch-quality ' + JSON.stringify(fetchQuality));
+  await writePrivateJson_('collection-quality-v1.json',{updated:new Date().toISOString(),requestBudget:SEED_PER_RUN,rate:rate429,fetch:fetchQuality,seeds:{candidates:seedSelection.candidates,selected:seedSelection.selected,due:seedSelection.due}},'chore: collection quality');
 
   var aggregated = Object.keys(pop).reduce(function (s, k) { return s + pop[k].count; }, 0);
   var winBattles = Object.keys(win).reduce(function (s, k) { return s + win[k].count; }, 0);
@@ -2816,127 +2922,6 @@ async function updateDecks() {
     console.log('pol-elo-intel bands=' + Object.keys(byBand).length);
   } catch (e) { console.log('pol-elo-intel error ' + ((e && e.message) || e)); }
 
-  // ★10000〜14000トロフィー戦イベントDB：試合時点startingTrophiesで抽出し、7日分の軽量eventを保持。
-  try {
-    var evPath = ghSiblingPath_(ghPath, 'trophy-battle-events-v1.json');
-    var oldEv = (await readPrivateJson_(evPath)) || { events: [] };
-    // ★2026-08-11：ここでOOM(exit 134)になった。上限を800→2400へ上げた結果、
-    //   concat で「旧22万件＋今回分」の巨大配列を作ってから filter→sort していて、
-    //   中間配列がヒープを食い尽くしていた。
-    //   対策：concatをやめて1本の配列に押し込みつつ、その場で期限切れを捨てる
-    //   （中間配列を作らない）。旧配列の参照も早めに手放す。
-    var eventCut = now - 7 * 864e5;
-    var seenEv = {}, events = [];
-    var pushEv = function (e) {
-      if (!e || !e.id || seenEv[e.id]) return;
-      var t = parseBattleTimeMs_(e.battleTime);
-      if (!t || t < eventCut) return;             // 期限切れはこの時点で捨てる
-      seenEv[e.id] = 1; events.push(e);
-    };
-    (oldEv.events || []).forEach(pushEv);
-    oldEv.events = null; oldEv = null;            // 旧配列を手放す（GCが回収できるように）
-    trophyEventsNow.forEach(pushEv);
-    events.sort(function (a, b) { return parseBattleTimeMs_(b.battleTime) - parseBattleTimeMs_(a.battleTime); });
-
-    // ★保持を「全体で新しい順に上限」から「帯ごとに上限」へ変更（2026-08-02）。
-    //   全体上限だと試合数の多い帯（上位帯や人口の多い帯）が枠を食い尽くし、
-    //   静かな帯が押し出されて公開ラインを割る。実際 seed を 600→1000 に増やして
-    //   カバー帯が 40→44 に増えたのに、公開帯は 33→31 へ減った（合計がちょうど20000で頭打ち）。
-    //   帯ごとに配分すれば、どの帯も統計に足りる分だけ確実に残る。
-    // ★2026-08-11引き上げ：800→2400。全47帯が800の上限に張り付いていた＝統計が上限で頭打ちだった。
-    //   1帯2400試合あればカード別勝率も語れる。JSONは概算42MB（毎時読み書きで問題ない規模）。
-    var PER_BAND_KEEP = parseInt(prop('TROPHY_EVENT_KEEP_PER_BAND', '1600'), 10);
-    var TOTAL_KEEP = parseInt(prop('TROPHY_EVENT_KEEP', '80000'), 10);
-    var perBandCount = {}, keptEvents = [];
-    for (var ei = 0; ei < events.length && keptEvents.length < TOTAL_KEEP; ei++) {
-      var ev = events[ei];
-      var bk = Math.floor(ev.trophyMid / 300) * 300;
-      var c = perBandCount[bk] || 0;
-      if (c >= PER_BAND_KEEP) continue; // その帯はもう十分＝別の帯に枠を譲る
-      perBandCount[bk] = c + 1;
-      keptEvents.push(ev);
-    }
-    console.log('trophy-events 保持 ' + keptEvents.length + '/' + events.length +
-      '（帯ごと上限' + PER_BAND_KEEP + '・全体上限' + TOTAL_KEEP + '・帯数' + Object.keys(perBandCount).length + '）');
-    events = keptEvents;
-
-    function playerFromEvent_(e, side) {
-      var p = side === 'team' ? e.team : e.opponent;
-      return {
-        crowns: p.crowns,
-        kingTowerHitPoints: p.kingTowerHitPoints,
-        princessTowersHitPoints: p.princessTowersHitPoints,
-        elixirLeaked: p.elixirLeaked
-      };
-    }
-    function addEventSideStats_(map, key, e, side) {
-      var mine = playerFromEvent_(e, side), opp = playerFromEvent_(e, side === 'team' ? 'opponent' : 'team');
-      addPolStats_(map, key, mine, opp, mine.crowns, opp.crowns);
-    }
-    var cardAgg = {}, bandAgg = {}, triple = { known: 0, reached: 0, notReached: 0 };
-    events.forEach(function (e) {
-      var band = Math.floor(e.trophyMid / 300) * 300;
-      var bandKey = band + '-' + (band + 299);
-      var b = bandAgg[bandKey] || (bandAgg[bandKey] = { games: 0, cards: {} });
-      b.games++;
-      if (e.reachedTripleElixir === true) { triple.known++; triple.reached++; }
-      else if (e.reachedTripleElixir === false) { triple.known++; triple.notReached++; }
-      [['team', e.team], ['opponent', e.opponent]].forEach(function (pair) {
-        var side = pair[0], p = pair[1], unique = {};
-        (p.deck || []).forEach(function (name) {
-          if (unique[name]) return; unique[name] = 1;
-          addEventSideStats_(cardAgg, name, e, side);
-          var ba = b.cards[name] || (b.cards[name] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-          var tmp = {}; addEventSideStats_(tmp, name, e, side);
-          var v = tmp[name]; for (var i = 0; i < 15; i++) ba[i] += (v[i] || 0);
-        });
-      });
-    });
-    var byCard = {};
-    Object.keys(cardAgg).forEach(function (name) { var s = polSummary_(cardAgg[name]); if (s) byCard[name] = Object.assign({ name: name }, s); });
-    var byBand = {};
-    Object.keys(bandAgg).forEach(function (bk) {
-      var cards = {};
-      Object.keys(bandAgg[bk].cards).forEach(function (name) { var s = polSummary_(bandAgg[bk].cards[name]); if (s) cards[name] = Object.assign({ name: name }, s); });
-      byBand[bk] = { games: bandAgg[bk].games, cards: cards };
-    });
-    var trophyUpdated = new Date().toISOString();
-    try {
-      await writePrivateJson_(evPath,
-        { updated: trophyUpdated, windowDays: 7, trophyRange: { min: trophyEventMin, max: trophyEventMax },
-          count: events.length, duration: triple, events: events },
-        'chore: update trophy-battle-events-v1.json');
-    } catch (eRaw) { console.log('trophy-events raw write error ' + ((eRaw && eRaw.message) || eRaw)); }
-    try {
-      await writePrivateJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-v1.json'),
-        { updated: trophyUpdated, windowDays: 7, trophyRange: { min: trophyEventMin, max: trophyEventMax },
-          count: events.length, duration: triple, byCard: byCard, byBand: byBand },
-        'chore: update trophy-band-card-intel-v1.json');
-    } catch (eBand) { console.log('trophy-band-card-intel write error ' + ((eBand && eBand.message) || eBand)); }
-    // ★全トロフィー帯を集めるようにした結果、試合数の少ない帯が生まれる。
-    //   サンプル不足の帯をそのまま出すと誤った傾向を断定してしまうので、公開側は下限を設ける。
-    //   （非公開版 byBand は全帯そのまま残すので、後から窓を広げて再集計できる）
-    var BAND_MIN_GAMES = parseInt(prop('BAND_MIN_GAMES', '30'), 10);
-    var publicBand = {}, bandKept = 0, bandThin = 0;
-    Object.keys(byBand).forEach(function (bk) {
-      if (byBand[bk].games < BAND_MIN_GAMES) { bandThin++; return; }
-      publicBand[bk] = { games: byBand[bk].games, cards: publicPolMap_(byBand[bk].cards) };
-      bandKept++;
-    });
-    // 帯ごとの試合数を昇順で出す＝どの帯が埋まっていてどこが手薄かを毎ラン把握する
-    var bandDist = Object.keys(byBand)
-      .sort(function (a, b) { return parseInt(a, 10) - parseInt(b, 10); })
-      .map(function (bk) { return bk.split('-')[0] + ':' + byBand[bk].games; }).join(' ');
-    console.log('trophy-bands 公開=' + bandKept + ' 除外(サンプル不足<' + BAND_MIN_GAMES + ')=' + bandThin);
-    console.log('trophy-band 分布 ' + bandDist);
-    await writePublicJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-public-v1.json'),
-      { updated: trophyUpdated, version: 1, visibility: 'public-display', windowDays: 7,
-        trophyRange: { min: trophyEventMin, max: trophyEventMax }, count: events.length,
-        byCard: publicPolMap_(byCard), byBand: publicBand },
-      'chore: update trophy-band-card-intel-public-v1.json');
-    console.log('trophy-events ' + events.length + ' events / cards ' + Object.keys(byCard).length);
-  } catch (e) { console.log('trophy-events error ' + ((e && e.message) || e)); }
-
   // ★生試合liteは集計JSONと分けてR2へラン単位で永久保存。R2未設定なら静かにスキップ（GitHubへは出さない）。
   try {
     function dedupeEvents_(rows) {
@@ -3004,11 +2989,8 @@ async function updateDecks() {
     var SEED_MAX = parseInt(prop('SEED_MAX', '50000'), 10);
     var seedKeys = Object.keys(hist.oppSeeds);
     if (seedKeys.length > SEED_MAX) {
-      // 直近で見かけた順に残す＝鮮度の高い母集団を保持。
-      seedKeys.sort(function (a, b) { return (hist.oppSeeds[b].lastSeen || 0) - (hist.oppSeeds[a].lastSeen || 0); });
-      var keep = {};
-      seedKeys.slice(0, SEED_MAX).forEach(function (t) { keep[t] = hist.oppSeeds[t]; });
-      hist.oppSeeds = keep;
+      // Dense bands must not evict every candidate from quieter bands. Prefer recent sightings within each band.
+      hist.oppSeeds = retainSeeds(hist.oppSeeds, SEED_MAX);
     }
     console.log('opp seeds stored=' + Object.keys(hist.oppSeeds).length);
   } catch (e) { console.log('opp seed store error ' + ((e && e.message) || e)); }
@@ -3066,10 +3048,12 @@ async function updateDecks() {
   // ★先駆けタグ（オーナー）の個人試合を毎時ためる。他ユーザーのタグは対象外。
   await collectPilotTags_(CR_TOKEN);
 
+  await updateTrophyIntel_(trophyEventsNow, ghPath);
+
   console.log('✅ done. players3d=' + players3d + ' decks=' + W3D.decks.length + ' winDecks=' + W3D.winDecks.length);
 }
 
-updateDecks().catch(function (e) {
+if (require.main === module) (process.argv.includes('--trophy-backfill') ? updateTrophyIntel_() : updateDecks()).catch(function (e) {
   console.error('❌ collect failed: ' + ((e && e.stack) || e));
   process.exit(1);
 }).then(function () {
@@ -3088,3 +3072,5 @@ updateDecks().catch(function (e) {
   var r = spawnSync(process.execPath, [__filename], { env: env, stdio: 'inherit' });
   if (r.status) process.exit(r.status);
 });
+
+module.exports = {trophyEventIdentity_, parseBattleTimeMs_, updateTrophyIntel_};

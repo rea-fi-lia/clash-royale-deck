@@ -2,7 +2,7 @@ name: collect decks
 
 # CR Deck Builders のデータ収集（GitHub Actions 上の Node collector＝tools/collect.js）。
 # 方針：今後の収集・重い分析JSON生成はGASへ戻さず、Actions上のNode builderで行う。
-# 必要なもの：リポジトリ Secrets に CR_TOKEN（RoyaleAPI トークン）。GITHUB_TOKEN は自動。
+# 必要なもの：リポジトリ Secrets に CR_TOKEN（Supercell公式APIトークン、RoyaleAPI proxy経由）。GITHUB_TOKEN は自動。
 
 on:
   workflow_dispatch:        # 手動実行（検証はこれで回す）
@@ -19,6 +19,10 @@ on:
         description: '内部起動元（worker-cron等）'
         required: false
         default: ''
+      rebuild_trophy:
+        description: '保存済みトロフィー履歴の再集計だけを実行（ゲームAPIは呼ばない）'
+        type: boolean
+        default: false
   schedule:
     # 本命の毎時 :15 起動は Cloudflare Worker Cron から workflow_dispatch する。
     # GitHub Actions のscheduleは遅延/欠落があり得るため、ここでは保険の「起動チェック」だけを置く。
@@ -138,7 +142,13 @@ jobs:
           INTERVAL_HOURS: '1'
           WIN_MIN_GAMES_3D: '100'   # ★本番GASのスクリプトプロパティと一致（既定30を上書き運用中）。カットオーバー無風化。
           DECKS_PATH: 'decks.json'   # GITHUB_PATH は Actions 予約名のため使わない
-        run: node tools/collect.js
+          REBUILD_TROPHY: ${{ github.event.inputs.rebuild_trophy || 'false' }}
+        run: |
+          if [ "$REBUILD_TROPHY" = 'true' ]; then
+            TROPHY_BACKFILL_MS=1200000 node tools/collect.js --trophy-backfill
+          else
+            node tools/collect.js
+          fi
 
       # ★通知は .github/actions/notify に一本化してある。
       #   鳴らし方を変えたいときはあのファイル1枚を直せば全ワークフローに効く。
