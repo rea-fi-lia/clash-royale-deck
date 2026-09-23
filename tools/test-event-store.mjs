@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,rmSync,readFileSync} from 'node:fs';
+import {mkdtempSync,rmSync,readFileSync,copyFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {Readable} from 'node:stream';
 import {spawnSync} from 'node:child_process';
+import {DatabaseSync} from 'node:sqlite';
 import storeModule from './event-store.cjs';
 import collector from './collect.js';
 import schedule from './collector-schedule.cjs';
@@ -39,6 +40,21 @@ test('interrupted archive is retried without duplicate records or a false comple
     await s.db.ingest(Array.from({length:2100},(_,i)=>event(i)),source);
     assert.equal(s.db.count(),2100);assert.equal(s.db.hasSource(source),true);assert.equal(s.db.hasSource({...source,etag:'v2'}),false);
   }finally{s.close();}
+});
+test('legacy storage layout migrates without losing events or completed archives and checkpoints WAL on close',async()=>{
+  const dir=mkdtempSync(join(tmpdir(),'event-migration-')),path=join(dir,'db');let db;
+  try {
+    db=new DatabaseSync(path);
+    db.exec('CREATE TABLE events(id TEXT PRIMARY KEY,t INTEGER NOT NULL,payload TEXT NOT NULL) WITHOUT ROWID; CREATE TABLE sources(key TEXT PRIMARY KEY,etag TEXT NOT NULL) WITHOUT ROWID;');
+    db.prepare('INSERT INTO events VALUES(?,?,?)').run(trophyEventIdentity_(event(1)),parseBattleTimeMs_(event(1).battleTime),JSON.stringify(event(1)));
+    db.prepare('INSERT INTO sources VALUES(?,?)').run('archive','etag');db.close();
+    db=new EventStore(path,opts);assert.equal(db.count(),1);assert.equal(db.hasSource({key:'archive',etag:'etag'}),true);
+    assert.doesNotMatch(db.db.prepare("SELECT sql FROM sqlite_master WHERE name='events'").get().sql,/WITHOUT ROWID/i);
+    assert.equal((await db.ingest([event(1),event(2)])).added,1);db.close();db=null;
+    // Only the main database file is transferred in a snapshot, so it must contain committed WAL rows.
+    const snapshot=join(dir,'snapshot');copyFileSync(path,snapshot);
+    db=new EventStore(snapshot,opts);assert.equal(db.count(),2);assert.equal(db.hasSource({key:'archive',etag:'etag'}),true);
+  } finally {if(db)db.close();rmSync(dir,{recursive:true,force:true});}
 });
 test('R2 snapshot survives restart, archive pagination and day/window expiry',async()=>{
   const objects=new Map(), source='private/raw/events/2026-09-23/run-1.json';

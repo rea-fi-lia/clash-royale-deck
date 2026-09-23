@@ -1,7 +1,7 @@
 'use strict';
 // Disk-backed event transport/deduplication. No ranking or scoring formulas live here.
 const { DatabaseSync } = require('node:sqlite');
-const { createReadStream, createWriteStream, mkdtempSync, rmSync, statSync, chmodSync } = require('node:fs');
+const { createReadStream, createWriteStream, mkdtempSync, rmSync, statSync, chmodSync, renameSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { pipeline } = require('node:stream/promises');
@@ -38,11 +38,31 @@ async function* jsonItems(body, field = 'events') {
   throw new Error('truncated_event_array');
 }
 
+const EVENT_SCHEMA = 'CREATE TABLE IF NOT EXISTS events(id TEXT PRIMARY KEY NOT NULL, t INTEGER NOT NULL, payload TEXT NOT NULL); CREATE TABLE IF NOT EXISTS sources(key TEXT PRIMARY KEY, etag TEXT NOT NULL) WITHOUT ROWID;';
+function openEventDatabase(path) {
+  let db = new DatabaseSync(path);
+  // A random hash primary key in a WITHOUT ROWID table scatters the entire payload.
+  // Keep payloads in append order and the much smaller unique-key index separately.
+  if (/WITHOUT ROWID/i.test(db.prepare("SELECT sql FROM sqlite_master WHERE name='events'").get()?.sql || '')) {
+    const nextPath = path + '.next'; let next;
+    try {
+      next = new DatabaseSync(nextPath); chmodSync(nextPath, 0o600);
+      next.exec('PRAGMA cache_size=-131072; PRAGMA temp_store=FILE;' + EVENT_SCHEMA);
+      next.prepare('ATTACH DATABASE ? AS previous').run(path);
+      next.exec('BEGIN; INSERT INTO events SELECT id,t,payload FROM previous.events; INSERT INTO sources SELECT key,etag FROM previous.sources; COMMIT; DETACH DATABASE previous;');
+      next.close(); next = null; db.close(); db = null;
+      // Replace only after the complete copy closes successfully. The R2 snapshot stays intact.
+      renameSync(nextPath, path); db = new DatabaseSync(path);
+    } catch (err) { if (next) next.close(); if (db) db.close(); rmSync(nextPath,{force:true}); throw err; }
+  }
+  db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA wal_autocheckpoint=10000; PRAGMA cache_size=-131072; PRAGMA temp_store=FILE;');
+  db.exec(EVENT_SCHEMA + 'CREATE INDEX IF NOT EXISTS events_t ON events(t);');
+  return db;
+}
+
 class EventStore {
   constructor(path, { identity, time, cutoff, through = Date.now(), project = item => item }) {
-    this.db = new DatabaseSync(path); chmodSync(path, 0o600);
-    this.db.exec('PRAGMA journal_mode=DELETE; PRAGMA cache_size=-16384; PRAGMA temp_store=FILE;');
-    this.db.exec('CREATE TABLE IF NOT EXISTS events(id TEXT PRIMARY KEY, t INTEGER NOT NULL, payload TEXT NOT NULL) WITHOUT ROWID; CREATE INDEX IF NOT EXISTS events_t ON events(t); CREATE TABLE IF NOT EXISTS sources(key TEXT PRIMARY KEY, etag TEXT NOT NULL) WITHOUT ROWID;');
+    this.db = openEventDatabase(path); chmodSync(path, 0o600);
     this.db.prepare('DELETE FROM events WHERE t < ? OR t > ?').run(cutoff, through);
     this.identity = identity; this.time = time; this.cutoff = cutoff; this.through = through;
     this.project = project;
