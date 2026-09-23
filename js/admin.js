@@ -2,7 +2,7 @@ const $ = id => document.getElementById(id);
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const number = value => Number.isFinite(Number(value)) && value !== null && value !== undefined ? Number(value).toLocaleString('ja-JP', { maximumFractionDigits: 1 }) : '—';
 const time = value => value && Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString('ja-JP', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '未取得';
-const names = { ga4: 'GA4 レポート', realtime: 'GA4 リアルタイム', firebaseAuth: 'Firebase 登録者', firestore: 'Firestore 利用状況', adsense: 'AdSense', searchConsole: 'Search Console', x: 'X 投稿・反応', operations: 'GitHub / 収集', cloudflare: 'Cloudflare', stripe: 'Stripe' };
+const names = { collection: '試合データの品質', ga4: 'GA4 レポート', realtime: 'GA4 リアルタイム', firebaseAuth: 'Firebase 登録者', firestore: 'Firestore 利用状況', adsense: 'AdSense', searchConsole: 'Search Console', x: 'X 投稿・反応', operations: 'GitHub / 収集', cloudflare: 'Cloudflare', stripe: 'Stripe' };
 const instructions = {
   ga4: 'GA4の読み取り接続で、訪問者・PV・流入・ページ別の実数を表示します。',
   realtime: '過去30分のアクティブユーザーを、GA4から取得します。',
@@ -11,6 +11,7 @@ const instructions = {
   adsense: '読み取り接続で、サイト審査状況・見積収益・表示回数・注意事項を表示します。',
   searchConsole: '検索クリック・表示回数・掲載順位・検索語を取得します。',
   x: '投稿時刻・いいね・リポスト・返信を取得します。毎日投稿の実行元は別途接続します。',
+  collection: '帯別の保存数・鮮度・取得状況を確認します。',
   operations: '本番APIとGitHub Actions、収集マーカーの更新を確認します。',
   cloudflare: 'APIリクエスト・エラー・処理時間を取得します。',
   stripe: '読み取り専用の接続で、決済受付・審査制限・残高を表示します。'
@@ -84,6 +85,15 @@ function render(summary) {
   const jobStatus = run => !run ? '未取得' : run.status !== 'completed' ? '実行中・待機中' : run.conclusion === 'success' ? '成功' : run.conclusion || '不明';
   $('ops-data').innerHTML = ops ? `<div>${pill(ops.healthy ? '本番API 正常' : '本番API 要確認', ops.healthy ? 'good' : 'bad')} ${pill(ops.collectionOk ? '収集間隔 基準内' : '収集に要確認あり', ops.collectionOk ? 'good' : 'bad')}</div><div class="stats-grid">${stat('統計の最終更新', time(ops.collectionUpdatedAt))}${stat('直近24時間 / 収集', number(ops.collections24h), '回')}${stat('最大間隔 / 現在の待ち時間も含む', number(ops.maxGapMinutes), '分')}${stat('トロフィー帯', number(ops.bands), '/ 47')}</div><div class="table-wrap"><table><thead><tr><th>処理</th><th>状態</th><th>最終実行</th></tr></thead><tbody>${ops.latest.map(x => `<tr><td>${x.run ? `<a href="${escape(safeLink(x.run.url))}" target="_blank" rel="noopener">${escape(jobLabel[x.file] || x.file)} ↗</a>` : escape(jobLabel[x.file] || x.file)}</td><td>${pill(jobStatus(x.run), x.run?.conclusion === 'success' ? 'good' : '')}</td><td>${time(x.run?.startedAt)}</td></tr>`).join('')}</tbody></table></div><p class="note">${escape(ops.note)}<br>${escape(sourceMeta(sources.operations))}</p>` : empty('operations', sources.operations);
   const requests = cf?.groups.reduce((sum, x) => sum + Number(x.sum?.requests || 0), 0), errors = cf?.groups.reduce((sum, x) => sum + Number(x.sum?.errors || 0), 0);
+  const collection = data('collection');
+  if (collection) {
+    const q=collection.quality||{}, c=collection.coverage||{};
+    const weak=[...(collection.bands||[])].sort((a,b)=>b.weight-a.weight||(a.games24h??a.games??Infinity)-(b.games24h??b.games??Infinity));
+    const rows=items=>table(['帯 / トロフィー平均','7日 / 実試合','24時間 / 実試合','取得成功 / 選択','次回の配分係数','確認事項'],items.map(b=>[
+      `${number(b.lower)}–${number(b.upper)}`,number(b.games),number(b.games24h),`${number(b.fetch?.succeeded)} / ${number(b.selected)}`,`${b.weight}×`,b.reasons.join('・')||'通常巡回'
+    ]));
+    $('ops-data').innerHTML += `<div class="section-sub"><h3>試合データの品質と収集配分</h3>${pill(collection.state==='ready'&&collection.reportAgeMinutes<=15?'保存標本の照合完了':'更新・照合を確認',collection.state==='ready'&&collection.reportAgeMinutes<=15?'good':'warn')}<div class="stats-grid">${stat('7日 / 重複除去済み',number(collection.count),'試合')}${stat('未処理の保存アーカイブ',number(c.remaining),'件')}${stat('直近ログの押し出し疑い',number(q.possibleRollover),'取得先')}${stat('前回成功時刻との比較可能',number(q.baselineKnown),'取得先')}${stat('未知カード等の保留',number(q.quarantined),'観測')}${stat('公式ログ原本',q.journal?number(q.journal.responses):'準備中','応答')}</div><p class="note">収集 ${time(collection.qualityUpdated)} · 集計 ${time(collection.windowUpdated)}<br>前回成功以降のログ観測 ${number(q.newLogObservations)} 件（サイト全体の純新規試合数ではありません）。<br>配分適用元 ${time(collection.planAppliedAt)} · 下表は次回の配分に使う係数です。</p><h4>優先して確認・強化する帯</h4>${rows(weak.slice(0,8))}<details class="raw"><summary>全47帯を確認</summary>${rows(collection.bands||[])}</details><p class="note">${escape(collection.note)}</p><h4>RoyaleAPIとの比較</h4><p class="note">${escape(collection.comparison?.reason||collection.comparison?.note||'比較準備中')}<br>RoyaleAPIの件数との差を、そのままCRDBの未取得試合数とは扱いません。</p></div>`;
+  } else $('ops-data').innerHTML += `<div class="section-sub"><h3>試合データの品質</h3>${empty('collection',sources.collection)}</div>`;
   $('cf-data').innerHTML = cf ? `<div class="stats-grid">${stat('リクエスト / 24時間', number(requests))}${stat('エラー / 24時間', number(errors))}</div><p class="note">${escape(cf.note)}<br>${escape(sourceMeta(sources.cloudflare))}</p>` : empty('cloudflare', sources.cloudflare);
   const connected = Object.values(sources).filter(x => x.status === 'connected').length;
   $('connection-count').textContent = `${connected} / ${Object.keys(names).length} 接続`;

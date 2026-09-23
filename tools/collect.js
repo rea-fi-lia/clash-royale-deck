@@ -47,6 +47,8 @@ const crypto = require('crypto');
 const { createReadStream } = require('node:fs');
 const { finished } = require('node:stream/promises');
 const { openRollingStore } = require('./event-store.cjs');
+const { BattleLogJournal } = require('./battle-log-journal.cjs');
+const { createTelemetry, group: telemetryGroup, observeLog } = require('./collection-telemetry.cjs');
 const { UnmappedCardStore } = require('./unmapped-card-store.cjs');
 const { selectSeeds, noteAttempt, seedBand, retainSeeds, retainBookmarks } = require('./collector-schedule.cjs');
 
@@ -407,7 +409,7 @@ async function collectPilotTags_(token) {
     var names = [], forms = '';
     for (var i = 0; i < side.cards.length; i++) {
       var jp = apiCardToJp(side.cards[i]);
-      if (!jp) return null;                   // 未対応カードが混じる試合は捨てる
+      if (!jp || (side.cards[i].evolutionLevel || 0)>2) return null; // 未知のカード・形態は原本に残して解釈を保留
       names.push(jp); forms += formOf(side.cards[i]);
     }
     return { names: names, forms: forms };
@@ -417,7 +419,9 @@ async function collectPilotTags_(token) {
     var tag = tags[ti];
     try {
       var log = await crGet('/players/%23' + tag + '/battlelog', token);
-      if (!log || !log.length) { console.log('pilot ' + tag + ' battlelog空'); continue; }
+      if (!Array.isArray(log)) throw Error('invalid_registered_battlelog');
+      if(!await writePrivateRunArchive_('registered-battlelogs-v1/part-'+ti,{updated:new Date().toISOString(),observations:[{tag,population:'registered',battles:log}]}))throw Error('registered_original_not_saved');
+      if (!log.length) { console.log('pilot ' + tag + ' battlelog空'); continue; }
       var path = 'me/' + tag + '.json';
       var store = null;
       try { store = await r2ReadJson_(path); } catch (e) {}
@@ -560,6 +564,7 @@ async function writePrivateRunArchive_(kind, obj) {
   var ts = now.toISOString().replace(/[:-]|\.\d{3}/g, '').replace('Z', 'Z');
   var runId = prop('GITHUB_RUN_ID', '') || ts;
   var key = 'raw/' + kind + '/' + day + '/run-' + runId + '-' + ts + '.json';
+  obj = Object.assign({schemaVersion:2, collectorCommit:prop('GITHUB_SHA','local'), runId:runId, catalogueRevision:require('../catalogue/manifest.json').revision},obj);
   await r2WriteJson_(key, obj);
   await r2WriteJson_('raw/' + kind + '/latest-run.json', Object.assign({ archiveKey: r2ObjectKey_(key) }, obj));
   console.log('R2 raw archive ' + r2ObjectKey_(key));
@@ -931,12 +936,17 @@ async function updateTrophyIntel_(trophyEventsNow = [], ghPath = GH_PATH) {
       var mine = playerFromEvent_(e, side), opp = playerFromEvent_(e, side === 'team' ? 'opponent' : 'team');
       addPolStats_(map, key, mine, opp, mine.crowns, opp.crowns);
     }
+    var windowBands = {}, dayKeys = {};
     var cardAgg = {}, bandAgg = {}, triple = { known: 0, reached: 0, notReached: 0 };
-    for (const e of rolling.store.events()) {
+    for (const {event:e,time} of rolling.store.timedEvents()) {
       var band = Math.floor(e.trophyMid / 300) * 300;
       var bandKey = band + '-' + (band + 299);
       var b = bandAgg[bandKey] || (bandAgg[bandKey] = { games: 0, cards: {} });
       b.games++;
+      const wb = windowBands[band] ||= {games:0,games24h:0,latestTime:0,days:{}};
+      wb.games++; if(time>=now-864e5)wb.games24h++;
+      const dayNumber=Math.floor(time/864e5), day=dayKeys[dayNumber] ||= new Date(dayNumber*864e5).toISOString().slice(0,10); wb.days[day]=(wb.days[day]||0)+1;
+      wb.latestTime=Math.max(wb.latestTime,time);
       if (e.reachedTripleElixir === true) { triple.known++; triple.reached++; }
       else if (e.reachedTripleElixir === false) { triple.known++; triple.notReached++; }
       [['team', e.team], ['opponent', e.opponent]].forEach(function (pair) {
@@ -958,9 +968,11 @@ async function updateTrophyIntel_(trophyEventsNow = [], ghPath = GH_PATH) {
       Object.keys(bandAgg[bk].cards).forEach(function (name) { var s = polSummary_(bandAgg[bk].cards[name]); if (s) cards[name] = Object.assign({ name: name }, s); });
       byBand[bk] = { games: bandAgg[bk].games, cards: cards };
     });
+    for(const b of Object.values(windowBands)){b.latestBattleAt=new Date(b.latestTime).toISOString();delete b.latestTime;}
     var trophyUpdated = new Date().toISOString();
     // Commit the durable input before publishing derived results. A failed upload never replaces the last good output.
     const snapshotBytes = await rolling.save();
+    await r2WriteJson_('collection/window-v1.json',{version:1,updated:trophyUpdated,mode:'trophy-road',bandDefinition:'mean-starting-trophies-300',unit:'unique-battles',count:eventCount,coverage,bands:windowBands});
     console.log('trophy-store unique=' + eventCount + ' archives=' + coverage.processed + '/' + coverage.archives + ' snapshotBytes=' + snapshotBytes);
     try {
       await writePrivateJson_(ghSiblingPath_(ghPath, 'trophy-band-card-intel-v1.json'),
@@ -1541,7 +1553,9 @@ async function updateDecks() {
   console.log('clan-crawl countries=' + clanStats.countries + ' clans=' + clanStats.clans + ' newPlayers=' + clanStats.found);
 
   // 300刻みで表示帯と収集帯を合わせる。取得件数・速度の予算は別に維持する。
-  const seedSelection = selectSeeds(hist.oppSeeds, TAGSET, SEED_PER_RUN, Date.now());
+  let collectionPlan=null;
+  try { collectionPlan=await r2ReadJson_('collection/plan-v1.json'); } catch { console.log('collection-plan unavailable; balanced scheduling'); }
+  const seedSelection = selectSeeds(hist.oppSeeds, TAGSET, SEED_PER_RUN, Date.now(), collectionPlan);
   var picked = seedSelection.picked;
   var seedTags = picked.map(function (t) { return '#' + t; });
   console.log('seeds total=' + Object.values(seedSelection.candidates).reduce((n,v)=>n+v,0) + ' fetchingThisRun=' + seedTags.length + ' due=' + seedSelection.due);
@@ -1552,12 +1566,18 @@ async function updateDecks() {
   //   実測: 単発バーストは同時80件まで成功・85件で429。ただし同時70件を連続すると3ラウンド目で429が多発
   //   ＝瞬間値は出せても持続できない。よってチャンクごとの待機と429時の追加待機で自律的に減速する。
   var rate429 = { hits: 0, retried: 0, gaveUp: 0, extraWaitMs: 0 };
+  const telemetry=createTelemetry();
+  hist.trackedFetch ||= {};
+  const journal=new BattleLogJournal({source:{provider:'supercell-official',endpoint:'battlelog',proxy:PROXY,collectorCommit:prop('GITHUB_SHA','local'),catalogueRevision:require('../catalogue/manifest.json').revision,runId:prop('GITHUB_RUN_ID','local')}});
+  let journalSaved=null;
   var fetchQuality = {requested:0, apiCalls:0, succeeded:0, failed:0, fullLogs:0, possibleRollover:0, byBand:{}};
   async function fetchTags(tags, seedMode) {
     var got = [];
     for (var off = 0; off < tags.length; off += CHUNK) {
       var slice = tags.slice(off, off + CHUNK);
       fetchQuality.requested += slice.length;
+      const requestBands=Object.fromEntries(slice.map(t=>[t,seedMode?seedBand(hist.oppSeeds[t.replace(/^#/,'')]):'ranked-top1000']));
+      for(const t of slice)telemetryGroup(telemetry,requestBands[t]).requested++;
       if(seedMode) noteAttempt(hist.oppSeeds, slice, Date.now());
       var pending = slice.slice();
       // 429・一時的なサーバー/通信失敗だけ最大3回再試行する（成功分は再取得しない）。
@@ -1566,22 +1586,29 @@ async function updateDecks() {
         var resps = await Promise.all(pending.map(function (t) {
           return fetch(PROXY + '/players/' + encodeURIComponent(t) + '/battlelog', { headers: headers, signal: AbortSignal.timeout(20000) })
             .then(async function (r) {
-              if (r.status === 200) return { ok: true, body: await r.json() };
+              if (r.status === 200) { const body=await r.json(); return Array.isArray(body)?{ok:true,body}:{ok:false,status:502,body:null}; }
               return { ok: false, body: null, status: r.status, retryAfter: retryAfterMs_(r.headers.get('retry-after')) / 1000 };
             })
             .catch(function () { return { ok: false, body: null, status: 0 }; });
         }));
         var next = [], maxRa = 0;
+        for(const [i,res] of resps.entries())if(res.ok)journal.add({tag:pending[i],population:seedMode?'trophy-candidates':'ranked-top1000',fetchedAt:new Date().toISOString(),battles:res.body});
         resps.forEach(function (res, i) {
+          const statusGroup=telemetryGroup(telemetry,requestBands[pending[i]]);
+          const status=res.ok?'200':String(res.status); statusGroup.statuses[status]=(statusGroup.statuses[status]||0)+1;
           if (res.ok) {
+            const fetchedAt=Date.now();
             got.push(pending[i]); fetchQuality.succeeded++;
             const tag = pending[i].replace(/^#/,''), seed = seedMode && hist.oppSeeds[tag];
             const logs = Array.isArray(res.body) ? res.body : [];
+            const previousOk=seed?seed.lastOk:hist.trackedFetch[tag];
+            const logWindowMs=observeLog(telemetry,requestBands[pending[i]],logs,previousOk,fetchedAt,parseBattleTimeMs_);
+            if(!seedMode)hist.trackedFetch[tag]=fetchedAt;
             const times = logs.map(b=>parseBattleTimeMs_(b.battleTime)).filter(Boolean);
             if(logs.length>=25) fetchQuality.fullLogs++;
-            if(seed?.lastOk && logs.length>=25 && times.length && Math.min(...times)>seed.lastOk) fetchQuality.possibleRollover++;
+            if(previousOk && logs.length>=25 && times.length===logs.length && Math.min(...times)>previousOk) fetchQuality.possibleRollover++;
             if(seed) {
-              seed.lastOk=Date.now(); seed.lastStatus=200;
+              seed.lastOk=fetchedAt; seed.lastStatus=200; seed.logWindowMs=logWindowMs;
               const road=logs.find(b=>['ladder_pvp','ladder_trail'].includes(modeBucketOf(b.type,b.gameMode?.name)));
               if(road){seed.lastBattle=parseBattleTimeMs_(road.battleTime); const p=road.team?.[0]; if(Number.isFinite(p?.startingTrophies))seed.tr=p.startingTrophies+(Number.isFinite(p.trophyChange)?p.trophyChange:0);}
               const band=seedBand(seed); fetchQuality.byBand[band]=(fetchQuality.byBand[band]||0)+1;
@@ -1605,16 +1632,21 @@ async function updateDecks() {
     return got;
   }
 
-  var got1 = await fetchTags(allTags);
-  var miss = allTags.filter(function (t) { return got1.indexOf(t) < 0; });
-  if (miss.length) { await sleep(1200); await fetchTags(miss); }
-  console.log('typeSeen ' + JSON.stringify(typeSeen));
-  // ★seed（Top1000以外）を少しずつ追加収集。PoLメタは汚さず、trophy eventのみ拾う。
-  if (seedTags.length) {
-    try {
+  try {
+    var got1 = await fetchTags(allTags);
+    var miss = allTags.filter(function (t) { return got1.indexOf(t) < 0; });
+    if (miss.length) { await sleep(1200); await fetchTags(miss); }
+    console.log('typeSeen ' + JSON.stringify(typeSeen));
+    if (seedTags.length) {
       var gotSeed = await fetchTags(seedTags, true);
       console.log('seed fetched=' + gotSeed.length + '/' + seedTags.length);
-    } catch (e) { console.log('seed fetch error ' + ((e && e.message) || e)); }
+    }
+  } finally {
+    // Persist original responses even if interpretation fails; never advance bookmarks on failure.
+    const run=prop('GITHUB_RUN_ID','local')+'-'+prop('GITHUB_RUN_ATTEMPT','1')+'-'+Date.now();
+    journalSaved=await journal.flush({prefix:'raw/api-battlelogs-v1/'+new Date().toISOString().slice(0,10)+'/'+run,
+      putFile:async(key,file,part)=>{for(let attempt=0;attempt<3;attempt++){try{const r=await r2Request_('PUT',key,null,'application/gzip',{file,payloadHash:part.sha256,length:part.bytes});if(r.ok)return true;}catch{}await sleep(500*(attempt+1));}throw Error('battlelog_journal_upload_failed');},
+      putManifest:(key,value)=>r2WriteJson_(key,value)});
   }
 
   // ★レート制限の当たり具合を毎ラン可視化する。hits>0 なら速すぎる＝CHUNKを下げるか待機を伸ばす判断材料。
@@ -1623,12 +1655,42 @@ async function updateDecks() {
 
   fetchQuality.failed = fetchQuality.requested-fetchQuality.succeeded;
   console.log('fetch-quality ' + JSON.stringify(fetchQuality));
-  await writePrivateJson_('collection-quality-v1.json',{updated:new Date().toISOString(),requestBudget:SEED_PER_RUN,rate:rate429,fetch:fetchQuality,seeds:{candidates:seedSelection.candidates,selected:seedSelection.selected,due:seedSelection.due}},'chore: collection quality');
+  for(const g of Object.values(telemetry.groups))g.failed=g.requested-g.succeeded;
+  const collectionQuality={version:2,updated:new Date().toISOString(),requestBudget:SEED_PER_RUN,rate:rate429,fetch:fetchQuality,telemetry,journal:journalSaved,quarantined:unmappedArchive.count,seeds:{candidates:seedSelection.candidates,selected:seedSelection.selected,due:seedSelection.due,planUpdated:seedSelection.planUpdated}};
 
   var aggregated = Object.keys(pop).reduce(function (s, k) { return s + pop[k].count; }, 0);
   var winBattles = Object.keys(win).reduce(function (s, k) { return s + win[k].count; }, 0);
   console.log('ranking ' + players.length + ' / players(pop) ' + aggregated + ' / win-battles ' + winBattles + ' / unmapped ' + JSON.stringify(unmapped));
   await unmappedArchive.flush((part,observations)=>writePrivateRunArchive_('unmapped-card-battles-v1/part-'+part,{updated:new Date().toISOString(),observations}));
+  // Save interpreted records before heavy aggregation. Full official responses are already journaled above.
+  try {
+    function dedupeEvents_(rows) {
+      var seen = {}, out = [];
+      (rows || []).forEach(function (e) {
+        const id=trophyEventIdentity_(e)||e?.id;
+        if (!id || seen[id]) return;
+        seen[id] = 1; out.push(e);
+      });
+      return out;
+    }
+    if (rankedDeckObservations.length) await writePrivateRunArchive_('ranked-deck-observations-v1', {updated:new Date().toISOString(),source:rankingSource,population:'top1000-latest-ranked-deck',observations:rankedDeckObservations});
+    var rawRanked = dedupeEvents_(rawBattleEventsNow);
+    if (rawRanked.length) await writePrivateRunArchive_('ranked-battle-events-v1', {
+      updated: new Date().toISOString(), source: rankingSource, window: 'latest-run', count: rawRanked.length, events: rawRanked
+    });
+    var rawTrophy = dedupeEvents_(trophyEventsNow);
+    if (rawTrophy.length) await writePrivateRunArchive_('trophy-battle-events-v1', {
+      updated: new Date().toISOString(), source: rankingSource, window: 'latest-run',
+      trophyRange: { min: trophyEventMin, max: trophyEventMax }, count: rawTrophy.length, events: rawTrophy
+    });
+  } catch (e) { throw new Error('raw_archive_not_saved: ' + ((e && e.message) || e)); }
+
+  collectionQuality.archived={trophy:rawTrophy.length,ranked:rawRanked.length};
+  collectionQuality.trackedPlayersWithBaseline=Object.keys(hist.trackedFetch).length;
+  await writePrivateRunArchive_('collection-quality-v2',collectionQuality);
+  await r2WriteJson_('collection-quality-v1.json',collectionQuality);
+  hist.trackedFetch=Object.fromEntries(Object.entries(hist.trackedFetch).filter(([,t])=>t>Date.now()-7*864e5));
+
   if (!Object.keys(pop).length) throw new Error('集計0件 unmapped=' + JSON.stringify(unmapped)); // API失敗時は履歴を汚さない
 
   // ---- デッキ確定（形＋ゲームと同じスロット配置）。pop/win共通 ----
@@ -2877,28 +2939,6 @@ async function updateDecks() {
       'chore: update pol-elo-intel-v1.json');
     console.log('pol-elo-intel bands=' + Object.keys(byBand).length);
   } catch (e) { console.log('pol-elo-intel error ' + ((e && e.message) || e)); }
-
-  // ★生試合liteは集計JSONと分けてR2へラン単位で永久保存。R2未設定なら静かにスキップ（GitHubへは出さない）。
-  try {
-    function dedupeEvents_(rows) {
-      var seen = {}, out = [];
-      (rows || []).forEach(function (e) {
-        if (!e || !e.id || seen[e.id]) return;
-        seen[e.id] = 1; out.push(e);
-      });
-      return out;
-    }
-    if (rankedDeckObservations.length) await writePrivateRunArchive_('ranked-deck-observations-v1', {updated:new Date().toISOString(),source:rankingSource,population:'top1000-latest-ranked-deck',observations:rankedDeckObservations});
-    var rawRanked = dedupeEvents_(rawBattleEventsNow);
-    if (rawRanked.length) await writePrivateRunArchive_('ranked-battle-events-v1', {
-      updated: new Date().toISOString(), source: rankingSource, window: 'latest-run', count: rawRanked.length, events: rawRanked
-    });
-    var rawTrophy = dedupeEvents_(trophyEventsNow);
-    if (rawTrophy.length) await writePrivateRunArchive_('trophy-battle-events-v1', {
-      updated: new Date().toISOString(), source: rankingSource, window: 'latest-run',
-      trophyRange: { min: trophyEventMin, max: trophyEventMax }, count: rawTrophy.length, events: rawTrophy
-    });
-  } catch (e) { throw new Error('raw_archive_not_saved: ' + ((e && e.message) || e)); }
 
   // ★API棚卸し：観測した type/gameMode を bucket 分類して保存（混ぜず将来別集計の土台）
   try {

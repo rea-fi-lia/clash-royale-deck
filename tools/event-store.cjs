@@ -68,7 +68,7 @@ class EventStore {
     this.project = project;
     this.put = this.db.prepare('INSERT OR IGNORE INTO events VALUES(?,?,?)');
     // Retain the statement while its iterator is active (Node 22.15 may otherwise finalize it during GC).
-    this.scan = this.db.prepare('SELECT payload FROM events');
+    this.scan = this.db.prepare('SELECT t, payload FROM events');
   }
   async ingest(items, source) {
     let observed = 0, added = 0, excluded = 0;
@@ -87,6 +87,7 @@ class EventStore {
   }
   hasSource(source) { return this.db.prepare('SELECT etag FROM sources WHERE key=?').get(source.key)?.etag === (source.etag || ''); }
   count() { return this.db.prepare('SELECT count(*) AS n FROM events').get().n; }
+  *timedEvents() { for (const row of this.scan.iterate()) yield {time: row.t, event: JSON.parse(row.payload)}; }
   *events() { for (const row of this.scan.iterate()) yield JSON.parse(row.payload); }
   close() { this.db.close(); }
 }

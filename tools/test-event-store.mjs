@@ -122,6 +122,7 @@ test('collector publishes all retained rows and does not overwrite output when s
       const key='private/trophy-band-card-intel-public-v1.json', good=objects.get(key);
       const result=JSON.parse(good);assert.equal(result.count,2101);assert.equal(result.byBand['7200-7499'].games,2101);assert.equal(result.coverage.state,'complete');assert.equal(result.coverage.countLimit,null);
       assert.equal(JSON.stringify(result).includes('battleTime'),false);assert.equal(result.byCard.a.games,4202);assert.equal(result.byCard.a.wr,50);
+      const window=JSON.parse(objects.get('private/collection/window-v1.json'));assert.equal(window.count,2101);assert.equal(window.bands['7200'].games24h,2101);assert.equal(Object.values(window.bands['7200'].days).reduce((a,b)=>a+b,0),2101);
       fail=true;await assert.rejects(updateTrophyIntel_(),/snapshot_write/);assert.deepEqual(objects.get(key),good);
     })().catch(e=>{console.error(e);process.exitCode=1;});
   `;

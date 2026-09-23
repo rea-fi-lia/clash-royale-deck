@@ -1,4 +1,5 @@
 name: collect decks
+run-name: ${{ inputs.quiet_verification && 'verify collection (no notifications)' || 'collect decks' }}
 
 # CR Deck Builders のデータ収集（GitHub Actions 上の Node collector＝tools/collect.js）。
 # 方針：今後の収集・重い分析JSON生成はGASへ戻さず、Actions上のNode builderで行う。
@@ -19,6 +20,10 @@ on:
         description: '内部起動元（worker-cron等）'
         required: false
         default: ''
+      quiet_verification:
+        description: '通常収集を検証し、今回だけ通知と自動修理の連鎖を止める（本番データは更新）'
+        type: boolean
+        default: false
       rebuild_trophy:
         description: '保存済みトロフィー履歴の再集計だけを実行（ゲームAPIは呼ばない）'
         type: boolean
@@ -150,7 +155,7 @@ jobs:
       # ★通知は .github/actions/notify に一本化してある。
       #   鳴らし方を変えたいときはあのファイル1枚を直せば全ワークフローに効く。
       - name: 結果を通知
-        if: always()
+        if: always() && inputs.quiet_verification != true
         uses: ./.github/actions/notify
         with:
           status: ${{ job.status }}

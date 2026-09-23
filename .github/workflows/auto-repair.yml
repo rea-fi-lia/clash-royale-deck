@@ -41,7 +41,7 @@ permissions:
 jobs:
   repair:
     # 手動のカード更新検証で、外部AIの修理や送信を連鎖させない。
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.name != 'build card stats' || github.event.workflow_run.event != 'workflow_dispatch'
+    if: github.event_name != 'workflow_run' || (!startsWith(github.event.workflow_run.display_title, 'verify collection (no notifications)') && (github.event.workflow_run.name != 'build card stats' || github.event.workflow_run.event != 'workflow_dispatch'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
     # ★secrets は step の if では参照できない。鍵の有無だけをjobレベルのenvに上げておく
