@@ -62,3 +62,14 @@ test('invalid or rolled calendar dates cannot advance processing bookmarks',()=>
  assert.equal(collector.parseBattleTimeMs_('20260923T120000.000Z'),now);
  assert.equal(collector.parseBattleTimeMs_('20260923T120000Z'),now);
 });
+
+test('fresh discoveries cannot evict the entire verified panel and verified players cannot suppress all discoveries',()=>{
+ const seeds={};for(let i=0;i<80;i++)seeds['old'+i]={tr:9000,lastOk:now-1000,lastSeen:now-100000};
+ for(let i=0;i<1000;i++)seeds['new'+i]={tr:9000,lastSeen:now,lastFetch:0};
+ const keys=Object.keys(schedule.retainSeeds(seeds,100,now));assert.equal(keys.length,100);assert.equal(keys.filter(k=>k.startsWith('old')).length,60);assert.equal(keys.filter(k=>k.startsWith('new')).length,40);
+});
+test('observed log sizes are retained and overlap monitoring works when the API changes its response length',()=>{
+ const t=telemetry.createTelemetry(),log=n=>Array.from({length:n},(_,i)=>({battleTime:now-1000-i}));
+ for(const n of [20,30,32,80])telemetry.observeLog(t,'9000',log(n),now-3600000,now,Number,now-7200000);
+ assert.deepEqual(t.groups[9000].logSizes,{'20':1,'30':1,'32':1,'80':1});assert.equal(t.groups[9000].noOverlap,4);assert.equal(t.groups[9000].possibleRollover,4);
+});

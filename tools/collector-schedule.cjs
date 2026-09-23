@@ -45,9 +45,24 @@ function selectSeeds(seeds, exclude, budget, now, plan = null) {
   return {picked, planUpdated:validPlan?plan.updated:null, candidates:Object.fromEntries(Object.entries(bands).map(([k,v])=>[k,v.length])), selected:counts, due:Object.values(eligible).reduce((n,v)=>n+v.length,0)};
 }
 function noteAttempt(seeds, tags, now) { for(const raw of tags){const seed=seeds[String(raw).replace(/^#/,'')];if(seed)seed.lastFetch=now;} }
-function retainSeeds(seeds,budget) {
+function retainSeeds(seeds,budget,now=Date.now()) {
   const bands={}; for(const [tag,seed] of Object.entries(seeds))(bands[seedBand(seed)]||=[]).push(tag);
-  for(const tags of Object.values(bands))tags.sort((a,b)=>(seeds[b].lastSeen||0)-(seeds[a].lastSeen||0)||a.localeCompare(b));
+  for(const [band,tags] of Object.entries(bands)){
+    const recent=tags.slice().sort((a,b)=>(seeds[b].lastSeen||0)-(seeds[a].lastSeen||0)||a.localeCompare(b));
+    const tracked=tags.filter(t=>seeds[t].lastOk>now-48*3600000).sort((a,b)=>seeds[b].lastOk-seeds[a].lastOk||a.localeCompare(b));
+    const used=new Set(),ordered=[];let ri=0,ti=0;
+    function take(list,kind){
+      let i=kind==='tracked'?ti:ri;while(i<list.length&&used.has(list[i]))i++;
+      const tag=list[i++];if(kind==='tracked')ti=i;else ri=i;
+      if(tag===undefined)return false;used.add(tag);ordered.push(tag);return true;
+    }
+    // Keep a stable recently verified panel as well as fresh discoveries; neither can evict all of the other.
+    while(ordered.length<tags.length){
+      if(ordered.length%5<3){if(!take(tracked,'tracked'))take(recent,'recent');}
+      else if(!take(recent,'recent'))take(tracked,'tracked');
+    }
+    bands[band]=ordered;
+  }
   const out={},groups=Object.values(bands);let count=0;
   for(let i=0;count<budget;i++){let more=false;for(const tags of groups){if(tags[i]){out[tags[i]]=seeds[tags[i]];count++;more=true;}if(count>=budget)break;}if(!more)break;}
   return out;

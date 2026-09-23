@@ -1571,6 +1571,7 @@ async function updateDecks() {
   var rate429 = { hits: 0, retried: 0, gaveUp: 0, extraWaitMs: 0 };
   const telemetry=createTelemetry();
   hist.trackedFetch ||= {};
+  hist.trackedLogNewest ||= {};
   const journal=new BattleLogJournal({source:{provider:'supercell-official',endpoint:'battlelog',proxy:PROXY,collectorCommit:prop('GITHUB_SHA','local'),catalogueRevision:require('../catalogue/manifest.json').revision,runId:prop('GITHUB_RUN_ID','local')}});
   let journalSaved=null;
   var fetchQuality = {requested:0, apiCalls:0, succeeded:0, failed:0, fullLogs:0, possibleRollover:0, byBand:{}};
@@ -1606,13 +1607,14 @@ async function updateDecks() {
             const tag = pending[i].replace(/^#/,''), seed = seedMode && hist.oppSeeds[tag];
             const logs = Array.isArray(res.body) ? res.body : [];
             const previousOk=seed?seed.lastOk:hist.trackedFetch[tag];
-            const logWindowMs=observeLog(telemetry,requestBands[pending[i]],logs,previousOk,fetchedAt,parseBattleTimeMs_);
+            const logWindowMs=observeLog(telemetry,requestBands[pending[i]],logs,previousOk,fetchedAt,parseBattleTimeMs_,seed?seed.lastLogNewest:hist.trackedLogNewest[tag]);
             if(!seedMode)hist.trackedFetch[tag]=fetchedAt;
             const times = logs.map(b=>parseBattleTimeMs_(b?.battleTime)).filter(t=>t>0&&t<=fetchedAt);
+            if(times.length){const newest=Math.max(...times);if(seed)seed.lastLogNewest=Math.max(seed.lastLogNewest||0,newest);else hist.trackedLogNewest[tag]=Math.max(hist.trackedLogNewest[tag]||0,newest);}
             if(logs.length>=25) fetchQuality.fullLogs++;
             if(previousOk && logs.length>=25 && times.length===logs.length && Math.min(...times)>previousOk) fetchQuality.possibleRollover++;
             if(seed) {
-              seed.lastOk=fetchedAt; seed.lastStatus=200; seed.logWindowMs=logWindowMs;
+              seed.lastOk=fetchedAt; seed.lastSeen=fetchedAt; seed.lastStatus=200; seed.logWindowMs=logWindowMs;
               const road=logs.find(b=>['ladder_pvp','ladder_trail'].includes(modeBucketOf(b?.type,b?.gameMode?.name)));
               if(road){seed.lastBattle=parseBattleTimeMs_(road.battleTime); const p=road.team?.[0]; if(Number.isFinite(p?.startingTrophies))seed.tr=p.startingTrophies+(Number.isFinite(p.trophyChange)?p.trophyChange:0);}
               const band=seedBand(seed); fetchQuality.byBand[band]=(fetchQuality.byBand[band]||0)+1;
@@ -1657,6 +1659,7 @@ async function updateDecks() {
   console.log('rate-limit 429hits=' + rate429.hits + ' 再試行=' + rate429.retried + ' 諦め=' + rate429.gaveUp +
     ' 追加待機=' + Math.round(rate429.extraWaitMs / 1000) + 's | chunk=' + CHUNK + ' sleep=' + CHUNK_SLEEP + 'ms');
 
+  fetchQuality.possibleRollover=Object.values(telemetry.groups).reduce((n,g)=>n+g.possibleRollover,0);
   fetchQuality.failed = fetchQuality.requested-fetchQuality.succeeded;
   console.log('fetch-quality ' + JSON.stringify(fetchQuality));
   for(const g of Object.values(telemetry.groups))g.failed=g.requested-g.succeeded;
@@ -1694,6 +1697,7 @@ async function updateDecks() {
   await writePrivateRunArchive_('collection-quality-v2',collectionQuality);
   await r2WriteJson_('collection-quality-v1.json',collectionQuality);
   hist.trackedFetch=Object.fromEntries(Object.entries(hist.trackedFetch).filter(([,t])=>t>Date.now()-7*864e5));
+  hist.trackedLogNewest=Object.fromEntries(Object.entries(hist.trackedLogNewest).filter(([tag])=>hist.trackedFetch[tag]));
 
   if (!Object.keys(pop).length) throw new Error('集計0件 unmapped=' + JSON.stringify(unmapped)); // API失敗時は履歴を汚さない
 
