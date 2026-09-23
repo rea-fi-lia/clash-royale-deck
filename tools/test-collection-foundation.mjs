@@ -49,3 +49,9 @@ test('reprocessing reads verified original records and refuses corrupt bytes bef
     await assert.rejects(async()=>{for await(const row of reader.readJournal(manifest,()=>file))yielded++;},/checksum_mismatch/);assert.equal(yielded,0);
   }finally{rmSync(dir,{recursive:true,force:true});}
 });
+
+test('transient failures retry next hour and removed players back off even with an old success',()=>{
+ const stale={lastOk:now-10*86400000,lastBattle:now-10*86400000};
+ for(const lastStatus of [0,429,500,503])assert.equal(schedule.revisitMs({...stale,lastStatus},now),3600000);
+ assert.equal(schedule.revisitMs({...stale,lastBattle:now,lastStatus:404},now),24*3600000);
+});

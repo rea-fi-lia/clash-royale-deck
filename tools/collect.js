@@ -1595,6 +1595,7 @@ async function updateDecks() {
         for(const [i,res] of resps.entries())if(res.ok)journal.add({tag:pending[i],population:seedMode?'trophy-candidates':'ranked-top1000',fetchedAt:new Date().toISOString(),battles:res.body});
         resps.forEach(function (res, i) {
           const statusGroup=telemetryGroup(telemetry,requestBands[pending[i]]);
+          if(!res.ok&&seedMode&&hist.oppSeeds[pending[i].replace(/^#/,'')])hist.oppSeeds[pending[i].replace(/^#/,'')].lastStatus=res.status;
           const status=res.ok?'200':String(res.status); statusGroup.statuses[status]=(statusGroup.statuses[status]||0)+1;
           if (res.ok) {
             const fetchedAt=Date.now();

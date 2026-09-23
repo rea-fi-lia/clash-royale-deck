@@ -2,7 +2,8 @@
 // Request scheduling only. The API request budget and rate limiter remain independent of storage.
 function seedBand(seed) { return Number.isFinite(seed?.tr) && seed.tr >= 0 ? String(Math.floor(Math.min(seed.tr,14000)/300)*300) : 'unknown'; }
 function revisitMs(seed, now) {
-  if (!seed.lastOk) return seed.lastStatus === 404 ? 24*3600000 : 3600000;
+  if (seed.lastStatus === 404) return 24*3600000;
+  if ([0,429].includes(seed.lastStatus) || seed.lastStatus>=500 || !seed.lastOk) return 3600000;
   if (seed.logWindowMs > 0 && seed.logWindowMs < 6*3600000) return Math.max(3600000, seed.logWindowMs * 0.5);
   const age = now - (seed.lastBattle || 0);
   return age <= 6*3600000 ? 3600000 : age <= 86400000 ? 3*3600000 : age <= 7*86400000 ? 12*3600000 : 24*3600000;
