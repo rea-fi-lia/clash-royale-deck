@@ -34,6 +34,9 @@ test('official discovery accepts known facts but reports unreviewed new cards an
   const items=source.cards.map((c,i)=>({id:c.id || 999000+i,name:c.english,elixirCost:c.cost,iconUrls:Object.fromEntries(Object.keys(c.forms).map(f=>[{n:'medium',e:'evolutionMedium',h:'heroMedium'}[f],'https://example.org/image']))}));
   // Identify by stable ID; the one historical missing ID is matched by slug.
   const result=reconcileOfficial(source,{items});assert.equal(result.issues.length,0);
+  const both=items.find(i=>i.iconUrls.evolutionMedium&&i.iconUrls.heroMedium);both.maxEvolutionLevel=3;
+  assert.equal(reconcileOfficial(source,{items}).issues.length,0);
+  both.maxEvolutionLevel=4;assert.ok(reconcileOfficial(source,{items}).issues.some(x=>x.kind==='unknown-evolution-level'));both.maxEvolutionLevel=3;
   items[0].iconUrls.futureMedium='https://example.org/future';items.push({id:999999,name:'Future Card'});
   const changed=reconcileOfficial(source,{items});assert.ok(changed.issues.some(x=>x.kind==='new-card'));assert.ok(changed.issues.some(x=>x.kind==='unknown-icon-form'));
 });

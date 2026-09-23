@@ -15,11 +15,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/skeletons.png",
-          "sha256": "577c897f22f0270ed7f7297f9f8e52c72557b43e673e7ea2368e00309bdece6b"
+          "sha256": "c709c5b74fb9f9811a834362408e77d2b840b66ed0074898978b5ff5a1fab158",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/oO7iKMU5m0cdxhYPZA3nWQiAUh2yoGgdThLWB1rVSec.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/skeletons-ev1.png",
-          "sha256": "0c431594bb59ca31f70be9b631ca5c26947c42b5a9621c649fc6a75bd588b7dd"
+          "sha256": "1fbfe1a98e010442e42b2fd2ac57bfd22dd425659e26c0f4cf52eb4444bc779e",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/oO7iKMU5m0cdxhYPZA3nWQiAUh2yoGgdThLWB1rVSec.png"
         }
       },
       "english": "Skeletons"
@@ -38,11 +40,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/ice-spirit.png",
-          "sha256": "634e23f7cfe7508f8833216a4c657abb90bd47916364eba4701dd7e622f028d5"
+          "sha256": "98a95155d1d2d24b3740587068529b2d7c55fb6cf9d0b4a101e52266ec3fd367",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/lv1budiafU9XmSdrDkk0NYyqASAFYyZ06CPysXKZXlA.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/ice-spirit-ev1.png",
-          "sha256": "2d70efbd0387e3e5ea3858cfabb24e8da65504dc026e643b372aad2af1c58689"
+          "sha256": "e29e4868384590993692a62a9504b5181aa47abc5b0645686d1d5916463124c5",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/lv1budiafU9XmSdrDkk0NYyqASAFYyZ06CPysXKZXlA.png"
         }
       },
       "english": "Ice Spirit"
@@ -61,7 +65,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/fire-spirit.png",
-          "sha256": "12fa2adbe28b57b8caa1d9bd7fa6d6c22e8e2f7196f1591fdbb00a8cdf0104b5"
+          "sha256": "821bc1fca2e64fbd215700ddc9f1c1d8154308d7b2a8f5e1cc98370567a98778",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/16-BqusVvynIgYI8_Jci3LDC-r8AI_xaIYLgXqtlmS8.png"
         }
       },
       "english": "Fire Spirit"
@@ -80,7 +85,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/electro-spirit.png",
-          "sha256": "b3ad3838e1889fa60b4c94558834765de8b3b3fb5e26d86cda51827c6dd1d2c3"
+          "sha256": "827660eb9904a490bf00e07cb5a9d8c055d8d05609fca21db661e171265c7f15",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/WKd4-IAFsgPpMo7dDi9sujmYjRhOMEWiE07OUJpvD9g.png"
         }
       },
       "english": "Electro Spirit"
@@ -99,7 +105,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/heal-spirit.png",
-          "sha256": "fdcce46eee982d7cf67e68bf7e3c319363448af9527836fdced5421b03741b61"
+          "sha256": "7f963f0f2c876d832f460a098ea7371beae2dbd2325e2e505976100d83cc0e17",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/GITl06sa2nGRLPvboyXbGEv5E3I-wAwn1Eqa5esggbc.png"
         }
       },
       "english": "Heal Spirit"
@@ -118,11 +125,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblins.png",
-          "sha256": "c0bb707e824b63babb8890925ad889d50838e8c94dcaf567f3e8061bb2404f40"
+          "sha256": "00d9d8bf806763b6e6cd21c266e311d47c7a9c6e5521aa4bb90a0e7d68b45795",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/X_DQUye_OaS3QN6VC9CPw05Fit7wvSm3XegXIXKP--0.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblins-hero.png",
-          "sha256": "87b7a9cdc58db54ea10a08023742ea6aaaecdba619629207e3c5afe2a7ac3092"
+          "sha256": "2ac5b1afb05be9ee009bd005320541f96b082c026a7364918aee6299710a5012",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/X_DQUye_OaS3QN6VC9CPw05Fit7wvSm3XegXIXKP--0.png"
         }
       },
       "english": "Goblins"
@@ -141,11 +150,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/bomber.png",
-          "sha256": "aee0f0da304a067388f1203a931b8bc42e50cac923c1fa9b3eb7dfa4e78de9b0"
+          "sha256": "395d64da7c0a2c865b7846a5d30c7a34e6686d41247ce69f11c96ae89a269aee",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/12n1CesxKIcqVYntjxcF36EFA-ONw7Z-DoL0_rQrbdo.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/bomber-ev1.png",
-          "sha256": "8ffc4f9a248e397b86c991120dfca8fef10293151ea1f632e78e1add16640242"
+          "sha256": "fca63170b0013e50ce056aa33525d695cd71ad8960785dd8e730c8556d9f7800",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/12n1CesxKIcqVYntjxcF36EFA-ONw7Z-DoL0_rQrbdo.png"
         }
       },
       "english": "Bomber"
@@ -164,7 +175,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/spear-goblins.png",
-          "sha256": "f73d718dcc1fad6cc5696a9ef532cdb07154e503f891d01ca549f40435b49eb2"
+          "sha256": "43fad5130ced73c0ea5949e8465279968276e48d7c04e3ca8a1a8ebcb8af0c1a",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/FSDFotjaXidI4ku_WFpVCTWS1hKGnFh1sxX0lxM43_E.png"
         }
       },
       "english": "Spear Goblins"
@@ -183,11 +195,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/bats.png",
-          "sha256": "f22cf5787dbb8cd32f3e4015766b64733f86ccedc5cb5be709b3ee06df400850"
+          "sha256": "374760f39393d34f396dcc581536a1361b62692b7ef2e3f0bfeb4ff11958cd9f",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/EnIcvO21hxiNpoI-zO6MDjLmzwPbq8Z4JPo2OKoVUjU.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/bats-ev1.png",
-          "sha256": "c64a902fa255688b7408b4df7461e5de51a19635ee34438fb24b485bc3eabed9"
+          "sha256": "2e08879eb89ebb288286a7f5a51ecd24d138b9c147c3ad3b57f6eb4a4e37ecdf",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/EnIcvO21hxiNpoI-zO6MDjLmzwPbq8Z4JPo2OKoVUjU.png"
         }
       },
       "english": "Bats"
@@ -206,11 +220,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/ice-golem.png",
-          "sha256": "e2baf07b238430895c67e5f6b433430a9ac4b5e254c81401b12503180cf0d372"
+          "sha256": "5eda1644bf91d7a6f507d9422a14e5d85a6fc9b9524a59bb8998af01f77b9bf3",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/r05cmpwV1o7i7FHodtZwW3fmjbXCW34IJCsDEV5cZC4.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/ice-golem-hero.png",
-          "sha256": "251e1089256cae641f2d69f870444c0e7d191f9427d0b6897448614bf479d47a"
+          "sha256": "09254d250af3880a86fd49eea44b15d565f82e0672cf94169e0fad85bd78ad11",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/r05cmpwV1o7i7FHodtZwW3fmjbXCW34IJCsDEV5cZC4.png"
         }
       },
       "english": "Ice Golem"
@@ -229,11 +245,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/wall-breakers.png",
-          "sha256": "aa5e1e6f1293b1b58dcbcd518892075a467b731adb988b3d53f97fcc455050f8"
+          "sha256": "cb63770e8a7a69ce82867964d2a8dfe4755902fc3a6e228b70f9cd38d58f9880",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/_xPphEfC8eEwFNrfU3cMQG9-f5JaLQ31ARCA7l3XtW4.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/wall-breakers-ev1.png",
-          "sha256": "2c695eb52de82311b4b4d1e82eac18dd1e2317f75498e4b37ac0a9f4f2d8cff5"
+          "sha256": "1084f1f46801b23ec616cd140898446efa476869483e5188bcff8614f6df86b9",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/_xPphEfC8eEwFNrfU3cMQG9-f5JaLQ31ARCA7l3XtW4.png"
         }
       },
       "english": "Wall Breakers"
@@ -252,11 +270,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/berserker.png",
-          "sha256": "56b8d9fb5da59ee7be72ad4794b966bbea15350dc765b4a7722d3fba24929c4f"
+          "sha256": "bf57527c688f035239b29b21e68c3e53ee2d8fce82e9fb01e450f426b0adfa7e",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/NA6W8S1JBYBlOPwD3dNvJLFvVDKq-UuBs_J3i3ewLFI.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/berserker-hero.png",
-          "sha256": "7090a54a581311b86eb00df1e6931518c527ab0ee8ebeccb5e7d585161a69c3e"
+          "sha256": "3141d9884e894875d91eaa57b36e55d62c1334a46e03c80bdc0f295e9720ee83",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/NA6W8S1JBYBlOPwD3dNvJLFvVDKq-UuBs_J3i3ewLFI.png"
         }
       },
       "english": "Berserker"
@@ -275,11 +295,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/zap.png",
-          "sha256": "8d02f5743a858ba2a6ddee722a297c515f23d0cbb5ac04ff2e7db1058d686a24"
+          "sha256": "25bb27fc616058c98e677a6be23d857bdd7cb6119fdd58723012a35e850ba8c3",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/7dxh2-yCBy1x44GrBaL29vjqnEEeJXHEAlsi5g6D1eY.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/zap-ev1.png",
-          "sha256": "fb6998a97889188293c48dcf3406b53852aedc4019ef9d0a5eb56138fb19ad42"
+          "sha256": "341d5075933f1e6a2c5a37ea5af0a24a4fd1ea04d16fea9835384e24c9d41292",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/7dxh2-yCBy1x44GrBaL29vjqnEEeJXHEAlsi5g6D1eY.png"
         }
       },
       "english": "Zap"
@@ -298,11 +320,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/giant-snowball.png",
-          "sha256": "a543a3229799214bb4c8f8ec9948496458bcec445295e2cf143459d8049ace13"
+          "sha256": "d32f6a45a27e6ada1a2d0c96d9c86befad618a340e23d8efa9300b0b5b3545c5",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/7MaJLa6hK9WN2_VIshuh5DIDfGwm0wEv98gXtAxLDPs.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/giant-snowball-ev1.png",
-          "sha256": "36576bd2ab91ceda5e9676828c4a9fdac78b6eae88a1cdc5921f850300b9226b"
+          "sha256": "d38545389c72b4eabc05b748e442d751eff6752f6abdc23413cc98857515d006",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/7MaJLa6hK9WN2_VIshuh5DIDfGwm0wEv98gXtAxLDPs.png"
         }
       },
       "english": "Giant Snowball"
@@ -321,11 +345,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/barbarian-barrel.png",
-          "sha256": "84529d1a0e5c57a4f8e39f7844e0ec3dd9373fdcfe236db04325c580c79694ac"
+          "sha256": "1d2229729ace480b4543aadfbf2625a6d1bfcccab75e4217d3528fddc35674a0",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Gb0G1yNy0i5cIGUHin8uoFWxqntNtRPhY_jeMXg7HnA.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/barbarian-barrel-hero.png",
-          "sha256": "9f217795ae851eb489342b82ace1c7bae87b9ce0ff97c4deb5c8a54320c766c6"
+          "sha256": "5ba224e5a8ec3bbf50653c84fdee4ef99c8472e8c9a238e8e127a44173656182",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/Gb0G1yNy0i5cIGUHin8uoFWxqntNtRPhY_jeMXg7HnA.png"
         }
       },
       "english": "Barbarian Barrel"
@@ -344,7 +370,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/the-log.png",
-          "sha256": "2d9202b67ebd1ae3fd9d0d343b0809c63922f81b3a2afc45d7ef058ae5a1400a"
+          "sha256": "42e3239e8d387559f8deb88448786c5373955eac2e14c5e8af9953399feb47ea",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/_iDwuDLexHPFZ_x4_a0eP-rxCS6vwWgTs6DLauwwoaY.png"
         }
       },
       "english": "The Log"
@@ -363,7 +390,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/rage.png",
-          "sha256": "bfa631dd55d66fa19c585279ecc07ead74f0db65c1aa19566b98254a43f3880a"
+          "sha256": "bd5feb30ea767ea0d9f385d27cbdc88a3310ee6ac0604907822dd322cb6e14bb",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/bGP21OOmcpHMJ5ZA79bHVV2D-NzPtDkvBskCNJb7pg0.png"
         }
       },
       "english": "Rage"
@@ -382,7 +410,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/suspicious-bush.png",
-          "sha256": "5f304e3bd75863064c7b9a1ccde8c9ae1a5065d574fe8cbe79ff82b5e873467c"
+          "sha256": "d4d7ddda49ba5e9d813ee9ee6a1dbafb844f6feb56d23e4f436e181fccecb1c4",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/vqTzGAjseQv9F5rf4tsFWeocvg0dyPw1j_nB1cmDZfI.png"
         }
       },
       "english": "Suspicious Bush"
@@ -401,7 +430,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-curse.png",
-          "sha256": "d8df2ab4decb29dc9a893d9f4b5765b7e10c65358c822d364ec24c3242f15379"
+          "sha256": "5361990692e614b343607eef40a5b71e491a90a294e781b33a0893634c6958a3",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/OQPfGgT5mHEUvPuKKt0plZT0PNtIjCqUgQ3Rm86dQ2k.png"
         }
       },
       "english": "Goblin Curse"
@@ -420,15 +450,18 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/knight.png",
-          "sha256": "bc85a17a817c5e29d0e12adc854499670b648e710985a8d05dea9ccfcaa95abe"
+          "sha256": "45e6b3e027909b64cc1bd67ddd9f9795357de8fdcbd1ecffa4024c4e11e64fdc",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/jAj1Q5rclXxU9kVImGqSJxa4wEMfEhvwNQ_4jiGUuqg.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/knight-ev1.png",
-          "sha256": "cc9ca1f124d7f05e2574e4fb0fd1aeb5451718bf3bba15f6cba117eb56698c06"
+          "sha256": "42fd8322ecaee60a462aa1b4eee68ee4bcc286240449b90a8403c216ead538ee",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/jAj1Q5rclXxU9kVImGqSJxa4wEMfEhvwNQ_4jiGUuqg.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/knight-hero.png",
-          "sha256": "78794c9d6e1eb586d6407f2a36994052fc4f0ea1c1c4d03fea6dc92156f009f1"
+          "sha256": "967a501d81668438678344049abf63e5f51f370397ce629b9f5088b9cb6fb41c",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/jAj1Q5rclXxU9kVImGqSJxa4wEMfEhvwNQ_4jiGUuqg.png"
         }
       },
       "english": "Knight"
@@ -447,11 +480,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/archers.png",
-          "sha256": "7427cdce681c78eb61fc97c849a4ff6e8bc1739e1a46b56da9d62d8ee610ef85"
+          "sha256": "514f1a55ed9d8094861c08dcdb6d98fc33e606ba5075ae6e4fb611dd62b56a9a",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/W4Hmp8MTSdXANN8KdblbtHwtsbt0o749BbxNqmJYfA8.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/archers-ev1.png",
-          "sha256": "15b7370a48fec57dbbf1cae72453565e4a19d14923e61915d6ae92c19202ff1e"
+          "sha256": "c50b73193f54bd56a761403dd6a5220f9bc95d81375b87e99224f2a4a1f4abba",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/W4Hmp8MTSdXANN8KdblbtHwtsbt0o749BbxNqmJYfA8.png"
         }
       },
       "english": "Archers"
@@ -470,7 +505,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/minions.png",
-          "sha256": "aa00d7b23fd564665c76aee4f03f508d0ce727f3c39cee306a98fa657e97f1f5"
+          "sha256": "73a18171fbbd7e72e5eb85f3f456aeb0e4e44cc693b5ad681bab14b684f8e574",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/yHGpoEnmUWPGV_hBbhn-Kk-Bs838OjGzWzJJlQpQKQA.png"
         }
       },
       "english": "Minions"
@@ -489,7 +525,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-gang.png",
-          "sha256": "6cf6e06d7c94ad938f94dfd57c0308b1d1081e898001b1df5963e42a5a990031"
+          "sha256": "42123f8029cb4b44c9b12ab207b3144d59cea0642cd88bbda4e450e394db6926",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/NHflxzVAQT4oAz7eDfdueqpictb5vrWezn1nuqFhE4w.png"
         }
       },
       "english": "Goblin Gang"
@@ -508,11 +545,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/skeleton-barrel.png",
-          "sha256": "2b9de9e4b07dcfdd490d20dbe2617f2dec284de7cac9e3b460564a5ece78b250"
+          "sha256": "2e180f0c54ab26c28e375112d600d914eefb80ba585d665bd5842917c8f160e8",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/vCB4DWCcrGbTkarjcOiVz4aNDx6GWLm0yUepg9E1MGo.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/skeleton-barrel-ev1.png",
-          "sha256": "10c551d28983ada8c963cdbc463792931777282af25a7973b85353216f861451"
+          "sha256": "fd31aa047afa8302681877e4174ef220a5143af426d986e531a0aa126b8db10f",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/vCB4DWCcrGbTkarjcOiVz4aNDx6GWLm0yUepg9E1MGo.png"
         }
       },
       "english": "Skeleton Barrel"
@@ -531,11 +570,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/firecracker.png",
-          "sha256": "c9b61bfc05a737878256dd01909f70cc9a885008bef5dc84b0c74f31b32621a9"
+          "sha256": "f27c2910aa12535df6537765c001783073accb0e5fb33d7ab603e3429260b2f6",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/c1rL3LO1U2D9-TkeFfAC18gP3AO8ztSwrcHMZplwL2Q.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/firecracker-ev1.png",
-          "sha256": "065ce667d5094d2164147b315d84b7677d20d71f44d3ae119ad8ac9bad7d53f2"
+          "sha256": "817b1115dbb6f110c6392bbc0e8b8dbdda792701e91b3d78fa9cd6f660a45163",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/c1rL3LO1U2D9-TkeFfAC18gP3AO8ztSwrcHMZplwL2Q.png"
         }
       },
       "english": "Firecracker"
@@ -554,11 +595,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/mega-minion.png",
-          "sha256": "575506997a5282c7cd762e25fc6fe1900d002b90623ce36f5f48ad2325e155f7"
+          "sha256": "37d61d8b65a104f33e62baad8499ac9dd134d25f75fb88b67056019e43d104e6",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/-T_e4YLbuhPBKbYnBwQfXgynNpp5eOIN_0RracYwL9c.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/mega-minion-hero.png",
-          "sha256": "6023c31972efce199e7f9b56d8cfe3f4b46e052d2a76196ed79a4d15e0114fc3"
+          "sha256": "32a75f26ec78b326c3747fc0ea1cdd4627cb9e1277f49681a8de8f07b467fad6",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/-T_e4YLbuhPBKbYnBwQfXgynNpp5eOIN_0RracYwL9c.png"
         }
       },
       "english": "Mega Minion"
@@ -577,11 +620,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/dart-goblin.png",
-          "sha256": "9635504b4b4c9d3ef1644793cdf1a79d1c68fc5cde9b6214d13fd58ec2c06bae"
+          "sha256": "add800376cd46119daedb983b01d12eba2a94feb867f8bd1b6c048fd7ef0571c",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/BmpK3bqEAviflqHCdxxnfm-_l3pRPJw3qxHkwS55nCY.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/dart-goblin-ev1.png",
-          "sha256": "8ce06f9233335881163816fdf568c5e819d7d6dca2c7162e56e561b4a96b2fd6"
+          "sha256": "ee335038104b383b5e0ad89db58c132ff13d4d2ce5b714d572f7c0a9a77a25de",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/BmpK3bqEAviflqHCdxxnfm-_l3pRPJw3qxHkwS55nCY.png"
         }
       },
       "english": "Dart Goblin"
@@ -600,7 +645,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/elixir-golem.png",
-          "sha256": "19d53b0cef561265f10956e04fc3e31e21c17ffbdc1300b78043cb5070cff02c"
+          "sha256": "bfd63510b89b8c65fb2346027950c32faed556c339375302b9fdf403aea60b6a",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/puhMsZjCIqy21HW3hYxjrk_xt8NIPyFqjRy-BeLKZwo.png"
         }
       },
       "english": "Elixir Golem"
@@ -619,11 +665,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/ice-wizard.png",
-          "sha256": "2b4701fc766c9cf3f33e469638e7d00eb96daceec605b35739fff201c9b2bb2f"
+          "sha256": "93ef36e0e38cf3036f1226bc03d68a000f2ff81965e3e097898c803d08b911b6",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/W3dkw0HTw9n1jB-zbknY2w3wHuyuLxSRIAV5fUT1SEY.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/ice-wizard-hero.png",
-          "sha256": "815472320fed5b62a0c4d638627d6216b03675e9ed15061a47a448129bb5d2fb"
+          "sha256": "0d87b0cdf56b6d9d1609f6af039eee7c965de689ddf3ebe0a7f8cfadfc37646e",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/W3dkw0HTw9n1jB-zbknY2w3wHuyuLxSRIAV5fUT1SEY.png"
         }
       },
       "english": "Ice Wizard"
@@ -642,11 +690,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/princess.png",
-          "sha256": "89a93eecf6caecd5734310221edd712b0e2c8a986cbab06d1276174708fe768e"
+          "sha256": "7cafdaff65b260cbb3ba32467734495d14533dffc02f991289a0311829285fff",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/bAwMcqp9EKVIKH3ZLm_m0MqZFSG72zG-vKxpx8aKoVs.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/princess-ev1.png",
-          "sha256": "e8b5f96a69037be05a972fdae1938dbf6f3f873ab730f28421c91c2022f0c7ce"
+          "sha256": "60ace6752ff85754e1639dfca163d6cb6780752752e92b49ae193b2ab6cb17f8",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/bAwMcqp9EKVIKH3ZLm_m0MqZFSG72zG-vKxpx8aKoVs.png"
         }
       },
       "english": "Princess"
@@ -665,7 +715,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/miner.png",
-          "sha256": "de39cd5d5bad2a83f0c8bbc403cf205ae10cf0f282101b760287b0bcb99a2305"
+          "sha256": "89abd0c605aab2b1f597958852dca1f0ecf3ca23c5d3c7e02b0240a0a06fed91",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Y4yWvdwBCg2FpAZgs8T09Gy34WOwpLZW-ttL52Ae8NE.png"
         }
       },
       "english": "Miner"
@@ -684,11 +735,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/skeleton-army.png",
-          "sha256": "4fe348d2115ffa1d08d3e418863b9013c928f3e5e9e60b98f431dd3c48f9fd18"
+          "sha256": "342bdfb40b60566cdd9aff4f81f618463ea8882f506c8474ef2bdfc7e546b825",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/fAOToOi1pRy7svN2xQS6mDkhQw2pj9m_17FauaNqyl4.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/skeleton-army-ev1.png",
-          "sha256": "cbaf4a2cb7b2c24015f83a3e0b45ef8cc2d9c75bff294dcc33fe90703aee2a6a"
+          "sha256": "d829c3d39f54c1aa4b7ec402749abf46a8e23fc0cfe3a684bc1018738f5950b1",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/fAOToOi1pRy7svN2xQS6mDkhQw2pj9m_17FauaNqyl4.png"
         }
       },
       "english": "Skeleton Army"
@@ -707,7 +760,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/guards.png",
-          "sha256": "bfc68221b68ab264d95ac45961d5ea6d59324692b78f19e6740cb55f7a8bd9a9"
+          "sha256": "c05066dba79f4dfa63d5ffcc0d600b1a917a06f0945d952b5c7fbcdd33666d9b",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/1ArKfLJxYo6_NU_S9cAeIrfbXqWH0oULVJXedxBXQlU.png"
         }
       },
       "english": "Guards"
@@ -726,7 +780,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/bandit.png",
-          "sha256": "9cdb41da44849bc7a839c85803671fe2bc3462f68371723130b538863973842a"
+          "sha256": "7d18a97c79f1dcf775b331dc5c202d0dc71d78acff37cbdfbcb94401ddb0f57b",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/QWDdXMKJNpv0go-HYaWQWP6p8uIOHjqn-zX7G0p3DyM.png"
         }
       },
       "english": "Bandit"
@@ -745,7 +800,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/fisherman.png",
-          "sha256": "fd4262293b23208785e5ff999de30a8668b7dfa733266e92101c1a34833cca4a"
+          "sha256": "8b8f565f5ebf332945bc5641b8bd8f4b6a6870108b65e2105a6f188b1e9ce64d",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/U2KZ3g0wyufcuA5P2Xrn3Z3lr1WiJmc5S0IWOZHgizQ.png"
         }
       },
       "english": "Fisherman"
@@ -764,11 +820,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/royal-ghost.png",
-          "sha256": "309a3b5e39e38233c29a205cb676041f678788e8c249487c9781ae035318b7f4"
+          "sha256": "02b22b232842236abc7fd5889656bbd90b9a4d8b8534f296a18d33c022c9205a",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/3En2cz0ISQAaMTHY3hj3rTveFN2kJYq-H4VxvdJNvCM.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/royal-ghost-ev1.png",
-          "sha256": "766fb2d2fd97c9f9cc6fc2612be533d1f1041b4cdff14dbe696161e381890496"
+          "sha256": "1018bc5c3513c97b339d59465f99cdc4c6ca2248b2c53ff8f1b587a6c0e53602",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/3En2cz0ISQAaMTHY3hj3rTveFN2kJYq-H4VxvdJNvCM.png"
         }
       },
       "english": "Royal Ghost"
@@ -787,7 +845,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/arrows.png",
-          "sha256": "3edcaaafe1d1955ad274896bb15efb85172bb8d44aea79083239b813bebddd99"
+          "sha256": "5c0f34ee8f4b1399f74b4dc2759896b77a25584b7ab8a05262233ec2e6098aad",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Flsoci-Y6y8ZFVi5uRFTmgkPnCmMyMVrU7YmmuPvSBo.png"
         }
       },
       "english": "Arrows"
@@ -806,7 +865,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/tornado.png",
-          "sha256": "1d7c4187b27b44fe16f4cb4664c128e02553961665d701b9c1295d5040c5f26d"
+          "sha256": "85625cdaea5c43732c863912b95a55f10007f65cd4d855a09b9d92e260ba3e49",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/QJB-QK1QJHdw4hjpAwVSyZBozc2ZWAR9pQ-SMUyKaT0.png"
         }
       },
       "english": "Tornado"
@@ -825,7 +885,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/earthquake.png",
-          "sha256": "8e69b4ad266b158daab08600279cc4e5c6af94e60864a76cf179034f4630096e"
+          "sha256": "cfbddfbb2de7ad17b5bbe2e82a44c62c0f4bb08f4ccb920f34d86f1dfac18865",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/XeQXcrUu59C52DslyZVwCnbi4yamID-WxfVZLShgZmE.png"
         }
       },
       "english": "Earthquake"
@@ -844,7 +905,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/royal-delivery.png",
-          "sha256": "8aa6c48ec9da412e073d92eb7162f81cc1de86961242bdf6ebe0aad5851c5b5d"
+          "sha256": "68429aed5f6d88e90f421af15848175e328fca9a99335ef58f140ca25b22fd2c",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/LPg7AGjGI3_xmi7gLLgGC50yKM1jJ2teWkZfoHJcIZo.png"
         }
       },
       "english": "Royal Delivery"
@@ -863,11 +925,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-barrel.png",
-          "sha256": "6d34267ad6f5d42a8e88f840e36d6a11e25f16f3d111c716bee2e31b03330c4c"
+          "sha256": "c5ebf97e9a0e207b1710a6e0c3b42877fbb39cf039a9ad3f2994744d5048c7ed",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/CoZdp5PpsTH858l212lAMeJxVJ0zxv9V-f5xC8Bvj5g.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-barrel-ev1.png",
-          "sha256": "eebc3871686fa75718a6846a04022fc4713967561c4a31f6a69e9d1066a79bb8"
+          "sha256": "b2718021d573be92c67ca2d2d4fdb226ac01e54c42445a2835dea48ea429fec9",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/CoZdp5PpsTH858l212lAMeJxVJ0zxv9V-f5xC8Bvj5g.png"
         }
       },
       "english": "Goblin Barrel"
@@ -886,7 +950,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/clone.png",
-          "sha256": "f2f67ff3f60392cfcdfb419b8f495be4f4ba08c51e3f9a4b455d5b675acdf28c"
+          "sha256": "55477be87ef8578e4fe2812a0dfeb9d2cd70c31cae8d4731db7b8d955bcc73eb",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/mHVCet-1TkwWq-pxVIU2ZWY9_2z7Z7wtP25ArEUsP_g.png"
         }
       },
       "english": "Clone"
@@ -905,7 +970,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/vines.png",
-          "sha256": "d70904f654f19c226250f45a80aeed6c5f4d273bca93b873b9db6cf2cb581a91"
+          "sha256": "2665775d37cd9ffbb0122c69e186926b9a5683dc5fc129b848810835aa254215",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/V5sJlPuo2WBRtirJ1lGEPJA4NvQ0KPwFeMrpxLX5z_8.png"
         }
       },
       "english": "Vines"
@@ -915,7 +981,7 @@
       "slug": "void",
       "name": "ボイド",
       "yomi": "ボイド ぼいど",
-      "cost": 3,
+      "cost": 5,
       "type": "spell",
       "role": "少数ほど高ダメージ",
       "wiki": {
@@ -924,7 +990,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/void.png",
-          "sha256": "851c5cc01906c4fdd51afda4cced7d09109a4d351b54985d7705607d6298fa5d"
+          "sha256": "86237a2d9812dad76f6072c8959da8fc2467746dd894322ab31724e0565401eb",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/BykyeWDqzn4PlHSszu3NbrXT1mHxW2EA8vHbQGR5LDE.png"
         }
       },
       "english": "Void"
@@ -943,7 +1010,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/mirror.png",
-          "sha256": "7b3a3b042574ede94cbcdf321e3f963657cd8497a3aaa6fe7c272d4a86e2ee6e"
+          "sha256": "7dbfca92439acf7e555e121b3b450f99304c6aaf446d4c8e990e7c61488da0ce",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/wC6Cm9rKLEOk72zTsukVwxewKIoO4ZcMJun54zCPWvA.png"
         }
       },
       "english": "Mirror"
@@ -962,11 +1030,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/cannon.png",
-          "sha256": "6d830474c1f3d710cebcc233844af30333aec010f25debee1f875d69d74acb7e"
+          "sha256": "5d0dd593a29808b45cc2301d8bcd5292c62be59119fa07e9ed1ad4e950d94f8c",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/nZK1y-beLxO5vnlyUhK6-2zH2NzXJwqykcosqQ1cmZ8.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/cannon-ev1.png",
-          "sha256": "2d43f201022f008ddb5ddea9950364a7cf45e4ac1cb90bc9ea89e0ee63e12a5c"
+          "sha256": "d2c16fab62073e9661e0685861b2f98bf7ca005e2689adf19d47e02630cc8088",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/nZK1y-beLxO5vnlyUhK6-2zH2NzXJwqykcosqQ1cmZ8.png"
         }
       },
       "english": "Cannon"
@@ -985,11 +1055,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/tombstone.png",
-          "sha256": "7acb3b6eabc76c2637fb93ddbd24ef3f451e4ead50f6b8c8aded2da809d36016"
+          "sha256": "d01a136563b36873425330f0d33fb4c83eecd1d592d8fca9f1ee7ae8408e3fda",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/LjSfSbwQfkZuRJY4pVxKspZ-a0iM5KAhU8w-a_N5Z7Y.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/tombstone-hero.png",
-          "sha256": "3f174d67f41b0339ae1222d635667490b043ee6a421ae0f3515d28c0c49960a3"
+          "sha256": "45f1da4dcfd3787301dfdbc4056c83783b78c84f2bdb2c5c4664fafbe0fbe8d6",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/LjSfSbwQfkZuRJY4pVxKspZ-a0iM5KAhU8w-a_N5Z7Y.png"
         }
       },
       "english": "Tombstone"
@@ -1008,15 +1080,18 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/valkyrie.png",
-          "sha256": "ed98ea746360fdca51628b5ce3e16ad40f15ba296478409a52e8c6ba0aed682e"
+          "sha256": "98dc946e8ba81eba0e3d3b23637ec8783c177c85a316a743a2858fe150134735",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/0lIoYf3Y_plFTzo95zZL93JVxpfb3MMgFDDhgSDGU9A.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/valkyrie-ev1.png",
-          "sha256": "6d51e5de38146aa12a2938aa57a4be6a8feed3e0529ecc24b44e93bd40cc8879"
+          "sha256": "057339910f888547f7d447decdff890633b055676142661f922e818045417f5c",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/0lIoYf3Y_plFTzo95zZL93JVxpfb3MMgFDDhgSDGU9A.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/valkyrie-hero.png",
-          "sha256": "068e67e1a3c4b81dfc180e51721b4ab49191f9139c9a5807033137b23f0d3094"
+          "sha256": "51a07489e348a8bd20fafdfea13d7cdec37bd85959fdf7b63340a1580dcbae38",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/0lIoYf3Y_plFTzo95zZL93JVxpfb3MMgFDDhgSDGU9A.png"
         }
       },
       "english": "Valkyrie"
@@ -1035,15 +1110,18 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/musketeer.png",
-          "sha256": "db28ed3c9eec23740bba7ae86cda7226479291c147f7453ccb3009f87e5d754b"
+          "sha256": "44eae961b5b57ee19241290affdd0bc03912cf39534b8852af4a52612dc0196a",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Tex1C48UTq9FKtAX-3tzG0FJmc9jzncUZG3bb5Vf-Ds.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/musketeer-ev1.png",
-          "sha256": "715df846e1b2329b04df359be64c8a9998418346919b0905d6be92a7f8f9030e"
+          "sha256": "1ab9b07fbe2fecd16595ec174e02880e4aa88cb1f5c0510d681ad41f17bc7c02",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/Tex1C48UTq9FKtAX-3tzG0FJmc9jzncUZG3bb5Vf-Ds.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/musketeer-hero.png",
-          "sha256": "929af1441446ad59b3dd16b31a3f56a8adef1ca67b855eb0e353ef17bb8ccbcb"
+          "sha256": "6547117d46ab1a1c1c5e2177a0c59f7185f7cc1fb18642cfeebb3aa8b400c8a8",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/Tex1C48UTq9FKtAX-3tzG0FJmc9jzncUZG3bb5Vf-Ds.png"
         }
       },
       "english": "Musketeer"
@@ -1062,11 +1140,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/mini-pekka.png",
-          "sha256": "dcf726551fb3c83db8bc304bdeaff48e1f7553127567b5669573674b81204a1f"
+          "sha256": "0abe15669df86561ced45961795634e178225a1549447e13e92ab508d0464a6c",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Fmltc4j3Ve9vO_xhHHPEO3PRP3SmU2oKp2zkZQHRZT4.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/mini-pekka-hero.png",
-          "sha256": "46f6569df610918cfcb82cae7894f43b99ae77c6a2b2ca1b2c116a1f0d80d26e"
+          "sha256": "3885a61f2b8086f230aee0d262d4f6a4b753116f93bf0ae73c813aad821d560e",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/Fmltc4j3Ve9vO_xhHHPEO3PRP3SmU2oKp2zkZQHRZT4.png"
         }
       },
       "english": "Mini P.E.K.K.A"
@@ -1085,7 +1165,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/hog-rider.png",
-          "sha256": "b34fb968d5843729c24cca9b65271345092a2e2ddde5647381d7186446a9b928"
+          "sha256": "f1d0d1a8f187607bb4aa93770a88a04266bf58388721b19ac539c7feb1ea5902",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Ubu0oUl8tZkusnkZf8Xv9Vno5IO29Y-jbZ4fhoNJ5oc.png"
         }
       },
       "english": "Hog Rider"
@@ -1104,11 +1185,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/battle-ram.png",
-          "sha256": "0b949a9e7781c8c782f6ca3b7d357475fa12cc2246f6bad172f64d11cadea633"
+          "sha256": "da6f1b2876c3058a1c557f41baebf891f5874c49da947a5fe1b0ef50624f16c2",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/dyc50V2cplKi4H7pq1B3I36pl_sEH5DQrNHboS_dbbM.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/battle-ram-ev1.png",
-          "sha256": "8f81decff0d6aa6ba2715328ab4f3a2e97d9170793c479d1f5ed949a431ccbda"
+          "sha256": "05b6ef8bf754db3617370540526c5ee02cd3ddee6f730d1b87e60db0b37b4bb4",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/dyc50V2cplKi4H7pq1B3I36pl_sEH5DQrNHboS_dbbM.png"
         }
       },
       "english": "Battle Ram"
@@ -1127,7 +1210,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/skeleton-dragons.png",
-          "sha256": "2f0d93a8bb519efdb8fe9e2f10aa0d8226c2eb04e8562a2ef4d0d9142b9d5225"
+          "sha256": "9c93acc6d8d7998b619e078b49ed8238552c2e0d41fa9a5c2154f960700b1d8f",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/qPOtg9uONh47_NLxGhhFc_ww9PlZ6z3Ry507q1NZUXs.png"
         }
       },
       "english": "Skeleton Dragons"
@@ -1146,7 +1230,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/zappies.png",
-          "sha256": "10cd81d6143a32d876bf50dfb2453018828865edcc8d35f2b2fa546184abc703"
+          "sha256": "9238d19b4905e1b4150e373a0ec5e7cdebf504edbbe248215ef5778ecbce3655",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/QZfHRpLRmutZbCr5fpLnTpIp89vLI6NrAwzGZ8tHEc4.png"
         }
       },
       "english": "Zappies"
@@ -1165,7 +1250,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/flying-machine.png",
-          "sha256": "d702061c8362ef5ba78c44782010b1c127b7e058cbbcc454a352db711cbe4dbe"
+          "sha256": "c8cadd07bf4be208dfebebbd3dbbb5c663a3621d7cfa80c3843cbc76532b74d5",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/hzKNE3QwFcrSrDDRuVW3QY_OnrDPijSiIp-PsWgFevE.png"
         }
       },
       "english": "Flying Machine"
@@ -1184,7 +1270,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/battle-healer.png",
-          "sha256": "ec79db0ae4ebfa1dada2d68ba74fb048d4eae49cb594e3fcbfd62b7417adac83"
+          "sha256": "72b4666a52163eca27e10dfb3d86444bd864bcf37af51d2361b72dba50a2df5f",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/KdwXcoigS2Kg-cgA7BJJIANbUJG6SNgjetRQ-MegZ08.png"
         }
       },
       "english": "Battle Healer"
@@ -1203,7 +1290,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-demolisher.png",
-          "sha256": "fdb5735bfef582e8e528a227c1cc83ae56d47b1fd0e5b5cacf72e34b32b80730"
+          "sha256": "ede7285c0f9b9c43cb1e00b4ad08547d27923f501ebc1af3e71a61da97f1742b",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/KVVOgdn40xasFLYuQv8Go_U_LCV7wSG9q9eE1H7f3Qk.png"
         }
       },
       "english": "Goblin Demolisher"
@@ -1222,11 +1310,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/dark-prince.png",
-          "sha256": "54f58879127b4dba76557b6580ab3242d0463d5e218ccc10433266f0ed145a55"
+          "sha256": "6b9234e605a03c1651345f2f814ba5ea419561ee88bf85b7914676c57c2d7cf9",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/M7fXlrKXHu2IvpSGpk36kXVstslbR08Bbxcy0jQcln8.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/dark-prince-hero.png",
-          "sha256": "b939e4b8a5466f5b7fbb5580d19ce5f1e1d7a5a06e01c4bca7572850bb1f0e7c"
+          "sha256": "6c62b9865dec19121e65ba473b4368199fcd7a67484f13a3f019f6512a5d2e09",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/M7fXlrKXHu2IvpSGpk36kXVstslbR08Bbxcy0jQcln8.png"
         }
       },
       "english": "Dark Prince"
@@ -1245,11 +1335,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/hunter.png",
-          "sha256": "f5aad01512ac537ca0823329e3633c54e43d97036b6619552593a717f2b65302"
+          "sha256": "8954e6ab17e392f14955abbd4b8ff388bbaf6c9f0c8a6a035cbfa111a7dfa7e8",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/VNabB1WKnYtYRSG7X_FZfnZjQDHTBs9A96OGMFmecrA.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/hunter-ev1.png",
-          "sha256": "49888941feef44a253c9f97aa1474e1b75d88df2c2fb91e048009f531653a174"
+          "sha256": "bc67f36b1a9c5b71d5ed780b76fc135d2645ff5f27ceb55638aeeff0132c3493",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/VNabB1WKnYtYRSG7X_FZfnZjQDHTBs9A96OGMFmecrA.png"
         }
       },
       "english": "Hunter"
@@ -1268,11 +1360,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/baby-dragon.png",
-          "sha256": "eda98b83fee22aa1e2da87fa8c407221d1a83f44b75941e45bd97564b7ae22b2"
+          "sha256": "2929dd7d006f6388014a07e987d191d48d463971e2e64726688d5c0ee4663186",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/cjC9n4AvEZJ3urkVh-rwBkJ-aRSsydIMqSAV48hAih0.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/baby-dragon-ev1.png",
-          "sha256": "6936af0b1074dc0fef38e525ea8877c0680933a4f9a6602ea2608ccd2b09f240"
+          "sha256": "17c3c91e93fdf20968b2b2fabd6d33ac821b24ca60dd6e5f86783c13035c4a73",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/cjC9n4AvEZJ3urkVh-rwBkJ-aRSsydIMqSAV48hAih0.png"
         }
       },
       "english": "Baby Dragon"
@@ -1291,7 +1385,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/electro-wizard.png",
-          "sha256": "f05db16d2920f2771c06bf99e3fdb5b4f0f37e5a412810798379fd45bfd8a395"
+          "sha256": "a54e0f0bcb7ae39bdeacf1f67dfaa7031759afb7873afc85af8e5aaa99c44a12",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/RsFaHgB3w6vXsTjXdPr3x8l_GbV9TbOUCvIx07prbrQ.png"
         }
       },
       "english": "Electro Wizard"
@@ -1310,11 +1405,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/inferno-dragon.png",
-          "sha256": "09b3d010aaba0c5aa3d8d4df30b9c29d2dd51007c8702fb435133b57cc44e793"
+          "sha256": "ee2fcc081cd0706b8a0c54073b824ce8dd01ede2b759beb59b26068eb1c2ab20",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/y5HDbKtTbWG6En6TGWU0xoVIGs1-iQpIP4HC-VM7u8A.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/inferno-dragon-ev1.png",
-          "sha256": "5791c046c79aad4ef61d2fcd9e4108b724364de112520aa133e484c4e3d65a5e"
+          "sha256": "dfe1e87766ba3c5563c362c5de5d48c2c06ba76c524f51dbb6e9ab33f1c8b41e",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/y5HDbKtTbWG6En6TGWU0xoVIGs1-iQpIP4HC-VM7u8A.png"
         }
       },
       "english": "Inferno Dragon"
@@ -1333,11 +1430,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/lumberjack.png",
-          "sha256": "3ba375ac15a33a7fdae7ec896b7201e2c38d8c471b38ed3cd11fcd61089ae293"
+          "sha256": "4f6f24e7b57884c81442639990138d9e538e6776f9844dbbf814f605c8ad46e8",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/E6RWrnCuk13xMX5OE1EQtLEKTZQV6B78d00y8PlXt6Q.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/lumberjack-ev1.png",
-          "sha256": "f3a7000a168fd12e322ebc24f294cda0a0d03efc949abb1b4b5ef29eb7da7b84"
+          "sha256": "cb8d9d727dd70371cac7a43e3005dc7beeddcefd451c12b7bca6fe26476c8ede",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/E6RWrnCuk13xMX5OE1EQtLEKTZQV6B78d00y8PlXt6Q.png"
         }
       },
       "english": "Lumberjack"
@@ -1356,11 +1455,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/magic-archer.png",
-          "sha256": "f6e90c58f95db311c2fb5a56d44f6af8933419ea0b3e2c8badb5ec13301b9ce7"
+          "sha256": "3bfca4e849635c2086b6c29d98d0a0d5f431f851e4f203c034172ababd701c74",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Avli3W7BxU9HQ2SoLiXnBgGx25FoNXUSFm7OcAk68ek.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/magic-archer-hero.png",
-          "sha256": "ab68a0bdadcf11f0cbc7356d2b64decc072d1dbe8ae5121feca9feef0556412d"
+          "sha256": "be2d198201042379f1d4b1495a90d512f07cffb74e598ca9862546b697888a88",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/Avli3W7BxU9HQ2SoLiXnBgGx25FoNXUSFm7OcAk68ek.png"
         }
       },
       "english": "Magic Archer"
@@ -1379,7 +1480,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/mother-witch.png",
-          "sha256": "95206cffaa253c7039974890ba6acd551426de4af29b98a7b2c1a801711b433a"
+          "sha256": "4358533559228e8348da503269466caa34e2f8ed73cb19c767b2cb49b79cec98",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/fO-Xah8XZkYKaSK9SCp3wnzwxtvIhun9NVY-zzte1Ng.png"
         }
       },
       "english": "Mother Witch"
@@ -1398,7 +1500,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/night-witch.png",
-          "sha256": "4d3b3a1cdf93fe3f8a67d959044bbdc91740a9e2c102bad0ed0633ad322b096f"
+          "sha256": "11a25cdc0f9e7ba0a63725a54926e3699a78b009d1fa900fdfabb3b2b74078fb",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/NpCrXDEDBBJgNv9QrBAcJmmMFbS7pe3KCY8xJ5VB18A.png"
         }
       },
       "english": "Night Witch"
@@ -1418,7 +1521,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/golden-knight.png",
-          "sha256": "ede8d99133f406487759986ecdf0a9eeec2e4fb56576532ed26a896bb5266e48"
+          "sha256": "6055a75e85054a0c9f9531c1c6ad8c97b9dcf49dc8b630707546f1834979a879",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/WJd207D0O1sN-l1FTb8P9KhYL2oF5jY26vRUfTUW3FQ.png"
         }
       },
       "english": "Golden Knight"
@@ -1438,7 +1542,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/skeleton-king.png",
-          "sha256": "8954bfcf74f10127f200f84892834ae00ee373bc0f3f3dcdfdb4f3bd46f97448"
+          "sha256": "31997f851b4299ecbd599196bb36ffcb748c9727242012f49c488b722e2bc1bd",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/dCd69_wN9f8DxwuqOGtR4QgWhHIPIaTNxZ1e23RzAAc.png"
         }
       },
       "english": "Skeleton King"
@@ -1458,7 +1563,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/mighty-miner.png",
-          "sha256": "a31a17c2284d9ac01f1c7e899cd035eba9006384ede3b7582d2be5fbe68174c0"
+          "sha256": "efcfcaf5b7716cb55bc2f28f169cbc616ad4889565d5e7b835a55e0397c26efa",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Cd9R56yraxTvJiD8xJ2qT2OdsHyh94FqOAarXpbyelo.png"
         }
       },
       "english": "Mighty Miner"
@@ -1477,7 +1583,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/phoenix.png",
-          "sha256": "610f1f2f2b18b067c8315920266d43e8af3822cd11c74803c487682a05779eee"
+          "sha256": "5a6973cc11048a1112403239a52deeb4bfa5a2b4efadf2a65e5ae355f516deb7",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/i0RoY1fs6ay7VAxyFEfZGIPnD002nAKcne9FtJsWBHM.png"
         }
       },
       "english": "Phoenix"
@@ -1496,7 +1603,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/rune-giant.png",
-          "sha256": "0b85ac0605d5f77a7cb199c88eed4d04a70acd0e0eb5da0f4cfb8e04ccd076bd"
+          "sha256": "593845a2b7a76125d650c3ab26d5f32df184203b5ff46c7694057e6d6cc2ce6d",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/UogMnGHQXT-TOVXRxslKdAKXUPhqUvrD_hV9x8lbzdE.png"
         }
       },
       "english": "Rune Giant"
@@ -1515,7 +1623,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/minion-giant.png",
-          "sha256": "e76d6589225a31f15e4d44a741c2cc5464efad3ad50c1c5e76e43b814c1f55f0"
+          "sha256": "19e8d7fcfb798b8cfd5bb7343f9a9b16d3ef24a9322385461261f05364f0ad5e",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/VRjL0yVLzrnoe-IBh2l2fDHDok0L-UoM9cG-X_8xbMk.png"
         }
       },
       "english": "Minion Giant"
@@ -1534,7 +1643,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/fireball.png",
-          "sha256": "6bbe17a15330f6c0b9020f149023f728a97bffbd8a373d18a69ee09784ac571a"
+          "sha256": "3678ef9bd9c900cc342f061720a797f2493af84da087229583c8fdf3b4005c3e",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/lZD9MILQv7O-P3XBr_xOLS5idwuz3_7Ws9G60U36yhc.png"
         }
       },
       "english": "Fireball"
@@ -1553,7 +1663,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/freeze.png",
-          "sha256": "bcbccf3289dc362eaa9e553b886d59e2255c82d62abcfe8c2f8d83560b2ec58d"
+          "sha256": "37794b0700edd5dc870d55e68ae4075763bff816a72d23a95e10bf4b9c0f0161",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/I1M20_Zs_p_BS1NaNIVQjuMJkYI_1-ePtwYZahn0JXQ.png"
         }
       },
       "english": "Freeze"
@@ -1572,7 +1683,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/poison.png",
-          "sha256": "4f28bc86f2b1a236bc02e7abace6e4904c1a51773cc666eaa10618e450a91d35"
+          "sha256": "316dcdaf2f663478ae55082fa6b0cffd2a1628f4ad6d2b8612cdd54b4d8f5927",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/98HDkG2189yOULcVG9jz2QbJKtfuhH21DIrIjkOjxI8.png"
         }
       },
       "english": "Poison"
@@ -1591,11 +1703,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-cage.png",
-          "sha256": "26e52b413e13c2e9e7ebff09f2ba53ec103ab78a16d31c118865064dfbaa6a23"
+          "sha256": "53623414bfc93845a3b8032614df63f6ebb75f93fdb6101afd70a1fcb0a46bbc",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/vD24bBgK4rSq7wx5QEbuqChtPMRFviL_ep76GwQw1yA.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-cage-ev1.png",
-          "sha256": "c8187d5ffbbc3fd17fb5ea72e17e65fb101ac172d1b92342b46d1eb7c1048afb"
+          "sha256": "a6dbbb609cfd0c79b92b553c5da83b3296283e606cc87a79cec9bdd914cbffc3",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/vD24bBgK4rSq7wx5QEbuqChtPMRFviL_ep76GwQw1yA.png"
         }
       },
       "english": "Goblin Cage"
@@ -1614,11 +1728,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-drill.png",
-          "sha256": "00c6d6cfb27d89f365b5a6376fce49c2f162ad9e65be9b590c0aef4d5a79dfe7"
+          "sha256": "0323762c966736654d7ae7976d233a6704b84fe0c57c7704c1ea0f7db5b75bbf",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/eN2TKUYbih-26yBi0xy5LVFOA0zDftgDqxxnVfdIg1o.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-drill-ev1.png",
-          "sha256": "0b31d7baa950ebae86ac4b6b3af1eb05aef8c62f9247ad0904c0dc795b0742d3"
+          "sha256": "9b33a6b3733c85a13d9786d95c0ce5db372d887d24684a577a944eb0ca1d4800",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/eN2TKUYbih-26yBi0xy5LVFOA0zDftgDqxxnVfdIg1o.png"
         }
       },
       "english": "Goblin Drill"
@@ -1637,7 +1753,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-hut.png",
-          "sha256": "ae097ff5e26e203b67e0df0c9fc6f91e355d38feb8d45022cfc371411c0cd7dc"
+          "sha256": "bc8ca0e6335738298915e365cf4a8e8709789b76a1bb0df6f026bcf7e47da7d0",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/l8ZdzzNLcwB4u7ihGgxNFQOjCT_njFuAhZr7D6PRF7E.png"
         }
       },
       "english": "Goblin Hut"
@@ -1656,7 +1773,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/bomb-tower.png",
-          "sha256": "ef3956d4a5aec9ecbfe37f0bc65b66b4ce6299726f4575b8e336fbf3f66cb640"
+          "sha256": "df04f829cd2bdfdd1d0e1057f3963e21bd64547f309e0bf653604b3b05a6bb9f",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/rirYRyHPc97emRjoH-c1O8uZCBzPVnToaGuNGusF3TQ.png"
         }
       },
       "english": "Bomb Tower"
@@ -1675,11 +1793,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/tesla.png",
-          "sha256": "4dce8e5c833db04903b51b6495e774914ed3c7a8b0e26c14c1378bf6a18f5590"
+          "sha256": "b2f6309f2f661552ce603dfc5af306745fe0a58f5c279b84e0c732f8cb9fee7d",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/OiwnGrxFMNiHetYEerE-UZt0L_uYNzFY7qV_CA_OxR4.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/tesla-ev1.png",
-          "sha256": "c27332d115344ecd808c2cc416d11aedb3447cf9a726c3f89b58ab947d182fe8"
+          "sha256": "e8d47cc1519cc5105a244b1b241b2864541ce55a0cabd35578256b7de16f0910",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/OiwnGrxFMNiHetYEerE-UZt0L_uYNzFY7qV_CA_OxR4.png"
         }
       },
       "english": "Tesla"
@@ -1698,11 +1818,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/mortar.png",
-          "sha256": "ae586599383e1459a025ca6a465513d7ab6124a7d643b38c091f8d6b1e15fb70"
+          "sha256": "c2e2485c254a2ea7d83da1d98b5b0298f23da7a6e04b70ff804ce740fc6c5177",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/lPOSw6H7YOHq2miSCrf7ZDL3ANjhJdPPDYOTujdNrVE.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/mortar-ev1.png",
-          "sha256": "be084968496a319e2fbe2516b63827f69553d5e9443337f508bbbbb31c5afd84"
+          "sha256": "623c1adf0649765bc202dc1033fe40c550cf05e7fef6b2e2994ef78e343ababc",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/lPOSw6H7YOHq2miSCrf7ZDL3ANjhJdPPDYOTujdNrVE.png"
         }
       },
       "english": "Mortar"
@@ -1721,11 +1843,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/furnace.png",
-          "sha256": "9211b0b56f03f06e7b88a5d2f8d327199536da29d9102ef7544f4b6fdd581bb5"
+          "sha256": "b42075909e6b92f27ebce6d1094b8cc51f209120d7da583a5e339d4ee8429bc4",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/iqbDiG7yYRIzvCPXdt9zPb3IvMt7F7Gi4wIPnh2x4aI.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/furnace-ev1.png",
-          "sha256": "3a1ab05573e610274656e252c265806c141c6e648771dce518de44b079d63cc5"
+          "sha256": "fbf96eb3a834cb66223fa6e40108c21cd18427830871a57dfdd35438a3362e75",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/iqbDiG7yYRIzvCPXdt9zPb3IvMt7F7Gi4wIPnh2x4aI.png"
         }
       },
       "english": "Furnace"
@@ -1744,11 +1868,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/barbarians.png",
-          "sha256": "46198a754608d8086ec40aa01638da639257194c336adca0247b67f02e30d785"
+          "sha256": "c7c148be041721cd1a96ba2e4cf1dc792ee87ce9d2802f00464c004c018cb4c7",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/TvJsuu2S4yhyk1jVYUAQwdKOnW4U77KuWWOTPOWnwfI.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/barbarians-ev1.png",
-          "sha256": "053fe38dee27039d4c6d3dbc0e3908bf51872f89f412a2983dc984a5c89e7359"
+          "sha256": "9e1399efc66de5be9aa689964d91d27daa7de008dc0c32f47137440318ca81cf",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/TvJsuu2S4yhyk1jVYUAQwdKOnW4U77KuWWOTPOWnwfI.png"
         }
       },
       "english": "Barbarians"
@@ -1767,11 +1893,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/minion-horde.png",
-          "sha256": "b02861160a1aa9ffbc474304098a86f486da71734eb9d258e0a08ad300503fce"
+          "sha256": "bb18b48ec8ffbfbe0e8a6558cb11fcd6b7208d5d2e8ed808073109189155d630",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Wyjq5l0IXHTkX9Rmpap6HaH08MvjbxFp1xBO9a47YSI.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/minion-horde-ev1.png",
-          "sha256": "437175e85794cdfdbf4f3a02bc9e53def94491e2aeaf5069f342fb5f0feb13c5"
+          "sha256": "a8e65e54a0c0d0cb2ec85cf9b67a99c7a907f94412d24bd254e900ce478e353e",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/Wyjq5l0IXHTkX9Rmpap6HaH08MvjbxFp1xBO9a47YSI.png"
         }
       },
       "english": "Minion Horde"
@@ -1790,11 +1918,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/giant.png",
-          "sha256": "390277aa877d9b952d0b2c8843ee080b1fd5a40eb68acf8760ad18f106985367"
+          "sha256": "71685f53039eef1f3bc5674f493475bca09360cdbeff4ce70ee12b8e43bff7c3",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Axr4ox5_b7edmLsoHxBX3vmgijAIibuF6RImTbqLlXE.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/giant-hero.png",
-          "sha256": "2cc6761fca91b2c9193c98250c5da8112dd9217f95d11e44f7609b01d12c2549"
+          "sha256": "ef234c8a27810326434e77a7e0e97fcbfbc3f0b1c955d7c9eca5250edb994300",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/Axr4ox5_b7edmLsoHxBX3vmgijAIibuF6RImTbqLlXE.png"
         }
       },
       "english": "Giant"
@@ -1813,15 +1943,18 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/wizard.png",
-          "sha256": "12254947e7486740288b315062fdb1c415ffd2482d8b00fd6ac4dd65cfc0561a"
+          "sha256": "5b73620319ca1ce89bee76a867c85794a9af741f68dee7151dc7e97d55fb8579",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Mej7vnv4H_3p_8qPs_N6_GKahy6HDr7pU7i9eTHS84U.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/wizard-ev1.png",
-          "sha256": "2b32e1d617ad67ff9224d199da0b9748bf2551aaa61c7c079fdaccd913f28453"
+          "sha256": "3e004e3b27571695b3a5c2ed6415833d0156fb2142a7a438ef253dca44e89d7a",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/Mej7vnv4H_3p_8qPs_N6_GKahy6HDr7pU7i9eTHS84U.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/wizard-hero.png",
-          "sha256": "30accd938694f0d12d4aac715d9d1c2294609ca12a7974a1ba63e9eb9ed99f1f"
+          "sha256": "e37f78fcdd8f8dccb22fde7738213511183bab577156a34ee5ec2f393158ace5",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/Mej7vnv4H_3p_8qPs_N6_GKahy6HDr7pU7i9eTHS84U.png"
         }
       },
       "english": "Wizard"
@@ -1840,11 +1973,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/balloon.png",
-          "sha256": "81cedea30710838650fbc2dab748ffc6709707cdae2081c4831b255f0e33d96c"
+          "sha256": "9a8a8a3e040bbb95fcb99a5c49bcb42a3a286cf1ec911fdd48bbf3b346ccc624",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/qBipxLo-3hhCnPrApp2Nn3b2NgrSrvwzWytvREev0CY.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/balloon-hero.png",
-          "sha256": "fb16e3d94abe18aec6e55c0ba95864aac2b4d1d83af438f99a67aaea999b055f"
+          "sha256": "f2795c4960d6e1117d2925bc5b8a1e8f8a8f24cda07b0c7a37e6e13d6f3b90ee",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/qBipxLo-3hhCnPrApp2Nn3b2NgrSrvwzWytvREev0CY.png"
         }
       },
       "english": "Balloon"
@@ -1863,11 +1998,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/witch.png",
-          "sha256": "37287bf62936eae84fd5d898110381af59e033841a707b91d33bb4ebe995d8af"
+          "sha256": "4fec852bcfed5665ac42e6ecf443ec44038cb12f6fe211823e10da7f5deee4b8",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/cfwk1vzehVyHC-uloEIH6NOI0hOdofCutR5PyhIgO6w.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/witch-ev1.png",
-          "sha256": "08e3303f390edd6c2eb4d7f6b2a779e2e0b02f27f7ca38e7f0c6f6f14c544436"
+          "sha256": "d76a27f65085748ae1a2e81f3a8e047413af2301409c03637e853113fa7b8634",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/cfwk1vzehVyHC-uloEIH6NOI0hOdofCutR5PyhIgO6w.png"
         }
       },
       "english": "Witch"
@@ -1886,11 +2023,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/bowler.png",
-          "sha256": "2f6c52a8628dded53ea6f6d0902d65b5c85e8e9ee20a094e2336fabea94b5929"
+          "sha256": "efc34c2eca05f7896d43fd9f1372d44e5a6e371551e5651fc5986015fac43620",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/SU4qFXmbQXWjvASxVI6z9IJuTYolx4A0MKK90sTIE88.png"
         },
         "h": {
           "image": "https://cdn.royaleapi.com/static/img/cards/bowler-hero.png",
-          "sha256": "57b1c7a10b0343bbd0eab348f35c508464d41d973902ac623eae3cf820dffab6"
+          "sha256": "b3d21573e97ee08e3a86a773b0a99f15fc6f16f15f48f1c872c75f35d5552e2b",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/SU4qFXmbQXWjvASxVI6z9IJuTYolx4A0MKK90sTIE88.png"
         }
       },
       "english": "Bowler"
@@ -1909,11 +2048,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/executioner.png",
-          "sha256": "ed03e02c470b63564f52aaafab99ac17eddf01ad55257815573ed7a05ad20082"
+          "sha256": "51121ae721fd7be434c0abbcc4c6443b7517cc0e8660f775d02d5285d9cc2184",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/9XL5BP2mqzV8kza6KF8rOxrpCZTyuGLp2l413DTjEoM.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/executioner-ev1.png",
-          "sha256": "958e948007af4cf2a529e1cd9755dbbf6afd8968f9a92431e6581529676293e9"
+          "sha256": "b6f5144f57f9dde6590976e8f6b2e215d3616d35c2bb3fd69966fddfeafe0c5c",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/9XL5BP2mqzV8kza6KF8rOxrpCZTyuGLp2l413DTjEoM.png"
         }
       },
       "english": "Executioner"
@@ -1932,7 +2073,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/cannon-cart.png",
-          "sha256": "e8387dbc1f03cf8688a48d92aa0b3ce602398b5ffc6edc4c6b59394078a3e148"
+          "sha256": "380235930791c8cdd1422f1992826f23125c30f56a98ce95e437d99d78679fc7",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/aqwxRz8HXzqlMCO4WMXNA1txynjXTsLinknqsgZLbok.png"
         }
       },
       "english": "Cannon Cart"
@@ -1951,11 +2093,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/royal-hogs.png",
-          "sha256": "3b1bb97256e255b4bc4d8eb7ffbe15de6aa6030733d3bbaa2ab6b93fbb646c67"
+          "sha256": "8b901e6e4118c4ddc328e9353f17b69c9da502e782b50760de79b058abf08a9f",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/ASSQJG_MoVq9e81HZzo4bynMnyLNpNJMfSLb3hqydOw.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/royal-hogs-ev1.png",
-          "sha256": "6513eb731ae661cef66a4af54458f993e7243cd0694595e1e139b8c3e126f8d8"
+          "sha256": "9e5e628d2d19da51efce7336d13b0f1dd41e9a857eab3a736e4eb988d4fa0057",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/ASSQJG_MoVq9e81HZzo4bynMnyLNpNJMfSLb3hqydOw.png"
         }
       },
       "english": "Royal Hogs"
@@ -1974,7 +2118,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/rascals.png",
-          "sha256": "ea104537198c008e8c8bb5d3ff58f8ebfcd8cf667e35d776ab71fed0a1c47b21"
+          "sha256": "cdf259ac78a61294fc74cb8f7d2b11d967e0cc9d40e31e18c4a6c0b9b22b8379",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/KV48DfwVHKx9XCjzBdk3daT_Eb52Me4VgjVO7WctRc4.png"
         }
       },
       "english": "Rascals"
@@ -1993,11 +2138,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/electro-dragon.png",
-          "sha256": "b11234e409c5167fe9dd3df71699bfb19b7405b51328b9f22340a9dae80d335f"
+          "sha256": "f9d2cc5854df4913d74d3b95368ce0d04e9252dc10773f114fcdf3bca0c6ac71",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/tN9h6lnMNPCNsx0LMFmvpHgznbDZ1fBRkx-C7UfNmfY.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/electro-dragon-ev1.png",
-          "sha256": "318c591a29a5f0f8bd1622198adb84b68f2037f0044973f931eb9237ff822808"
+          "sha256": "f5939dd0387a1c7c66f96ed9b9cfd73772b78b69d90deae12c79230cf755bac2",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/tN9h6lnMNPCNsx0LMFmvpHgznbDZ1fBRkx-C7UfNmfY.png"
         }
       },
       "english": "Electro Dragon"
@@ -2016,7 +2163,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/prince.png",
-          "sha256": "0b35ecc5f4821656f8066cc8d6ea2f65fc8985b536c056ed0d63225676cdfa0a"
+          "sha256": "e5161d9b251e16c292b7d2adf9aee8fe9c987920e946aa91e75084f8d5bfeb88",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/3JntJV62aY0G1Qh6LIs-ek-0ayeYFY3VItpG7cb9I60.png"
         }
       },
       "english": "Prince"
@@ -2035,7 +2183,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/ram-rider.png",
-          "sha256": "647467373a0896bcb1112d3bae65249543739062b1ec133d72de9e6e6597d668"
+          "sha256": "fd6b7509feca3d63ecd31ce41cb6db97c5899637db91ca40f98db5297e581e10",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/QaJyerT7f7oMyZ3Fv1glKymtLSvx7YUXisAulxl7zRI.png"
         }
       },
       "english": "Ram Rider"
@@ -2055,7 +2204,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/little-prince.png",
-          "sha256": "2d3f33d7f7e56e3eafcabc089c028e81222fecf3469fc0331b7b918f1e68f098"
+          "sha256": "cb98a98b67c13a4c0f172775951630d5de4d8d976e591609093c97460b322c17",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/dY-gSseki6KBpkIG17safHH5YlB8SErFZO9OXbJxf9w.png"
         }
       },
       "english": "Little Prince"
@@ -2075,7 +2225,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/monk.png",
-          "sha256": "52eed14e0b21d503d109632180c8748b504d4958a0733b2178d785c41ebe5c3f"
+          "sha256": "53b61177014b2a809b3227d5c435ae27fc14da812e6dd30b5ca761aec43cc5d3",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/2onG4t4-CxqwFVZAn6zpWxFz3_mG2ksSj4Q7zldo1SM.png"
         }
       },
       "english": "Monk"
@@ -2095,7 +2246,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblinstein.png",
-          "sha256": "3edd4cdc5c68122a8e05ce9c7704ec45a120a66a48e669a759688618256f5e72"
+          "sha256": "658cd662208a2e9646daece826063fa5e4d322410dbc2b1b5ffb91c7e0f7aea4",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/mQ20B49dXdk7Nv0lMdLw175M3YvkSpN6KNnho8UKBd8.png"
         }
       },
       "english": "Goblinstein"
@@ -2115,7 +2267,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/boss-bandit.png",
-          "sha256": "6dc4be88ffb2f3dcecec14cce45efaafa43c49a3fad5f6ff7b57616337f0fb2f"
+          "sha256": "4a0ac64bdc0d66a06a9c80ad4bafaa273100228010be142f14eec9b7d610264a",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/nuceG9o7rAyvyc7D3sp2QSiRYtSOEgraq0NJkDf729s.png"
         }
       },
       "english": "Boss Bandit"
@@ -2135,7 +2288,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/archer-queen.png",
-          "sha256": "22c6dcbec95aaa49513fed5cfc83b1276d844ffd9e24df91c725e5cbb97a9bac"
+          "sha256": "f66bfb78e3c0551e86b597dab7b2c36135229ced1143d6fad3100680ad3bba9c",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/p7OQmOAFTery7zCzlpDdm-LOD1kINTm42AwIHchZfWk.png"
         }
       },
       "english": "Archer Queen"
@@ -2154,13 +2308,14 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-machine.png",
-          "sha256": "55d075b115df56b37e1f306ed411de071693aa9bc2524c8a5a3ab2b801c3e18c"
+          "sha256": "2b3d931ea377cf044d2923e94dd53cba054e986ff019e8ffde0dda798709bc56",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/-iLlotr6GCFndL_1BSBqWBb6DnsHBhLerd5EblZDNfU.png"
         }
       },
       "english": "Goblin Machine"
     },
     {
-      "id": null,
+      "id": 26000106,
       "slug": "ronin",
       "name": "ローニン",
       "yomi": "ローニン ろーにん 浪人 スサノオ 浪人スサノオ Susanoo Susano Ronin スノ",
@@ -2173,7 +2328,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/ronin.png",
-          "sha256": "47d4b879cbcd8e792da68255219289ddb0329b34a7459b6b5cbe2ce29e3c96f6"
+          "sha256": "114b39469d946df123e8bf3a4cdf65e3b0ea5bb5b282f2e90d6b61ef923b226c",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/X0dTFs7OGUavreDEzOtYd_YNZ8Zly6qgAE-dd-bNfWU.png"
         }
       },
       "english": "Ronin"
@@ -2192,7 +2348,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/graveyard.png",
-          "sha256": "5478b3a4af71d885046367f65614928f0b6f2a95b075b22ee9e83f58998647d4"
+          "sha256": "ea37972ad1c8e92deb3599ab1214a6ea4c94aa6ac855f9bad724d5d66a887654",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Icp8BIyyfBTj1ncCJS7mb82SY7TPV-MAE-J2L2R48DI.png"
         }
       },
       "english": "Graveyard"
@@ -2211,7 +2368,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/inferno-tower.png",
-          "sha256": "180ef438e5f57c6292680ee107314c1a7581a1dea2cdaf3a36995e38f2e83196"
+          "sha256": "5ad22d86b424ef1a36acefe619f7368ab1dce2d1aab0b251b9ee3e8f2a6034d4",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/GSHY_wrooMMLET6bG_WJB8redtwx66c4i80ipi4gYOM.png"
         }
       },
       "english": "Inferno Tower"
@@ -2230,11 +2388,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/royal-giant.png",
-          "sha256": "e44b5250b97ffd4dd85c33fdc0d89a7d5bf737a667ef26a14851a65abdf08be0"
+          "sha256": "6a55b73f6daaaa7a1aa8a02d4a591c32c83835eefe7f0be5def73d478803e215",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/mnlRaNtmfpQx2e6mp70sLd0ND-pKPF70Cf87_agEKg4.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/royal-giant-ev1.png",
-          "sha256": "a7f05307c33421703eaac5e36fc68c8659e8789661d576e01a81784fecac0561"
+          "sha256": "520a0d5ea9105713e8eca4a494b0cc6de398d5ee15d61bf0cb68c7c4bd2c1fc3",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/mnlRaNtmfpQx2e6mp70sLd0ND-pKPF70Cf87_agEKg4.png"
         }
       },
       "english": "Royal Giant"
@@ -2253,11 +2413,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/elite-barbarians.png",
-          "sha256": "8ea6b12aa61a277f5bba5c5b4ff2f1580bf181ffac74af58fa14bb2e03b955ca"
+          "sha256": "3697b3ebc34b46edb92a9091f593d248aef6a59d2949303cc3332d1ab0bb4368",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/C88C5JH_F3lLZj6K-tLcMo5DPjrFmvzIb1R2M6xCfTE.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/elite-barbarians-ev1.png",
-          "sha256": "debdf533320d885822174739972f4e782a023e4fe29492315d8c7180f3ee0267"
+          "sha256": "dadd6d2b01d7ad225db2d4ab9dd99602479e45abdcc6657fd4b8d4a72b372478",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/C88C5JH_F3lLZj6K-tLcMo5DPjrFmvzIb1R2M6xCfTE.png"
         }
       },
       "english": "Elite Barbarians"
@@ -2276,7 +2438,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/giant-skeleton.png",
-          "sha256": "70d69153dd8485a6a508e8d3a8753c57ec17a969530f9808d09cf0931c307af1"
+          "sha256": "e5f2acf2c25ad15236459810c3f2e746ef04dbfabf5eb71a9879f109da3bafcd",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/0p0gd0XaVRu1Hb1iSG1hTYbz2AN6aEiZnhaAib5O8Z8.png"
         }
       },
       "english": "Giant Skeleton"
@@ -2295,11 +2458,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-giant.png",
-          "sha256": "64ec527f1df3e8fa6ff3e72187edf53e9be014a72b16314b2dae4ecc041ab1fd"
+          "sha256": "464f3a468a897af547d48624cf273945fb4a023adf5db93a74b2fac129b54d7b",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/SoW16cY3jXBwaTDvb39DkqiVsoFVaDWbzf5QBYphJrY.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/goblin-giant-ev1.png",
-          "sha256": "a5c0d3fc70507738b63b00822674fced4686e78c87b9e62307dcf1f0696e9501"
+          "sha256": "802cbbfc93ea37ee61f34ef07ddca379b076c80648e07569a643b81cb8fa68b4",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/SoW16cY3jXBwaTDvb39DkqiVsoFVaDWbzf5QBYphJrY.png"
         }
       },
       "english": "Goblin Giant"
@@ -2318,7 +2483,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/sparky.png",
-          "sha256": "e0e3db0f5f9ce635bd6a11c4fd2eeebe2a33499d1e1efa075e8f460dabc67102"
+          "sha256": "58ae30a4289ff0242bb31ef1bce938edde68de4b78609bf14d0fbfadcbb37133",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/2GKMkBrArZXgQxf2ygFjDs4VvGYPbx8F6Lj_68iVhIM.png"
         }
       },
       "english": "Sparky"
@@ -2337,7 +2503,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/spirit-empress.png",
-          "sha256": "3a2c8777a1654c71b234d82b4d281245b32c9d2d76c91da4336659a352cfd688"
+          "sha256": "698f4782c1cfda53da95d0d6fba70983ec1f42570b809994ae44e066e641a085",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/MWWBZqiQeRBXSqEITVMj46nO_uCIUsqBidvUw9K2twY.png"
         }
       },
       "english": "Spirit Empress"
@@ -2356,7 +2523,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/rocket.png",
-          "sha256": "4fc948e1cace137e9ef2828ebda5fdafe9b17c02c9ef6f8074770a2c65629c07"
+          "sha256": "3729d4770b5a7bd6847c12f76fb74dc385b098acae233abd6f66cbf2d7b6b89a",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/Ie07nQNK9CjhKOa4-arFAewi4EroqaA-86Xo7r5tx94.png"
         }
       },
       "english": "Rocket"
@@ -2375,7 +2543,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/lightning.png",
-          "sha256": "47c994fc25232801eed483458395ad9d73d2aa692d736d8fcc7a119ae61f4587"
+          "sha256": "e66b4dfc00a5ce2d7e7c1d8ef9d9cb1312ba8ba6ad80037152ad23cfe03b5e79",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/fpnESbYqe5GyZmaVVYe-SEu7tE0Kxh_HZyVigzvLjks.png"
         }
       },
       "english": "Lightning"
@@ -2394,7 +2563,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/elixir-collector.png",
-          "sha256": "e2f12455481b6742b488c92a12cf2021e2ef34c1c437331942252ae2dbe9b59a"
+          "sha256": "496627ae5acb4dd0624a278627e6995d92df31b3cbade0e15ad895810b25fe45",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/BGLo3Grsp81c72EpxLLk-Sofk3VY56zahnUNOv3JcT0.png"
         }
       },
       "english": "Elixir Collector"
@@ -2413,7 +2583,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/barbarian-hut.png",
-          "sha256": "cbee8ebf5514af11551937db69cc44365e1196aef16628f6f37c8d58c8e88bbb"
+          "sha256": "6bf3af642d99dcd766904a62dd7ef97fa3a7996030fbfc8f6cc832c3d9f11884",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/ho0nOG2y3Ch86elHHcocQs8Fv_QNe0cFJ2CijsxABZA.png"
         }
       },
       "english": "Barbarian Hut"
@@ -2432,7 +2603,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/x-bow.png",
-          "sha256": "c09cfc7cf5b8e12029ac9dd21ff0a3f52aef8529b5e22ce73df52970a73f1b3c"
+          "sha256": "caa509d1a28b92366777d1db2bcc1a80f9b6519d177a55a4e064d7ce80a6dd20",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/zVQ9Hme1hlj9Dc6e1ORl9xWwglcSrP7ejow5mAhLUJc.png"
         }
       },
       "english": "X-Bow"
@@ -2451,11 +2623,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/pekka.png",
-          "sha256": "e00b43b02ae1a7b2c1517577f7bbaf96cd405f2ed549df195d6ed38beef90d45"
+          "sha256": "b2e7d18ff977f495906771b160b7730715a07575f782782f180d2aee99f82342",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/MlArURKhn_zWAZY-Xj1qIRKLVKquarG25BXDjUQajNs.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/pekka-ev1.png",
-          "sha256": "2759b17022c65762a7de5fd4a2fcff22a0b25259b0d64cc15082e67470ab600e"
+          "sha256": "83dd058d41a24e3626bfe530680603800347e397c76b82a37299efa5d83bd1e9",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/MlArURKhn_zWAZY-Xj1qIRKLVKquarG25BXDjUQajNs.png"
         }
       },
       "english": "P.E.K.K.A"
@@ -2474,7 +2648,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/lava-hound.png",
-          "sha256": "a060c867d885328462d29974de873a3e566ff7b51719398e918000514c9a7830"
+          "sha256": "f0789d1aa3663b7a2f1d89fc994e96fbf53025ac4e3baf6f4e4282dede16b609",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/unicRQ975sBY2oLtfgZbAI56ZvaWz7azj-vXTLxc0r8.png"
         }
       },
       "english": "Lava Hound"
@@ -2493,7 +2668,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/electro-giant.png",
-          "sha256": "279d6a86053a4f1688720c6ed7d30d3ac9fb487c23db682e44588e160270cbf6"
+          "sha256": "4c00a053b60229dd3654f67e713dde01076b9186f5e13cae168f45f977005192",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/_uChZkNHAMq6tPb3v6A49xinOe3CnhjstOhG6OZbPYc.png"
         }
       },
       "english": "Electro Giant"
@@ -2512,11 +2688,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/mega-knight.png",
-          "sha256": "53e65d46cf12c77ddbd7cb66002a79906477c2fe3a61ac264dad6bf279f1e7ce"
+          "sha256": "37a5b9aa81fe8ba430eb99d59880b6cc3ae414c8d0789b560223d3f2d8172065",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/O2NycChSNhn_UK9nqBXUhhC_lILkiANzPuJjtjoz0CE.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/mega-knight-ev1.png",
-          "sha256": "760431cf696b1b2b1ab101f74e81c3b86066a1e7e7c6e693957b61c9da8aa947"
+          "sha256": "c753041791e478fdc43978b9e17840f87b39cd124f11f09cc9a524e725a7d262",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/O2NycChSNhn_UK9nqBXUhhC_lILkiANzPuJjtjoz0CE.png"
         }
       },
       "english": "Mega Knight"
@@ -2535,11 +2713,13 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/royal-recruits.png",
-          "sha256": "c822b24b5b42d34fc2289e341f746274f0d9b666900d2966bc32c45df865226a"
+          "sha256": "53827d02a6ed48be02eba7c4ab4cbc1be8bc8d0c39531dc680408287c29db8b0",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/jcNyYGUiXXNz3kuz8NBkHNKNREQKraXlb_Ts7rhCIdM.png"
         },
         "e": {
           "image": "https://cdn.royaleapi.com/static/img/cards/royal-recruits-ev1.png",
-          "sha256": "4728c9e70fab1b89b74e1d2ef2af34e395b3daff9a64e8132d5965a5193cd6d9"
+          "sha256": "fc955c88649abc6ab221358f8d5668739d92e66ad8d09d5e5b0862c84dde320b",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/jcNyYGUiXXNz3kuz8NBkHNKNREQKraXlb_Ts7rhCIdM.png"
         }
       },
       "english": "Royal Recruits"
@@ -2558,7 +2738,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/golem.png",
-          "sha256": "3104284ac5620aa3fe11da23bf7b6676a138b7fba356a3a6ca4000c1542ef699"
+          "sha256": "39cab32ac874e24ab23cb80c0167318fe8d04345170f511ee3d8846cc1501240",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/npdmCnET7jmVjJvjJQkFnNSNnDxYHDBigbvIAloFMds.png"
         }
       },
       "english": "Golem"
@@ -2577,7 +2758,8 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/three-musketeers.png",
-          "sha256": "562e00986f6e4f6e63ebf6a5a07d5342317b1aaac5e42875fc199ec4e5fede82"
+          "sha256": "c5d0d89da5d384c1ce146c6be5883193d40695645ecee60f5ec110cc18b8b357",
+          "officialIcon": "https://api-assets.clashroyale.com/cards/300/_J2GhbkX3vswaFk1wG-dopwiHyNc_YiPhwroiKF3Mek.png"
         }
       },
       "english": "Three Musketeers"

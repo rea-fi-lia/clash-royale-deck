@@ -132,7 +132,13 @@ jobs:
 
       - name: Report stale or missing detail sources
         run: |
-          node -e 'const s=require(process.env.RUNNER_TEMP+"/card-stats.json");if(s.refresh.failed)throw Error(s.refresh.failed+" card detail sources need review; last good values retained")'
+          node - <<'NODE'
+          const fs=require('fs'),s=require(process.env.RUNNER_TEMP+'/card-stats.json');
+          const pending=s.cards.filter(c=>c.freshness?.status!=='current').map(c=>c.slug);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,`Card details: ${s.refresh.succeeded}/${s.refresh.total} fetched.\n\nPending: ${pending.join(', ') || 'none'}\n`);
+          if(s.refresh.failed) console.log('::warning::'+s.refresh.failed+' detail sources pending; last good values retained. '+pending.join(', '));
+          if(!s.refresh.succeeded) throw Error('All detail sources failed');
+          NODE
 
       # ★通知は .github/actions/notify に一本化してある。
       #   鳴らし方を変えたいときはあのファイル1枚を直せば全ワークフローに効く。
