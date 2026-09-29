@@ -40,6 +40,10 @@ test('shared Fire Spirit damage follows through to Furnace',async()=>{
  const c=card('furnace',{'Fire Spirit Area Damage':'207'});applyOfficialBalances({cards:[c]},l,helpers);
  assert.equal(c.combat.stats['Fire Spirit Area Damage'],215);
 });
+test('a summoned unit HP change does not erase the parent building HP',()=>{
+ const c=card('goblin-cage',{Hitpoints:'742','Goblin Brawler Hitpoints':'1080'});c.hp16=742;
+ applyOfficialBalances({cards:[c]},ledger(),helpers);assert.equal(c.hp16,742);assert.equal(c.combat.stats['Goblin Brawler Hitpoints'],1121);
+});
 test('multi-projectile damage is never silently turned into a single-hit value',()=>{
  const c=card('hunter',{Damage:'84 x10 (840)','Damage per second':'380'},{'Hit Speed':'2.2 sec'});
  const l={checkedAt:'2026-10-20',status:'reviewed',pending:[],checks:[{slug:'hunter',form:'n',key:'Damage',level:11,expected:90,effectiveAt:'2026-10-08'}]};

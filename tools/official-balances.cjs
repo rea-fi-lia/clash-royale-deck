@@ -135,9 +135,10 @@ function applyOfficialBalances(data, ledger, helpers) {
     target.officialFields.push({...check,upstreamValue:previous});
     if(check.level && numeric(previous)!==check.expected) {
       // Do not expose stale higher-level values as current, or invent rounding.
+      const primaryHp=helpers.pickStatKey(target.s16 || {},/hitpoints/i,card.slug,'hp');
       for(const [lv,row] of Object.entries(target.levels)) if(+lv!==check.level) delete row[check.key];
       delete target.s16?.[check.key]; delete target.stats?.[check.key];
-      if(/hitpoints/i.test(check.key)) target.hp16=null;
+      if(check.key===primaryHp) target.hp16=null;
     }
     table[check.key]=String(check.expected);
     if(check.key==='Hit Speed' || /^(?:Damage|Area Damage)$/.test(check.key)) {
