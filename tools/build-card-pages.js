@@ -187,6 +187,14 @@ function cardBody(c, ctx, D) {
   const hp = st && st.hp16, dmg = pickStat(s16, /\bdamage$/i), dps = st && st.dps16;
   const area = pickStat(s16, /area damage/i);
   const tower = (() => { const k = Object.keys(s16).find(x => /crown tower/i.test(x)); return k ? num(s16[k]) : null; })();
+  const balance = st?.balanceVerification;
+  if (balance?.checks?.length) {
+    const labels = {n:'通常',e:'限界突破',h:'ヒーロー'};
+    out.push('<section class="section"><h2>公式バランス調整との照合</h2>');
+    out.push('<p class="note">'+(balance.status==='matched'?'対象項目は公式発表と一致しています。':'取得先の数値に未反映または未確認の項目があります。下の実数値は最新調整の反映済みとは限りません。')+'</p>');
+    out.push('<table class="cardpage-stats"><thead><tr><th>対象</th><th>公式の調整後</th><th>取得先との照合</th></tr></thead><tbody>'+balance.checks.map(c=>'<tr><th>'+esc(labels[c.form]+'・'+c.label)+(c.level?'（Lv'+c.level+'）':'')+'</th><td>'+esc(c.expected)+'</td><td>'+esc(c.status==='matched'?'一致':c.status==='mismatch'?'未反映（取得値 '+c.actual+'）':'未確認')+'</td></tr>').join('')+'</tbody></table>');
+    out.push('<p class="note"><a href="'+esc(balance.source)+'" target="_blank" rel="noopener">Supercell公式発表</a>と照合。レベル・形態を区別し、未確認の値は推測換算しません。</p></section>');
+  }
   const rows = [];
   const row = (k, v) => { if (v != null && v !== '' && v !== '—') rows.push('<tr><th>' + k + '</th><td>' + esc(v) + '</td></tr>'); };
   row('コスト', attrs.Cost);

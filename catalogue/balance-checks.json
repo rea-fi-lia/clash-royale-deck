@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "source": "https://supercell.com/en/games/clashroyale/blog/release-notes/september-balance-changes-2027/",
+  "reviewedAt": "2026-09-29",
+  "latestEffectiveAt": "2026-09-16",
+  "articleSha256": "bac34cfd5278cb1a5b2bef537f089cdbfc9909db91885d7b493b400ddc56d4b5",
+  "checks": [
+    {
+      "slug": "ice-wizard",
+      "form": "h",
+      "key": "Freeze Duration",
+      "expected": 5,
+      "label": "凍結時間（秒）",
+      "effectiveAt": "2026-09-16"
+    },
+    {
+      "slug": "goblinstein",
+      "form": "n",
+      "key": "Ability Duration",
+      "expected": 3.5,
+      "label": "能力時間（秒）",
+      "effectiveAt": "2026-09-16"
+    },
+    {
+      "slug": "minion-giant",
+      "form": "n",
+      "key": "Damage",
+      "expected": 168,
+      "label": "攻撃力",
+      "effectiveAt": "2026-09-16",
+      "level": 11
+    },
+    {
+      "slug": "fire-spirit",
+      "form": "n",
+      "key": "Area Damage",
+      "expected": 215,
+      "label": "範囲ダメージ",
+      "effectiveAt": "2026-09-16",
+      "level": 11
+    },
+    {
+      "slug": "balloon",
+      "form": "h",
+      "key": "Skeletrooper Landing Damage",
+      "expected": 230,
+      "label": "着地ダメージ",
+      "effectiveAt": "2026-09-08",
+      "level": 11
+    },
+    {
+      "slug": "battle-ram",
+      "form": "e",
+      "key": "Knockback",
+      "expected": 2,
+      "label": "ノックバック（マス）",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "elite-barbarians",
+      "form": "e",
+      "key": "Spear Range",
+      "expected": "3–4.5",
+      "label": "槍の射程（マス）",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "elite-barbarians",
+      "form": "e",
+      "key": "Rage Duration",
+      "expected": 2,
+      "label": "レイジ時間（秒）",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "freeze",
+      "form": "n",
+      "key": "Freeze Duration",
+      "expected": 3.5,
+      "label": "持続時間（秒）",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "fireball",
+      "form": "n",
+      "key": "Crown Tower Damage",
+      "expected": 159,
+      "label": "タワーダメージ",
+      "effectiveAt": "2026-09-08",
+      "level": 11
+    },
+    {
+      "slug": "ice-golem",
+      "form": "n",
+      "key": "Hitpoints",
+      "expected": 1228,
+      "label": "体力",
+      "effectiveAt": "2026-09-08",
+      "level": 11
+    },
+    {
+      "slug": "ice-golem",
+      "form": "n",
+      "key": "Slow Duration",
+      "expected": 2.5,
+      "label": "スロー時間（秒）",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "zappies",
+      "form": "n",
+      "key": "Hit Speed",
+      "expected": 2.3,
+      "label": "攻撃間隔（秒）",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "ronin",
+      "form": "n",
+      "key": "Hit Speed",
+      "expected": 1.3,
+      "label": "攻撃間隔（秒）",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "spirit-empress",
+      "form": "n",
+      "key": "Damage",
+      "expected": 320,
+      "label": "地上の攻撃力",
+      "effectiveAt": "2026-09-08",
+      "level": 11,
+      "requiredKeys": [
+        "Air Form Damage per second",
+        "Ground Form Damage per second"
+      ]
+    },
+    {
+      "slug": "spirit-empress",
+      "form": "n",
+      "key": "Damage",
+      "expected": 320,
+      "label": "空中の攻撃力",
+      "effectiveAt": "2026-09-08",
+      "level": 11,
+      "requiredKeys": [
+        "Air Form Damage per second",
+        "Ground Form Damage per second"
+      ]
+    },
+    {
+      "slug": "goblin-cage",
+      "form": "n",
+      "key": "Goblin Brawler Hitpoints",
+      "expected": 1121,
+      "label": "リベンジゴブリンの体力",
+      "effectiveAt": "2026-09-08",
+      "level": 11
+    },
+    {
+      "slug": "mega-minion",
+      "form": "h",
+      "key": "Returns to Original Position",
+      "expected": "Yes",
+      "label": "元の位置へ戻る",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "mega-minion",
+      "form": "h",
+      "key": "Warp Damage",
+      "expected": 422,
+      "label": "ワープダメージ",
+      "effectiveAt": "2026-09-08",
+      "level": 11
+    },
+    {
+      "slug": "mega-minion",
+      "form": "h",
+      "key": "Crown Tower Damage Reduction",
+      "expected": 0,
+      "label": "タワーダメージ減衰（%）",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "wizard",
+      "form": "h",
+      "key": "Ability Duration",
+      "expected": 3.5,
+      "label": "能力時間（秒）",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "wizard",
+      "form": "e",
+      "key": "Shield Hitpoints",
+      "expected": 176,
+      "label": "シールド体力",
+      "effectiveAt": "2026-09-08",
+      "level": 11
+    },
+    {
+      "slug": "wizard",
+      "form": "n",
+      "key": "Damage",
+      "expected": 304,
+      "label": "攻撃力",
+      "effectiveAt": "2026-09-08",
+      "level": 11
+    },
+    {
+      "slug": "wizard",
+      "form": "n",
+      "key": "First Hit Speed",
+      "expected": 0.5,
+      "label": "初撃時間（秒）",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "bomber",
+      "form": "e",
+      "key": "Bomb Bounce Distance",
+      "expected": 3,
+      "label": "バウンド距離（マス）",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "bomber",
+      "form": "n",
+      "key": "Area Damage",
+      "expected": 212,
+      "label": "範囲ダメージ",
+      "effectiveAt": "2026-09-08",
+      "level": 11
+    },
+    {
+      "slug": "battle-ram",
+      "form": "n",
+      "key": "Sight Range",
+      "expected": 6.5,
+      "label": "索敵範囲（マス）",
+      "effectiveAt": "2026-09-08"
+    },
+    {
+      "slug": "golem",
+      "form": "n",
+      "key": "Sight Range",
+      "expected": 7.5,
+      "label": "索敵範囲（マス）",
+      "effectiveAt": "2026-09-08"
+    }
+  ]
+}

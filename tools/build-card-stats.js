@@ -32,6 +32,8 @@ function validateRelease(prepared, catalogue) {
   }
 }
 
+const {auditBalances, checkOfficialSource} = require('./balance-verification.cjs');
+
 const API = 'https://clashroyale.fandom.com/api.php';
 const UA = 'crdb-card-stats-builder';
 
@@ -168,7 +170,7 @@ function buildAttrs(wt) {
 
 function buildStats(wt) {
   const tabs = tablesById(wt, 'unit-statistics-table');
-  const merged = {};      // フィールド名 → 最大レベル行の値(文字列)
+  const merged = {}, levels = {};      // フィールド名 → 最大レベル行の値(文字列)
   let maxLv = null;
   tabs.forEach(t => {
     const { headers, rows } = parseTable(t.body);
@@ -178,6 +180,10 @@ function buildStats(wt) {
     rows.forEach(r => {
       const lv = lvIdx >= 0 ? parseInt(String(r[lvIdx]).replace(/[^0-9]/g, ''), 10) : NaN;
       if (lvIdx < 0) { if (!best) best = r; return; }
+      if (Number.isFinite(lv)) {
+        const values = levels[String(lv)] || (levels[String(lv)] = {});
+        headers.forEach((h,i) => { if(i!==lvIdx && r[i]!=null && r[i]!=='' && values[normalizeStatKey(h)]==null) values[normalizeStatKey(h)]=r[i]; });
+      }
       if (Number.isFinite(lv) && lv > bestLv) { bestLv = lv; best = r; }
     });
     if (!best) return;
@@ -190,7 +196,7 @@ function buildStats(wt) {
       if (merged[key] == null) merged[key] = v;
     });
   });
-  return { stats: merged, maxLevel: maxLv };
+  return { stats: merged, maxLevel: maxLv, levels };
 }
 
 function numOf(s) { const n = parseFloat(String(s == null ? '' : s).replace(/,/g, '')); return Number.isFinite(n) ? n : null; }
@@ -354,7 +360,7 @@ async function main() {
     try {
       const wt = await pageHtml(card.page);
       const attrs = buildAttrs(wt);
-      const { stats, maxLevel } = buildStats(wt);
+      const { stats, maxLevel, levels } = buildStats(wt);
       if (!Object.keys(stats).length) throw Error('統計表なし');
 
       const s16 = {};
@@ -370,6 +376,7 @@ async function main() {
       const before = JSON.stringify({ s16: card.s16, attrs: card.attrs });
       card.attrs = Object.keys(attrs).length ? attrs : card.attrs;
       card.stats = stats;
+      card.levels = levels;
       card.s16 = s16;
       card.lv = maxLevel || card.lv;
       card.freshness = {status:'current',checkedAt,lastSuccessAt:checkedAt,source:'https://clashroyale.fandom.com/wiki/'+encodeURIComponent(card.page)};
@@ -403,6 +410,8 @@ async function main() {
   if (!failed.length && !only.length && !limit) base.updated = checkedAt;
   base.source = 'clashroyale.fandom.com';
   base.generator = 'tools/build-card-stats.js';
+  const balance = auditBalances(base, await checkOfficialSource());
+  console.log('Balance verification: '+JSON.stringify(balance));
   if (outPath) fs.writeFileSync(outPath, JSON.stringify(base, null, 1));
 
   console.log('\n取得成功 ' + done + '/' + cards.length + ' | 変更あり ' + changed.length + ' | 失敗 ' + failed.length);
@@ -432,5 +441,5 @@ async function main() {
   }
 }
 
-module.exports={validateRelease};
+module.exports={validateRelease,buildStats};
 if(require.main===module) main().catch(e => { console.error(e); process.exit(1); });
