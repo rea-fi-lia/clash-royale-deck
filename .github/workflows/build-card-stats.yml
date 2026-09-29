@@ -48,7 +48,7 @@ jobs:
         run: |
           node tools/update-card-catalogue.js --refresh --report "$RUNNER_TEMP/catalogue-report.json"
           node tools/update-card-catalogue.js --check
-          node --test tools/test-card-catalogue.mjs
+          node --test tools/test-card-catalogue.mjs tools/test-balance-verification.mjs
 
       - name: Save public catalogue review (no battle or private stats data)
         if: always()
