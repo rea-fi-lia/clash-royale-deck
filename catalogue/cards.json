@@ -526,7 +526,7 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/minions.png",
-          "sha256": "73a18171fbbd7e72e5eb85f3f456aeb0e4e44cc693b5ad681bab14b684f8e574",
+          "sha256": "aa00d7b23fd564665c76aee4f03f508d0ce727f3c39cee306a98fa657e97f1f5",
           "officialIcon": "https://api-assets.clashroyale.com/cards/300/yHGpoEnmUWPGV_hBbhn-Kk-Bs838OjGzWzJJlQpQKQA.png"
         }
       },
@@ -1236,7 +1236,7 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/battle-ram.png",
-          "sha256": "da6f1b2876c3058a1c557f41baebf891f5874c49da947a5fe1b0ef50624f16c2",
+          "sha256": "0b949a9e7781c8c782f6ca3b7d357475fa12cc2246f6bad172f64d11cadea633",
           "officialIcon": "https://api-assets.clashroyale.com/cards/300/dyc50V2cplKi4H7pq1B3I36pl_sEH5DQrNHboS_dbbM.png"
         },
         "e": {
@@ -1492,7 +1492,7 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/lumberjack.png",
-          "sha256": "4f6f24e7b57884c81442639990138d9e538e6776f9844dbbf814f605c8ad46e8",
+          "sha256": "3ba375ac15a33a7fdae7ec896b7201e2c38d8c471b38ed3cd11fcd61089ae293",
           "officialIcon": "https://api-assets.clashroyale.com/cards/300/E6RWrnCuk13xMX5OE1EQtLEKTZQV6B78d00y8PlXt6Q.png"
         },
         "e": {
@@ -2137,7 +2137,7 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/executioner.png",
-          "sha256": "51121ae721fd7be434c0abbcc4c6443b7517cc0e8660f775d02d5285d9cc2184",
+          "sha256": "ed03e02c470b63564f52aaafab99ac17eddf01ad55257815573ed7a05ad20082",
           "officialIcon": "https://api-assets.clashroyale.com/cards/300/9XL5BP2mqzV8kza6KF8rOxrpCZTyuGLp2l413DTjEoM.png"
         },
         "e": {
@@ -2859,7 +2859,7 @@
       "forms": {
         "n": {
           "image": "https://cdn.royaleapi.com/static/img/cards/golem.png",
-          "sha256": "39cab32ac874e24ab23cb80c0167318fe8d04345170f511ee3d8846cc1501240",
+          "sha256": "3104284ac5620aa3fe11da23bf7b6676a138b7fba356a3a6ca4000c1542ef699",
           "officialIcon": "https://api-assets.clashroyale.com/cards/300/npdmCnET7jmVjJvjJQkFnNSNnDxYHDBigbvIAloFMds.png"
         }
       },
