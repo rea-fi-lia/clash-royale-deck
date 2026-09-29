@@ -79,7 +79,7 @@ const PUBLIC_GH_MIRROR = String(prop('PUBLIC_GH_MIRROR', (R2_ACCOUNT_ID && R2_AC
 const MIRROR_EXTERNAL_PUBLIC_TO_R2 = String(prop('MIRROR_EXTERNAL_PUBLIC_TO_R2', PUBLIC_GH_MIRROR ? '1' : '0')) === '1';
 const MIRROR_EXTERNAL_PRIVATE_TO_R2 = String(prop('MIRROR_EXTERNAL_PRIVATE_TO_R2', PRIVATE_GH_MIRROR ? '1' : '0')) === '1';
 
-const {SLUG2JP, COST, ID2JP} = require('./card-catalogue.cjs').collectorMaps();
+const {SLUG2JP, COST, ID2JP, WINCONS} = require('./card-catalogue.cjs').collectorMaps();
 
 function normSlug(name) {
   return String(name).toLowerCase()
@@ -153,12 +153,7 @@ function deckNameGuess(slots) {
 }
 
 // ★勝ち筋（アーキタイプ）判定。配列の順序＝優先度。★strategy.js / decks.js の WINCONS と同一に保つこと。
-var ARCH_WINCONS = ['ラヴァハウンド', 'ゴーレム', 'エレクトロジャイアント', 'エリクサーゴーレム', '三銃士',
-  'ゴブジャイアント', 'ジャイアント', '巨大スケルトン', 'スパーキー', '見習い親衛隊', 'ペッカ', 'メガナイト',
-  'ボスアサシン', 'ロイヤルジャイアント', '巨大クロスボウ', '迫撃砲', 'エアバルーン', 'スケルトンバレル',
-  'ホグライダー', 'ロイヤルホグ', 'ラムライダー', '攻城バーバリアン', 'エリートバーバリアン', 'プリンス',
-  'ゴブリンマシン', 'ゴブリンシュタイン', 'モンク', 'アーチャークイーン', 'ゴールドナイト', 'スケルトンラッシュ',
-  'ゴブリンバレル', 'ゴブリンドリル', 'ウォールブレイカー', 'マイティディガー', 'ディガー', 'ロケット'];
+var ARCH_WINCONS = WINCONS;
 function archOf_(jpArr) {
   for (var i = 0; i < ARCH_WINCONS.length; i++) if (jpArr.indexOf(ARCH_WINCONS[i]) >= 0) return ARCH_WINCONS[i];
   return 'その他';
@@ -3081,4 +3076,4 @@ if (require.main === module) (process.argv.includes('--trophy-backfill') ? updat
   if (r.status) process.exit(r.status);
 });
 
-module.exports = {trophyEventIdentity_, parseBattleTimeMs_, updateTrophyIntel_, retryAfterMs_, crGet};
+module.exports = {archsForm_, archOf_, trophyEventIdentity_, parseBattleTimeMs_, updateTrophyIntel_, retryAfterMs_, crGet};

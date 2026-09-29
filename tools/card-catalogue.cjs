@@ -8,13 +8,17 @@ const digest = value => crypto.createHash('sha256').update(typeof value === 'str
 const slugOf = name => String(name).toLowerCase().replace(/[.']/g, '').replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 function validate(source) {
   if (source.schemaVersion !== 1 || !Array.isArray(source.cards) || !source.cards.length) throw Error('Invalid card catalogue');
-  const names = new Set(), slugs = new Set(), ids = new Set();
+  const names = new Set(), slugs = new Set(), ids = new Set(), priorities = new Set();
   for (const c of source.cards) {
     if (!c.name || !c.english || !/^[a-z0-9-]+$/.test(c.slug) || names.has(c.name) || slugs.has(c.slug)) throw Error('Duplicate/invalid card: ' + c.slug);
     names.add(c.name); slugs.add(c.slug);
     if (c.id != null && (!Number.isSafeInteger(c.id) || ids.has(c.id))) throw Error('Duplicate/invalid ID: ' + c.slug);
     if (c.id != null) ids.add(c.id);
     if (!Number.isInteger(c.cost) || c.cost < 0 || c.cost > 10 || !['troop','spell','building'].includes(c.type) || !c.wiki?.page) throw Error('Missing metadata: ' + c.slug);
+    if (c.winConditionPriority !== null) {
+      if (!Number.isSafeInteger(c.winConditionPriority) || c.winConditionPriority < 0 || priorities.has(c.winConditionPriority)) throw Error('Missing/duplicate win condition classification: ' + c.slug);
+      priorities.add(c.winConditionPriority);
+    }
     if (!c.forms?.n) throw Error('Missing normal form: ' + c.slug);
     for (const [form, asset] of Object.entries(c.forms)) {
       if (!['n','e','h'].includes(form)) throw Error('New form needs renderer support: ' + c.slug + '/' + form);
@@ -31,14 +35,14 @@ function buildManifest(source) {
   const revision = digest(source.cards);
   const cards = source.cards.map(c => {
     const image = f => c.forms[f] ? c.forms[f].image + '?v=' + (c.forms[f].sha256 || revision).slice(0, 16) : '';
-    return {name:c.name, english:c.english, slug:c.slug, id:c.id || null, yomi:c.yomi || '', cost:c.cost, type:c.type, role:c.role || '', img:image('n'),
+    return {name:c.name, english:c.english, slug:c.slug, id:c.id || null, yomi:c.yomi || '', cost:c.cost, type:c.type, role:c.role || '', winConditionPriority:c.winConditionPriority, img:image('n'),
       ...(c.forms.e ? {evolved:true, imgEvolved:image('e')} : {}), ...(c.forms.h ? {hero:true, imgHero:image('h')} : {}), ...(c.champion ? {champion:true} : {})};
   });
-  const cardInfo = Object.fromEntries(cards.map(c => [c.name, {c:c.cost,i:c.img,iv:c.imgEvolved || '',ih:c.imgHero || '',e:!!c.evolved,h:!!c.hero,ch:!!c.champion}]));
+  const cardInfo = Object.fromEntries(cards.map(c => [c.name, {c:c.cost,i:c.img,iv:c.imgEvolved || '',ih:c.imgHero || '',e:!!c.evolved,h:!!c.hero,ch:!!c.champion,w:c.winConditionPriority}]));
   return {schemaVersion:1, revision, cards, cardInfo};
 }
 function collectorMaps(source = readCatalogue()) {
-  return {SLUG2JP:Object.fromEntries(source.cards.map(c=>[c.slug,c.name])), COST:Object.fromEntries(source.cards.map(c=>[c.name,c.cost])), ID2JP:Object.fromEntries(source.cards.filter(c=>c.id).map(c=>[c.id,c.name]))};
+  return {WINCONS:source.cards.filter(c=>c.winConditionPriority!==null).sort((a,b)=>a.winConditionPriority-b.winConditionPriority).map(c=>c.name), SLUG2JP:Object.fromEntries(source.cards.map(c=>[c.slug,c.name])), COST:Object.fromEntries(source.cards.map(c=>[c.name,c.cost])), ID2JP:Object.fromEntries(source.cards.filter(c=>c.id).map(c=>[c.id,c.name]))};
 }
 function seedStats(base, source = readCatalogue()) {
   const bySlug = new Map((base.cards || []).map(c=>[c.slug,c]));

@@ -768,13 +768,8 @@ function aggregateMe(battles) {
 
 // ===== あなたの帯メタ：相手デッキを勝ち筋で分類して「自分のランク帯の環境シェア」を出す =====
 // 相手のデッキはあなたのデッキ構成と無関係（マッチメイクが帯から相手を引く）＝デッキを替えても汚れない正確なサンプル。
-// GASのARCH_WINCONSと同じ優先度順リスト（オーナー監修・36枚）。変更したらGAS側と必ず同期すること。
-const ME_ARCH_WINCONS = ['ラヴァハウンド', 'ゴーレム', 'エレクトロジャイアント', 'エリクサーゴーレム', '三銃士',
-  'ゴブジャイアント', 'ジャイアント', '巨大スケルトン', 'スパーキー', '見習い親衛隊', 'ペッカ', 'メガナイト',
-  'ボスアサシン', 'ロイヤルジャイアント', '巨大クロスボウ', '迫撃砲', 'エアバルーン', 'スケルトンバレル',
-  'ホグライダー', 'ロイヤルホグ', 'ラムライダー', '攻城バーバリアン', 'エリートバーバリアン', 'プリンス',
-  'ゴブリンマシン', 'ゴブリンシュタイン', 'モンク', 'アーチャークイーン', 'ゴールドナイト', 'スケルトンラッシュ',
-  'ゴブリンバレル', 'ゴブリンドリル', 'ウォールブレイカー', 'マイティディガー', 'ディガー', 'ロケット'];
+// 勝ち筋と優先順は共通カード台帳の winConditionPriority から取得する。
+const ME_ARCH_WINCONS = CARD_WINCONS;
 let ME_ARCH = [];
 // ★複数勝ち筋カウント：デッキに含まれる勝ち筋を全部返す（1戦が各勝ち筋にカウントされる＝重複あり・仕様）
 function archsOfOpp(opp) {
@@ -807,7 +802,7 @@ function renderMeMeta() {
     + '<div class="ms-note">' + _tr('相手デッキの勝ち筋分布＝あなたの現在トロフィー±150の近似メタ。使ったデッキに関係なく貯まる正確なサンプルです。勝率は対面3戦未満なら表示しません') + '</div>'
     + top.map(m => {
       const base = m.k;
-      const img = cardImgTag(base, null);   // 勝ち筋キーの⚡👑接尾辞から形態を決める
+      const img = archetypeImgTag(base);   // 勝ち筋キーの⚡👑接尾辞から形態を決める
       const winTxt = (m.win != null && m.games >= 3) ? _t('decks.winPct', { p: m.win }) : '';
       return '<div class="ms-row">'
         + '<span class="ms-ico">' + img + '</span>'
@@ -1002,7 +997,7 @@ function renderMetaShare() {
     + '<div class="ms-list">' + top.map(m => {
       const base = cardBaseName(m.k);
       const suf = cardFormMark(m.k);   // ★存在しない形態なら無印になる
-      const img = cardImgTag(m.k, null);   // ⚡👑接尾辞から形態を決める
+      const img = archetypeImgTag(m.k);   // ⚡👑接尾辞から形態を決める
       return '<div class="ms-row">'
         + '<span class="ms-ico">' + img + '</span>'
         + '<span class="ms-name"><span>' + _tr(base) + '</span>' + (suf ? '<span class="ms-suf">' + suf + '</span>' : '') + '</span>'

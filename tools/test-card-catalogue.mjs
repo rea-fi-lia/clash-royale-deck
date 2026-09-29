@@ -77,3 +77,27 @@ test('unknown-card observations are preserved across disk chunks without a sampl
   const chunks=[];await store.flush(async(part,rows)=>{chunks.push(rows);return true;});
   assert.deepEqual(chunks.map(c=>c.length),[250,250,3]);assert.equal(chunks.flat().at(-1).i,502);assert.equal(store.dir,null);
 });
+test('win-condition membership and priority propagate to every catalogue consumer',()=>{
+  const next=structuredClone(source),card=structuredClone(next.cards[0]);
+  Object.assign(card,{id:999998,slug:'future-wincon',name:'新しい勝ち筋',english:'Future Wincon',winConditionPriority:999});next.cards.push(card);
+  const manifest=buildManifest(next),maps=collectorMaps(next);
+  assert.equal(maps.WINCONS.at(-1),card.name);assert.equal(manifest.cardInfo[card.name].w,999);
+  assert.ok(maps.WINCONS.includes('ガーゴイルジャイアント'));
+  const ctx={window:{},document:{addEventListener(){}}};
+  vm.runInNewContext('const CARDS='+JSON.stringify(manifest.cards)+';'+fs.readFileSync(new URL('./templates/cards-runtime.js',import.meta.url),'utf8'),ctx);
+  assert.equal(vm.runInNewContext('CARD_WINCONS.at(-1)',ctx),card.name);
+  assert.match(vm.runInNewContext("archetypeImgTag('ガーゴイルジャイアント')",ctx),/minion-giant.png/);
+  const other=vm.runInNewContext("archetypeImgTag('その他')",ctx);assert.match(other,/<svg/);assert.doesNotMatch(other,/画像を確認中|<img/);
+  for(const rel of ['tools/collect.js','js/decks.js','js/me.js','js/strategy.js']) assert.doesNotMatch(fs.readFileSync(new URL('../'+rel,import.meta.url),'utf8'),/(?:WINCONS|ARCH_WINCONS)\s*=\s*\[/);
+});
+test('new cards must explicitly classify as a win condition or not before publishing',()=>{
+  const next=structuredClone(source);delete next.cards[0].winConditionPriority;assert.throws(()=>validate(next),/classification/);
+  next.cards[0].winConditionPriority=source.cards.find(c=>c.winConditionPriority!==null).winConditionPriority;assert.throws(()=>validate(next),/classification/);
+});
+
+test('collector recognizes Minion Giant without stealing other win conditions or forms',()=>{
+  const {archsForm_}=require('./collect.js');
+  assert.deepEqual(archsForm_(['ガーゴイルジャイアント','スケルトン'],['normal','normal']),['ガーゴイルジャイアント']);
+  assert.deepEqual(archsForm_(['ガーゴイルジャイアント','ホグライダー'],['normal','evo']),['ガーゴイルジャイアント','ホグライダー⚡']);
+  assert.deepEqual(archsForm_(['スケルトン'],['normal']),['その他']);
+});

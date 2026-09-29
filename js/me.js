@@ -32,13 +32,8 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
   function saveLocalTag(t) { try { localStorage.setItem(TAG_KEY, t); } catch (e) {} }
   const cleanTag = normalizeTag;
 
-  /* 勝ち筋の分類（decks.js の ME_ARCH_WINCONS と同じ表・順序） */
-  const WINCONS = ['ラヴァハウンド', 'ゴーレム', 'エレクトロジャイアント', 'エリクサーゴーレム', '三銃士',
-    'ゴブジャイアント', 'ジャイアント', '巨大スケルトン', 'スパーキー', '見習い親衛隊', 'ペッカ', 'メガナイト',
-    'ボスアサシン', 'ロイヤルジャイアント', '巨大クロスボウ', '迫撃砲', 'エアバルーン', 'スケルトンバレル',
-    'ホグライダー', 'ロイヤルホグ', 'ラムライダー', '攻城バーバリアン', 'エリートバーバリアン', 'プリンス',
-    'ゴブリンマシン', 'ゴブリンシュタイン', 'モンク', 'アーチャークイーン', 'ゴールドナイト', 'スケルトンラッシュ',
-    'ゴブリンバレル', 'ゴブリンドリル', 'ウォールブレイカー', 'マイティディガー', 'ディガー', 'ロケット'];
+  /* 勝ち筋の分類（共通カード台帳の優先順） */
+  const WINCONS = CARD_WINCONS;
   function archsOf(names) {
     const base = (names || []).map(n => cardBaseName(n));
     const out = [];
@@ -119,7 +114,7 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
       .filter(x => x.g >= 3).sort((a, b) => a.wr - b.wr).slice(0, 8);
     $('meEnvBody').innerHTML = B.length === 0 ? '<p class="note">記録が貯まると表示されます。</p>'
       : '<h3>相手の勝ち筋分布</h3><div class="me-bars">'
-      + archRows.map(r => '<div class="me-bar-row">' + chip(r.k)
+      + archRows.map(r => '<div class="me-bar-row">' + (r.k === 'その他' ? '<span class="me-chip">' + archetypeImgTag(r.k) + '</span>' : chip(r.k))
         + '<span class="me-bar"><span class="me-bar-label">'+esc(r.k)+' <small>'+r.g+'戦</small></span><i style="width:' + r.share + '%"></i></span>'
         + '<span class="me-bar-num">' + r.share + '%<small>対面勝率 ' + r.wr + '%</small></span></div>').join('')
       + '</div><p class="note">複数の勝ち筋を持つ相手は、それぞれに数えています。</p>'
