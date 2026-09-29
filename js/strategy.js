@@ -83,9 +83,9 @@ function buildChecks(deck) {
     _tr('群れ対策'), _t('diag.swarmN', { a: splashU.length, b: dmgSp.length }), splashU.concat(dmgSp));
 
   const tk = deck.filter(c => has(c, 'tankKiller'));
-  const hiDps = units.filter(c => { const s = statOf(c); return s && s.dps16 >= 400; });
+  const hiDps = units.filter(c => { const s = statOf(c); return s && (s.combat ? s.combat.dps >= 250 : s.dps16 >= 400); });
   const bldDef = deck.filter(c => has(c, 'defBuilding'));
-  const midDps = units.filter(c => { const s = statOf(c); return s && s.dps16 >= 300; });
+  const midDps = units.filter(c => { const s = statOf(c); return s && (s.combat ? s.combat.dps >= 188 : s.dps16 >= 300); });
   const tkGrade = tk.length ? 'good' : hiDps.length ? 'ok' : (bldDef.length && midDps.length) ? 'warn' : 'bad';
   add(tkGrade, _tr('タンク処理'),
     tk.length ? _t('diag.tankKillerN', { n: tk.length })

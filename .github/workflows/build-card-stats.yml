@@ -48,7 +48,7 @@ jobs:
         run: |
           node tools/update-card-catalogue.js --refresh --report "$RUNNER_TEMP/catalogue-report.json"
           node tools/update-card-catalogue.js --check
-          node --test tools/test-card-catalogue.mjs tools/test-balance-verification.mjs
+          node --test tools/test-card-catalogue.mjs tools/test-balance-verification.mjs tools/test-official-balances.mjs
 
       - name: Save public catalogue review (no battle or private stats data)
         if: always()
@@ -144,6 +144,7 @@ jobs:
           if(s.refresh.failed) console.log('::warning::'+s.refresh.failed+' detail sources pending; last good values retained. '+pending.join(', '));
           const b=s.balanceVerification;
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,`\nBalance: ${b.matched}/${b.total} matched; ${b.mismatched} mismatches; ${b.unverified} unverified. Official source: ${b.official.status}\n`);
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,`\nComparison level: ${s.comparisonLevel}. Official changes pending: ${s.balanceLedger.pending.length}. Future changes excluded: ${s.balanceLedger.scheduled.length}.\n`);
           if(b.status!=='matched') console.log('::warning::Balance follow-through needs review: '+JSON.stringify(b));
           if(!s.refresh.succeeded) throw Error('All detail sources failed');
           NODE

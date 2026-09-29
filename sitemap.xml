@@ -4975,6 +4975,12 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://crdeckbuilders.com/cards/mirror.html</loc>
+    <lastmod>2026-09-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://crdeckbuilders.com/cards/monk.html</loc>
     <lastmod>2026-09-29</lastmod>
     <changefreq>weekly</changefreq>

@@ -25,14 +25,16 @@ const fs = require('fs');
 const crypto = require('crypto');
 const {seedStats, readCatalogue, buildManifest, digest} = require('./card-catalogue.cjs');
 function validateRelease(prepared, catalogue) {
-  if (prepared.catalogueRevision !== buildManifest(catalogue).revision || prepared.cards?.length !== catalogue.cards.length || prepared.refresh?.partialSelection || !prepared.refresh || prepared.refresh.total !== prepared.refresh.succeeded + prepared.refresh.failed) throw Error('Unverified stats release');
+  if (prepared.catalogueRevision !== buildManifest(catalogue).revision || prepared.cards?.length !== catalogue.cards.length || prepared.refresh?.partialSelection || !prepared.refresh || !prepared.refresh.succeeded || prepared.refresh.total !== prepared.refresh.succeeded + prepared.refresh.failed) throw Error('Unverified stats release');
   for (const c of catalogue.cards) {
     const rows=prepared.cards.filter(s=>s.slug===c.slug);
     if(rows.length!==1 || rows[0].jp!==c.name || !['current','stale','missing'].includes(rows[0].freshness?.status)) throw Error('Incomplete stats coverage: '+c.slug);
+    if(prepared.balanceLedger && (prepared.comparisonLevel!==11 || rows[0].combat?.level!==11)) throw Error('Inconsistent comparison level: '+c.slug);
   }
 }
 
-const {auditBalances, checkOfficialSource} = require('./balance-verification.cjs');
+const {auditBalances} = require('./balance-verification.cjs');
+const {loadOfficialBalances, applyOfficialBalances} = require('./official-balances.cjs');
 
 const API = 'https://clashroyale.fandom.com/api.php';
 const UA = 'crdb-card-stats-builder';
@@ -249,23 +251,25 @@ function spellDamageTable(cards) {
   const out = {};
   Object.keys(SPELL_SOURCE).forEach(k => {
     const c = by[SPELL_SOURCE[k]];
-    out[k] = c ? numFrom(c.s16 || {}, pickStatKey(c.s16 || {}, /area damage|^damage$|damage per second/i, c.slug, 'dmg')) : null;
+    const stats=c?.combat?.stats || {};
+    out[k] = c ? numFrom(stats, pickStatKey(stats, /area damage|^damage$|damage per second/i, c.slug, 'dmg')) : null;
   });
   return out;
 }
 function deriveTags(card, spells) {
   const n = card.n || {}, isTroop = n.type === 'Troop', isSpell = n.type === 'Spell', out = [];
-  if (isTroop && card.hp16 != null) {
+  const hp=card.combat?.hp, dps=card.combat?.dps;
+  if (isTroop && hp != null) {
     // 圏内 ＝ 同レベルのその呪文の総ダメージでちょうど落ちるか
     Object.keys(SPELL_SOURCE).forEach(k => {
-      if (spells[k] != null && spells[k] >= card.hp16) out.push(k === 'ログ' ? 'ログ圏内' : k + '圏内');
+      if (spells[k] != null && spells[k] >= hp) out.push(k === 'ログ' ? 'ログ圏内' : k + '圏内');
     });
-    if (card.hp16 >= 4000) out.push('高HPタンク');
-    else if (card.hp16 >= 2400) out.push('準タンク');
+    if (hp >= 2500) out.push('高HPタンク');
+    else if (hp >= 1500) out.push('準タンク');
   }
-  // 単体高DPS＝タンクキラー枠。閾値470は実データの谷（プリンス450／インフェルノドラゴン482）に置く。
+  // 旧Lv16閾値470に対応するLv11の分類目安294。攻撃の実数値換算には使わない。
   // 範囲攻撃持ち（スパーキー等）は「単体」ではないので除外する。
-  if (isTroop && card.dps16 != null && card.dps16 >= 470 && !n.splash) out.push('単体高DPS');
+  if (isTroop && dps != null && dps >= 294 && !n.splash) out.push('単体高DPS');
   if (isTroop && (n.count || 1) >= 3) out.push('群れ');
   if (isTroop && n.range != null && n.range >= 5) out.push('遠距離');
   if (!isSpell && n.air) out.push('対空可');
@@ -401,7 +405,10 @@ async function main() {
     await sleep(120); // Wikiに優しく
   }
 
-  // ★実数値を取り直したら導出タグも必ず引き直す（ここが抜けていて6/11の判定が残っていた）
+  // Apply dated absolute official values last, including when the wiki is stale/offline.
+  const ledger=await loadOfficialBalances(base.balanceLedger);
+  applyOfficialBalances(base,ledger,{buildN,pickStatKey,numFrom});
+  // All comparisons use the same explicit level; no invented maximum-level scaling.
   const retag = retagAll(base.cards || []);
 
   base.lastAttemptAt = checkedAt;
@@ -410,12 +417,14 @@ async function main() {
   if (!failed.length && !only.length && !limit) base.updated = checkedAt;
   base.source = 'clashroyale.fandom.com';
   base.generator = 'tools/build-card-stats.js';
-  const balance = auditBalances(base, await checkOfficialSource());
+  const balance = auditBalances(base,{status:ledger.status,checkedAt:ledger.checkedAt,source:ledger.source,pending:ledger.pending,scheduled:ledger.scheduled,error:ledger.error}, {
+    source:ledger.source,reviewedAt:ledger.checkedAt,latestEffectiveAt:ledger.checks.map(c=>c.effectiveAt).sort().at(-1),checks:ledger.checks
+  });
   console.log('Balance verification: '+JSON.stringify(balance));
   if (outPath) fs.writeFileSync(outPath, JSON.stringify(base, null, 1));
 
   console.log('\n取得成功 ' + done + '/' + cards.length + ' | 変更あり ' + changed.length + ' | 失敗 ' + failed.length);
-  console.log('呪文ダメージ(Lv最大): ' + Object.entries(retag.spells).map(([k, v]) => k + '=' + v).join(' / '));
+  console.log('呪文ダメージ(Lv11): ' + Object.entries(retag.spells).map(([k, v]) => k + '=' + v).join(' / '));
   console.log('導出タグを更新: ' + retag.changes.length + '枚');
   retag.changes.slice(0, 40).forEach(c => console.log('  ' + c.jp +
     (c.add.length ? '  ＋[' + c.add.join(',') + ']' : '') + (c.del.length ? '  −[' + c.del.join(',') + ']' : '')));
@@ -441,5 +450,5 @@ async function main() {
   }
 }
 
-module.exports={validateRelease,buildStats};
+module.exports={validateRelease,buildStats,buildN,pickStatKey,numFrom,retagAll};
 if(require.main===module) main().catch(e => { console.error(e); process.exit(1); });

@@ -49,6 +49,8 @@ test('image audit rejects HTML and source remains unchanged on a failed staged r
 });
 test('missing/partial stats cannot masquerade as a complete release',()=>{
   const prepared=seedStats({cards:[]},source);prepared.refresh={total:source.cards.length,succeeded:0,failed:source.cards.length,partialSelection:false};
+  assert.throws(()=>validateRelease(prepared,source),/Unverified/);
+  prepared.refresh.succeeded=1;prepared.refresh.failed--;prepared.cards[0].freshness.status='current';
   validateRelease(prepared,source);
   prepared.refresh.partialSelection=true;assert.throws(()=>validateRelease(prepared,source),/Unverified/);
   prepared.refresh.partialSelection=false;prepared.cards[0].freshness=null;assert.throws(()=>validateRelease(prepared,source),/coverage/);

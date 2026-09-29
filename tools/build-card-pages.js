@@ -151,7 +151,8 @@ function cardBody(c, ctx, D) {
   const imgOf = D.imgOf;   // 画像解決は cards-data.js の正本を通す
   const st = D.stats[c.name] || null;
   const attrs = (st && st.attrs) || {};
-  const s16 = (st && st.s16) || {};
+  const s16 = st?.combat?.stats || (st && st.s16) || {};
+  const displayLevel=st?.combat?.level || st?.lv;
   const n = (st && st.n) || {};
   const zones = ((st && st.tags) || []).filter(t => SPELL_ZONES.includes(t));
   const autoTags = ((st && st.tags) || []).filter(t => !SPELL_ZONES.includes(t));
@@ -171,7 +172,7 @@ function cardBody(c, ctx, D) {
   out.push('<p class="lead">' + esc(c.name) + 'は' + (attrs.Cost ? 'コスト' + attrs.Cost + 'の' : '') + (rarity ? rarity + '' : '') + jpType + 'です。' +
     (c.role ? '役割は' + esc(c.role) + '。' : '') +
     (c.evolved && c.hero ? '進化と英雄の両方に対応しています。' : c.evolved ? '進化（限界突破）に対応しています。' : c.hero ? '英雄に対応しています。' : '') +
-    (st && st.lv ? '確認できた数値をレベル' + st.lv + '基準で掲載しています。' : '詳細数値は出典を確認して掲載します。') + '</p>');
+    (displayLevel ? '確認できた数値をレベル' + displayLevel + '基準で掲載しています。' : '詳細数値は出典を確認して掲載します。') + '</p>');
   out.push('<div class="hero-actions"><a class="btn primary" href="../index.html?add=' + encodeURIComponent(c.name) + '">このカードでデッキを組む</a><a class="btn" href="../decks.html#cards">カード人気ランキング</a></div>');
   out.push('</section>');
 
@@ -184,16 +185,18 @@ function cardBody(c, ctx, D) {
   out.push('</div></section>');
 
   /* 実数値 */
-  const hp = st && st.hp16, dmg = pickStat(s16, /\bdamage$/i), dps = st && st.dps16;
+  const hp = st?.combat ? st.combat.hp : st?.hp16, dmg = pickStat(s16, /\bdamage$/i), dps = st?.combat ? st.combat.dps : st?.dps16;
   const area = pickStat(s16, /area damage/i);
   const tower = (() => { const k = Object.keys(s16).find(x => /crown tower/i.test(x)); return k ? num(s16[k]) : null; })();
   const balance = st?.balanceVerification;
   if (balance?.checks?.length) {
     const labels = {n:'通常',e:'限界突破',h:'ヒーロー'};
-    out.push('<section class="section"><h2>公式バランス調整との照合</h2>');
-    out.push('<p class="note">'+(balance.status==='matched'?'対象項目は公式発表と一致しています。':'取得先の数値に未反映または未確認の項目があります。下の実数値は最新調整の反映済みとは限りません。')+'</p>');
-    out.push('<table class="cardpage-stats"><thead><tr><th>対象</th><th>公式の調整後</th><th>取得先との照合</th></tr></thead><tbody>'+balance.checks.map(c=>'<tr><th>'+esc(labels[c.form]+'・'+c.label)+(c.level?'（Lv'+c.level+'）':'')+'</th><td>'+esc(c.expected)+'</td><td>'+esc(c.status==='matched'?'一致':c.status==='mismatch'?'未反映（取得値 '+c.actual+'）':'未確認')+'</td></tr>').join('')+'</tbody></table>');
-    out.push('<p class="note"><a href="'+esc(balance.source)+'" target="_blank" rel="noopener">Supercell公式発表</a>と照合。レベル・形態を区別し、未確認の値は推測換算しません。</p></section>');
+    out.push('<section class="section"><h2>バランス調整の反映</h2>');
+    out.push('<p class="note">'+(balance.status==='matched'?'以下の変更は公式発表の数値を反映済みです。':'未反映または未確認の項目があります。')+'</p>');
+    out.push('<table class="cardpage-stats"><thead><tr><th>対象</th><th>調整後</th><th>適用日</th></tr></thead><tbody>'+balance.checks.map(c=>'<tr><th>'+esc(labels[c.form]+'・'+c.label)+(c.level?'（Lv'+c.level+'）':'')+'</th><td>'+esc(c.status==='matched'?c.actual:'確認中')+'</td><td>'+esc(c.effectiveAt)+'</td></tr>').join('')+'</tbody></table>');
+    const globalStatus=st._officialStatus;
+    if(globalStatus && globalStatus!=='reviewed') out.push('<p class="note">新しい公式発表の確認が完了していません。最後に確認できた調整を掲載しています。</p>');
+    out.push('<p class="note"><a href="'+esc(balance.source)+'" target="_blank" rel="noopener">Supercell公式発表</a>を優先。全カードの数値比較はレベル11基準です。</p></section>');
   }
   const rows = [];
   const row = (k, v) => { if (v != null && v !== '' && v !== '—') rows.push('<tr><th>' + k + '</th><td>' + esc(v) + '</td></tr>'); };
@@ -209,18 +212,20 @@ function cardBody(c, ctx, D) {
   row('体数', attrs.Count ? String(attrs.Count).replace('x', '') + '体' : null);
   row('レアリティ', rarity);
   if (rows.length) {
-    out.push('<section class="section"><h2>実数値（レベル' + (st && st.lv ? st.lv : 16) + '）</h2>');
+    out.push('<section class="section"><h2>実数値（レベル' + (displayLevel || 11) + '）</h2>');
     out.push('<table class="cardpage-stats"><tbody>' + rows.join('') + '</tbody></table>');
     const last = st?.freshness?.lastSuccessAt;
-    out.push('<p class="note">出典：コミュニティWiki。' + (last ? '取得確認：' + esc(last.slice(0,10)) + '。' : '最終確認日は未記録です。') + 'ゲーム内の最新調整と差がある場合があります。</p></section>');
+    out.push('<p class="note">出典：コミュニティWiki'+(st?.supplementSource?'・<a href="'+esc(st.supplementSource)+'" target="_blank" rel="noopener">RoyaleAPI</a>':'')+'。公式調整がある項目は変更後の値を優先します。' + (last ? 'Wiki取得確認：' + esc(last.slice(0,10)) + '。' : '') + '</p></section>');
   }
-  if (!st || !Object.keys(s16).length || (st.freshness && st.freshness.status !== 'current')) out.push('<p class="note">詳細データを確認中です。確認できた直近の値がある場合は、その値を表示しています。</p>');
+  if (!st || !Object.keys(s16).length) out.push('<p class="note">詳細データを確認中です。</p>');
   for (const [form,label] of [['e','限界突破'],['h','ヒーロー']]) {
     if (!(form==='e'?c.evolved:c.hero)) continue;
     const data=st?.formStats?.[form];
     out.push('<section class="section"><h2>'+label+'の数値</h2>');
-    if (data?.status==='current' && Object.keys(data.s16 || {}).length) {
-      out.push('<table class="cardpage-stats"><tbody>'+Object.entries(data.s16).filter(([,v])=>typeof v==='number').map(([k,v])=>'<tr><th>'+esc(k)+'</th><td>'+esc(v)+'</td></tr>').join('')+'</tbody></table>');
+    if (data?.officialFields?.length) {
+      out.push('<table class="cardpage-stats"><tbody>'+data.officialFields.map(v=>'<tr><th>'+esc(v.label)+(v.level?'（Lv'+v.level+'）':'')+'</th><td>'+esc(v.expected)+'</td></tr>').join('')+'</tbody></table><p class="note">公式発表で確認できた項目です。この形態の全能力値を網羅した表ではありません。</p>');
+    } else if (data?.status==='current' && Object.keys(data.combat?.stats || {}).length) {
+      out.push('<table class="cardpage-stats"><tbody>'+Object.entries(data.combat.stats).filter(([,v])=>typeof v==='number').map(([k,v])=>'<tr><th>'+esc(k)+'（Lv11）</th><td>'+esc(v)+'</td></tr>').join('')+'</tbody></table>');
     } else out.push('<p class="note">この形態の詳細データは確認中です。通常形態の数値とは区別しています。</p>');
     out.push('</section>');
   }
@@ -353,7 +358,7 @@ async function main() {
   const D = { stats: {}, tags: tagsJson.cards || {}, use: {}, opp: {}, band: {}, windowDays: 3,
     imgOf: (name, form) => ctx.cardImageSrc(name, form) };   // ★画像解決の正本（cards-data.js）を全セクションで使う
   const nameBySlug = Object.fromEntries(CARDS.map(c=>[c.slug,c.name]));
-  (stats.cards || []).forEach(c => D.stats[nameBySlug[c.slug] || c.jp] = c);
+  (stats.cards || []).forEach(c => D.stats[nameBySlug[c.slug] || c.jp] = {...c,_officialStatus:stats.balanceLedger?.status});
   if (meta && meta.decks) {
     D.windowDays = meta.decks.cardsWindowDays || meta.decks.windowDays || 3;
     // 同名で形態違いが並ぶので、games が最大のものを代表にする

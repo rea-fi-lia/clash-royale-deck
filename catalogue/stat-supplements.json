@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "cards": [{
+    "slug": "minion-giant",
+    "source": "https://royaleapi.com/blog/minion-giant-september-2026",
+    "reviewedAt": "2026-09-29",
+    "note": "Release reference for attributes and level 11 HP. Official effective balances override release damage after this seed.",
+    "attrs": {"Cost":"4","Type":"Troop","Rarity":"Rare","Target":"Buildings","Transport":"Air","Range":"4","Speed":"Medium (60)","Hit Speed":"1.5 sec","Sight Range":"6.5"},
+    "levels": {"11":{"Hitpoints":"1817","Damage":"189","Damage per second":"126"}}
+  }]
+}

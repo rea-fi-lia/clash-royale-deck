@@ -93,6 +93,12 @@ function cellsFor(c) {
   const s = c.s16 || {}, n = c.n || {}, a = c.attrs || {};
   const isSpell = n.type === 'Spell';
   return {
+    'HP11': or(c.combat?.hp),
+    '単発ダメ11': isSpell ? '' : or(pick(c.combat?.stats || {}, /\bdamage$/i)),
+    'DPS11': isSpell ? '' : or(c.combat?.dps),
+    '呪文ダメ11': isSpell ? or(pick(c.combat?.stats || {}, /area damage|\bdamage$|damage per second/i)) : '',
+    '呪文タワーダメ11': (()=>{const s=c.combat?.stats || {},k=Object.keys(s).find(x=>/crown tower/i.test(x));return k?or(num(s[k])):'';})(),
+    '公式調整反映日': (c.officialFields || []).map(f=>f.effectiveAt).sort().at(-1) || '',
     'HP16': or(c.hp16),
     // 呪文は「単発ダメ」ではなく呪文ダメ列で扱う
     '単発ダメ16': isSpell ? '' : or(pick(s, /\bdamage$/i)),
@@ -132,16 +138,18 @@ async function main() {
 
   let dateCol = head.indexOf(DATE_HEADER);
   const newCols = [];
-  if (dateCol < 0) { dateCol = head.length; newCols.push({ idx: dateCol, name: DATE_HEADER }); }
+  if (dateCol < 0) { dateCol = head.length; newCols.push({ idx: dateCol, name: DATE_HEADER });head.push(DATE_HEADER); }
+  const officialColumns=['HP11','単発ダメ11','DPS11','呪文ダメ11','呪文タワーダメ11','公式調整反映日'];
+  for(const name of officialColumns) if(!head.includes(name)) {newCols.push({idx:head.length,name});head.push(name);}
 
   // グリッド幅が足りないと400になるので先に拡張する
-  const needCols = dateCol + 1;
+  const needCols = head.length;
   if (props.gridProperties.columnCount < needCols && !dry) {
     await req(api + ':batchUpdate', { method: 'POST', headers: H, body: JSON.stringify({ requests: [{ appendDimension: { sheetId: props.sheetId, dimension: 'COLUMNS', length: needCols - props.gridProperties.columnCount } }] }) });
     console.log('列を ' + props.gridProperties.columnCount + ' → ' + needCols + ' へ拡張');
   }
 
-  const STAT_COLS = ['HP16', '単発ダメ16', '攻撃速度', 'DPS16', '呪文ダメ16', '呪文タワーダメ16', '攻撃対象', '射程', '移動速度'];
+  const STAT_COLS = ['HP16', '単発ダメ16', '攻撃速度', 'DPS16', '呪文ダメ16', '呪文タワーダメ16', '攻撃対象', '射程', '移動速度', ...officialColumns];
   const colIdx = {}; STAT_COLS.forEach(c => { const i = head.indexOf(c); if (i >= 0) colIdx[c] = i; });
   console.log('対象列: ' + Object.keys(colIdx).join(' / ') + (Object.keys(colIdx).length < STAT_COLS.length ? '  （' + STAT_COLS.filter(c => !(c in colIdx)).join(',') + ' はシートに無いので飛ばす）' : ''));
 

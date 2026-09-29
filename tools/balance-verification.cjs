@@ -50,7 +50,9 @@ function auditBalances(data, official, ref = reference) {
       const actual=actualValue(card,check);
       const status=actual===null?'unverified':actual===check.expected?'matched':'mismatch';
       if(status==='matched') matched++;else if(status==='mismatch') mismatched++;else unverified++;
-      return {...check,actual,status};
+      const target=check.form==='n'?card:card.formStats?.[check.form];
+      const applied=target?.officialFields?.find(c=>c.key===check.key && c.level===check.level);
+      return {...check,actual,status,...(applied?{upstreamValue:applied.upstreamValue,appliedFromOfficial:true}:{})};
     });
     if(checks.length) card.balanceVerification={source:ref.source,reviewedAt:ref.reviewedAt,checkedAt:official.checkedAt,status:checks.some(c=>c.status==='mismatch')?'mismatch':checks.some(c=>c.status==='unverified')?'unverified':'matched',checks};
     else delete card.balanceVerification;
