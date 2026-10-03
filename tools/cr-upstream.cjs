@@ -248,21 +248,28 @@ async function probe(token, { fetchImpl, ua, samples, need, gapMs }) {
 }
 
 // 収集の前の健康診断。生きていれば何もしない。中継が死んでいれば公式へ切り替えるか、UpstreamDown で止める。
+// ★合格ラインは甘めにしてある（6回中3回・落ちたら間を置いて1回だけ測り直す）。
+//   偽の「停止」は1時間分の収集を丸ごと捨てる（75分ルールが崩れる）が、偽の「生きている」は
+//   収集の途中の回路遮断（note/tripped）が1〜2分で拾うので、安い側に倒す。
 async function preflight(token, opts = {}) {
   const fetchImpl = opts.fetchImpl || globalThis.fetch, log = opts.log || console.log;
-  const p = { fetchImpl, ua: opts.ua || 'crdb', samples: opts.samples || 6, need: opts.need || 4, gapMs: opts.gapMs == null ? 250 : opts.gapMs };
+  const p = { fetchImpl, ua: opts.ua || 'crdb', samples: opts.samples || 6, need: opts.need || 3, gapMs: opts.gapMs == null ? 250 : opts.gapMs };
+  const recheckMs = opts.recheckMs == null ? 20000 : opts.recheckMs;
   if (env('CR_UPSTREAM').toLowerCase() === 'official') {
     // 手動で公式経路を試すとき（中継が元気でも公式を使う）。設定の誤りは上流停止ではないので普通のエラーにする
     if (!(env('CR_DEV_EMAIL') && env('CR_DEV_PASSWORD'))) throw new Error('CR_UPSTREAM=official だが CR_DEV_EMAIL / CR_DEV_PASSWORD が無い');
     if (!await failover({ fetchImpl, log })) throw new Error('公式APIへの切り替えに失敗: ' + state.failover.error);
   }
+  let strikes = 0;
   for (;;) {
     const r = await probe(token, p);
     log('upstream 健康診断 mode=' + state.mode + ' 成功' + r.ok + '/' + r.n + ' ' + JSON.stringify(r.statuses));
     if (r.maintenance) throw new UpstreamDown('maintenance', 'Supercell 公式APIがメンテナンス中', summary());
     if (r.forbidden) throw new Error('CR API 403（鍵が無効か、この経路のIPで使えない） mode=' + state.mode + ' :: ' + r.forbidden);
     if (r.ok >= p.need) return state.mode;
-    if (state.mode === 'proxy' && canFailover() && !state.failover && await failover({ fetchImpl, log })) continue;
+    // 一瞬の揺れで1時間分を捨てないよう、間を置いて1回だけ測り直す
+    if (++strikes < 2) { log('upstream 健康診断に落ちた。' + Math.round(recheckMs / 1000) + '秒後に測り直す'); await sleep(recheckMs); continue; }
+    if (state.mode === 'proxy' && canFailover() && !state.failover && await failover({ fetchImpl, log })) { strikes = 0; continue; }
     throw new UpstreamDown(state.mode === 'official' ? 'official' : 'proxy',
       (state.mode === 'official' ? '公式APIも' : '中継が') + '応答しない（健康診断 成功' + r.ok + '/' + r.n + '）', summary());
   }

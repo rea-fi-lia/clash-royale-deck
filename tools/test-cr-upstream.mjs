@@ -74,22 +74,22 @@ test('5xx that outlasts the retries is reported as an upstream outage, not a cod
 test('a healthy proxy passes the preflight after a few cheap requests',async(t)=>{
   upstream.reset();withEnv(t,noCreds);
   const calls=[];const fetchImpl=async url=>{calls.push(String(url));return new Response('{"items":[]}');};
-  assert.equal(await upstream.preflight('T',{fetchImpl,gapMs:0,log:quiet}),'proxy');
-  assert.equal(calls.length,4);assert.ok(calls.every(u=>u.startsWith(upstream.PROXY_BASE+'/locations')));
+  assert.equal(await upstream.preflight('T',{fetchImpl,gapMs:0,recheckMs:0,log:quiet}),'proxy');
+  assert.equal(calls.length,3);assert.ok(calls.every(u=>u.startsWith(upstream.PROXY_BASE+'/locations')));
 });
 
 test('a dead proxy without credentials stops the run in seconds as UPSTREAM_DOWN',async(t)=>{
   upstream.reset();withEnv(t,noCreds);
   const w=fakeWorld({proxyStatus:525});
-  await assert.rejects(upstream.preflight('T',{fetchImpl:w.fetch,gapMs:0,log:quiet}),e=>upstream.isUpstreamDown(e)&&e.reason==='proxy');
-  assert.equal(w.calls.length,3,'4/6 can no longer pass after three failures');
+  await assert.rejects(upstream.preflight('T',{fetchImpl:w.fetch,gapMs:0,recheckMs:0,log:quiet}),e=>upstream.isUpstreamDown(e)&&e.reason==='proxy');
+  assert.equal(w.calls.length,8,'3/6 can no longer pass after four failures, and it re-measures once before giving up');
   assert.ok(!w.calls.some(u=>u.startsWith(upstream.PORTAL_BASE)),'never logs in without credentials');
 });
 
 test('a wrong token is a configuration error, not an upstream outage',async(t)=>{
   upstream.reset();withEnv(t,noCreds);
   const fetchImpl=async()=>new Response('{"reason":"accessDenied.invalidIp"}',{status:403});
-  await assert.rejects(upstream.preflight('T',{fetchImpl,gapMs:0,log:quiet}),e=>!upstream.isUpstreamDown(e)&&/403/.test(e.message));
+  await assert.rejects(upstream.preflight('T',{fetchImpl,gapMs:0,recheckMs:0,log:quiet}),e=>!upstream.isUpstreamDown(e)&&/403/.test(e.message));
 });
 
 test('with credentials a dead proxy fails over to a per-IP official key and the owner keys are left alone',async(t)=>{
@@ -97,7 +97,7 @@ test('with credentials a dead proxy fails over to a per-IP official key and the 
   const w=fakeWorld({keys:[
     {id:'owner-1',name:'my laptop',cidrRanges:['1.2.3.4'],key:'OWNERKEY'},
     {id:'auto-old',name:'crdb-actions-20261002T23',cidrRanges:['198.51.100.9/32'],key:'OLDKEY'}]});
-  assert.equal(await upstream.preflight('T',{fetchImpl:w.fetch,gapMs:0,log:quiet}),'official');
+  assert.equal(await upstream.preflight('T',{fetchImpl:w.fetch,gapMs:0,recheckMs:0,log:quiet}),'official');
   assert.deepEqual(w.revoked,['auto-old'],'only the previous automation key is revoked');
   assert.deepEqual(w.created.cidrRanges,['203.0.113.7'],'the key is bound to the IP the portal saw');
   assert.deepEqual(w.created.scopes,['royale'],'scopes come from the account profile like the portal UI');
@@ -113,7 +113,7 @@ test('with credentials a dead proxy fails over to a per-IP official key and the 
 test('an automation key that already fits this IP is reused without creating or revoking',async(t)=>{
   upstream.reset();withEnv(t,{CR_DEV_EMAIL:'dev@example.com',CR_DEV_PASSWORD:'pw',CR_UPSTREAM:null});
   const w=fakeWorld({keys:[{id:'auto-now',name:'crdb-actions-20261003T05',cidrRanges:['203.0.113.7/32'],key:'SAMEIPKEY'}]});
-  assert.equal(await upstream.preflight('T',{fetchImpl:w.fetch,gapMs:0,log:quiet}),'official');
+  assert.equal(await upstream.preflight('T',{fetchImpl:w.fetch,gapMs:0,recheckMs:0,log:quiet}),'official');
   assert.equal(w.created,null);assert.deepEqual(w.revoked,[]);
   await upstream.getJson('/cards','T',{fetchImpl:w.fetch,log:quiet});assert.equal(w.officialAuth,'Bearer SAMEIPKEY');
 });
@@ -122,7 +122,7 @@ test('full key slots are reported instead of revoking keys the owner made',async
   upstream.reset();withEnv(t,{CR_DEV_EMAIL:'dev@example.com',CR_DEV_PASSWORD:'pw',CR_UPSTREAM:null});
   const keys=Array.from({length:10},(_,i)=>({id:'owner-'+i,name:'owner key '+i,cidrRanges:['1.2.3.'+i],key:'K'+i}));
   const w=fakeWorld({keys});
-  await assert.rejects(upstream.preflight('T',{fetchImpl:w.fetch,gapMs:0,log:quiet}),e=>upstream.isUpstreamDown(e)&&/鍵の枠/.test(e.detail.failover.error));
+  await assert.rejects(upstream.preflight('T',{fetchImpl:w.fetch,gapMs:0,recheckMs:0,log:quiet}),e=>upstream.isUpstreamDown(e)&&/鍵の枠/.test(e.detail.failover.error));
   assert.deepEqual(w.revoked,[]);assert.equal(w.created,null);
 });
 
@@ -162,7 +162,7 @@ test('the real collector exits 75 with UPSTREAM_DOWN in seconds when the proxy i
   const dir=mkdtempSync(join(tmpdir(),'collector-down-'));
   try {
     const preload=join(dir,'dead-proxy.cjs'),file=join(dir,'status.json');
-    writeFileSync(preload,"globalThis.fetch=async url=>{if(String(url).startsWith('https://proxy.royaleapi.dev/'))return new Response('error code: 525',{status:525});throw new Error('no other network in this test: '+url);};\n");
+    writeFileSync(preload,"const st=globalThis.setTimeout;globalThis.setTimeout=(f,ms,...a)=>st(f,0,...a);globalThis.fetch=async url=>{if(String(url).startsWith('https://proxy.royaleapi.dev/'))return new Response('error code: 525',{status:525});throw new Error('no other network in this test: '+url);};\n");
     const env={...process.env,CR_TOKEN:'T',GITHUB_TOKEN:'G',GITHUB_REPOSITORY:'owner/repo',UPSTREAM_STATUS_FILE:file,
       R2_ACCOUNT_ID:'',R2_ACCESS_KEY_ID:'',R2_SECRET_ACCESS_KEY:'',CR_DEV_EMAIL:'',CR_DEV_PASSWORD:'',CR_UPSTREAM:'',GITHUB_ACTIONS:''};
     const started=Date.now();
