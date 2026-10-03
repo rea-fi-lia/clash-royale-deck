@@ -31,7 +31,9 @@ const KEY_SLOTS = 10;                      // 開発者ポータルの1アカウ
 // 回路遮断：直近 SPAN_MS の生の応答のうち、DOWN_RATIO 以上が 5xx/通信失敗で、
 // それが HOLD_MS 以上続いていたら「上流が止まった」と見なす。
 // ★一瞬の揺れ（1チャンク40件が全部落ちる程度）で収集ごと止めないため、件数と時間の両方を要求する。
-const SPAN_MS = 120000, HOLD_MS = 60000, MIN_SAMPLES = 60, DOWN_RATIO = 0.6;
+// ★公式への切り替え先があるときは EARLY_RATIO（3割）で見切る（2026-10-03）。止めるのではなく乗り換えるだけなので、
+//   半端に不調な中継に再試行で粘って遅くなる（45分の枠を食う）より、早く公式へ移った方が集計が確実になる。
+const SPAN_MS = 120000, HOLD_MS = 60000, MIN_SAMPLES = 60, DOWN_RATIO = 0.6, EARLY_RATIO = 0.3;
 
 class UpstreamDown extends Error {
   constructor(reason, message, detail = {}) {
@@ -68,7 +70,8 @@ function note(status) {
   while (state.recent.length && t - state.recent[0][0] > SPAN_MS) state.recent.shift();
   if (state.tripped || state.recent.length < MIN_SAMPLES || t - state.recent[0][0] < HOLD_MS) return;
   const down = state.recent.reduce(function (n, x) { return n + x[1]; }, 0);
-  if (down / state.recent.length >= DOWN_RATIO) state.tripped = true;
+  const switchable = state.mode === 'proxy' && !state.failover && canFailover();
+  if (down / state.recent.length >= (switchable ? EARLY_RATIO : DOWN_RATIO)) state.tripped = true;
 }
 function tripped() { return state.tripped; }
 

@@ -215,3 +215,33 @@ test('notify never announces recovery for a cancelled run and thins out alerts o
     assert.match(run('failure',2,'2','1'),/--level error/,'other failures still ring every time');
   } finally {rmSync(dir,{recursive:true,force:true});}
 });
+
+test('with somewhere to switch to, a half-broken proxy is abandoned after a minute',async(t)=>{
+  let clock=0;upstream.reset({now:()=>clock});withEnv(t,{CR_DEV_EMAIL:'dev@example.com',CR_DEV_PASSWORD:'pw',CR_UPSTREAM:null});
+  for(let i=0;i<70;i++){clock+=1000;upstream.note(i%3===0?520:200);}   // a third failing for 70 seconds
+  assert.equal(upstream.tripped(),true,'moves to the official API instead of grinding through retries');
+});
+
+test('without somewhere to switch to, the same half-broken proxy does not stop the run',async(t)=>{
+  let clock=0;upstream.reset({now:()=>clock});withEnv(t,noCreds);
+  for(let i=0;i<70;i++){clock+=1000;upstream.note(i%3===0?520:200);}
+  assert.equal(upstream.tripped(),false,'a third failing is only retried, because stopping would lose the hour');
+});
+
+test('a successful production run clears the auto-fix branches it left, but keeps ones waiting on a PR',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'cleanup-'));
+  try {
+    const log=join(dir,'deleted');
+    writeFileSync(join(dir,'git'),'#!/bin/sh\nif [ "$1" = "ls-remote" ]; then printf \'a\\trefs/heads/main\\nb\\trefs/heads/auto-fix/collect-111\\nc\\trefs/heads/auto-fix/collect-222\\nd\\trefs/heads/auto-fix/check-card-images-333\\ne\\trefs/heads/xauto-fix/collect-444\\n\'; elif [ "$1" = "push" ]; then echo "$4" >> "$DEL_LOG"; fi\n',{mode:0o755});
+    const run=gh=>{
+      writeFileSync(log,'');writeFileSync(join(dir,'gh'),gh,{mode:0o755});
+      const r=spawnSync('bash',['tools/auto-fix-cleanup.sh','collect.yml'],{cwd:ROOT,encoding:'utf8',env:{...process.env,PATH:dir+':'+process.env.PATH,DEL_LOG:log}});
+      assert.equal(r.status,0,r.stdout+r.stderr);return {deleted:readFileSync(log,'utf8'),out:r.stdout};
+    };
+    const a=run('#!/bin/sh\ncase "$*" in *"--head auto-fix/collect-222"*) echo 1;; *) echo 0;; esac\n');
+    assert.equal(a.deleted,'auto-fix/collect-111\n','only the finished attempt for this workflow is removed');
+    assert.match(a.out,/残す.*auto-fix\/collect-222/);
+    const b=run('#!/bin/sh\nexit 1\n');
+    assert.equal(b.deleted,'','when the PR state cannot be read, nothing is deleted');
+  } finally {rmSync(dir,{recursive:true,force:true});}
+});

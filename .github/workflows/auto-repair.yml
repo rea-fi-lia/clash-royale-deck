@@ -14,6 +14,8 @@ name: auto repair
 #   - 検証が通ったときだけPRを出す。通らなければ診断だけ届ける
 #   - 自動マージは既定オフ。リポジトリ変数 AUTO_MERGE_FIX=1 で有効になる
 #   - 同じワークフローの修理PRが既に開いていたら何もしない（積み上がり防止）
+#   - 上流（RoyaleAPIの中継・Supercellのメンテ）が止まっているだけの失敗（UPSTREAM_DOWN）では動かない（2026-10-03）
+#   - 本番（main）が成功したら、その対象の auto-fix/ ブランチを片付ける。PRが開いているものは残す（2026-10-03）
 
 on:
   workflow_run:
@@ -66,6 +68,7 @@ jobs:
           WF_NAME: ${{ github.event.workflow_run.name }}
           WF_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           WF_RUN_ID: ${{ github.event.workflow_run.id }}
+          WF_BRANCH: ${{ github.event.workflow_run.head_branch }}
           IN_WF: ${{ github.event.inputs.workflow }}
           IN_LABEL: ${{ github.event.inputs.label }}
         run: |
@@ -75,9 +78,6 @@ jobs:
             # 手動起動は「今すぐ診てくれ」の意味なので、しきい値を無視する
             THRESHOLD=0
           else
-            if [ "$WF_CONCLUSION" != "failure" ]; then
-              echo "失敗ではないので何もしない（$WF_CONCLUSION）"; echo "go=false" >> $GITHUB_OUTPUT; exit 0
-            fi
             case "$WF_NAME" in
               'collect decks')      WF=collect.yml;           LABEL=データ収集;        THRESHOLD=2 ;;
               'build card stats')   WF=build-card-stats.yml;  LABEL=カード実数値の取得; THRESHOLD=1 ;;
@@ -85,6 +85,12 @@ jobs:
               'export tags sheet')  WF=export-tags.yml;       LABEL=タグのシート同期;   THRESHOLD=1 ;;
               *) echo "対象外: $WF_NAME"; echo "go=false" >> $GITHUB_OUTPUT; exit 0 ;;
             esac
+            if [ "$WF_CONCLUSION" != "failure" ]; then
+              # ★本番（main）が成功した＝治った。直そうとした跡（auto-fix/ブランチ）は片付ける（2026-10-03）。
+              #   PRが開いているものは人の判断待ちなので残す。中身は tools/auto-fix-cleanup.sh
+              if [ "$WF_CONCLUSION" = "success" ] && [ "$WF_BRANCH" = "main" ]; then bash tools/auto-fix-cleanup.sh "$WF" || true; fi
+              echo "失敗ではないので何もしない（$WF_CONCLUSION）"; echo "go=false" >> $GITHUB_OUTPUT; exit 0
+            fi
             RUN_ID="$WF_RUN_ID"
             # ★上流（RoyaleAPIの中継・Supercellのメンテ）が止まっているだけなら、コードを直しに行かない（2026-10-03）。
             #   直しようがないのに修正ブランチと45分の検証実行を回し、本番の毎時収集の順番を塞いでいた。
