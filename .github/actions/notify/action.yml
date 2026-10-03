@@ -81,6 +81,11 @@ runs:
           BODY=$(printf '%s が %s回続けて失敗しています。\n%s\n\n%s\n\n--- ログ末尾 ---\n%s' \
             "$LABEL" "$TOTAL" "$DETAIL" "$RUN_URL" "$LOG")
           node tools/notify.js --level error --title "⚠️ CRDB ${LABEL}が失敗しています" --body "$BODY"
+        elif [ "$ST" != "success" ]; then
+          # ★取消（cancelled）・スキップは「復旧」ではない（2026-10-03）。
+          #   以前は失敗以外をすべて成功扱いにしていて、45分で打ち切られた回が
+          #   収集の止まったまま「✅ 復旧しました」を送っていた
+          echo "結果が $ST なので通知しない（失敗でも復旧でもない）"
         else
           if [ "$FAILS" -ge 1 ]; then
             node tools/notify.js --level ok --title "✅ CRDB ${LABEL}が復旧しました" \

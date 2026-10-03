@@ -184,7 +184,8 @@ jobs:
       # ★通知は .github/actions/notify に一本化してある。
       #   鳴らし方を変えたいときはあのファイル1枚を直せば全ワークフローに効く。
       - name: 結果を通知
-        if: always() && inputs.quiet_verification != true
+        # 本番（main）の実行だけ鳴らす。AIの修正ブランチの検証実行は、auto-repair が結果をまとめて知らせる
+        if: always() && inputs.quiet_verification != true && github.ref_name == 'main'
         uses: ./.github/actions/notify
         with:
           status: ${{ job.status }}

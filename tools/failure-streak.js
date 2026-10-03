@@ -7,6 +7,8 @@
  * 定義：**別々の実行(run)** が新しい順に何回続けて failure か。
  *   同じ実行の中で2回試す、という意味ではない（リトライは無い）。
  *   実行中(conclusion=null)・キャンセル・スキップは数に入れず、そこで打ち切る。
+ *   数えるのは本番（main）の実行だけ（2026-10-03）。自動修理が修正ブランチで走らせる検証実行が
+ *   混ざると、その取消で本番の連続失敗が途切れたり、検証の失敗で水増しされたりしていた。
  *
  *   node tools/failure-streak.js --workflow collect.yml [--exclude <run_id>]
  *     → 標準出力に回数だけを出す
@@ -22,7 +24,7 @@ if (!workflow) { console.error('--workflow が要る'); process.exit(1); }
 let rows = [];
 try {
   const out = execFileSync('gh', [
-    'run', 'list', '--workflow', workflow, '--limit', '20',
+    'run', 'list', '--workflow', workflow, '--branch', 'main', '--limit', '20',
     '--json', 'conclusion,databaseId,createdAt'
   ], { encoding: 'utf8' });
   rows = JSON.parse(out);

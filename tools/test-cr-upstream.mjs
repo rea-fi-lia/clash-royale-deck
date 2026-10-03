@@ -186,3 +186,32 @@ test('the catalogue refresh exits 75 on an upstream outage and writes nothing',(
     assert.equal(spawnSync('git',['status','--porcelain','--','catalogue','js/cards-data.js'],{cwd:ROOT,encoding:'utf8'}).stdout,before);
   } finally {rmSync(dir,{recursive:true,force:true});}
 });
+
+test('notify never announces recovery for a cancelled run and thins out alerts only when asked',()=>{
+  const yml=readFileSync(new URL('.github/actions/notify/action.yml',ROOT),'utf8');
+  const script=yml.split('\n      run: |\n')[1].split('\n').map(l=>l.replace(/^ {8}/,'')).join('\n');
+  assert.ok(script.includes('tools/notify.js')&&!script.includes('${{'),'the shell body was extracted');
+  const dir=mkdtempSync(join(tmpdir(),'notify-'));
+  try {
+    const log=join(dir,'calls');
+    writeFileSync(join(dir,'node'),'#!/bin/sh\ncase "$1" in\n  tools/failure-streak.js) echo "$STUB_FAILS";;\n  tools/notify.js) echo "$2 $3" >> "$CALL_LOG";;\nesac\n',{mode:0o755});
+    writeFileSync(join(dir,'gh'),'#!/bin/sh\nexit 0\n',{mode:0o755});
+    const run=(st,fails,streak='2',repeat='1')=>{
+      writeFileSync(log,'');
+      const r=spawnSync('bash',['-c',script],{encoding:'utf8',env:{PATH:dir+':'+process.env.PATH,CALL_LOG:log,STUB_FAILS:String(fails),
+        ST:st,WF:'collect.yml',LABEL:'データ収集',STREAK:streak,DETAIL:'d',REPEAT:repeat,GH_TOKEN:'',DISCORD_WEBHOOK_URL:'',SLACK_WEBHOOK_URL:'',
+        LINE_PUSH_TOKEN:'',LINE_PUSH_TO:'',GITHUB_SERVER_URL:'https://github.com',GITHUB_REPOSITORY:'o/r',GITHUB_RUN_ID:'1'}});
+      assert.equal(r.status,0,r.stdout+r.stderr);
+      return readFileSync(log,'utf8').trim();
+    };
+    assert.equal(run('cancelled',2),'','a run cut off by the timeout is not a recovery');
+    assert.equal(run('skipped',2),'');
+    assert.match(run('success',2),/--level ok/);
+    assert.equal(run('success',0),'','no recovery message when nothing was broken');
+    assert.equal(run('failure',0),'','the first failure waits for the streak');
+    assert.match(run('failure',1,'2','6'),/--level error/,'the threshold always rings');
+    assert.equal(run('failure',2,'2','6'),'','an ongoing upstream outage is thinned out');
+    assert.match(run('failure',7,'2','6'),/--level error/,'and rings again six runs later');
+    assert.match(run('failure',2,'2','1'),/--level error/,'other failures still ring every time');
+  } finally {rmSync(dir,{recursive:true,force:true});}
+});
