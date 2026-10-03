@@ -51,8 +51,9 @@ const { BattleLogJournal } = require('./battle-log-journal.cjs');
 const { createTelemetry, group: telemetryGroup, observeLog } = require('./collection-telemetry.cjs');
 const { UnmappedCardStore } = require('./unmapped-card-store.cjs');
 const { selectSeeds, noteAttempt, seedBand, retainSeeds, retainBookmarks } = require('./collector-schedule.cjs');
+// ★CR API の入口（中継 proxy.royaleapi.dev／公式 api.clashroyale.com の切り替え・上流停止の判定）はここに1本化（2026-10-03）
+const upstream = require('./cr-upstream.cjs');
 
-const PROXY = 'https://proxy.royaleapi.dev/v1';
 const WINDOW_DAYS = parseInt(prop('WINDOW_DAYS', '3'), 10); // ローリング期間（日）。デッキ・カード共通。
 const UA = 'cr-deck-collector'; // ★Node fetch は UA を送らない→GitHub API が 403。全GitHub/CR要求に付与。
 
@@ -95,24 +96,12 @@ function eloBand_(elo) {
   return lo + '-' + (lo + size - 1);
 }
 
-function retryAfterMs_(header, now = Date.now()) {
-  if (!header) return 0;
-  const ms = /^\d+$/.test(header) ? Number(header) * 1000 : Date.parse(header) - now;
-  return Number.isFinite(ms) ? Math.max(0, ms) : 0;
-}
+const retryAfterMs_ = upstream.retryAfterMs;
 async function crGet(path, token) {
   // ★429（レート制限）は指数バックオフで再試行する。実測上限＝同時60件、90件で429が出る（2026-08-02計測）。
-  var waits = [1200, 3000, 7000];
-  for (var i = 0; i <= waits.length; i++) {
-    const res = await fetch(PROXY + path, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/json', 'User-Agent': UA }, signal: AbortSignal.timeout(20000) });
-    if (res.status === 200) return res.json();
-    if (res.status === 429 && i < waits.length) {
-      var wait = retryAfterMs_(res.headers.get('retry-after')) || waits[i];
-      await new Promise(function (r) { setTimeout(r, wait); });
-      continue;
-    }
-    throw new Error('CR API ' + res.status + ' for ' + path + ' :: ' + (await res.text()).slice(0, 300));
-  }
+  // ★5xx（中継/公式の一時障害＝Cloudflareの520等）と通信失敗も同じ間隔で再試行する（2026-10-03）。
+  //   上流が止まり続けているなら、cr-upstream が公式へ切り替えるか UpstreamDown で止める＝45分粘らない。
+  return upstream.getJson(path, token, { waits: [1200, 3000, 7000], ua: UA });
 }
 
 function summarizeRankingItems_(items) {
@@ -1018,6 +1007,10 @@ async function updateDecks() {
 
   console.log('▶ collect start repo=' + REPO + ' branch=' + BRANCH + ' source=' + rankingSource + ' top=' + topN + ' path=' + GH_PATH);
 
+  // ★上流の健康診断（2026-10-03）。中継が死んでいたら公式APIへ切り替えるか（CR_DEV_* があるとき）、
+  //   何も書かずにここで UpstreamDown として降りる。以前は半死の中継に45分粘って本番の順番を塞いでいた。
+  await upstream.preflight(token, { ua: UA, log: console.log });
+
   var rankingPath = rankingSource === 'trophy' ? '/locations/global/rankings/players?limit=' + topN : '/locations/global/pathoflegend/players?limit=' + topN;
   var ranking = await crGet(rankingPath, token);
   if (rankingSource === 'pol') {
@@ -1066,7 +1059,6 @@ async function updateDecks() {
     });
     console.log('trophy filter ' + trophyMin + '-' + trophyMax + ' => ' + players.length + ' players');
   }
-  var headers = { Authorization: 'Bearer ' + token, Accept: 'application/json', 'User-Agent': UA };
   if (rankingSource === 'trophy' && !players.length) {
     var emptyWindow = { players: 0, uniquePlayers: 0, games: 0, decks: [], winDecks: [], trending: [], cards: [], meta: [] };
     await writePrivateJson_(GH_PATH, {
@@ -1567,7 +1559,7 @@ async function updateDecks() {
   const telemetry=createTelemetry();
   hist.trackedFetch ||= {};
   hist.trackedLogNewest ||= {};
-  const journal=new BattleLogJournal({source:{provider:'supercell-official',endpoint:'battlelog',proxy:PROXY,collectorCommit:prop('GITHUB_SHA','local'),catalogueRevision:require('../catalogue/manifest.json').revision,runId:prop('GITHUB_RUN_ID','local')}});
+  const journal=new BattleLogJournal({source:{provider:'supercell-official',endpoint:'battlelog',proxy:upstream.endpoint('').base,collectorCommit:prop('GITHUB_SHA','local'),catalogueRevision:require('../catalogue/manifest.json').revision,runId:prop('GITHUB_RUN_ID','local')}});
   let journalSaved=null;
   var fetchQuality = {requested:0, apiCalls:0, succeeded:0, failed:0, fullLogs:0, possibleRollover:0, byBand:{}};
   async function fetchTags(tags, seedMode) {
@@ -1581,14 +1573,20 @@ async function updateDecks() {
       var pending = slice.slice();
       // 429・一時的なサーバー/通信失敗だけ最大3回再試行する（成功分は再取得しない）。
       for (var attempt = 0; attempt <= 3 && pending.length; attempt++) {
+        // ★上流が止まったと判定済みなら、公式へ切り替えて続けるか、UpstreamDown で止める（2026-10-03）。
+        //   止める場合も finally で原本（journal）は保存される。しおり（lastT等）は進めない。
+        if (upstream.tripped()) await upstream.guard({ log: console.log });
+        const ep = upstream.endpoint(token);
         fetchQuality.apiCalls += pending.length;
         var resps = await Promise.all(pending.map(function (t) {
-          return fetch(PROXY + '/players/' + encodeURIComponent(t) + '/battlelog', { headers: headers, signal: AbortSignal.timeout(20000) })
+          let noted = false;
+          return fetch(ep.base + '/players/' + encodeURIComponent(t) + '/battlelog', { headers: ep.headers(UA), signal: AbortSignal.timeout(20000) })
             .then(async function (r) {
+              noted = true; upstream.note(r.status);
               if (r.status === 200) { const body=await r.json(); return Array.isArray(body)?{ok:true,body}:{ok:false,status:502,body:null}; }
               return { ok: false, body: null, status: r.status, retryAfter: retryAfterMs_(r.headers.get('retry-after')) / 1000 };
             })
-            .catch(function () { return { ok: false, body: null, status: 0 }; });
+            .catch(function () { if (!noted) upstream.note(0); return { ok: false, body: null, status: 0 }; });
         }));
         var next = [], maxRa = 0;
         for(const [i,res] of resps.entries())if(res.ok)journal.add({tag:pending[i],population:seedMode?'trophy-candidates':'ranked-top1000',fetchedAt:new Date().toISOString(),battles:res.body});
@@ -1644,6 +1642,8 @@ async function updateDecks() {
     }
   } finally {
     // Persist original responses even if interpretation fails; never advance bookmarks on failure.
+    // 途中で公式APIへ切り替えた場合も、どの入口から取ったかを原本の目録に残す。
+    journal.source.upstream=upstream.provenance();
     const run=prop('GITHUB_RUN_ID','local')+'-'+prop('GITHUB_RUN_ATTEMPT','1')+'-'+Date.now();
     journalSaved=await journal.flush({prefix:'raw/api-battlelogs-v1/'+new Date().toISOString().slice(0,10)+'/'+run,
       putFile:async(key,file,part)=>{for(let attempt=0;attempt<3;attempt++){try{const r=await r2Request_('PUT',key,null,'application/gzip',{file,payloadHash:part.sha256,length:part.bytes});if(r.ok)return true;}catch{}await sleep(500*(attempt+1));}throw Error('battlelog_journal_upload_failed');},
@@ -3056,6 +3056,9 @@ async function updateDecks() {
 }
 
 if (require.main === module) (process.argv.includes('--trophy-backfill') ? updateTrophyIntel_() : updateDecks()).catch(function (e) {
+  // ★上流（中継/公式/メンテ）が止まっているだけなら、それと分かる印を出して終了コード75で降りる（2026-10-03）。
+  //   auto-repair.yml は UPSTREAM_DOWN を見て AI に直させない。collect.yml の通知文もこの要約を使う。
+  if (upstream.isUpstreamDown(e)) { upstream.report(e); process.exit(75); }
   console.error('❌ collect failed: ' + ((e && e.stack) || e));
   process.exit(1);
 }).then(function () {

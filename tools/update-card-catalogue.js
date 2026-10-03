@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const {ROOT,SOURCE,digest,slugOf,readCatalogue,validate,buildManifest} = require('./card-catalogue.cjs');
+const upstream = require('./cr-upstream.cjs');
 const arg = key => {const n=process.argv.indexOf(key);return n<0?null:process.argv[n+1];};
 function reconcileOfficial(source, api) {
   if (!Array.isArray(api.items) || api.items.length < source.cards.length * .9) throw Error('Incomplete official card list');
@@ -81,9 +82,8 @@ async function main() {
     else {
       const token=process.env.CR_TOKEN;
       if(!token) throw Error('CR_TOKEN required for official discovery');
-      const r=await fetch('https://proxy.royaleapi.dev/v1/cards',{headers:{Authorization:'Bearer '+token},signal:AbortSignal.timeout(15000)});
-      if(!r.ok) throw Error('Official cards HTTP '+r.status);
-      api=await r.json();
+      // The upstream module retries 5xx, can switch to the official API, and marks a pure outage as UPSTREAM_DOWN.
+      api=await upstream.getJson('/cards',token,{ua:'crdb-catalogue',waits:[1500,4000],timeoutMs:15000});
     }
     const result=reconcileOfficial(source,api);
     if(arg('--report')) fs.writeFileSync(arg('--report'),JSON.stringify({issues:result.issues,changed:result.changes},null,2));
@@ -103,4 +103,4 @@ async function main() {
   console.log('catalogue '+buildManifest(source).revision+' / '+source.cards.length+' cards / '+source.cards.reduce((n,c)=>n+Object.keys(c.forms).length,0)+' forms');
 }
 module.exports={reconcileOfficial,hashImages,outputs};
-if(require.main===module) main().catch(e=>{console.error(e.message);process.exitCode=1;});
+if(require.main===module) main().catch(e=>{if(upstream.isUpstreamDown(e)){upstream.report(e);process.exitCode=75;return;}console.error(e.message);process.exitCode=1;});

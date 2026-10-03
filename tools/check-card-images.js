@@ -31,6 +31,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const upstream = require('./cr-upstream.cjs');
 
 const ROOT = path.join(__dirname, '..');
 const JS_DIR = path.join(ROOT, 'js');
@@ -209,9 +210,19 @@ async function checkAgainstApi(ctx) {
   console.log('\n[2] 形態の正：公式API /cards との突合');
   const TOKEN = (process.env.CR_TOKEN || '').replace(/[^A-Za-z0-9._-]/g, '');
   if (!TOKEN) { console.log('  – CR_TOKEN が無いので省略'); return; }
-  const res = await fetch('https://proxy.royaleapi.dev/v1/cards', { headers: { Authorization: 'Bearer ' + TOKEN, Accept: 'application/json', 'User-Agent': 'crdb-image-check' } });
-  if (!res.ok) { fail('公式API ' + res.status); return; }
-  const items = (await res.json()).items || [];
+  // ★入口は cr-upstream に1本化（2026-10-03）。上流（中継/メンテ）が止まっているだけなら、この突合は省略する
+  //   ＝外の停止でCIを赤くしない・自動修理を起こさない（CR_TOKEN が無いときと同じ扱い）。
+  let body;
+  try { body = await upstream.getJson('/cards', TOKEN, { ua: 'crdb-image-check', waits: [1500, 4000] }); }
+  catch (e) {
+    if (upstream.isUpstreamDown(e)) {
+      console.log('  – 上流が止まっているので省略（' + e.message + '）');
+      console.log('UPSTREAM_DOWN reason=' + e.reason + ' check-card-images [2] skipped');
+      return;
+    }
+    fail('公式API ' + e.message); return;
+  }
+  const items = body.items || [];
   const apiSlug = c => String(c.name).toLowerCase().replace(/[.']/g, '').replace(/\s+/g, '-');
   const apiEvo = new Set(), apiHero = new Set();
   items.forEach(c => {

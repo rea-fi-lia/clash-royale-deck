@@ -28,6 +28,11 @@ on:
         description: '保存済みトロフィー履歴の再集計だけを実行（ゲームAPIは呼ばない）'
         type: boolean
         default: false
+      upstream:
+        description: 'CR APIの入口。auto=中継→死んでいたら公式へ / official=最初から公式（CR_DEV_*が要る・切替の試運転用） / proxy=中継だけ'
+        type: choice
+        options: [auto, official, proxy]
+        default: auto
   schedule:
     # 本命の毎時 :15 起動は Cloudflare Worker Cron から workflow_dispatch する。
     # GitHub Actions のscheduleは遅延/欠落があり得るため、ここでは保険の「起動チェック」だけを置く。
@@ -128,6 +133,7 @@ jobs:
           NODE
 
       - name: Run collector
+        id: collector
         if: steps.freshness.outputs.run_collect == 'true'
         env:
           # ★2026-08-11：帯別イベントの絞り込みでヒープが尽きてOOM(exit 134)になったため拡張。
@@ -139,18 +145,41 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET: ${{ vars.R2_BUCKET || 'crdb-data-private' }}
-          R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
+          # ★本番（main → data）以外の実行＝自動修理の検証などは、R2の置き場を verify/ に分ける（2026-10-03）。
+          #   以前は target_branch=data-test でもR2は本番と同じ private/ に書く作りで、「本番を汚さない検証」になっていなかった。
+          R2_PRIVATE_PREFIX: ${{ (github.ref_name == 'main' && (github.event.inputs.target_branch || 'data') == 'data') && (vars.R2_PRIVATE_PREFIX || 'private/') || 'verify/' }}
           # R2/Worker/APIへ切替済み。dataブランチには collect-freshness.json だけ残し、分析JSONはR2へ閉じる。
           # 緊急時だけRepository Variablesで PRIVATE_GH_MIRROR/PUBLIC_GH_MIRROR を 1 に戻す。
           PRIVATE_GH_MIRROR: ${{ vars.PRIVATE_GH_MIRROR || '0' }}
           PUBLIC_GH_MIRROR: ${{ vars.PUBLIC_GH_MIRROR || '0' }}
-          TARGET_BRANCH: ${{ github.event.inputs.target_branch || 'data' }}
+          TARGET_BRANCH: ${{ github.ref_name == 'main' && (github.event.inputs.target_branch || 'data') || 'data-test' }}
           TOP_PLAYERS: ${{ github.event.inputs.top_players || '1000' }}
           INTERVAL_HOURS: '1'
           WIN_MIN_GAMES_3D: '100'   # ★本番GASのスクリプトプロパティと一致（既定30を上書き運用中）。カットオーバー無風化。
           DECKS_PATH: 'decks.json'   # GITHUB_PATH は Actions 予約名のため使わない
           REBUILD_TROPHY: ${{ github.event.inputs.rebuild_trophy || 'false' }}
+          # ★中継（proxy.royaleapi.dev）が死んだときに公式APIへ切り替えるための、開発者ポータルのログイン情報（2026-10-03）。
+          #   本番の実行にだけ渡す（AIが書いた修正ブランチの検証実行には渡さない）。
+          #   未登録なら切り替えはせず、上流停止（UPSTREAM_DOWN）として数秒で降りる。仕組みは tools/cr-upstream.cjs
+          CR_DEV_EMAIL: ${{ (github.ref_name == 'main' && (github.event.inputs.target_branch || 'data') == 'data') && secrets.CR_DEV_EMAIL || '' }}
+          CR_DEV_PASSWORD: ${{ (github.ref_name == 'main' && (github.event.inputs.target_branch || 'data') == 'data') && secrets.CR_DEV_PASSWORD || '' }}
+          CR_UPSTREAM: ${{ github.event.inputs.upstream || 'auto' }}
+          UPSTREAM_STATUS_FILE: ${{ runner.temp }}/crdb-upstream.json
         run: bash tools/run-collector.sh
+
+      # 上流停止で降りた回は、cr-upstream が要約をファイルに残す。通知文と鳴らす間隔をそれで切り替える
+      - name: 上流の状態を読む
+        id: upstream
+        if: always()
+        env:
+          STATUS_FILE: ${{ runner.temp }}/crdb-upstream.json
+        run: |
+          if [ -f "$STATUS_FILE" ]; then
+            node -e 'const s=JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"));console.log("down=true");console.log("detail="+String(s.detail||"").replace(/[\r\n]+/g," "))' "$STATUS_FILE" >> "$GITHUB_OUTPUT"
+            cat "$STATUS_FILE"; echo
+          else
+            echo "上流停止の記録なし"
+          fi
 
       # ★通知は .github/actions/notify に一本化してある。
       #   鳴らし方を変えたいときはあのファイル1枚を直せば全ワークフローに効く。
@@ -162,7 +191,9 @@ jobs:
           workflow: collect.yml
           label: データ収集
           streak: '2'
-          detail: サイトの数字が更新されません。
+          detail: ${{ steps.upstream.outputs.detail || 'サイトの数字が更新されません。' }}
+          # 上流が止まっているだけの間は、鳴らし始めた後は6回に1回（≒6時間おき）。復旧の知らせは必ず鳴る
+          repeat_every: ${{ steps.upstream.outputs.down == 'true' && '6' || '1' }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           discord_webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
           slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

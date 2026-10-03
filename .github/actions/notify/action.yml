@@ -23,6 +23,10 @@ inputs:
     description: 本文に足したい補足
     required: false
     default: ''
+  repeat_every:
+    description: 鳴らし始めた後、何回に1回鳴らすか（1=毎回）。上流が止まっているだけの間は間引く
+    required: false
+    default: '1'
   github_token:
     required: true
   discord_webhook_url:
@@ -50,6 +54,7 @@ runs:
         LABEL: ${{ inputs.label }}
         STREAK: ${{ inputs.streak }}
         DETAIL: ${{ inputs.detail }}
+        REPEAT: ${{ inputs.repeat_every }}
       run: |
         set -u
         RUN_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
@@ -62,6 +67,13 @@ runs:
           TOTAL=$((FAILS + 1))
           if [ "$TOTAL" -lt "$STREAK" ]; then
             echo "連続 $TOTAL 回（しきい値 $STREAK）なのでまだ鳴らさない"
+            exit 0
+          fi
+          # ★上流停止のように長引くと分かっている失敗は、鳴らし始めた後は REPEAT 回に1回だけ鳴らす（2026-10-03）。
+          #   それまでは毎時鳴り続けていた。復旧の知らせ（下の else）は間引かない
+          REPEAT=${REPEAT:-1}
+          if [ "$REPEAT" -gt 1 ] && [ $(( (TOTAL - STREAK) % REPEAT )) -ne 0 ]; then
+            echo "連続 $TOTAL 回。$REPEAT 回に1回へ間引き中なので鳴らさない"
             exit 0
           fi
           # 失敗したステップのログ末尾を添える。Discordは等幅で表示されるので原因がそのまま読める

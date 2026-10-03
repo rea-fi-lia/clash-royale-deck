@@ -46,7 +46,17 @@ jobs:
         env:
           CR_TOKEN: ${{ secrets.CR_TOKEN }}
         run: |
+          # ★上流（RoyaleAPIの中継/公式API）が止まっているだけなら（終了コード75）、公式一覧の取り直しだけ今回は省いて続ける（2026-10-03）。
+          #   台帳は前回の検証済みのまま。Wikiの実数値・ページ生成は公式APIに依存しないので、外の停止で止めない。
+          set +e
           node tools/update-card-catalogue.js --refresh --report "$RUNNER_TEMP/catalogue-report.json"
+          code=$?
+          set -e
+          if [ "$code" = 75 ]; then
+            echo "::warning title=上流が停止中::公式カード一覧の取り直しを今回は省略（前回の台帳のまま続行）"
+          elif [ "$code" != 0 ]; then
+            exit "$code"
+          fi
           node tools/update-card-catalogue.js --check
           node --test tools/test-card-catalogue.mjs tools/test-balance-verification.mjs tools/test-official-balances.mjs
 
