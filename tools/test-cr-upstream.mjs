@@ -245,3 +245,42 @@ test('a successful production run clears the auto-fix branches it left, but keep
     assert.equal(b.deleted,'','when the PR state cannot be read, nothing is deleted');
   } finally {rmSync(dir,{recursive:true,force:true});}
 });
+
+test('the failure fingerprint ignores times and run numbers but not the actual error',async()=>{
+  const {signature}=(await import('./failure-signature.js')).default;
+  const a='check\tRun check\t2026-09-10T09:38:01.1234567Z   ✗ アイスウィザード: 英雄 が公式にあるのに手元の定義に無い → 追加する\ncheck\tRun check\t2026-09-10T09:38:02Z ##[error]Process completed with exit code 1.\n';
+  const b=a.replace(/2026-09-10T09:38:0\d(\.\d+)?Z/g,'2026-09-17T09:56:41.7654321Z');
+  assert.match(signature(a),/^[0-9a-f]{16}$/);assert.equal(signature(b),signature(a));
+  assert.equal(signature('x\ty\t2026-10-03T00:16:00Z ❌ collect failed: Error: run 37081322592 took 12.5s'),signature('x\ty\t2026-10-03T01:16:00Z ❌ collect failed: Error: run 37085424663 took 9s'));
+  assert.notEqual(signature(a.replace('アイスウィザード','エリートバーバリアン')),signature(a));
+  assert.equal(signature('ok\nall good\n##[error]Process completed with exit code 1.'),'','no error line, no fingerprint');
+});
+
+test('the auto-repair gate skips upstream outages and repeats of a failure the AI already could not fix',()=>{
+  const lines=readFileSync(new URL('.github/workflows/auto-repair.yml',ROOT),'utf8').split('\n');
+  const at=lines.findIndex(l=>l.includes('- name: 対象と、直すべき状況かを判定'));
+  const runAt=lines.findIndex((l,i)=>i>at&&l.trim()==='run: |');
+  const body=[];for(let i=runAt+1;i<lines.length;i++){if(lines[i].trim()&&!lines[i].startsWith('          '))break;body.push(lines[i].slice(10));}
+  const script=body.join('\n');assert.match(script,/failure-signature\.js/);
+  const dir=mkdtempSync(join(tmpdir(),'gate-'));
+  try {
+    writeFileSync(join(dir,'gh'),'#!/bin/sh\ncase "$1 $2" in\n  "run view") cat "$STUB_LOG";;\n  "run list") echo \'[{"conclusion":"failure","databaseId":5,"createdAt":"x"}]\';;\n  "pr list") echo 0;;\n  api*) echo "$STUB_HITS";;\nesac\n',{mode:0o755});
+    writeFileSync(join(dir,'git'),'#!/bin/sh\nexit 0\n',{mode:0o755});
+    const gate=(log,{hits='0',conclusion='failure',name='check card images'}={})=>{
+      const logFile=join(dir,'log'),out=join(dir,'out');writeFileSync(logFile,log);writeFileSync(out,'');
+      const r=spawnSync('bash',['-c',script],{cwd:ROOT,encoding:'utf8',env:{...process.env,PATH:dir+':'+process.env.PATH,STUB_LOG:logFile,STUB_HITS:hits,
+        EV:'workflow_run',WF_NAME:name,WF_CONCLUSION:conclusion,WF_RUN_ID:'777',WF_BRANCH:'main',IN_WF:'',IN_LABEL:'',GH_TOKEN:'x',GITHUB_OUTPUT:out,GITHUB_REPOSITORY:'o/r'}});
+      assert.equal(r.status,0,r.stdout+r.stderr);return {out:readFileSync(out,'utf8'),log:r.stdout};
+    };
+    const sept='check\tRun check\t2026-09-10T09:38:01.1234567Z   ✗ アイスウィザード: 英雄 が公式にあるのに手元の定義に無い → 追加する\n';
+    const first=gate(sept);
+    assert.match(first.out,/go=true/,'a new failure still gets one AI attempt');
+    assert.match(first.out,/tried_key=auto-repair-tried-check-card-images-[0-9a-f]{16}\n/);
+    const again=gate(sept,{hits:'1'});
+    assert.match(again.out,/go=false/);assert.match(again.log,/AIが既に試して直せなかった/);
+    const down=gate('collect\tRun collector\t2026-10-03T06:16:01Z UPSTREAM_DOWN reason=proxy CR API 525 for /locations\n',{name:'collect decks'});
+    assert.match(down.out,/go=false/);assert.match(down.log,/上流の停止/);
+    const healed=gate('',{conclusion:'success'});
+    assert.match(healed.out,/go=false/);assert.match(healed.log,/片付ける自動修理ブランチなし/);
+  } finally {rmSync(dir,{recursive:true,force:true});}
+});

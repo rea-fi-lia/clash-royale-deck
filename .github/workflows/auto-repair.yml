@@ -16,6 +16,8 @@ name: auto repair
 #   - 同じワークフローの修理PRが既に開いていたら何もしない（積み上がり防止）
 #   - 上流（RoyaleAPIの中継・Supercellのメンテ）が止まっているだけの失敗（UPSTREAM_DOWN）では動かない（2026-10-03）
 #   - 本番（main）が成功したら、その対象の auto-fix/ ブランチを片付ける。PRが開いているものは残す（2026-10-03）
+#   - 同じ失敗（tools/failure-signature.js の指紋が同じ）をAIが一度試して直せなかったら、次からはAIを起こさない
+#     （2026-10-03。料金・利用枠の空回り防止。記録はActionsのキャッシュで、7日使われなければ消える＝週1回は試し直す）
 
 on:
   workflow_run:
@@ -115,10 +117,26 @@ jobs:
             echo "$WF の修理PRが既に開いている。人が見るまで重ねない"; echo "go=false" >> $GITHUB_OUTPUT; exit 0
           fi
 
+          # ★同じ失敗にAIを何度も呼ばない（2026-10-03）。9/7〜9/18、人にしか直せない同じ失敗に Fugu を12日続けて呼んでいた。
+          #   同じ指紋（tools/failure-signature.js）の失敗をAIが既に試して直せなかったなら、今回はAIを起こさない。
+          #   元の失敗の通知は各ワークフローが出す。指紋の記録は Actions のキャッシュ（7日使われなければ消える＝週に1回は試し直す）。
+          #   手動起動（「今すぐ診てくれ」）はこの判定をしない
+          TRIED_KEY=""
+          if [ "$EV" != "workflow_dispatch" ]; then
+            SIG=$(node tools/failure-signature.js /tmp/failed.log 2>/dev/null || true)
+            if [ -n "$SIG" ]; then
+              TRIED_KEY="auto-repair-tried-${WF%.yml}-$SIG"
+              HIT=$(gh api "repos/$GITHUB_REPOSITORY/actions/caches?key=$TRIED_KEY" --jq '.total_count' 2>/dev/null || echo 0)
+              if [ "${HIT:-0}" -gt 0 ] 2>/dev/null; then
+                echo "同じ失敗（指紋 $SIG）はAIが既に試して直せなかった。今回はAIを起こさない"; echo "go=false" >> $GITHUB_OUTPUT; exit 0
+              fi
+            fi
+          fi
+
           [ -n "$RUN_ID" ] || RUN_ID=$(gh run list --workflow "$WF" --status failure --limit 1 --json databaseId -q '.[0].databaseId')
           {
             echo "go=true"; echo "workflow=$WF"; echo "label=$LABEL"
-            echo "run_id=$RUN_ID"; echo "branch=auto-fix/${WF%.yml}-${RUN_ID}"
+            echo "run_id=$RUN_ID"; echo "branch=auto-fix/${WF%.yml}-${RUN_ID}"; echo "tried_key=$TRIED_KEY"
           } >> $GITHUB_OUTPUT
 
       # ── 状況説明を組み立てる ────────────────────────────────────
@@ -316,6 +334,19 @@ jobs:
         run: |
           gh pr merge "${{ steps.pr.outputs.url }}" --squash --delete-branch
           echo "done=true" >> $GITHUB_OUTPUT
+
+      # ── AIが試して直せなかった失敗の指紋を残す（次に同じ失敗が来てもAIを起こさないため）──
+      #   AIが実際に動いた（起動できた）ときだけ。PRになった＝直せたときは残さない
+      - name: 直せなかった失敗を覚える
+        id: remember
+        if: always() && steps.gate.outputs.go == 'true' && steps.gate.outputs.tried_key != '' && steps.pr.outputs.url == '' && (steps.claude.outputs.ran == 'true' || steps.fugu.outputs.ran == 'true')
+        run: mkdir -p /tmp/ai-tried && echo "${{ steps.gate.outputs.tried_key }}" > /tmp/ai-tried/key
+      - name: 指紋をキャッシュに保存
+        if: always() && steps.remember.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/ai-tried
+          key: ${{ steps.gate.outputs.tried_key }}
 
       # ── どうなったかを必ず知らせる ──────────────────────────────
       - name: 結果をDiscordへ
