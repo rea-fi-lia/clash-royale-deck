@@ -1447,6 +1447,11 @@
           "image": "https://cdn.royaleapi.com/static/img/cards/electro-wizard.png",
           "sha256": "f05db16d2920f2771c06bf99e3fdb5b4f0f37e5a412810798379fd45bfd8a395",
           "officialIcon": "https://api-assets.clashroyale.com/cards/300/RsFaHgB3w6vXsTjXdPr3x8l_GbV9TbOUCvIx07prbrQ.png"
+        },
+        "h": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/electro-wizard-hero.png",
+          "officialIcon": "https://api-assets.clashroyale.com/cardheroes/300/RsFaHgB3w6vXsTjXdPr3x8l_GbV9TbOUCvIx07prbrQ.png",
+          "sha256": "958fb450455f1904a3f61838446e98183eb77a955af9e0c0c36d8f6f80a53e21"
         }
       },
       "english": "Electro Wizard",
