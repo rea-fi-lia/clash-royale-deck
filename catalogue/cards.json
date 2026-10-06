@@ -2793,6 +2793,11 @@
           "image": "https://cdn.royaleapi.com/static/img/cards/electro-giant.png",
           "sha256": "279d6a86053a4f1688720c6ed7d30d3ac9fb487c23db682e44588e160270cbf6",
           "officialIcon": "https://api-assets.clashroyale.com/cards/300/_uChZkNHAMq6tPb3v6A49xinOe3CnhjstOhG6OZbPYc.png"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/electro-giant-ev1.png",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/_uChZkNHAMq6tPb3v6A49xinOe3CnhjstOhG6OZbPYc.png",
+          "sha256": "556818b851886b5d5413019d73ad0eb05898a51d145824e02b60320503b901bc"
         }
       },
       "english": "Electro Giant",
