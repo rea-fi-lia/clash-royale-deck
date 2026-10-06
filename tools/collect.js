@@ -1039,6 +1039,10 @@ async function updateDecks() {
           source: rankingSource, topPlayers: 0, warning: 'pol ranking empty; skipped without updating analysis json' },
         'chore: update collect freshness marker');
     } catch (e) { console.log('collect freshness marker error ' + ((e && e.message) || e)); }
+    // ★登録タグ（先駆け・課金者）の毎時記録はランキングと無関係なので止めない（2026-10-06）。
+    //   毎月のシーズン切替でランキングは約1日空になる（9/7〜8、10/5〜6 は17回連続）。ここで一緒に止めると
+    //   「毎時見るので取りこぼしゼロ（75分ルール）」がその間だけ崩れていた。
+    await collectPilotTags_(CR_TOKEN);
     console.log('pol ranking empty; skipped without failing');
     return;
   }

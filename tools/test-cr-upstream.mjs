@@ -284,3 +284,23 @@ test('the auto-repair gate skips upstream outages and repeats of a failure the A
     assert.match(healed.out,/go=false/);assert.match(healed.log,/片付ける自動修理ブランチなし/);
   } finally {rmSync(dir,{recursive:true,force:true});}
 });
+
+test('an empty season-reset ranking still keeps the hourly record of registered tags',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'season-reset-'));
+  try {
+    const preload=join(dir,'reset.cjs'),calls=join(dir,'calls');writeFileSync(calls,'');
+    writeFileSync(preload,`const fs=require('fs');globalThis.fetch=async(url,init={})=>{url=String(url);fs.appendFileSync(process.env.CALL_LOG,(init.method||'GET')+' '+url+'\\n');
+      if(url.startsWith('https://proxy.royaleapi.dev/v1/locations?'))return new Response('{"items":[]}');
+      if(url.startsWith('https://proxy.royaleapi.dev/v1/locations/global/pathoflegend/players'))return new Response('{"items":[],"paging":{"cursors":{}}}');
+      if(url.startsWith('https://proxy.royaleapi.dev/v1/players/'))return new Response('[]');
+      if(url.includes('.r2.cloudflarestorage.com/'))return (init.method||'GET')==='GET'?new Response('',{status:404}):new Response('',{status:200});
+      return new Response('{}',{status:404});};\n`);
+    const r=spawnSync(process.execPath,['-r',preload,'tools/collect.js','--collect-only'],{cwd:ROOT,encoding:'utf8',timeout:60000,env:{...process.env,
+      CR_TOKEN:'T',GITHUB_TOKEN:'G',GITHUB_REPOSITORY:'owner/repo',R2_ACCOUNT_ID:'acct',R2_ACCESS_KEY_ID:'k',R2_SECRET_ACCESS_KEY:'s',R2_BUCKET:'b',
+      PILOT_TAGS:'PILOTTAG',CALL_LOG:calls,UPSTREAM_STATUS_FILE:'',CR_DEV_EMAIL:'',CR_DEV_PASSWORD:'',CR_UPSTREAM:'',GITHUB_ACTIONS:''}});
+    assert.equal(r.status,0,r.stdout+r.stderr);
+    assert.match(r.stdout,/pol ranking empty; skipped without failing/);
+    assert.match(r.stdout,/pilot 対象1件/,'the registered tag is still collected during the reset');
+    assert.match(readFileSync(calls,'utf8'),/GET https:\/\/proxy\.royaleapi\.dev\/v1\/players\/%23PILOTTAG\/battlelog/);
+  } finally {rmSync(dir,{recursive:true,force:true});}
+});
