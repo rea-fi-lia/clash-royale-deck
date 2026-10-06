@@ -40,6 +40,8 @@ const R2_PRIVATE_PREFIX = process.env.R2_PRIVATE_PREFIX || 'private/';
 const argOne = (n, fb) => { const i = process.argv.indexOf(n); return i >= 0 && process.argv[i + 1] ? process.argv[i + 1] : fb; };
 const hasArg = n => process.argv.includes(n);
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+// CRDB の名前付きアイコン（css/icons.css・assets/icons/manifest.json）。bolt=進化 / crown=英雄
+const crIcon = name => '<span class="cr-icon" data-icon="' + name + '" aria-hidden="true"></span>';
 
 /* ---- R2 読み取り（build-card-stats.js と同方式） ---- */
 function r2Key(t) { let p = String(R2_PRIVATE_PREFIX || '').replace(/^\/+/, ''); if (p && !p.endsWith('/')) p += '/'; return p + String(t || '').replace(/^\/+/, ''); }
@@ -178,10 +180,13 @@ function cardBody(c, ctx, D) {
 
   /* 形態と画像 */
   out.push('<section class="section"><h2>カードの姿</h2><div class="cardpage-forms">');
-  const form = (label, src, note) => '<figure class="cpf"><img src="' + src + '" alt="' + esc(c.name + ' ' + label) + '" width="150" height="180" loading="lazy"><figcaption><b>' + label + '</b><span>' + note + '</span></figcaption></figure>';
+  // ★進化・英雄の印は絵文字（⚡👑）でなく CRDB の名前付きアイコンで書く（2026-10-06）。
+  //   絵文字のままだと、新しい英雄・進化が増えるたびにUIアイコンの検査（check-ui-icons）の基準を超えて落ちる
+  //   （10/5 エレクトロウィザードに英雄が付いて実際に落ちた）。画像の説明文（alt）は文字だけにする。
+  const form = (label, src, note, icon) => '<figure class="cpf"><img src="' + src + '" alt="' + esc(c.name + ' ' + label) + '" width="150" height="180" loading="lazy"><figcaption><b>' + (icon ? crIcon(icon) : '') + label + '</b><span>' + note + '</span></figcaption></figure>';
   out.push(form('通常', imgOf(c.name, 'n'), '基本の姿'));
-  if (c.evolved) out.push(form('⚡進化', imgOf(c.name, 'e'), 'デッキの進化枠に入れたときの姿'));
-  if (c.hero) out.push(form('👑英雄', imgOf(c.name, 'h'), '英雄枠に入れたときの姿'));
+  if (c.evolved) out.push(form('進化', imgOf(c.name, 'e'), 'デッキの進化枠に入れたときの姿', 'bolt'));
+  if (c.hero) out.push(form('英雄', imgOf(c.name, 'h'), '英雄枠に入れたときの姿', 'crown'));
   out.push('</div></section>');
 
   /* 実数値 */
@@ -258,7 +263,7 @@ function cardBody(c, ctx, D) {
     out.push('<section class="section"><h2>実戦での使われ方</h2>');
     if (use) {
       const t = tierOf(use.use);
-      out.push('<p>直近' + (D.windowDays || 3) + '日のランク戦の集計では、' + esc(c.name) + (use.f === 'e' ? '（⚡進化）' : use.f === 'h' ? '（👑英雄）' : '') +
+      out.push('<p>直近' + (D.windowDays || 3) + '日のランク戦の集計では、' + esc(c.name) + (use.f === 'e' ? '（' + crIcon('bolt') + '進化）' : use.f === 'h' ? '（' + crIcon('crown') + '英雄）' : '') +
         'の使用率は<b>' + use.use + '%</b>、このカードを入れたデッキの勝率は<b>' + use.win + '%</b>です（' + use.games.toLocaleString() + '戦）。' +
         (t ? '使用率では' + t.label + '帯にあたり、' + t.note + 'です。' : '') + '</p>');
       out.push('<p class="note">勝率はデッキ全体の勝率であって、カード単体の強さではありません。勝てる構築に採用されているという意味で読んでください。</p>');
