@@ -246,22 +246,12 @@ test('a successful production run clears the auto-fix branches it left, but keep
   } finally {rmSync(dir,{recursive:true,force:true});}
 });
 
-test('the failure fingerprint ignores times and run numbers but not the actual error',async()=>{
-  const {signature}=(await import('./failure-signature.js')).default;
-  const a='check\tRun check\t2026-09-10T09:38:01.1234567Z   ✗ アイスウィザード: 英雄 が公式にあるのに手元の定義に無い → 追加する\ncheck\tRun check\t2026-09-10T09:38:02Z ##[error]Process completed with exit code 1.\n';
-  const b=a.replace(/2026-09-10T09:38:0\d(\.\d+)?Z/g,'2026-09-17T09:56:41.7654321Z');
-  assert.match(signature(a),/^[0-9a-f]{16}$/);assert.equal(signature(b),signature(a));
-  assert.equal(signature('x\ty\t2026-10-03T00:16:00Z ❌ collect failed: Error: run 37081322592 took 12.5s'),signature('x\ty\t2026-10-03T01:16:00Z ❌ collect failed: Error: run 37085424663 took 9s'));
-  assert.notEqual(signature(a.replace('アイスウィザード','エリートバーバリアン')),signature(a));
-  assert.equal(signature('ok\nall good\n##[error]Process completed with exit code 1.'),'','no error line, no fingerprint');
-});
-
-test('the auto-repair gate skips upstream outages and repeats of a failure the AI already could not fix',()=>{
+test('the auto-repair gate skips upstream outages, still repairs real failures, and tidies up on success',()=>{
   const lines=readFileSync(new URL('.github/workflows/auto-repair.yml',ROOT),'utf8').split('\n');
   const at=lines.findIndex(l=>l.includes('- name: 対象と、直すべき状況かを判定'));
   const runAt=lines.findIndex((l,i)=>i>at&&l.trim()==='run: |');
   const body=[];for(let i=runAt+1;i<lines.length;i++){if(lines[i].trim()&&!lines[i].startsWith('          '))break;body.push(lines[i].slice(10));}
-  const script=body.join('\n');assert.match(script,/failure-signature\.js/);
+  const script=body.join('\n');assert.match(script,/UPSTREAM_DOWN/);
   const dir=mkdtempSync(join(tmpdir(),'gate-'));
   try {
     writeFileSync(join(dir,'gh'),'#!/bin/sh\ncase "$1 $2" in\n  "run view") cat "$STUB_LOG";;\n  "run list") echo \'[{"conclusion":"failure","databaseId":5,"createdAt":"x"}]\';;\n  "pr list") echo 0;;\n  api*) echo "$STUB_HITS";;\nesac\n',{mode:0o755});
@@ -275,9 +265,8 @@ test('the auto-repair gate skips upstream outages and repeats of a failure the A
     const sept='check\tRun check\t2026-09-10T09:38:01.1234567Z   ✗ アイスウィザード: 英雄 が公式にあるのに手元の定義に無い → 追加する\n';
     const first=gate(sept);
     assert.match(first.out,/go=true/,'a new failure still gets one AI attempt');
-    assert.match(first.out,/tried_key=auto-repair-tried-check-card-images-[0-9a-f]{16}\n/);
-    const again=gate(sept,{hits:'1'});
-    assert.match(again.out,/go=false/);assert.match(again.log,/AIが既に試して直せなかった/);
+    const again=gate(sept);
+    assert.match(again.out,/go=true/,'Fugu is flat-rate: the same failure gets the AI again');
     const down=gate('collect\tRun collector\t2026-10-03T06:16:01Z UPSTREAM_DOWN reason=proxy CR API 525 for /locations\n',{name:'collect decks'});
     assert.match(down.out,/go=false/);assert.match(down.log,/上流の停止/);
     const healed=gate('',{conclusion:'success'});
@@ -302,5 +291,41 @@ test('an empty season-reset ranking still keeps the hourly record of registered 
     assert.match(r.stdout,/pol ranking empty; skipped without failing/);
     assert.match(r.stdout,/pilot 対象1件/,'the registered tag is still collected during the reset');
     assert.match(readFileSync(calls,'utf8'),/GET https:\/\/proxy\.royaleapi\.dev\/v1\/players\/%23PILOTTAG\/battlelog/);
+  } finally {rmSync(dir,{recursive:true,force:true});}
+});
+
+test('during a season reset the top population is filled from last season, real ranking first, only up to the cap',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'season-fill-'));
+  try {
+    const preload=join(dir,'fill.cjs'),now=Date.now(),h=3600e3;
+    const hist={snaps:[],dinfo:{},trackedFetch:{AAA:now-h,BBB:now-2*h,CCC:now-3*h,DDD:now-4*h,EEE:now-8*24*h}};
+    writeFileSync(join(dir,'hist.json'),JSON.stringify(hist));
+    writeFileSync(preload,`const fs=require('fs');globalThis.fetch=async(url,init={})=>{url=String(url);const m=init.method||'GET';fs.appendFileSync(process.env.CALL_LOG,m+' '+url+'\\n');
+      if(url.startsWith('https://proxy.royaleapi.dev/v1/locations/global/pathoflegend/players'))return new Response(process.env.RANKING);
+      if(url.startsWith('https://proxy.royaleapi.dev/v1/locations'))return new Response('{"items":[]}');
+      if(url.startsWith('https://proxy.royaleapi.dev/v1/players/'))return new Response('[]');
+      if(url.includes('.r2.cloudflarestorage.com/')){if(m==='GET'&&url.includes('/private/cardhist.json'))return new Response(fs.readFileSync(process.env.HIST,'utf8'));return m==='GET'?new Response('',{status:404}):new Response('',{status:200});}
+      return new Response('{}',{status:404});};\n`);
+    const run=(ranking,top)=>{
+      const calls=join(dir,'calls');writeFileSync(calls,'');
+      const r=spawnSync(process.execPath,['-r',preload,'tools/collect.js','--collect-only'],{cwd:ROOT,encoding:'utf8',timeout:90000,env:{...process.env,
+        CR_TOKEN:'T',GITHUB_TOKEN:'G',GITHUB_REPOSITORY:'owner/repo',R2_ACCOUNT_ID:'acct',R2_ACCESS_KEY_ID:'k',R2_SECRET_ACCESS_KEY:'s',R2_BUCKET:'b',
+        TOP_PLAYERS:String(top),RANKING:JSON.stringify({items:ranking,paging:{cursors:{}}}),HIST:join(dir,'hist.json'),PILOT_TAGS:'PILOTTAG',
+        CALL_LOG:calls,UPSTREAM_STATUS_FILE:'',CR_DEV_EMAIL:'',CR_DEV_PASSWORD:'',CR_UPSTREAM:'',GITHUB_ACTIONS:''}});
+      const log=readFileSync(calls,'utf8');
+      return {out:r.stdout+r.stderr,asked:t=>log.includes('/players/%23'+t+'/battlelog')};
+    };
+    const a=run([{tag:'#AAA',rank:1,eloRating:3000}],3);
+    assert.match(a.out,/season-reset supplement ranking=1 supplemented=2/);
+    assert.ok(a.asked('AAA')&&a.asked('BBB')&&a.asked('CCC'),'the ranked player first, then the most recent of last season');
+    assert.ok(!a.asked('DDD'),'never beyond the cap');assert.ok(!a.asked('EEE'),'nobody older than 7 days');
+    assert.doesNotMatch(a.out,/pol ranking empty/);
+    const b=run([],10);
+    assert.match(b.out,/season-reset supplement ranking=0 supplemented=4/,'an empty ranking no longer stops the run');
+    assert.ok(b.asked('AAA')&&b.asked('DDD')&&!b.asked('EEE'));
+    assert.doesNotMatch(b.out,/pol ranking empty/);
+    const full=run([{tag:'#AAA'},{tag:'#XYZ'},{tag:'#QQQ'}],3);
+    assert.doesNotMatch(full.out,/season-reset supplement/,'once the ranking is full, only the real ranking is used');
+    assert.ok(!full.asked('BBB'));
   } finally {rmSync(dir,{recursive:true,force:true});}
 });

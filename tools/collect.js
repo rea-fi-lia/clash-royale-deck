@@ -1027,25 +1027,7 @@ async function updateDecks() {
     } catch (e) { console.log('pol-ranking-probe error ' + ((e && e.message) || e)); }
   }
   var players = (ranking.items || []).slice(0, topN);
-  // PoLランキングがシーズン切替やAPI側都合で空になることがある。
-  // その時にseedだけ処理して「集計0件」で赤くするより、鮮度マーカーだけ進めて正常スキップする。
-  // ただしsighist由来の派生JSONは既存履歴だけで作れるので、6枚目アシスト用の完成形候補は更新する。
-  if (rankingSource === 'pol' && !players.length) {
-    try { await writeTemplateCoreFromSighist_(GH_PATH, 'pol ranking empty fallback'); }
-    catch (e) { console.log('template-core fallback error ' + ((e && e.message) || e)); }
-    try {
-      await ghWriteJson_(ghSiblingPath_(GH_PATH, 'collect-freshness.json'),
-        { updated: new Date().toISOString(), visibility: 'freshness-marker', intervalHours: intervalHours,
-          source: rankingSource, topPlayers: 0, warning: 'pol ranking empty; skipped without updating analysis json' },
-        'chore: update collect freshness marker');
-    } catch (e) { console.log('collect freshness marker error ' + ((e && e.message) || e)); }
-    // ★登録タグ（先駆け・課金者）の毎時記録はランキングと無関係なので止めない（2026-10-06）。
-    //   毎月のシーズン切替でランキングは約1日空になる（9/7〜8、10/5〜6 は17回連続）。ここで一緒に止めると
-    //   「毎時見るので取りこぼしゼロ（75分ルール）」がその間だけ崩れていた。
-    await collectPilotTags_(CR_TOKEN);
-    console.log('pol ranking empty; skipped without failing');
-    return;
-  }
+  var rankedCount = players.length;   // 今シーズンのランキングに実際に載っている人数（補いを足す前）
   var rankMetaByTag = {};
   players.forEach(function (p) {
     var t = normTag_(p.tag);
@@ -1101,6 +1083,44 @@ async function updateDecks() {
     hist = { snaps: [], dinfo: {} };
   }
   if (!hist.dinfo) hist.dinfo = {};
+
+  // ★シーズン切替の補い（2026-10-06 本人決定「集まるまでは補って、極力早めに切り替えていこう」）。
+  //   毎月の切替でランキングは約1日空になり、1000人に戻るまで4〜5日かかる（9月実測：2→70→319→728人…）。
+  //   その間は、直近7日に上位として追っていた人（＝前シーズンの上位）で空いた枠だけを埋める。
+  //   ランキングに載った人を常に先に入れるので、集まった分だけ補いが減り、埋まればそのまま本物だけになる。
+  //   補った人も集計に入るのはランク戦だけ（processLog）＝メタの基準は変わらない。
+  var supplementedCount = 0;
+  if (rankingSource === 'pol' && players.length < topN) {
+    var inRanking = {};
+    players.forEach(function (p) { inRanking[normTag_(p.tag)] = 1; });
+    var since = Date.now() - 7 * 864e5;
+    var extra = Object.entries(hist.trackedFetch || {})
+      .filter(function (e) { return e[1] > since && !inRanking[normTag_(e[0])]; })
+      .sort(function (a, b) { return b[1] - a[1]; })
+      .slice(0, topN - players.length)
+      .map(function (e) { return { tag: '#' + normTag_(e[0]), supplemented: true }; });
+    supplementedCount = extra.length;
+    players = players.concat(extra);
+    if (supplementedCount) console.log('season-reset supplement ranking=' + rankedCount + ' supplemented=' + supplementedCount + '（前シーズンの上位で補完）');
+  }
+
+  // PoLランキングが空で、補える人もいない（初回など）ときは、seedだけ処理して「集計0件」で赤くするより、
+  // 鮮度マーカーだけ進めて正常スキップする。sighist由来の派生JSONは既存履歴だけで作れるので更新する。
+  if (rankingSource === 'pol' && !players.length) {
+    try { await writeTemplateCoreFromSighist_(GH_PATH, 'pol ranking empty fallback'); }
+    catch (e) { console.log('template-core fallback error ' + ((e && e.message) || e)); }
+    try {
+      await ghWriteJson_(ghSiblingPath_(GH_PATH, 'collect-freshness.json'),
+        { updated: new Date().toISOString(), visibility: 'freshness-marker', intervalHours: intervalHours,
+          source: rankingSource, topPlayers: 0, warning: 'pol ranking empty; skipped without updating analysis json' },
+        'chore: update collect freshness marker');
+    } catch (e) { console.log('collect freshness marker error ' + ((e && e.message) || e)); }
+    // ★登録タグ（先駆け・課金者）の毎時記録はランキングと無関係なので止めない（2026-10-06）。
+    //   ここで一緒に止めると「毎時見るので取りこぼしゼロ（75分ルール）」がその間だけ崩れる。
+    await collectPilotTags_(CR_TOKEN);
+    console.log('pol ranking empty; skipped without failing');
+    return;
+  }
   var lastT = hist.lastT || {};   // tag → 前回処理した最新の battleTime
   // An unselected seed still needs its last processed timestamp on its next rotation.
   var newLastT = Object.assign({}, lastT);
@@ -3015,6 +3035,8 @@ async function updateDecks() {
     uniquePlayers: WDEF.uniquePlayers,  // ★既定窓の総ユニーク人数（収集頻度に依存しない）
     games: WDEF.games,                  // ★既定窓の総戦数
     topPlayers: players.length,
+    rankedPlayers: rankedCount,         // 今シーズンのランキングに載っていた人数
+    supplementedPlayers: supplementedCount, // シーズン切替で前シーズンの上位から補った人数（0なら補いなし）
     intervalHours: intervalHours,
     windowDays: WINDOW_DAYS,
     cardsWindowDays: WINDOW_DAYS,
@@ -3040,7 +3062,7 @@ async function updateDecks() {
   try {
     await ghWriteJson_(ghSiblingPath_(ghPath, 'collect-freshness.json'),
       { updated: decksPublicOut.updated, visibility: 'freshness-marker', intervalHours: intervalHours,
-        source: rankingSource, topPlayers: players.length, windows: Object.keys(windowsOut) },
+        source: rankingSource, topPlayers: players.length, rankedPlayers: rankedCount, supplementedPlayers: supplementedCount, windows: Object.keys(windowsOut) },
       'chore: update collect freshness marker');
   } catch (e) { console.log('collect freshness marker error ' + ((e && e.message) || e)); }
 
