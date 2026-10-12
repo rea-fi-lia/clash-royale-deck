@@ -39,6 +39,19 @@ let assistDevNote = (() => { try { return String(localStorage.getItem('cr_assist
 //   AI がするのは「言葉 → 条件」だけ。カードを決める（cardResolveExact）・点数を付けるのはこのファイルの今の仕組み
 let assistAiIntent = (() => { try { const v = JSON.parse(localStorage.getItem('cr_assist_ai_intent') || 'null'); return v && v.note === assistDevNote && v.intent ? v : null; } catch(e) { return null; } })();
 let assistAiState = { busy: false, note: '' };   // note：欄の下に出す一言（読み取り中・残りの回数・失敗）
+// ★2026-10-12：AI は本人だけ（Worker の /api/assist/access が ai:true を返した人）。ほかの人には AI の欄も案内も出さない
+let assistAiAllowed = false, assistAiAccessUid = null;
+async function assistAiCheckAccess() {
+  const user = window.CRAuth && CRAuth.getUser && CRAuth.getUser();
+  const uid = user ? user.uid : null;
+  if (uid === assistAiAccessUid) return;
+  assistAiAccessUid = uid;
+  let ok = false;
+  if (user) { try { const t = await user.getIdToken(); const r = await fetch('/api/assist/access', { headers: { Authorization: 'Bearer ' + t } }); const j = await r.json(); ok = !!(j && j.ai); } catch (e) {} }
+  if (assistAiAccessUid !== uid) return;
+  if (ok !== assistAiAllowed) { assistAiAllowed = ok; try { if (assistMode) updateAssistPanel(); } catch (e) {} }
+}
+window.addEventListener('cr-slots-changed', () => { assistAiCheckAccess(); });
 function assistAiSave() { try { if (assistAiIntent) localStorage.setItem('cr_assist_ai_intent', JSON.stringify(assistAiIntent)); else localStorage.removeItem('cr_assist_ai_intent'); } catch(e) {} }
 // 4枚目以降の方向チップ（攻撃強化/防衛強化/回転力強化）。null=未選択（全体から自然に出す）。
 let assistDirection = null;
@@ -819,7 +832,7 @@ function assistIntentFromAi(rec) {
 }
 function assistDevelopmentIntent() {
   const note = assistDevNote || '';
-  if (assistAiIntent && assistAiIntent.note === note && assistAiIntent.intent) return assistIntentFromAi(assistAiIntent);
+  if (assistAiAllowed && assistAiIntent && assistAiIntent.note === note && assistAiIntent.intent) return assistIntentFromAi(assistAiIntent);
   const s = assistDevNorm(note);
   const axes = {}, labels = [], seen = new Set();
   if (!s) return { active: false, note: '', axes, labels: [] };
@@ -2112,8 +2125,8 @@ function assistAiChipsHtml() {
 }
 function assistDevelopmentHtml(info) {
   if (!info || info.cards.length >= 8) return '';
-  const loggedIn = !!(window.CRAuth && CRAuth.getUser && CRAuth.getUser());
-  // 自由入力：ログインしていれば AI が読む（どの言語でも）。していなければ日本語のページだけ、キーワードで読む（2026-10-12）
+  const loggedIn = !!(assistAiAllowed && window.CRAuth && CRAuth.getUser && CRAuth.getUser());
+  // 自由入力：AI を使える人（今は本人だけ）は AI が読む（どの言語でも）。ほかの人は日本語のページだけ、キーワードで読む（2026-10-12）
   if (!TRJ() && !loggedIn) return '';
   const intent = info.developmentIntent || assistDevelopmentIntent();
   const ai = intent.source === 'ai';
@@ -2125,7 +2138,7 @@ function assistDevelopmentHtml(info) {
     : TR('例：対空不安 / 軽く回したい / 枯渇っぽく / クロス軸 / 受けて返す');
   const read = ai && intent.understood ? '<div class="assist-ai-read">' + esc(TRF('AIの読み：{x}', { x: intent.understood })) + '</div>' : '';
   const status = assistAiState.note ? '<small class="assist-ai-status">' + esc(assistAiState.note) + '</small>'
-    : (!loggedIn ? '<small class="assist-ai-status">' + esc(TR('ログインすると、AIが「〜しない」「〜は使わない」まで読み取ります。')) + '</small>' : '');
+    : '';
   return '<div class="assist-dev"><div class="assist-dev-head"><span>' + esc(TR('デッキ開発')) + '</span><small>' + esc(hint) + '</small></div>'
     + '<textarea id="assistDevNote" maxlength="180" rows="2" placeholder="' + esc(TR('どんな方向で組みたい？')) + '">' + esc(assistDevNote || '') + '</textarea>'
     + read
@@ -2317,7 +2330,7 @@ function updateAssistPanel() {
     assistDirVariant = { attack: 0, defense: 0, cycle: 0 };
     assistCoreVariant = { 0: 0, 1: 0, 2: 0 };
     const user = window.CRAuth && CRAuth.getUser && CRAuth.getUser();
-    if (!user || !assistDevNote.trim()) {   // ログインしていなければ、今までどおりキーワードで読む
+    if (!user || !assistAiAllowed || !assistDevNote.trim()) {   // AI を使える人でなければ、今までどおりキーワードで読む
       assistAiIntent = null; assistAiSave(); assistAiState = { busy: false, note: '' };
       updateAssistPanel();
       return;
