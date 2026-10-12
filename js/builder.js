@@ -35,6 +35,11 @@ let assistSpellTarget = (() => { try { const v = localStorage.getItem('cr_assist
 // デッキ開発メモ：プレイヤーの自然文を「固定分類」ではなく、軽い意図ベクトルとして候補へ反映する。
 //  将来AI APIを入れる時も、このベクトルを共通の受け皿にする。
 let assistDevNote = (() => { try { return String(localStorage.getItem('cr_assist_dev_note') || '').slice(0, 180); } catch(e) { return ''; } })();
+// ★2026-10-12：AI の読み取り（ログインした人だけ・Worker の /api/assist/intent）。書いた文と組で持ち、文を変えたら使わない。
+//   AI がするのは「言葉 → 条件」だけ。カードを決める（cardResolveExact）・点数を付けるのはこのファイルの今の仕組み
+let assistAiIntent = (() => { try { const v = JSON.parse(localStorage.getItem('cr_assist_ai_intent') || 'null'); return v && v.note === assistDevNote && v.intent ? v : null; } catch(e) { return null; } })();
+let assistAiState = { busy: false, note: '' };   // note：欄の下に出す一言（読み取り中・残りの回数・失敗）
+function assistAiSave() { try { if (assistAiIntent) localStorage.setItem('cr_assist_ai_intent', JSON.stringify(assistAiIntent)); else localStorage.removeItem('cr_assist_ai_intent'); } catch(e) {} }
 // 4枚目以降の方向チップ（攻撃強化/防衛強化/回転力強化）。null=未選択（全体から自然に出す）。
 let assistDirection = null;
 // 4枚目以降の「伸ばす方向」ブロック（攻撃/防衛/回転を同時表示）ごとの別候補ローテーション位置。
@@ -688,8 +693,10 @@ function assistToleranceFit(c, info, kind) {
   return Math.round(fit * Math.min(14, 7 + info.cards.length) * (kind === 'discovery' ? 0.55 : 1));
 }
 function assistSpellTargetFit(c, info, kind) {
-  if (assistSpellTarget == null || !info) return 0;
-  const target = Math.max(0, Math.min(4, assistSpellTarget));
+  const aiSpells = info && info.developmentIntent && info.developmentIntent.spells;
+  const tgt = assistSpellTarget != null ? assistSpellTarget : (aiSpells != null ? aiSpells : null);   // 手で選んだ目安が先（2026-10-12）
+  if (tgt == null || !info) return 0;
+  const target = Math.max(0, Math.min(4, tgt));
   const isSpell = assistIsSpell(c);
   const before = info.spells.length;
   const after = before + (isSpell ? 1 : 0);
@@ -768,30 +775,51 @@ function assistDevNorm(text) {
     .trim();
 }
 const ASSIST_DEV_RULES = [
-  { label: '攻めを伸ばす', axes: { attack: 1, pressure: 0.8 }, words: ['攻め', '攻撃', '圧', '押し込み', 'タワー削り', '削りたい', '削る', '火力', '決定力', '通したい', '突破'] },
-  { label: '守りを整える', axes: { defense: 1, stable: 0.7 }, words: ['守り', '防衛', '受け', '安定', '安心', '固く', '守れる', '守りたい', '防ぎたい', '受け切る'] },
-  { label: '軽く回す', axes: { cycle: 1, cheap: 0.9 }, words: ['軽い', '軽く', '回転', 'サイクル', '高回転', '回したい', '早く回す', 'テンポ', '手数', '低コスト'] },
-  { label: '重めに組む', axes: { heavy: 1, late: 0.8 }, words: ['重い', '重め', '後半', '終盤', '延長', '粘る', 'どっしり', '大型軸', '重厚'] },
-  { label: '対空を厚く', axes: { air: 1, defense: 0.4 }, words: ['対空', '空', '空中', 'バルーン', 'ラヴァ', 'ドラゴン', '飛行', 'エア'] },
-  { label: '大型を見る', axes: { antiTank: 1, defense: 0.5 }, words: ['大型', 'タンク', 'ゴレ', 'ゴーレム', 'ジャイ', 'ロイジャイ', 'ペッカ', 'メガナイト', '溶かす', '高dps'] },
-  { label: '小物処理', axes: { splash: 1, clear: 0.8 }, words: ['小物', '群れ', 'スケルトン', 'スケ', 'ゴブリン', 'コウモリ', '枯渇対策', 'まとめて', '範囲', 'スプラッシュ'] },
-  { label: '呪文を足す', axes: { spell: 1 }, words: ['呪文', 'スペル', 'spell', '火球', 'ファボ', 'ファイボ', 'ポイズン', 'ライトニング', 'ロケット', 'ザップ', 'ログ', 'ウッド'] },
-  { label: '小型呪文', axes: { smallSpell: 1, spell: 0.5, cycle: 0.3 }, words: ['小型呪文', '小呪文', '軽い呪文', 'ザップ', '雪玉', 'ログ', 'ウッド', 'ババ樽', '矢の雨'] },
-  { label: '大型呪文', axes: { bigSpell: 1, spell: 0.5, attack: 0.3 }, words: ['大型呪文', '大呪文', '重い呪文', 'ライトニング', 'ロケット', '決め呪文'] },
-  { label: '防衛施設を見る', axes: { building: 1, defense: 0.4 }, words: ['建物', '施設', '防衛施設', '大砲', 'テスラ', '檻', 'ボムタワー', 'インフェルノタワー'] },
-  { label: '施設少なめ', axes: { noBuilding: 1 }, words: ['建物なし', '施設なし', '防衛施設なし', '建物いらない', '施設いらない', '建物抜き'] },
-  { label: '攻城で組む', axes: { siege: 1, attack: 0.6 }, words: ['クロス', 'xボウ', 'xbow', '迫撃', 'モーター', 'モルタル', '攻城', 'シージ'] },
-  { label: '枯渇っぽく', axes: { bait: 1, pressure: 0.5, cycle: 0.3 }, words: ['枯渇', 'ベイト', 'bait', '呪文を使わせる', 'スペルを使わせる'] },
-  { label: '橋前の圧', axes: { bridge: 1, attack: 0.6, pressure: 0.5 }, words: ['橋前', 'ブリッジ', 'bridge', '奇襲', '速攻', '速い攻め', '奇襲したい'] },
-  { label: '射程を足す', axes: { range: 1, attack: 0.4, defense: 0.2 }, words: ['射程', '遠距離', '後衛', '後ろから', '届く', '長射程'] },
-  { label: '第2の圧', axes: { secondWincon: 1, attack: 0.4 }, words: ['第2', '第二', 'サブ', '別軸', 'もう一つ', 'もう1つ', '勝ち筋増やす', '勝ち筋を増やす'] },
-  { label: 'コントロール', axes: { control: 1, defense: 0.4 }, words: ['コントロール', '遅延', '止める', 'トルネ', 'フリーズ', 'リセット', '足止め'] },
-  { label: '丸くする', axes: { safe: 1, stable: 0.7 }, words: ['丸い', '無難', '事故', '事故らない', '安定候補', 'バランス', '穴を埋める', '弱点を埋める'] },
-  { label: '尖らせる', axes: { risky: 1, pressure: 0.4 }, words: ['尖る', '尖らせる', '面白い', 'ロマン', '変わった', '意外', '発見', '新しい', '遊び'] },
-  { label: 'カウンター重視', axes: { counter: 1, defense: 0.5, attack: 0.3 }, words: ['カウンター', '返し', '受けて返す', '反撃', '切り返し'] }
+  { label: LBL('攻めを伸ばす'), axes: { attack: 1, pressure: 0.8 }, words: ['攻め', '攻撃', '圧', '押し込み', 'タワー削り', '削りたい', '削る', '火力', '決定力', '通したい', '突破'] },
+  { label: LBL('守りを整える'), axes: { defense: 1, stable: 0.7 }, words: ['守り', '防衛', '受け', '安定', '安心', '固く', '守れる', '守りたい', '防ぎたい', '受け切る'] },
+  { label: LBL('軽く回す'), axes: { cycle: 1, cheap: 0.9 }, words: ['軽い', '軽く', '回転', 'サイクル', '高回転', '回したい', '早く回す', 'テンポ', '手数', '低コスト'] },
+  { label: LBL('重めに組む'), axes: { heavy: 1, late: 0.8 }, words: ['重い', '重め', '後半', '終盤', '延長', '粘る', 'どっしり', '大型軸', '重厚'] },
+  { label: LBL('対空を厚く'), axes: { air: 1, defense: 0.4 }, words: ['対空', '空', '空中', 'バルーン', 'ラヴァ', 'ドラゴン', '飛行', 'エア'] },
+  { label: LBL('大型を見る'), axes: { antiTank: 1, defense: 0.5 }, words: ['大型', 'タンク', 'ゴレ', 'ゴーレム', 'ジャイ', 'ロイジャイ', 'ペッカ', 'メガナイト', '溶かす', '高dps'] },
+  { label: LBL('小物処理'), axes: { splash: 1, clear: 0.8 }, words: ['小物', '群れ', 'スケルトン', 'スケ', 'ゴブリン', 'コウモリ', '枯渇対策', 'まとめて', '範囲', 'スプラッシュ'] },
+  { label: LBL('呪文を足す'), axes: { spell: 1 }, words: ['呪文', 'スペル', 'spell', '火球', 'ファボ', 'ファイボ', 'ポイズン', 'ライトニング', 'ロケット', 'ザップ', 'ログ', 'ウッド'] },
+  { label: LBL('小型呪文'), axes: { smallSpell: 1, spell: 0.5, cycle: 0.3 }, words: ['小型呪文', '小呪文', '軽い呪文', 'ザップ', '雪玉', 'ログ', 'ウッド', 'ババ樽', '矢の雨'] },
+  { label: LBL('大型呪文'), axes: { bigSpell: 1, spell: 0.5, attack: 0.3 }, words: ['大型呪文', '大呪文', '重い呪文', 'ライトニング', 'ロケット', '決め呪文'] },
+  { label: LBL('防衛施設を見る'), axes: { building: 1, defense: 0.4 }, words: ['建物', '施設', '防衛施設', '大砲', 'テスラ', '檻', 'ボムタワー', 'インフェルノタワー'] },
+  { label: LBL('施設少なめ'), axes: { noBuilding: 1 }, words: ['建物なし', '施設なし', '防衛施設なし', '建物いらない', '施設いらない', '建物抜き'] },
+  { label: LBL('攻城で組む'), axes: { siege: 1, attack: 0.6 }, words: ['クロス', 'xボウ', 'xbow', '迫撃', 'モーター', 'モルタル', '攻城', 'シージ'] },
+  { label: LBL('枯渇っぽく'), axes: { bait: 1, pressure: 0.5, cycle: 0.3 }, words: ['枯渇', 'ベイト', 'bait', '呪文を使わせる', 'スペルを使わせる'] },
+  { label: LBL('橋前の圧'), axes: { bridge: 1, attack: 0.6, pressure: 0.5 }, words: ['橋前', 'ブリッジ', 'bridge', '奇襲', '速攻', '速い攻め', '奇襲したい'] },
+  { label: LBL('射程を足す'), axes: { range: 1, attack: 0.4, defense: 0.2 }, words: ['射程', '遠距離', '後衛', '後ろから', '届く', '長射程'] },
+  { label: LBL('第2の圧'), axes: { secondWincon: 1, attack: 0.4 }, words: ['第2', '第二', 'サブ', '別軸', 'もう一つ', 'もう1つ', '勝ち筋増やす', '勝ち筋を増やす'] },
+  { label: LBL('コントロール'), axes: { control: 1, defense: 0.4 }, words: ['コントロール', '遅延', '止める', 'トルネ', 'フリーズ', 'リセット', '足止め'] },
+  { label: LBL('丸くする'), axes: { safe: 1, stable: 0.7 }, words: ['丸い', '無難', '事故', '事故らない', '安定候補', 'バランス', '穴を埋める', '弱点を埋める'] },
+  { label: LBL('尖らせる'), axes: { risky: 1, pressure: 0.4 }, words: ['尖る', '尖らせる', '面白い', 'ロマン', '変わった', '意外', '発見', '新しい', '遊び'] },
+  { label: LBL('カウンター重視'), axes: { counter: 1, defense: 0.5, attack: 0.3 }, words: ['カウンター', '返し', '受けて返す', '反撃', '切り返し'] }
 ];
+// AI の読みを、今の受け皿（方向の重み axes）と条件に直す。避けたい方向のうち、前からある「〜しない」の軸はそれを使う
+const ASSIST_AVOID_AXES = { '重めに組む': { avoidHeavy: 1, cheap: 0.4 }, '呪文を足す': { noSpell: 1 }, '防衛施設を見る': { noBuilding: 1 } };
+function assistIntentFromAi(rec) {
+  const it = rec.intent || {};
+  const axes = {}, avoidAxes = {}, labels = [];
+  const ruleOf = l => ASSIST_DEV_RULES.find(r => r.label === l);
+  (it.want || []).forEach(l => { const r = ruleOf(l); if (!r) return; Object.entries(r.axes).forEach(([k, v]) => { axes[k] = Math.min(2, (axes[k] || 0) + v); }); labels.push(l); });
+  (it.avoid || []).forEach(l => {
+    const special = ASSIST_AVOID_AXES[l];
+    if (special) Object.entries(special).forEach(([k, v]) => { axes[k] = Math.max(axes[k] || 0, v); });
+    else { const r = ruleOf(l); if (!r) return; Object.entries(r.axes).forEach(([k, v]) => { avoidAxes[k] = Math.min(2, (avoidAxes[k] || 0) + v); }); }
+    labels.push('－' + l);
+  });
+  const known = n => CARDS.some(c => c.name === n);
+  const keep = (rec.keepNames || []).filter(known), exclude = (rec.excludeNames || []).filter(known);
+  const active = labels.length > 0 || keep.length > 0 || exclude.length > 0 || it.maxAvg != null || it.minAvg != null || it.spells != null;
+  return { active, note: rec.note, axes, avoidAxes, labels: labels.slice(0, 6), keep, exclude,
+    maxAvg: it.maxAvg != null ? it.maxAvg : null, minAvg: it.minAvg != null ? it.minAvg : null, spells: it.spells != null ? it.spells : null,
+    understood: it.understood || '', source: 'ai' };
+}
 function assistDevelopmentIntent() {
   const note = assistDevNote || '';
+  if (assistAiIntent && assistAiIntent.note === note && assistAiIntent.intent) return assistIntentFromAi(assistAiIntent);
   const s = assistDevNorm(note);
   const axes = {}, labels = [], seen = new Set();
   if (!s) return { active: false, note: '', axes, labels: [] };
@@ -811,7 +839,13 @@ function assistDevelopmentIntent() {
 function assistDevelopmentFit(c, info, kind) {
   const intent = (info && info.developmentIntent) || assistDevelopmentIntent();
   if (!intent.active) return 0;
-  const a = intent.axes || {};
+  let s = assistAxesScore(c, info, kind, intent.axes || {});
+  // 避けたい方向（AI の読み・2026-10-12）：その方向を伸ばすときの点数を引く
+  if (intent.avoidAxes && Object.keys(intent.avoidAxes).length) s -= 0.8 * Math.max(0, assistAxesScore(c, info, kind, intent.avoidAxes));
+  // 自然文は補助。シナジーや穴埋めを壊さないよう、上限を低めにする。
+  return Math.round(Math.max(-40, Math.min(36, s)));
+}
+function assistAxesScore(c, info, kind, a) {
   let s = 0;
   if (a.attack) s += a.attack * assistDirectionScore(c, 'attack', info) * 1.5;
   if (a.defense) s += a.defense * assistDirectionScore(c, 'defense', info) * 1.45;
@@ -838,20 +872,19 @@ function assistDevelopmentFit(c, info, kind) {
   if (a.late) s += a.late * Math.max(0, assistCardTiming(c).three - 4.5) * 2;
   if (a.cheap) s += a.cheap * ((c.cost || 0) <= 3 ? 8 : -4);
   if (a.avoidHeavy && (c.cost || 0) >= 5) s -= 18 * a.avoidHeavy;
-  // 自然文は補助。シナジーや穴埋めを壊さないよう、上限を低めにする。
-  return Math.round(Math.max(-32, Math.min(36, s)));
+  return s;
 }
 function assistDevelopmentReason(c, info, kind) {
   const intent = (info && info.developmentIntent) || assistDevelopmentIntent();
   if (!intent.active || assistDevelopmentFit(c, info, kind) < 14) return '';
   const a = intent.axes || {};
-  if (a.air && assistIsTrueAir(c)) return 'デッキ開発メモに合わせて、空中への受けを厚くできます。';
-  if (a.cycle && assistDirectionScore(c, 'cycle', info) >= 5.5) return 'デッキ開発メモに合わせて、回しやすさを足せます。';
-  if (a.defense && assistDirectionScore(c, 'defense', info) >= 6) return 'デッキ開発メモに合わせて、守りを整えやすい1枚です。';
-  if (a.attack && assistDirectionScore(c, 'attack', info) >= 6) return 'デッキ開発メモに合わせて、攻めの圧を伸ばせます。';
-  if (a.siege && assistIsSiegeBuilding(c)) return 'デッキ開発メモに合わせて、攻城系の勝ち方を作れます。';
-  if (a.secondWincon && (assistIsSecondary(c) || assistTypeOf(c) === 'wincon')) return 'デッキ開発メモに合わせて、もう一つの圧を足せます。';
-  return 'デッキ開発メモの方向に寄せやすい候補です。';
+  if (a.air && assistIsTrueAir(c)) return TR('デッキ開発メモに合わせて、空中への受けを厚くできます。');
+  if (a.cycle && assistDirectionScore(c, 'cycle', info) >= 5.5) return TR('デッキ開発メモに合わせて、回しやすさを足せます。');
+  if (a.defense && assistDirectionScore(c, 'defense', info) >= 6) return TR('デッキ開発メモに合わせて、守りを整えやすい1枚です。');
+  if (a.attack && assistDirectionScore(c, 'attack', info) >= 6) return TR('デッキ開発メモに合わせて、攻めの圧を伸ばせます。');
+  if (a.siege && assistIsSiegeBuilding(c)) return TR('デッキ開発メモに合わせて、攻城系の勝ち方を作れます。');
+  if (a.secondWincon && (assistIsSecondary(c) || assistTypeOf(c) === 'wincon')) return TR('デッキ開発メモに合わせて、もう一つの圧を足せます。');
+  return TR('デッキ開発メモの方向に寄せやすい候補です。');
 }
 function assistDevelopmentSummary(intent) {
   intent = intent || assistDevelopmentIntent();
@@ -1141,6 +1174,9 @@ function assistDeckInfo() {
 function assistLegal(c, info) {
   if (info.names.has(c.name)) return false;
   if (info.cards.length >= 8) return false;
+  // AI の読みで「使わない」と書いたカードは候補に出さない（2026-10-12）
+  const ex = info.developmentIntent && info.developmentIntent.exclude;
+  if (ex && ex.includes(c.name)) return false;
   // 呪文枚数はプレイヤーの好み。禁止/強制はせず、目安が設定されている時だけスコアで寄せる。
   return true;
 }
@@ -1444,6 +1480,14 @@ function assistScore(c, kind, info) {
   score += assistStageNeedFit(c, info, kind);
   // デッキ開発メモ：プレイヤーの自然文をゆるい補正として反映。固定しすぎないため上限は関数側で抑える。
   score += assistDevelopmentFit(c, info, kind);
+  // AI の読み：使いたいと書いたカードは先に出す。平均コストの上限・下限は、入れたときの平均で寄せる（2026-10-12）
+  const di = info.developmentIntent;
+  if (di && di.keep && di.keep.includes(c.name)) score += kind === 'natural' ? 70 : 40;
+  if (di && (di.maxAvg != null || di.minAvg != null)) {
+    const proj = (info.cards.reduce((t, x) => t + (x.cost || 0), 0) + (c.cost || 0)) / (info.cards.length + 1);
+    if (di.maxAvg != null && proj > di.maxAvg) score -= Math.min(45, 12 + Math.round((proj - di.maxAvg) * 30));
+    if (di.minAvg != null && proj < di.minAvg && info.cards.length >= 3) score -= Math.min(30, 8 + Math.round((di.minAvg - proj) * 20));
+  }
   // 4枚目以降「次はどこを伸ばす？」で方向を選んでいれば、その方向の価値が高い札へ寄せる。
   if (assistDirection && info.cards.length >= 3) {
     const dscore = assistDirectionScore(c, assistDirection, info); // 0-10
@@ -1483,6 +1527,7 @@ function assistScore(c, kind, info) {
   return score;
 }
 function assistReason(c, kind, info) {
+  if (info && info.developmentIntent && info.developmentIntent.keep && info.developmentIntent.keep.includes(c.name)) return TR('使いたいと書いたカードです。');
   const t = assistTypeOf(c);
   const p = assistPotential(c);
   const w = assistWincon(c);
@@ -1651,7 +1696,12 @@ function pickAssistCandidate(kind, used, info) {
     if (score > 0) ranked.push({ card: c, score });
   });
   ranked.sort((a, b) => b.score - a.score || a.card.cost - b.card.cost);
-  const pool = assistSlicePool(ranked, ASSIST_ALT_POOL);
+  let pool = assistSlicePool(ranked, ASSIST_ALT_POOL);
+  // 使いたいと書いたカード（AI の読み）は、点数の勝ち負けにせず「自然候補」の先頭に出す。
+  //   本人の使いたいカードが主役（6/28 の「次の1枚」仕様・VISION の「利用者の条件を守る」）。別候補を押せば次も見られる（2026-10-12）
+  const keepNames = (kind === 'natural' && info.developmentIntent && info.developmentIntent.keep) || [];
+  const keepCards = keepNames.map(n => CARDS.find(c => c.name === n)).filter(c => c && assistLegal(c, info) && !used.has(c.name));
+  if (keepCards.length) pool = keepCards.map(c => ({ card: c, score: 999 })).concat(pool.filter(x => !keepCards.includes(x.card)));
   const seed = kind === 'natural' ? 0 : kind === 'stable' ? 2 : 4;
   const pick = pool[assistAltIndex(assistVariant, pool.length, seed)];
   if (!pick) return null;
@@ -2046,22 +2096,57 @@ function assistSpellTargetChipsHtml(info) {
     : '<small class="assist-spell-hint">' + esc(TRF('今 呪文{n}枚。目安に寄せて候補を出します', { n: cur })) + '</small>';
   return '<div class="assist-spell"><span class="assist-spell-q">' + esc(TR('呪文の枚数')) + '</span><div class="assist-spell-chips">' + chips + '</div>' + hint + '</div>';
 }
+function assistAiChipsHtml() {
+  const it = assistAiIntent && assistAiIntent.intent;
+  if (!it) return '';
+  const chip = (kind, val, label) => '<span class="assist-ai-chip">' + esc(label) + '<button type="button" class="assist-ai-x" data-ai-remove="' + esc(kind + ':' + val) + '" aria-label="' + esc(TR('この条件を外す')) + '">×</button></span>';
+  const items = [];
+  (it.want || []).forEach(l => items.push(chip('want', l, '＋' + (TRX(l) || l))));
+  (it.avoid || []).forEach(l => items.push(chip('avoid', l, '－' + (TRX(l) || l))));
+  (assistAiIntent.keepNames || []).forEach(n => items.push(chip('keep', n, TRF('使う：{x}', { x: TR(n) }))));
+  (assistAiIntent.excludeNames || []).forEach(n => items.push(chip('exclude', n, TRF('使わない：{x}', { x: TR(n) }))));
+  if (it.maxAvg != null) items.push(chip('maxAvg', '', TRF('平均{x}以下', { x: it.maxAvg })));
+  if (it.minAvg != null) items.push(chip('minAvg', '', TRF('平均{x}以上', { x: it.minAvg })));
+  if (it.spells != null) items.push(chip('spells', '', TRF('呪文{n}枚', { n: it.spells })));
+  return items.length ? '<div class="assist-dev-chips assist-ai-chips">' + items.join('') + '</div>' : '';
+}
 function assistDevelopmentHtml(info) {
   if (!info || info.cards.length >= 8) return '';
-  // 自由入力は日本語の言葉だけを読み取る仕組みなので、日本語のページだけに出す（2026-10-12）
-  if (!TRJ()) return '';
+  const loggedIn = !!(window.CRAuth && CRAuth.getUser && CRAuth.getUser());
+  // 自由入力：ログインしていれば AI が読む（どの言語でも）。していなければ日本語のページだけ、キーワードで読む（2026-10-12）
+  if (!TRJ() && !loggedIn) return '';
   const intent = info.developmentIntent || assistDevelopmentIntent();
-  const summary = assistDevelopmentSummary(intent);
-  const chips = summary ? '<div class="assist-dev-chips">' + summary.split(' / ').map(x => '<span>' + esc(x) + '</span>').join('') + '</div>' : '';
-  const hint = summary
-    ? 'この方向を少し強めて候補を出しています。'
-    : '例：対空不安 / 軽く回したい / 枯渇っぽく / クロス軸 / 受けて返す';
-  return '<div class="assist-dev"><div class="assist-dev-head"><span>デッキ開発</span><small>' + esc(hint) + '</small></div>'
-    + '<textarea id="assistDevNote" maxlength="180" rows="2" placeholder="どんな方向で組みたい？">' + esc(assistDevNote || '') + '</textarea>'
+  const ai = intent.source === 'ai';
+  const summary = ai ? '' : assistDevelopmentSummary(intent);
+  const chips = ai ? assistAiChipsHtml()
+    : (summary ? '<div class="assist-dev-chips">' + summary.split(' / ').map(x => '<span>' + esc(TRX(x) || x) + '</span>').join('') + '</div>' : '');
+  const hint = ai ? TR('AIが読んだ条件で候補を出しています。×で外せます。')
+    : summary ? TR('この方向を少し強めて候補を出しています。')
+    : TR('例：対空不安 / 軽く回したい / 枯渇っぽく / クロス軸 / 受けて返す');
+  const read = ai && intent.understood ? '<div class="assist-ai-read">' + esc(TRF('AIの読み：{x}', { x: intent.understood })) + '</div>' : '';
+  const status = assistAiState.note ? '<small class="assist-ai-status">' + esc(assistAiState.note) + '</small>'
+    : (!loggedIn ? '<small class="assist-ai-status">' + esc(TR('ログインすると、AIが「〜しない」「〜は使わない」まで読み取ります。')) + '</small>' : '');
+  return '<div class="assist-dev"><div class="assist-dev-head"><span>' + esc(TR('デッキ開発')) + '</span><small>' + esc(hint) + '</small></div>'
+    + '<textarea id="assistDevNote" maxlength="180" rows="2" placeholder="' + esc(TR('どんな方向で組みたい？')) + '">' + esc(assistDevNote || '') + '</textarea>'
+    + read
     + '<div class="assist-dev-actions">' + chips
-    + '<button type="button" class="assist-mini" id="assistDevApply">反映</button>'
-    + (assistDevNote ? '<button type="button" class="assist-mini" id="assistDevClear">クリア</button>' : '')
-    + '</div></div>';
+    + '<button type="button" class="assist-mini" id="assistDevApply"' + (assistAiState.busy ? ' disabled' : '') + '>' + esc(assistAiState.busy ? TR('読み取り中…') : TR('反映')) + '</button>'
+    + (assistDevNote ? '<button type="button" class="assist-mini" id="assistDevClear">' + esc(TR('クリア')) + '</button>' : '')
+    + '</div>' + status + '</div>';
+}
+// Worker に読み取りを頼む。カードの言葉は台帳の名前に直す（直せない言葉は使わない）
+async function assistAiRead(user, note) {
+  try {
+    const token = await user.getIdToken();
+    const r = await fetch('/api/assist/intent', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+      body: JSON.stringify({ text: note, lang: (window.CRI18N && CRI18N.lang) || 'ja' }) });
+    const j = await r.json().catch(() => ({}));
+    if (!j || !j.ok || !j.intent) return { ok: false, code: (j && j.code) || ('http_' + r.status), remaining: j && j.remaining };
+    const resolve = w => (typeof cardResolveExact === 'function' ? cardResolveExact(w) : null);
+    const keepNames = [...new Set((j.intent.keep || []).map(resolve).filter(Boolean))];
+    const excludeNames = [...new Set((j.intent.exclude || []).map(resolve).filter(Boolean))].filter(n => !keepNames.includes(n));
+    return { ok: true, rec: { note, intent: j.intent, keepNames, excludeNames, at: Date.now(), remaining: j.remaining, limit: j.limit, cached: !!j.cached } };
+  } catch (e) { return { ok: false, code: 'network' }; }
 }
 function updateAssistTopInfo(info) {
   const el = document.getElementById('assistTopInfo');
@@ -2225,18 +2310,52 @@ function updateAssistPanel() {
   });
   const devApply = document.getElementById('assistDevApply');
   const devInput = document.getElementById('assistDevNote');
-  if (devApply && devInput) devApply.onclick = () => {
+  if (devApply && devInput) devApply.onclick = async () => {
     assistDevNote = String(devInput.value || '').slice(0, 180);
     try { localStorage.setItem('cr_assist_dev_note', assistDevNote); } catch(e) {}
     assistVariant = 0;
     assistDirVariant = { attack: 0, defense: 0, cycle: 0 };
     assistCoreVariant = { 0: 0, 1: 0, 2: 0 };
+    const user = window.CRAuth && CRAuth.getUser && CRAuth.getUser();
+    if (!user || !assistDevNote.trim()) {   // ログインしていなければ、今までどおりキーワードで読む
+      assistAiIntent = null; assistAiSave(); assistAiState = { busy: false, note: '' };
+      updateAssistPanel();
+      return;
+    }
+    if (assistAiIntent && assistAiIntent.note === assistDevNote) { updateAssistPanel(); return; }   // 同じ文はもう読んである
+    const note = assistDevNote;
+    assistAiIntent = null; assistAiSave();
+    assistAiState = { busy: true, note: TR('AIが読み取っています。その間もカードは選べます。') };
+    updateAssistPanel();
+    const res = await assistAiRead(user, note);
+    if (assistDevNote !== note) return;   // 待っている間に文が変わった
+    if (res.ok) {
+      assistAiIntent = res.rec; assistAiSave();
+      assistAiState = { busy: false, note: res.rec.remaining != null ? TRF('AIで読み取りました（今月あと{n}回）', { n: res.rec.remaining }) : TR('AIで読み取りました') };
+    } else {
+      assistAiState = { busy: false, note: res.code === 'quota' ? TR('今月の無料の回数を使い切りました。キーワードで読み取っています。')
+        : res.code === 'login_required' ? TR('ログインし直すと、AIで読み取れます。')
+        : TR('今はAIで読み取れませんでした。キーワードで読み取っています。') };
+    }
     updateAssistPanel();
   };
+  // AI の読みのチップの×：その条件だけ外す（決めるのはプレイヤー）
+  panel.querySelectorAll('[data-ai-remove]').forEach(btn => btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!assistAiIntent || !assistAiIntent.intent) return;
+    const raw = String(btn.getAttribute('data-ai-remove') || ''), cut = raw.indexOf(':');
+    const kind = raw.slice(0, cut), val = raw.slice(cut + 1), it = assistAiIntent.intent;
+    if (kind === 'want' || kind === 'avoid') it[kind] = (it[kind] || []).filter(x => x !== val);
+    else if (kind === 'keep') assistAiIntent.keepNames = (assistAiIntent.keepNames || []).filter(x => x !== val);
+    else if (kind === 'exclude') assistAiIntent.excludeNames = (assistAiIntent.excludeNames || []).filter(x => x !== val);
+    else if (kind === 'maxAvg' || kind === 'minAvg' || kind === 'spells') it[kind] = null;
+    assistAiSave(); assistVariant = 0; updateAssistPanel();
+  }));
   const devClear = document.getElementById('assistDevClear');
   if (devClear) devClear.onclick = () => {
     assistDevNote = '';
     try { localStorage.removeItem('cr_assist_dev_note'); } catch(e) {}
+    assistAiIntent = null; assistAiSave(); assistAiState = { busy: false, note: '' };
     assistVariant = 0;
     assistDirVariant = { attack: 0, defense: 0, cycle: 0 };
     assistCoreVariant = { 0: 0, 1: 0, 2: 0 };
