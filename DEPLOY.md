@@ -20,6 +20,13 @@ cd ~/Downloads/AI_SD/crdeckbuilders-handoff/clash-royale-deck
 2. 統計データが紛れていないか安全ガード（紛れていたら中断）
 3. `git add -A` → commit → `git push origin main`
 
+画面の文やページを足したときは、先に訳を足す（2026-10-12・詳しくは [docs/i18n.md](docs/i18n.md)）:
+```bash
+node tools/i18n-translate.js                                         # 数えるだけ（英語の訳が無い文は検査 [1h] が赤にする）
+node tools/i18n-translate.js --fill --engine gemini-local            # Mac Studio：無い訳だけ AI で足す（公開しているサイトの文だけを送る）
+node tools/gen-i18n.js                                               # 言語ページへ反映
+```
+
 js/css/i18n.js/auth.js を編集した時は ?v= を当日日付へ:
 ```bash
 BUMP_V=1 ./deploy.sh "..."     # *.html の ?v= を当日へ一括更新してから push

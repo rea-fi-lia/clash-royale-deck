@@ -1,0 +1,105 @@
+name: i18n fill
+
+# 言語ページの訳が無い文を見つけて、AI で訳を足す（2026-10-12）。
+#  - 訳す対象は tools/i18n-lib.cjs が自動で集める（ルートの .html・JS の翻訳関数と印・カードの役割・属性）。
+#    新しいページや文を足すと、次の実行で17言語の訳が付く。訳が無い間は英語で出る（日本語は出さない）
+#  - 動くのは、リポジトリの変数 I18N_FILL_ENGINE を入れたときだけ（gemini-api か fugu-api）。
+#    入れていない間は数えるだけで、何も書き換えない。鍵は Secrets（GEMINI_API_KEY / SAKANA_API_KEY）
+#    ★SAKANA_API_KEY（8/11 登録）が定額か従量かは未確認。fugu-api は定額と確かめてから選ぶ（従量へ自動で切り替えない）
+#    ★Gemini は無料枠のキー（請求を設定していないプロジェクト）を使う。送るのは公開しているサイトの文だけ
+#  - pull_request では動かさない（公開リポジトリなので、外の人の変更で鍵を使わせない）
+
+on:
+  schedule:
+    - cron: '10 21 * * *'   # 毎日 6:10 JST（収集の :15/:37/:57・カード更新 13:40 とずらす）
+  push:
+    branches: [main]
+    paths:
+      - '*.html'
+      - 'js/**'
+      - 'i18n.js'
+      - 'auth.js'
+      - 'catalogue/cards.json'
+      - 'tools/build-static-content.js'
+  workflow_dispatch:
+    inputs:
+      engine:
+        description: 'gemini-api か fugu-api（空なら変数 I18N_FILL_ENGINE）'
+        required: false
+        default: ''
+      max_batches:
+        description: 'AI を呼ぶ回数の上限（1回で約70文）'
+        required: false
+        default: '40'
+
+permissions:
+  contents: write   # 訳の記録と言語ページをコミットするため
+
+concurrency:
+  group: site-commit-i18n
+  cancel-in-progress: false
+
+jobs:
+  fill:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    # 自動のコミット（github-actions[bot]）では動かさない（訳を足したコミットでもう一度動くのを防ぐ）
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 数える
+        run: node tools/i18n-translate.js
+
+      - name: 訳を足す
+        id: fill
+        env:
+          ENGINE: ${{ inputs.engine || vars.I18N_FILL_ENGINE }}
+          MAX_BATCHES: ${{ inputs.max_batches || '40' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SAKANA_API_KEY: ${{ secrets.SAKANA_API_KEY }}
+        run: |
+          if [ -z "$ENGINE" ]; then
+            echo "変数 I18N_FILL_ENGINE が無いので、数えるだけにする（訳は Mac Studio で node tools/i18n-translate.js --fill --engine gemini-local）"
+            echo "ran=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "$ENGINE" in gemini-api|fugu-api) ;; *) echo "知らないエンジン: $ENGINE" >&2; exit 1;; esac
+          node tools/i18n-translate.js --fill --engine "$ENGINE" --max-batches "$MAX_BATCHES"
+          echo "ran=true" >> "$GITHUB_OUTPUT"
+
+      - name: 言語ページを作り直して確かめる
+        if: steps.fill.outputs.ran == 'true'
+        run: |
+          node tools/gen-i18n.js
+          node tools/check-card-images.js --lint-only
+          node tools/check-private-leak.js
+          node tools/check-ui-icons.mjs
+
+      - name: コミット
+        if: steps.fill.outputs.ran == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tools/i18n-runtime tools/i18n-content js/i18n tools/static-content sitemap.xml
+          git add -- $(node -e "console.log(require('./tools/i18n-lib.cjs').TARGETS.join(' '))")
+          git add -u -- '*.html'
+          if git diff --cached --quiet; then
+            echo "足す訳は無かった"
+            exit 0
+          fi
+          git commit -m "chore(i18n): 訳の無い文に訳を足す [i18n-auto]"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push && exit 0
+            sleep 15
+          done
+          echo "push できなかった（ほかの自動コミットと重なった）。次の実行でやり直す" >&2
+          exit 1

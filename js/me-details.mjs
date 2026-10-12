@@ -4,7 +4,8 @@ const tx=(s,v)=>Object.entries(v).reduce((a,[k,x])=>a.replaceAll('{'+k+'}',Strin
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 const fmt=t=>{const m=String(t).match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/);return m?new Date(Date.UTC(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6])).toLocaleString('ja-JP'):'';};
 const form=(f,i)=>({norm:'n',normal:'n',champ:'n',evo:'e',hero:'h'})[f?.[i]]||f?.[i]||'n';
-const mode=n=>({ranked_pol:'ランク戦',ladder_pvp:'トロフィーロード',ladder_trail:'トロフィーロード',pathOfLegend:'ランク戦',PvP:'1対1',unknown:'モード未記録'})[n]||n;
+// 訳の対象を集める道具が見つけられるように、文はそのまま tr() に渡す（2026-10-12）
+const mode=n=>({ranked_pol:tr('ランク戦'),ladder_pvp:tr('トロフィーロード'),ladder_trail:tr('トロフィーロード'),pathOfLegend:tr('ランク戦'),PvP:tr('1対1'),unknown:tr('モード未記録')})[n]||n;
 export const cardBuildLink=(name,form='n')=>'<a class="me-card-build" href="'+esc(buildDeckUrl([name],[form]))+'" aria-label="'+esc(tx('{name}を軸にして組む',{name:tr(name)}))+'" title="'+esc(tr('軸にして組む'))+'">'+window.cardImgTag(name,form,{alt:name})+'</a>';
 export const deckBuildLink=(deck,forms)=>'<a class="me-build-action" href="'+esc(buildDeckUrl(deck,forms))+'">'+esc(tr('このデッキで組む'))+' <span aria-hidden="true">↗</span></a>';
 export const deckCards=(deck,forms)=>'<div class="me-detail-cards">'+(deck||[]).map((n,i)=>'<span title="'+esc(n)+'">'+cardBuildLink(n,form(forms,i))+'<small>'+esc(n)+'</small></span>').join('')+'</div>'+((deck||[]).length===8?deckBuildLink(deck,forms):'');
@@ -18,12 +19,12 @@ function dialog(title){
   el.addEventListener('close',()=>{el.remove();if(active===el)active=null;});active=el;el.showModal();return el;
 }
 export function showBattle(b){
-  const el=dialog('この試合の詳細');
+  const el=dialog(tr('この試合の詳細'));
   el.querySelector('.me-dialog-body').innerHTML='<div class="me-match-top"><div><b class="'+(b.win?'me-positive':'me-negative')+'">'+(b.draw?'DRAW':b.win?'WIN':'LOSE')+'</b><span>'+esc(fmt(b.t))+'</span></div><strong>'+esc(b.tc??'—')+' <small>–</small> '+esc(b.oc??'—')+'</strong></div>'
-    +'<div class="me-match-facts"><span>'+esc(mode(b.mode||'unknown'))+'</span><span>試合前 '+Number(b.tr||0).toLocaleString()+' 🏆</span><span>増減 '+(Number.isFinite(b.trophyChange)?(b.trophyChange>=0?'+':'')+b.trophyChange:'未取得')+'</span><span>試合時間 '+(b.durationSeconds?Math.floor(b.durationSeconds/60)+'分'+Math.round(b.durationSeconds%60)+'秒':'未取得')+'</span></div>'
-    +'<h3>あなたのデッキ</h3>'+deckCards(b.deck,b.df)+(b.tower?'<p class="note">タワーユニット：'+esc(b.tower)+'</p>':'')
-    +'<h3>相手のデッキ '+(b.oppTag?'<small>#'+esc(b.oppTag)+'</small>':'')+'</h3>'+deckCards(b.opp,b.of)+(b.oppTower?'<p class="note">タワーユニット：'+esc(b.oppTower)+'</p>':'')
-    +'<p class="note">収集できた試合の事実を表示しています。未取得の増減・時間は推定していません。'+(!b.df||!b.of?'古い記録のカード形態は不明です。':'')+'</p>';
+    +'<div class="me-match-facts"><span>'+esc(mode(b.mode||'unknown'))+'</span><span>'+esc(tx('試合前 {n}',{n:Number(b.tr||0).toLocaleString()}))+' 🏆</span><span>'+esc(tx('増減 {x}',{x:Number.isFinite(b.trophyChange)?(b.trophyChange>=0?'+':'')+b.trophyChange:tr('未取得')}))+'</span><span>'+esc(tx('試合時間 {x}',{x:b.durationSeconds?tx('{m}分{s}秒',{m:Math.floor(b.durationSeconds/60),s:Math.round(b.durationSeconds%60)}):tr('未取得')}))+'</span></div>'
+    +'<h3>'+esc(tr('あなたのデッキ'))+'</h3>'+deckCards(b.deck,b.df)+(b.tower?'<p class="note">'+esc(tx('タワーユニット：{x}',{x:tr(b.tower)}))+'</p>':'')
+    +'<h3>'+esc(tr('相手のデッキ'))+' '+(b.oppTag?'<small>#'+esc(b.oppTag)+'</small>':'')+'</h3>'+deckCards(b.opp,b.of)+(b.oppTower?'<p class="note">'+esc(tx('タワーユニット：{x}',{x:tr(b.oppTower)}))+'</p>':'')
+    +'<p class="note">'+esc(tr('収集できた試合の事実を表示しています。未取得の増減・時間は推定していません。'))+(!b.df||!b.of?esc(tr('古い記録のカード形態は不明です。')):'')+'</p>';
 }
 function rows(r){return '<b>'+r.winRate+'%</b><span>'+esc(tx('{wins}勝 · {losses}敗 · {draws}分',r))+'</span><small>'+esc(tx('{games}戦',r))+'</small>';}
 function scopeHTML(data){
@@ -55,9 +56,9 @@ export function prefetchDeck(dk,tag,days){
   detailCache.set(key,{at:Date.now(),promise});if(detailCache.size>24)detailCache.delete(detailCache.keys().next().value);return promise;
 }
 export function showDeck(dk,tag,days){
-  const el=dialog('この形のデッキの対戦成績'),body=el.querySelector('.me-dialog-body');
-  body.innerHTML=deckCards(dk.deck,dk.forms)+'<p class="note">同じ8枚でも、通常・進化・ヒーローの形態が異なるものは分けています。選択期間：'+(days?days+'日':'全期間')+(dk.forms?'':' · 形態未記録。通常形態と確定した記録ではありません。')+'</p>'
-    +'<div class="me-insight-scopes"><section><span class="me-eyebrow">YOUR MATCHES</span><h3>あなたが使ったとき</h3><p class="me-coverage me-scope-description">あなたがこの形で戦った、収集済みの試合。</p><div data-scope="personal"><div class="me-scope-stats"><b>'+dk.winRate+'<small>%</small></b><span>'+dk.wins+'勝 · '+dk.losses+'敗<small>'+dk.games+'戦</small></span></div><p class="note">相手別の内訳を取得中…</p></div></section><section><span class="me-eyebrow">ALL COLLECTED MATCHES</span><h3>自分を含む、このデッキ全体</h3><p class="me-coverage me-scope-description">CRDBが収集した範囲。全プレイヤーの全試合ではありません。</p><div data-scope="global"><p class="note">同じ形のデッキを照合中…</p></div></section></div><p class="me-history-status" role="status"></p>';
+  const el=dialog(tr('この形のデッキの対戦成績')),body=el.querySelector('.me-dialog-body');
+  body.innerHTML=deckCards(dk.deck,dk.forms)+'<p class="note">'+esc(tr('同じ8枚でも、通常・進化・ヒーローの形態が異なるものは分けています。'))+esc(tx('選択期間：{x}',{x:days?tx('{n}日',{n:days}):tr('全期間')}))+(dk.forms?'':esc(tr(' · 形態未記録。通常形態と確定した記録ではありません。')))+'</p>'
+    +'<div class="me-insight-scopes"><section><span class="me-eyebrow">YOUR MATCHES</span><h3>'+esc(tr('あなたが使ったとき'))+'</h3><p class="me-coverage me-scope-description">'+esc(tr('あなたがこの形で戦った、収集済みの試合。'))+'</p><div data-scope="personal"><div class="me-scope-stats"><b>'+dk.winRate+'<small>%</small></b><span>'+esc(tx('{wins}勝 · {losses}敗',{wins:dk.wins,losses:dk.losses}))+'<small>'+esc(tx('{games}戦',{games:dk.games}))+'</small></span></div><p class="note">'+esc(tr('相手別の内訳を取得中…'))+'</p></div></section><section><span class="me-eyebrow">ALL COLLECTED MATCHES</span><h3>'+esc(tr('自分を含む、このデッキ全体'))+'</h3><p class="me-coverage me-scope-description">'+esc(tr('CRDBが収集した範囲。全プレイヤーの全試合ではありません。'))+'</p><div data-scope="global"><p class="note">'+esc(tr('同じ形のデッキを照合中…'))+'</p></div></section></div><p class="me-history-status" role="status"></p>';
   let timer;el.addEventListener('close',()=>clearTimeout(timer));
   let lastPersonal='',lastGlobal='';
   async function load(){
@@ -66,12 +67,12 @@ export function showDeck(dk,tag,days){
       const p=JSON.stringify(j.personal),g=JSON.stringify(j.global);
       if(p!==lastPersonal){body.querySelector('[data-scope="personal"]').innerHTML=scopeHTML(j.personal);lastPersonal=p;}
       if(g!==lastGlobal){body.querySelector('[data-scope="global"]').innerHTML=scopeHTML(j.global);lastGlobal=g;}
-      body.querySelector('[role="status"]').textContent=j.history?.state==='complete'?'保存済みアーカイブとの照合が完了しています。':'過去の保存データを取り込み中です。現在の数字は取得済みの試合分で、照合に応じて増えます。';
+      body.querySelector('[role="status"]').textContent=j.history?.state==='complete'?tr('保存済みアーカイブとの照合が完了しています。'):tr('過去の保存データを取り込み中です。現在の数字は取得済みの試合分で、照合に応じて増えます。');
       if(j.history?.state!=='complete')timer=setTimeout(load,12000);
     }catch(e){if(!el.open)return;
       if(!lastPersonal)body.querySelector('[data-scope="personal"] .note').textContent=tr('対戦詳細を取得できませんでした。');
       if(!lastGlobal)body.querySelector('[data-scope="global"]').innerHTML='<p class="me-empty">'+esc(tr('対戦詳細を取得できませんでした。'))+'</p>';
-      body.querySelector('[role="status"]').textContent='対戦詳細を取得できませんでした。通信を確認して開き直してください。';}
+      body.querySelector('[role="status"]').textContent=tr('対戦詳細を取得できませんでした。通信を確認して開き直してください。');}
   }
   load();
 }
@@ -86,8 +87,8 @@ export function fetchPopularDeck(dk){
   popularCache.set(key,{at:Date.now(),promise});if(popularCache.size>24)popularCache.delete(popularCache.keys().next().value);return promise;
 }
 export function showPopularDeck(dk){
-  const el=dialog('このデッキの対戦成績'),body=el.querySelector('.me-dialog-body');el.classList.add('me-popular-dialog');
-  const windowLabel=tr(({'1h':'直近1時間','1d':'直近1日','3d':'過去3日','7d':'統計目安7日'})[dk.window]||'過去3日');
+  const el=dialog(tr('このデッキの対戦成績')),body=el.querySelector('.me-dialog-body');el.classList.add('me-popular-dialog');
+  const windowLabel=({'1h':tr('直近1時間'),'1d':tr('直近1日'),'3d':tr('過去3日'),'7d':tr('統計目安7日')})[dk.window]||tr('過去3日');
   body.innerHTML=deckCards(dk.deck,dk.forms)+'<p class="me-coverage">'+esc(windowLabel)+' · '+esc(tr('ランク戦'))+'</p>'
     +'<p class="note">'+esc(tr('同じ8枚・同じ形態のデッキが戦った、収集済みの試合です。一覧のランキング集計とは、取得範囲が異なる場合があります。'))+'</p>'
     +'<div data-scope="global" aria-busy="true"><p class="me-empty">'+esc(tr('相手別の内訳を取得中…'))+'</p></div><p class="me-history-status" role="status"></p>';
@@ -100,7 +101,7 @@ export function showPopularDeck(dk){
       const j=await fetchPopularDeck(dk);if(!el.open)return;
       const scope=body.querySelector('[data-scope="global"]'),next=JSON.stringify(j.global);
       if(next!==last){scope.innerHTML=scopeHTML(j.global);last=next;}scope.setAttribute('aria-busy','false');
-      body.querySelector('[role="status"]').textContent=tr(j.history?.state==='complete'&&j.history.latestComplete?'保存済みアーカイブとの照合が完了しています。':'過去の保存データを取り込み中です。現在の数字は取得済みの試合分で、照合に応じて増えます。');
+      body.querySelector('[role="status"]').textContent=j.history?.state==='complete'&&j.history.latestComplete?tr('保存済みアーカイブとの照合が完了しています。'):tr('過去の保存データを取り込み中です。現在の数字は取得済みの試合分で、照合に応じて増えます。');
       if(j.history?.state!=='complete'||!j.history.latestComplete)timer=setTimeout(load,20000);
       window.CRI18N?.applyTo(el);
     }catch{

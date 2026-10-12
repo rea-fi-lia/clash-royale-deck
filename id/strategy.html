@@ -271,6 +271,21 @@
   </dl>
 </section>
 
+<!-- 2026-10-12：訳の仕組みができたので日本語だけの欄から外した（本文は i18n-content で各言語に訳す） --><section class="seo-content static-howto" aria-label="診断の結果の読み方" style="max-width:760px;margin:10px auto 30px;padding:0 16px">
+  <h2>Cara membaca hasil diagnosis</h2>
+  <h3>Karakteristik dek ini</h3>
+  <p>Ke-8 kartu dibagi menjadi peran utama untuk menembus menara, win condition kedua sebagai penyelesaian atau jalur alternatif, dukungan tambahan untuk menciptakan damage, kartu siklus untuk memutar kartu di tangan, serta kartu pertahanan untuk merapikan pertahanan, lalu dijabarkan dalam bentuk kalimat tentang bagaimana dek ini bertujuan untuk meraih kemenangan. Pembagian peran menggunakan tabel win condition yang ditentukan untuk setiap kartu, dan diperbarui sesuai dengan kartu baru serta penyesuaian balance. Dari rata-rata biaya, kamu juga bisa melihat apakah dek ini bertipe siklus cepat atau beatdown yang lebih berat.</p>
+  <h3>Tren di pertandingan nyata</h3>
+  <p>Hanya ditampilkan bila ada 30 pertandingan atau lebih dengan catatan rekam jejak dari 8 kartu dan bentuk dek yang sama persis. Dijelaskan dengan kata-kata mengenai seberapa besar kamu menekan lawan (skor kontrol: indikator yang dibuat dari sisa HP menara, crown yang diambil, dan tekanan ke king tower), apakah kekalahan cenderung hancur total, apakah kemenangan didorong dengan bersih, serta apakah kebocoran elixir lebih banyak atau lebih sedikit dari lawan.</p>
+  <h3>Statistik dek</h3>
+  <p>Menampilkan 7 atribut dari 0 hingga 10: Anti-Air, Tank Busting, Swarm Control, Tower Pressure, Building Counter, Durability, dan Cycle. Berdasarkan kekuatan peran setiap kartu (nilai per elixir), nilai dihitung dengan porsi 0.65 untuk kartu yang paling mengemban peran tersebut dan 0.35 untuk kartu kedua. Durability dan Cycle adalah rata-rata dari seluruh dek. Tips bermain akan disertakan untuk atribut tertinggi dan terendah pada dekmu.</p>
+  <h3>Lawan yang berat</h3>
+  <p>Lawan yang bertarung melawan dek ini dikelompokkan berdasarkan kartu win condition mereka, lalu menampilkan rata-rata skor kontrol, win rate, persentase kekalahan telak, dan jumlah pertandingan. Semakin negatif skor kontrolnya, semakin tertekan kamu oleh tipe lawan tersebut.</p>
+  <h3>Penyesuaian dek</h3>
+  <p>Menampilkan total win rate dari susunan yang memiliki 6 kartu atau lebih yang sama dengan dekmu, serta menunjukkan kartu mana yang jika dikeluarkan dan diganti dengan kartu apa akan menghasilkan win rate yang lebih tinggi atau lebih rendah. Menekan "Tukar Kartu" akan menerapkan perbedaan tersebut ke dekmu saat ini dan mendiagnosisnya kembali.</p>
+  <h3>Tentang data</h3>
+  <p>Angka-angka ini adalah rekapitulasi dari catatan pertempuran mode ranked yang dikumpulkan setiap jam dari API resmi Supercell. Targetnya adalah pemain top ranked di pertempuran ranked beserta lawan mereka, bukan seluruh pertandingan. Harap lihat angka dengan jumlah pertandingan yang sedikit sebagai nilai referensi.</p>
+</section>
 
 
 <section class="page-guide">
@@ -284,15 +299,11 @@
 
 <!-- ログイン（Firebase）。ヘッダーにログインボタンが自動で付きます -->
 <script type="module" src="/auth.js?v=260818"></script>
-<script defer src="/i18n.js?v=261012d"></script>
+<script defer src="/js/i18n/id.js?v=3224651153"></script>
+<script defer src="/i18n.js?v=261012f"></script>
 <script src="/js/cards-data.js?v=7ad2612f3f2f5c2a"></script>
 <script defer src="/js/strategy.js?v=261012d"></script>
 <script defer src="/js/ux-guard.js?v=260818"></script>
-
-
-
-
-
 <!--SITE-FOOT--><style>.site-foot{max-width:760px;margin:28px auto 18px;padding:14px 18px 6px;border-top:1px solid var(--border,rgba(255,255,255,.12));font-size:12px;line-height:1.75;color:var(--text-muted,var(--dim,#9aa3b5))}.site-foot-links{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0 0 6px}.site-foot a{color:inherit;text-decoration:underline}.site-foot p{margin:4px 0}.cg-fcp{font-size:11px;line-height:1.6;opacity:.8;margin-top:8px}</style><footer class="site-foot"><nav class="site-foot-links"><a href="privacy.html">Kebijakan privasi</a><a href="contact.html">Kontak</a><a href="about.html">Tentang situs ini</a></nav><p class="site-foot-mt">Halaman ini diterjemahkan secara otomatis dari versi asli berbahasa Jepang.</p><p class="site-foot-fcp">This content is not affiliated with, endorsed, sponsored, or specifically approved by Supercell and Supercell is not responsible for it. For more information see Supercell’s Fan Content Policy: <a href="https://supercell.com/en/fan-content-policy/" rel="noopener">www.supercell.com/fan-content-policy</a>.</p></footer><!--/SITE-FOOT-->
 </body>
 </html>

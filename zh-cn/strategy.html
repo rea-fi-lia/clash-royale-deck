@@ -271,6 +271,21 @@
   </dl>
 </section>
 
+<!-- 2026-10-12：訳の仕組みができたので日本語だけの欄から外した（本文は i18n-content で各言語に訳す） --><section class="seo-content static-howto" aria-label="診断の結果の読み方" style="max-width:760px;margin:10px auto 30px;padding:0 16px">
+  <h2>如何看懂诊断结果</h2>
+  <h3>本卡组特点</h3>
+  <p>我们将8张卡牌分为进攻公主塔的主力、用于斩杀或提供第二条进攻路线的第二胜利手段、制造额外伤害的辅助、过牌的循环卡，以及稳固防守的防守卡，并通过文章说明本卡组打算用哪些卡牌去争取胜利。分类方法使用了针对每张卡牌确定的胜利手段表格，并会随着新卡牌和平衡性调整进行更新。从平均费用中，也能看出它是快转类型还是偏重的平推卡组。</p>
+  <h3>实战倾向</h3>
+  <p>仅在拥有相同8张卡牌、相同形态的卡组对战记录达到30场以上时显示。用文字说明你对对手的压制程度（支配度：由公主塔剩余体力、拿下的皇冠、对国王塔的施压所计算出的指标）、失败时是否会全面崩盘、取胜时是否能干净利落地平推，以及圣水溢出情况比对手多还是少。</p>
+  <h3>卡组属性</h3>
+  <p>将对空、处理坦克、处理小物件、公主塔施压、进攻建筑、耐久度、过牌这7个项目用0到10分进行表示。根据每张卡牌的角色强度（每点圣水价值），将承担该职责最高卡牌的值按0.65、第二张卡牌的值按0.35的比例进行综合计算。耐久度和过牌为卡组整体的平均值。针对卡组中数值最高和最低的项目，将附上对局打法提示。</p>
+  <h3>难打的对手</h3>
+  <p>将与本卡组对战过的对手按其胜利手段卡牌进行归类，并列出平均支配度、胜率、崩盘失败率以及对局数。支配度为负数越多，说明越容易被该流派的对手压制。</p>
+  <h3>卡组调整</h3>
+  <p>罗列出与你的卡组有6张以上相同的总胜率，并展示去掉哪张卡牌、换入什么卡牌后胜率会变高或变低。点击“替换卡牌”，即可将该差分应用到当前的卡组中并重新进行诊断。</p>
+  <h3>关于数据</h3>
+  <p>数据是通过Supercell官方API每小时收集的天梯对战记录统计而得。对象为天梯高段位玩家及其对手，并非所有比赛。对于比赛数量较少的数据，请作为参考值看待。</p>
+</section>
 
 
 <section class="page-guide">
@@ -284,15 +299,11 @@
 
 <!-- ログイン（Firebase）。ヘッダーにログインボタンが自動で付きます -->
 <script type="module" src="/auth.js?v=260818"></script>
-<script defer src="/i18n.js?v=261012d"></script>
+<script defer src="/js/i18n/zh-cn.js?v=dd6b565934"></script>
+<script defer src="/i18n.js?v=261012f"></script>
 <script src="/js/cards-data.js?v=7ad2612f3f2f5c2a"></script>
 <script defer src="/js/strategy.js?v=261012d"></script>
 <script defer src="/js/ux-guard.js?v=260818"></script>
-
-
-
-
-
 <!--SITE-FOOT--><style>.site-foot{max-width:760px;margin:28px auto 18px;padding:14px 18px 6px;border-top:1px solid var(--border,rgba(255,255,255,.12));font-size:12px;line-height:1.75;color:var(--text-muted,var(--dim,#9aa3b5))}.site-foot-links{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0 0 6px}.site-foot a{color:inherit;text-decoration:underline}.site-foot p{margin:4px 0}.cg-fcp{font-size:11px;line-height:1.6;opacity:.8;margin-top:8px}</style><footer class="site-foot"><nav class="site-foot-links"><a href="privacy.html">隐私政策</a><a href="contact.html">联系我们</a><a href="about.html">关于本站</a></nav><p class="site-foot-mt">本页面由日文原文自动翻译而成。</p><p class="site-foot-fcp">This content is not affiliated with, endorsed, sponsored, or specifically approved by Supercell and Supercell is not responsible for it. For more information see Supercell’s Fan Content Policy: <a href="https://supercell.com/en/fan-content-policy/" rel="noopener">www.supercell.com/fan-content-policy</a>.</p></footer><!--/SITE-FOOT-->
 </body>
 </html>

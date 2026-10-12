@@ -1,7 +1,7 @@
 import '../auth.js?v=260818';
 import { normalizeTag, bindTagInput, inPeriod, availablePeriod, graphBattles, battleTime, selectTrophySeries } from './experience-core.mjs?v=260818';
-import { mountChart } from './me-chart.mjs?v=260818';
-import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from './me-details.mjs?v=260820';
+import { mountChart } from './me-chart.mjs?v=261012f';
+import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from './me-details.mjs?v=261012f';
 /* =============================================================
  *  マイページ（/me.html）— 2026-08-11
  *  docs/monetization.md が設計の正本。
@@ -20,6 +20,10 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const TAG_KEY = 'cr_my_tag';
+  // 画面の文は翻訳の関数を通す（言語ページで日本語が残らないように・2026-10-12）。
+  // このファイルは i18n.js より先に動くので、毎回その場で引く。語順が変わる文は {n} などを入れた文ごと訳す
+  const _tr = s => (window.CRI18N ? CRI18N.tr(s) : s);
+  const _tf = (s, v) => String(_tr(s)).replace(/\{(\w+)\}/g, (m, k) => (v[k] != null ? v[k] : m));
 
   const CACHE_KEY = t => 'cr_my_cache_' + t;      // 直近の /api/me/sync 結果（即描画用）
   let STATE = { data: null, meta: null, days: 1, requestedDays: null, competition: null };
@@ -60,7 +64,7 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
       if (days === 0) button.hidden = inRange(all, 365).length === all.length;
       button.classList.toggle('on', days === STATE.days);
       button.setAttribute('aria-pressed', String(days === STATE.days));
-      button.title = hasData ? '' : 'グラフには異なる日時のトロフィー記録が2件以上必要です';
+      button.title = hasData ? '' : _tr('グラフには異なる日時のトロフィー記録が2件以上必要です');
     });
   }
   function rerender() { if (STATE.data) renderAll(STATE.data, STATE.meta); }
@@ -84,21 +88,21 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
     const crownAverage = cB.length ? crownDiff / cB.length : null;
     const signed = n => (n >= 0 ? '+' : '') + Number(n.toFixed(2));
     let name = null; try { name = localStorage.getItem('cr_name_' + data.tag) || null; } catch (e) {}
-    const summary = '<div class="me-stats" aria-label="選択期間の戦績">'
-      + '<div class="me-stat"><span>勝率</span><b>' + (wr == null ? '—' : wr + '<small>%</small>') + '</b></div>'
-      + '<div class="me-stat"><span>勝敗</span><b>' + w + '<small>勝</small> ' + l + '<small>敗</small>'+(draws?' '+draws+'<small>分</small>':'')+'</b></div>'
-      + '<div class="me-stat"><span>クラウン差 / 戦</span><b>' + (crownAverage == null ? '—' : signed(crownAverage)) + '</b>'
-      + (cB.length && cB.length < B.length ? '<small>' + cB.length + '戦分</small>' : '') + '</div></div>';
+    const summary = '<div class="me-stats" aria-label="' + esc(_tr('選択期間の戦績')) + '">'
+      + '<div class="me-stat"><span>' + _tr('勝率') + '</span><b>' + (wr == null ? '—' : wr + '<small>%</small>') + '</b></div>'
+      + '<div class="me-stat"><span>' + _tr('勝敗') + '</span><b>' + _tf('{w}<small>勝</small> {l}<small>敗</small>', { w, l }) + (draws ? ' ' + _tf('{d}<small>分</small>', { d: draws }) : '') + '</b></div>'
+      + '<div class="me-stat"><span>' + _tr('クラウン差 / 戦') + '</span><b>' + (crownAverage == null ? '—' : signed(crownAverage)) + '</b>'
+      + (cB.length && cB.length < B.length ? '<small>' + _tf('{n}戦分', { n: cB.length }) + '</small>' : '') + '</div></div>';
     $('meHeader').innerHTML = '<div class="me-head"><div class="me-identity">'
       + '<span class="me-eyebrow">PLAYER PROFILE</span><div class="me-head-id"><b>' + esc(name || ('#' + data.tag)) + '</b>'
       + (name ? '<span class="me-tag">#' + esc(data.tag) + '</span>' : '') + '</div>'
-      + (tr != null ? '<div class="me-head-band">🏆 ' + tr.toLocaleString() + '<span>'+ (STATE.competition==='ranked' ? 'ランク戦トロフィー' : STATE.competition==='trophy' ? 'トロフィーロード · 帯 '+band+'–'+(band+299) : '種別別の試合前記録') + '</span></div>' : '')
+      + (tr != null ? '<div class="me-head-band">🏆 ' + tr.toLocaleString() + '<span>'+ (STATE.competition==='ranked' ? _tr('ランク戦トロフィー') : STATE.competition==='trophy' ? _tf('トロフィーロード · 帯 {a}–{b}', { a: band, b: band + 299 }) : _tr('種別別の試合前記録')) + '</span></div>' : '')
       + '</div>' + summary + '</div>'
-      + '<div class="me-head-bottom"><p class="me-lead">'+(series.awaitingRanked ? 'ランク戦の参加実績はありますが推移は未取得です。取得済みのトロフィーロードを表示しています。' : data.history?.state === 'indexing' ? '保存済みの過去試合を照合中。見つかり次第、自動で反映します。' : data.history?.state === 'error' ? '過去分の照合を再試行しています。取得済みの記録を表示中。' : '登録前も含む、収集できた全履歴。')+'</p><span class="me-head-total">選択期間 ' + B.length + '戦 <small>／ 全' + ALL.length + '戦</small></span></div>';
+      + '<div class="me-head-bottom"><p class="me-lead">'+(series.awaitingRanked ? _tr('ランク戦の参加実績はありますが推移は未取得です。取得済みのトロフィーロードを表示しています。') : data.history?.state === 'indexing' ? _tr('保存済みの過去試合を照合中。見つかり次第、自動で反映します。') : data.history?.state === 'error' ? _tr('過去分の照合を再試行しています。取得済みの記録を表示中。') : _tr('登録前も含む、収集できた全履歴。'))+'</p><span class="me-head-total">' + _tf('選択期間 {n}戦 <small>／ 全{m}戦</small>', { n: B.length, m: ALL.length }) + '</span></div>';
     $('meRecordBody').innerHTML = B.length
-      ? '<div class="me-result-line"><span><b>' + B.length + '</b> 戦の記録</span><span>' + w + '勝 · ' + l + '敗'+(draws?' · '+draws+'分':'')+'</span></div>'
-        + '<div class="me-result-bar" role="img" aria-label="勝率 ' + wr + '%"><span style="width:' + wr + '%"></span></div>'
-      : '<p class="note">まだ試合の記録がありません。1対1の試合を遊ぶと、開くたびにここへ貯まっていきます。</p>';
+      ? '<div class="me-result-line"><span>' + _tf('<b>{n}</b> 戦の記録', { n: B.length }) + '</span><span>' + _tf('{w}勝 · {l}敗', { w, l }) + (draws ? _tf(' · {d}分', { d: draws }) : '') + '</span></div>'
+        + '<div class="me-result-bar" role="img" aria-label="' + esc(_tf('勝率 {wr}%', { wr })) + '"><span style="width:' + wr + '%"></span></div>'
+      : '<p class="note">' + _tr('まだ試合の記録がありません。1対1の試合を遊ぶと、開くたびにここへ貯まっていきます。') + '</p>';
 
     /* 使用デッキ別（全体データとの突合つき） */
     renderDecks(B, meta);
@@ -112,14 +116,14 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
     B.forEach(b => (b.opp || []).forEach(n => { const bn = cardBaseName(n); const e = oppCard[bn] || (oppCard[bn] = { g: 0, w: 0 }); e.g++; if (b.win) e.w++; }));
     const weak = Object.entries(oppCard).map(([n, v]) => ({ n, g: v.g, wr: Math.round(v.w / v.g * 1000) / 10 }))
       .filter(x => x.g >= 3).sort((a, b) => a.wr - b.wr).slice(0, 8);
-    $('meEnvBody').innerHTML = B.length === 0 ? '<p class="note">記録が貯まると表示されます。</p>'
-      : '<h3>相手の勝ち筋分布</h3><div class="me-bars">'
+    $('meEnvBody').innerHTML = B.length === 0 ? '<p class="note">' + _tr('記録が貯まると表示されます。') + '</p>'
+      : '<h3>' + _tr('相手の勝ち筋分布') + '</h3><div class="me-bars">'
       + archRows.map(r => '<div class="me-bar-row">' + (r.k === 'その他' ? '<span class="me-chip">' + archetypeImgTag(r.k) + '</span>' : chip(r.k))
-        + '<span class="me-bar"><span class="me-bar-label">'+esc(r.k)+' <small>'+r.g+'戦</small></span><i style="width:' + r.share + '%"></i></span>'
-        + '<span class="me-bar-num">' + r.share + '%<small>対面勝率 ' + r.wr + '%</small></span></div>').join('')
-      + '</div><p class="note">複数の勝ち筋を持つ相手は、それぞれに数えています。</p>'
-      + (weak.length ? '<h3>相手カード別の対面勝率（低い順）</h3><div class="me-weak">'
-        + weak.map(x => '<span class="me-weak-card">' + chip(x.n) + '<span class="me-card-name">'+esc(x.n)+'</span><b>' + x.wr + '%</b><small>' + x.g + '戦</small></span>').join('') + '</div>' : '');
+        + '<span class="me-bar"><span class="me-bar-label">'+esc(_tr(r.k))+' <small>'+_tf('{n}戦', { n: r.g })+'</small></span><i style="width:' + r.share + '%"></i></span>'
+        + '<span class="me-bar-num">' + r.share + '%<small>' + _tf('対面勝率 {wr}%', { wr: r.wr }) + '</small></span></div>').join('')
+      + '</div><p class="note">' + _tr('複数の勝ち筋を持つ相手は、それぞれに数えています。') + '</p>'
+      + (weak.length ? '<h3>' + _tr('相手カード別の対面勝率（低い順）') + '</h3><div class="me-weak">'
+        + weak.map(x => '<span class="me-weak-card">' + chip(x.n) + '<span class="me-card-name">'+esc(_tr(x.n))+'</span><b>' + x.wr + '%</b><small>' + _tf('{n}戦', { n: x.g }) + '</small></span>').join('') + '</div>' : '');
 
     /* あなたの帯のいま＋最優先の対策（帯の流行 × あなたの苦手） */
     renderBand(B, meta, tr, oppCard);
@@ -132,11 +136,11 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
 
   function renderDecks(B, meta) {
     const decks = STATE.data?.periods?.[STATE.days]?.decks || [];
-    $('meDecksBody').innerHTML = decks.length ? '<p class="note">デッキを選ぶと対戦詳細へ。カードを選ぶと、そのカードを軸にデッキを組めます。8枚が記録されている '+decks.reduce((n,d)=>n+d.games,0)+' / '+B.length+'戦が対象です。</p>'
-      + decks.map((dk, i) => '<div class="me-deck-item"><button type="button" class="me-deck me-deck-open" data-deck="'+i+'" aria-label="デッキ '+(i+1)+' の対戦詳細">'
+    $('meDecksBody').innerHTML = decks.length ? '<p class="note">' + _tf('デッキを選ぶと対戦詳細へ。カードを選ぶと、そのカードを軸にデッキを組めます。8枚が記録されている {a} / {b}戦が対象です。', { a: decks.reduce((n,d)=>n+d.games,0), b: B.length }) + '</p>'
+      + decks.map((dk, i) => '<div class="me-deck-item"><button type="button" class="me-deck me-deck-open" data-deck="'+i+'" aria-label="'+esc(_tf('デッキ {n} の対戦詳細', { n: i + 1 }))+'">'
       + '<div class="me-deck-cards">'+dk.deck.map((n,j)=>chip(n,fAt(dk.forms,j),false)).join('')+'</div>'
-      + '<div class="me-deck-stat"><b>'+dk.winRate+'%</b><span>'+dk.wins+'勝 '+dk.losses+'敗'+(dk.draws?' '+dk.draws+'分':'')+'</span><small>'+dk.games+'戦 · 対戦詳細 ↗</small></div></button>'+deckBuildLink(dk.deck,dk.forms)+'</div>').join('')
-      : '<p class="note">自分のデッキが記録されている試合を読み込むと表示します。</p>';
+      + '<div class="me-deck-stat"><b>'+dk.winRate+'%</b><span>'+_tf('{w}勝 {l}敗', { w: dk.wins, l: dk.losses })+(dk.draws?_tf(' {d}分', { d: dk.draws }):'')+'</span><small>'+_tf('{n}戦 · 対戦詳細 ↗', { n: dk.games })+'</small></div></button>'+deckBuildLink(dk.deck,dk.forms)+'</div>').join('')
+      : '<p class="note">' + _tr('自分のデッキが記録されている試合を読み込むと表示します。') + '</p>';
     $('meDecksBody').querySelectorAll('[data-deck]').forEach(button=>{
       const args=()=>[decks[+button.dataset.deck],STATE.data.tag,STATE.days];
       button.addEventListener('click',()=>showDeck(...args()));
@@ -147,15 +151,15 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
   /* あなたの帯のいま＋「最優先の対策」（帯で流行 × あなたが苦手 の交差＝このサイトにしか出せない掛け算） */
   function renderBand(B, meta, tr, oppCard) {
     const ranked = STATE.competition==='ranked';
-    $('meBand').querySelector('h2').textContent = ranked ? 'ランク戦全体のいま' : STATE.competition==='trophy' ? 'あなたの帯のいま' : '対戦種別の記録';
+    $('meBand').querySelector('h2').textContent = ranked ? _tr('ランク戦全体のいま') : STATE.competition==='trophy' ? _tr('あなたの帯のいま') : _tr('対戦種別の記録');
     $('meBandWhen').textContent = '';
     if (STATE.competition !== 'trophy') {
       const stats=ranked&&meta?.polCardIntel, rows=Object.entries(stats?.byOpponentCard||{}).sort((a,b)=>b[1].games-a[1].games).slice(0,10);
-      $('meBandBody').innerHTML=rows.length ? '<h3>収集したランク戦でよく対面するカード</h3><div class="me-weak">'+rows.map(([n,v])=>'<span class="me-weak-card">'+chip(n)+'<span class="me-card-name">'+esc(n)+'</span><b>'+v.games.toLocaleString()+'戦</b></span>').join('')+'</div><p class="note">CRDBが収集したランク戦全体の対面件数です。通常トロフィー帯の統計は混ぜていません。</p>' : '<p class="note">対応する種別の全体統計はありません。左側には実際に対面した相手を表示しています。</p>';
-      if(stats)$('meBandWhen').textContent='直近'+stats.windowDays+'日の集計';
+      $('meBandBody').innerHTML=rows.length ? '<h3>'+_tr('収集したランク戦でよく対面するカード')+'</h3><div class="me-weak">'+rows.map(([n,v])=>'<span class="me-weak-card">'+chip(n)+'<span class="me-card-name">'+esc(_tr(n))+'</span><b>'+_tf('{n}戦', { n: v.games.toLocaleString() })+'</b></span>').join('')+'</div><p class="note">'+_tr('CRDBが収集したランク戦全体の対面件数です。通常トロフィー帯の統計は混ぜていません。')+'</p>' : '<p class="note">'+_tr('対応する種別の全体統計はありません。左側には実際に対面した相手を表示しています。')+'</p>';
+      if(stats)$('meBandWhen').textContent=_tf('直近{n}日の集計', { n: stats.windowDays });
       return;
     }
-    let bandHtml = '<p class="note">帯のデータを読み込めませんでした。</p>';
+    let bandHtml = '<p class="note">' + _tr('帯のデータを読み込めませんでした。') + '</p>';
     const tb = meta && meta.trophyBandIntel;
     if (tb && tb.byBand && tr != null) {
       let best = null, bestKey = null;
@@ -173,8 +177,8 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
       const upd = tb.updated ? new Date(tb.updated) : null;
       const hrs = upd ? Math.max(0, Math.round((Date.now() - upd) / 36e5)) : null;
       const whenEl = $('meBandWhen');
-      if (whenEl) whenEl.textContent = '直近' + wd + '日の集計'
-        + (hrs != null ? '・' + (hrs < 1 ? 'たった今' : hrs < 24 ? hrs + '時間前' : Math.round(hrs / 24) + '日前') + '更新' : '');
+      if (whenEl) whenEl.textContent = _tf('直近{n}日の集計', { n: wd })
+        + (hrs != null ? (hrs < 1 ? _tr('・たった今更新') : hrs < 24 ? _tf('・{n}時間前更新', { n: hrs }) : _tf('・{n}日前更新', { n: Math.round(hrs / 24) })) : '');
       if (best) {
         const rows = Object.entries(best.cards).map(([n, v]) => ({ n, g: v.games || 0, wr: v.wr }))
           .sort((a, b) => b.g - a.g);
@@ -185,13 +189,13 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
           .filter(r => r.me && r.me.g >= 3 && (r.me.w / r.me.g) < 0.5)
           .slice(0, 6);
         const prio = priority.length
-          ? '<h3>対策候補 · 帯の流行と低い対面勝率が重なるカード</h3><div class="me-weak">'
+          ? '<h3>' + _tr('対策候補 · 帯の流行と低い対面勝率が重なるカード') + '</h3><div class="me-weak">'
             + priority.map(r => '<span class="me-weak-card prio">' + chip(r.n)
-              + '<b>' + Math.round(r.me.w / r.me.g * 100) + '%</b><small>帯で' + r.g + '戦</small></span>').join('')
-            + '</div><p class="note">対策の仕方はカード名タップ→カードページの「どの呪文で落ちるか」「よく一緒に使われるカード」が手がかりになります。</p>'
-          : (B.length >= 10 ? '<p class="note">今の収集範囲では、流行上位と低い対面勝率が重なるカードはありません。</p>' : '');
-        bandHtml = prio + '<h3>帯 ' + bestKey + ' でよく使われているカード</h3><div class="me-weak">'
-          + rows.slice(0, 10).map(x => '<span class="me-weak-card">' + chip(x.n) + '<b>' + (x.wr != null ? x.wr + '%' : '—') + '</b><small>' + x.g + '戦</small></span>').join('')
+              + '<b>' + Math.round(r.me.w / r.me.g * 100) + '%</b><small>' + _tf('帯で{n}戦', { n: r.g }) + '</small></span>').join('')
+            + '</div><p class="note">' + _tr('対策の仕方はカード名タップ→カードページの「どの呪文で落ちるか」「よく一緒に使われるカード」が手がかりになります。') + '</p>'
+          : (B.length >= 10 ? '<p class="note">' + _tr('今の収集範囲では、流行上位と低い対面勝率が重なるカードはありません。') + '</p>' : '');
+        bandHtml = prio + '<h3>' + _tf('帯 {k} でよく使われているカード', { k: bestKey }) + '</h3><div class="me-weak">'
+          + rows.slice(0, 10).map(x => '<span class="me-weak-card">' + chip(x.n) + '<b>' + (x.wr != null ? x.wr + '%' : '—') + '</b><small>' + _tf('{n}戦', { n: x.g }) + '</small></span>').join('')
           + '</div>';
       }
     }
@@ -202,21 +206,22 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
     disposeChart();
     const el = $('meTrendBody'), seq = graphBattles(B), last=seq.at(-1), first=seq[0];
     const diff=seq.length>=2?last.tr-first.tr:null;
-    el.innerHTML='<div class="me-trend-head"><div class="me-trend-now"><span>'+ (STATE.competition==='ranked'?'ランク戦トロフィー推移':'トロフィー推移') +'</span><b>'+(last?last.tr.toLocaleString():'—')+'</b><small>最終記録・試合前</small></div>'
+    el.innerHTML='<div class="me-trend-head"><div class="me-trend-now"><span>'+ (STATE.competition==='ranked'?_tr('ランク戦トロフィー推移'):_tr('トロフィー推移')) +'</span><b>'+(last?last.tr.toLocaleString():'—')+'</b><small>'+_tr('最終記録・試合前')+'</small></div>'
       +(diff!=null?'<div class="me-trend-diff '+(diff>=0?'up':'down')+'">'+(diff>=0?'+':'')+diff.toLocaleString()+'</div>':'')
-      +'<div class="me-trend-span">'+(first?fmtDate(new Date(battleTime(first.t)))+'〜'+fmtDate(new Date(battleTime(last.t)))+' · '+seq.length+'件':'')+'</div></div><div id="meChart"></div>'+efficiencyHtml();
+      +'<div class="me-trend-span">'+(first?_tf('{a}〜{b} · {n}件', { a: fmtDate(new Date(battleTime(first.t))), b: fmtDate(new Date(battleTime(last.t))), n: seq.length }):'')+'</div></div><div id="meChart"></div>'+efficiencyHtml();
     const key=STATE.data.tag+':'+STATE.competition+':'+STATE.days;
     if(!chartViews.has(key))chartViews.set(key,{});
     disposeChart=mountChart($('meChart'),B,chartViews.get(key),showBattle);
   }
   function efficiencyHtml() {
     const e=(STATE.data?.competitions?.groups?.find(g=>g.id===STATE.competition)?.periods || STATE.data?.periods)?.[STATE.days]?.efficiency;
-    if(!e)return '<p class="note">トロフィー効率を確認中…</p>';
+    if(!e)return '<p class="note">'+_tr('トロフィー効率を確認中…')+'</p>';
     const signed=n=>n==null?'—':(n>=0?'+':'')+Number(n.toFixed(1)).toLocaleString();
-    return '<div class="me-efficiency"><div class="me-eff-item"><span>記録期間の純増</span><b>'+signed(e.net)+'<small>🏆</small></b><small>'+(e.elapsedDays<1?(e.elapsedDays*1440<1?'1分未満':Math.round(e.elapsedDays*1440)+'分'):Number(e.elapsedDays.toFixed(1))+'日間')+'の始点 → 終点</small></div>'
-      +'<div class="me-eff-item"><span>暦日あたり</span><b>'+signed(e.perDay)+'<small>🏆 / 日</small></b><small>'+(e.elapsedDays<1?'1日未満の記録を24時間に換算':'記録期間の純増 ÷ 経過日数')+'</small></div>'
-      +'<div class="me-eff-item"><span>1試合あたりの実増減</span><b>'+signed(e.perMatch)+'<small>🏆 / 戦</small></b><small>増減を取得できた '+e.exactMatches+' / '+e.totalMatches+'戦</small></div></div>'
-      +'<p class="me-eff-note">暦日には遊んでいない日も含み、空白期間の未収集試合やシーズンリセットの影響を含む場合があります。1戦あたりは取得した実増減のみ。勝率や試合間隔をプレイ時間に換算していません。'+(e.perPlayHour!=null?'実時間を取得できた'+e.timedMatches+'戦では '+signed(e.perPlayHour)+' 🏆 / プレイ時間1時間。':'')+'</p>';
+    const span=e.elapsedDays<1?(e.elapsedDays*1440<1?_tr('1分未満'):_tf('{n}分', { n: Math.round(e.elapsedDays*1440) })):_tf('{n}日間', { n: Number(e.elapsedDays.toFixed(1)) });
+    return '<div class="me-efficiency"><div class="me-eff-item"><span>'+_tr('記録期間の純増')+'</span><b>'+signed(e.net)+'<small>🏆</small></b><small>'+_tf('{x}の始点 → 終点', { x: span })+'</small></div>'
+      +'<div class="me-eff-item"><span>'+_tr('暦日あたり')+'</span><b>'+signed(e.perDay)+'<small>🏆 '+_tr('/ 日')+'</small></b><small>'+(e.elapsedDays<1?_tr('1日未満の記録を24時間に換算'):_tr('記録期間の純増 ÷ 経過日数'))+'</small></div>'
+      +'<div class="me-eff-item"><span>'+_tr('1試合あたりの実増減')+'</span><b>'+signed(e.perMatch)+'<small>🏆 '+_tr('/ 戦')+'</small></b><small>'+_tf('増減を取得できた {a} / {b}戦', { a: e.exactMatches, b: e.totalMatches })+'</small></div></div>'
+      +'<p class="me-eff-note">'+_tr('暦日には遊んでいない日も含み、空白期間の未収集試合やシーズンリセットの影響を含む場合があります。1戦あたりは取得した実増減のみ。勝率や試合間隔をプレイ時間に換算していません。')+(e.perPlayHour!=null?_tf('実時間を取得できた{n}戦では {x}', { n: e.timedMatches, x: signed(e.perPlayHour) })+' 🏆 '+_tr('/ プレイ時間1時間。'):'')+'</p>';
   }
 
   /* ---- 既存の端末内蓄積（カードページ時代の cr_me_{TAG}）を一度だけサーバーへ移す ---- */
@@ -280,7 +285,7 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
     } catch (e) {
       if (revision !== syncRevision) return;
       if (cached && cached.battles) return;                  // キャッシュが出ているなら黙って諦める
-      err.textContent = '取得できませんでした：' + (e && e.message || e) + '（タグをもう一度確認してください）';
+      err.textContent = _tf('取得できませんでした：{e}（タグをもう一度確認してください）', { e: (e && e.message || e) });
       err.hidden = false;
       $('meBody').hidden = true;
       $('meTagSetup').hidden = false;
@@ -307,11 +312,11 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
     bindTagInput($('meTagInput'));
     $('meTagSave').addEventListener('click', async () => {
       const t = cleanTag($('meTagInput').value);
-      if (t.length < 3) { $('meTagError').textContent = 'タグが短すぎます'; $('meTagError').hidden = false; return; }
+      if (t.length < 3) { $('meTagError').textContent = _tr('タグが短すぎます'); $('meTagError').hidden = false; return; }
       try {
         if (window.CRAuth?.getUser()) await CRAuth.setCrTag(t);
         saveLocalTag(t); startWith(t, true);
-      } catch { $('meTagError').textContent = 'タグを保存できませんでした。接続を確認して、もう一度お試しください。'; $('meTagError').hidden = false; }
+      } catch { $('meTagError').textContent = _tr('タグを保存できませんでした。接続を確認して、もう一度お試しください。'); $('meTagError').hidden = false; }
     });
     $('meTagInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) $('meTagSave').click(); });
     $('meTagChange').addEventListener('click', () => {
@@ -322,7 +327,7 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
       const p = window.CRAuth && CRAuth.getProfile && CRAuth.getProfile();
       const err = $('meTagError');
       if (p && p.crTag) {
-        err.textContent = 'ログイン中のアカウントには #' + cleanTag(p.crTag) + ' が登録されています。ここで保存すると登録タグも更新されます。';
+        err.textContent = _tf('ログイン中のアカウントには #{t} が登録されています。ここで保存すると登録タグも更新されます。', { t: cleanTag(p.crTag) });
         err.hidden = false;
       }
     });
@@ -358,6 +363,8 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
       });
     }
     window.addEventListener('cr-owned-cards', rerender);
+    // i18n.js が後から準備できたとき・言語を切り替えたときに、訳を通して描き直す
+    window.addEventListener('crlangchange', rerender);
 
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMe, { once: true });

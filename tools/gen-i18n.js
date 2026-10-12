@@ -35,9 +35,13 @@ const INDEX_LANGS = REVIEW_MODE ? ['ja'] : ALL;
 const HTMLLANG = { ja: 'ja', en: 'en', es: 'es', 'pt-br': 'pt-BR', fr: 'fr', de: 'de', ru: 'ru', ko: 'ko', 'zh-cn': 'zh-CN', ar: 'ar', tr: 'tr', it: 'it', id: 'id', th: 'th', vi: 'vi', 'zh-tw': 'zh-TW', fa: 'fa', nl: 'nl' };
 const HREFLANG = HTMLLANG;
 const LOCALE = { ja: 'ja_JP', en: 'en_US', es: 'es_ES', 'pt-br': 'pt_BR', fr: 'fr_FR', de: 'de_DE', ru: 'ru_RU', ko: 'ko_KR', 'zh-cn': 'zh_CN', ar: 'ar_AR', tr: 'tr_TR', it: 'it_IT', id: 'id_ID', th: 'th_TH', vi: 'vi_VN', 'zh-tw': 'zh_TW', fa: 'fa_IR', nl: 'nl_NL' };
-const PAGES = ['index.html', 'decks.html', 'strategy.html', 'guide.html', 'about.html', 'faq.html', 'glossary.html'];
-const UTIL = ['support.html', 'contact.html', 'privacy.html'].filter(p => fs.existsSync(path.join(ROOT, p)));
-const GEN = PAGES.concat(UTIL); // 生成対象。UTILはSEO文字列なし＝metaは日本語のまま、lang/hreflang/canonical/assetは付与（404回避＋言語内に留まる）
+// ★2026-10-12：生成するページは人が並べず、ルートの .html から自動で集める（tools/i18n-lib.cjs の genPages）。
+//   新しいページを足せば、言語ページ・訳の対象・サイトマップに自動で入る。外したいページは
+//   <meta name="crdb-i18n" content="off"> を書くか、i18n-lib.cjs の PAGE_EXCLUDE に足す。
+//   日本語のページが noindex（例：マイページ）なら、言語ページも noindex にしてサイトマップに入れない。
+const I18N = require('./i18n-lib.cjs');
+const GEN = I18N.genPages();
+const NOINDEX_PAGES = new Set(GEN.filter(p => I18N.pageNoindex(fs.readFileSync(path.join(ROOT, p), 'utf8'))));
 const TODAY = new Date().toISOString().slice(0, 10);
 
 // 言語別SEO文字列（title / description / keywords）
@@ -326,7 +330,7 @@ function contentDict(lang) {
   _contentCache[lang] = d;
   return d;
 }
-function swapBodyText(html, dict, stats) {
+function swapBodyText(html, dict, stats, fallback) {
   // script/style/コメントを退避（中の「<」で分割が壊れるのを防ぐ）→ テキストノードだけ置換 → 復元
   const vault = [];
   html = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>|<!--[\s\S]*?-->/gi,
@@ -338,7 +342,8 @@ function swapBodyText(html, dict, stats) {
     const key = seg.trim();
     if (!key) continue;
     stats.total++;
-    const tr = dict[key];
+    let tr = dict[key];
+    if ((tr == null || tr === '') && fallback) tr = fallback[key];   // その言語に訳が無ければ英語（2026-10-12）
     if (tr == null || tr === '') continue;
     stats.done++;
     parts[i] = seg.replace(key, () => tr);             // 関数形＝訳文中の$を安全に
@@ -373,7 +378,7 @@ function injectAdSense(html) {
 //    ペルシャ語は AdSense の対応言語に無いので、審査後も置かない。
 const ADS_REVIEW_MODE = true;
 const ADS_NEVER_LANGS = ['fa'];
-const ADS_OFF_PAGES = ['support.html', 'contact.html', 'privacy.html'];
+const ADS_OFF_PAGES = ['support.html', 'contact.html', 'privacy.html', 'me.html'];
 function adsAllowed(lang, page) {
   if (ADS_OFF_PAGES.includes(page)) return false;
   if (lang === 'ja') return true;
@@ -400,13 +405,15 @@ function cornerFootHtml(lang) {
     + mt + '<p class="cg-fcp">' + FCP_NOTE + '</p><!--/CG-FOOT-->';
 }
 function injectSiteFoot(html, lang, page) {
-  let h = html.replace(/<!--SITE-FOOT-->[\s\S]*?<!--\/SITE-FOOT-->/g, '').replace(/<!--CG-FOOT-->[\s\S]*?<!--\/CG-FOOT-->/g, '');
+  // 外すときは後ろの改行も一緒に外す（残すと実行のたびに空行が1行ずつ増え、毎日の更新でページが変わった扱いになる・2026-10-12）
+  //   前に溜まった空行（直す前の実行で増えた分）も、ここで一緒に外す
+  let h = html.replace(/\s*<!--SITE-FOOT-->[\s\S]*?<!--\/SITE-FOOT-->/g, '').replace(/<!--CG-FOOT-->[\s\S]*?<!--\/CG-FOOT-->/g, '');
   if (page === 'index.html') {
     const i = h.indexOf('<nav class="cg-panel"'); const j = i < 0 ? -1 : h.indexOf('</nav>', i);
     if (j > 0) return h.slice(0, j) + cornerFootHtml(lang) + h.slice(j);
     return h;
   }
-  return h.replace(/<\/body>/i, siteFootHtml(lang) + '\n</body>');
+  return h.replace(/\s*<\/body>/i, '\n' + siteFootHtml(lang) + '\n</body>');
 }
 
 function stripAdSense(html) {
@@ -483,11 +490,43 @@ function injectUnpin(html) {
   return html.replace(/<\/head>/i, UNPIN_BLOCK + '\n</head>');
 }
 
+// 人気デッキの「今日の環境のまとめ」の各言語の版（tools/build-static-content.js が毎日書く・2026-10-12）
+let _staticDecks = null;
+function staticDecks(lang) {
+  if (_staticDecks == null) { try { _staticDecks = JSON.parse(fs.readFileSync(path.join(__dirname, 'static-content', 'decks-summary.json'), 'utf8')); } catch (e) { _staticDecks = {}; } }
+  return (_staticDecks.langs || {})[lang] || null;
+}
+// 画面の文の機械訳（js/i18n/<lang>.js）を i18n.js より先に読む。番号は中身から作る（変わった時だけ読み直させる）
+function i18nExtraTag(lang) {
+  const f = path.join(ROOT, 'js', 'i18n', lang + '.js');
+  if (!fs.existsSync(f)) return '';
+  const v = require('crypto').createHash('sha1').update(fs.readFileSync(f)).digest('hex').slice(0, 10);
+  return '<script defer src="/js/i18n/' + lang + '.js?v=' + v + '"></script>\n';
+}
+function injectI18nExtra(html, lang) {
+  const h = html.replace(/<script defer src="\/js\/i18n\/[a-z-]+\.js\?v=[0-9a-f]+"><\/script>\n?/g, '');
+  const tag = i18nExtraTag(lang);
+  if (!tag) return h;
+  return h.replace(/(<script defer src="\/?i18n\.js)/, tag + '$1');
+}
+// 題名と説明文の対応表（SEO）が無いページは、本文の訳（i18n-content）から引く
+function translateMeta(h, lang, page, dict, fallback) {
+  for (const key of I18N.META_KEYS) {
+    const v = I18N.metaContent(h, key);
+    if (!v || !I18N.JA_RE.test(v)) continue;
+    const t = (dict && dict[v.trim()]) || (fallback && fallback[v.trim()]);
+    if (t) h = setMeta(h, key, String(t).replace(/"/g, '&quot;'));
+  }
+  return h;
+}
 function buildLangPage(srcHtml, lang, page) {
   const seo = (SEO[page] && SEO[page][lang]) || null;
-  const shouldIndex = INDEX_LANGS.includes(lang);
+  const shouldIndex = INDEX_LANGS.includes(lang) && !NOINDEX_PAGES.has(page);
   let h = stripHreflang(srcHtml);
-  // 日本語のページだけの欄（例：人気デッキの「今日の環境のまとめ」）は言語ページに入れない（日本語が漏れないように・2026-10-12）
+  // 人気デッキの「今日の環境のまとめ」は、その言語の版があれば入れ替える（無ければ外す）
+  const sd = page === 'decks.html' ? staticDecks(lang) : null;
+  if (sd) h = h.replace(/<!--JA-ONLY--><!--STATIC-DECKS-->[\s\S]*?<!--\/STATIC-DECKS--><!--\/JA-ONLY-->/, () => sd);
+  // 日本語のページだけの欄は言語ページに入れない（日本語が漏れないように・2026-10-12）
   h = h.replace(/<!--JA-ONLY-->[\s\S]*?<!--\/JA-ONLY-->\n?/g, '');
   h = h.replace(/<html lang="ja">/, '<html lang="' + HTMLLANG[lang] + '">');
   h = absolutizeAssets(h);
@@ -505,14 +544,18 @@ function buildLangPage(srcHtml, lang, page) {
   h = setMeta(h, 'og:url', url);
   h = setRobots(h, shouldIndex ? 'index,follow' : 'noindex,follow');
   h = setCanonical(h, url);
-  if (shouldIndex) h = h.replace(/<\/head>/i, hreflangBlock(page) + '\n</head>');
+  // hreflang は noindex のページにも書く（言語の切り替えでその言語の版へ移るのに使う）
+  if (INDEX_LANGS.includes(lang)) h = h.replace(/<\/head>/i, hreflangBlock(page) + '\n</head>');
   h = injectUnpin(injectVT(injectTheme(injectGA(h))));
   h = (shouldIndex && adsAllowed(lang, page)) ? injectAdSense(h) : stripAdSense(h);
   h = injectSiteFoot(h, lang, page);
+  h = injectI18nExtra(h, lang);
   const cdict = contentDict(lang);
-  if (cdict) {
+  const fb = lang === 'en' ? null : contentDict('en');
+  if (!seo) h = translateMeta(h, lang, page, cdict, fb);
+  if (cdict || fb) {
     const st = (SWAP_STATS[lang] = SWAP_STATS[lang] || { total: 0, done: 0 });
-    h = swapBodyText(h, cdict, st);
+    h = swapBodyText(h, cdict || {}, st, fb);
   }
   return h;
 }
@@ -553,7 +596,7 @@ function writeSitemap() {
   out += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n';
   const cf = { 'index.html': 'weekly', 'decks.html': 'daily', 'strategy.html': 'monthly', 'guide.html': 'monthly', 'about.html': 'yearly', 'faq.html': 'monthly', 'glossary.html': 'monthly' };
   const pr = { 'index.html': '1.0', 'decks.html': '0.9', 'strategy.html': '0.7', 'guide.html': '0.85', 'about.html': '0.65', 'faq.html': '0.7', 'glossary.html': '0.7' };
-  GEN.forEach(page => {
+  GEN.filter(page => !NOINDEX_PAGES.has(page)).forEach(page => {
     INDEX_LANGS.forEach(lang => {
       out += '  <url>\n    <loc>' + pageUrl(lang, page) + '</loc>\n';
       INDEX_LANGS.forEach(l => { out += '    <xhtml:link rel="alternate" hreflang="' + HREFLANG[l] + '" href="' + pageUrl(l, page) + '"/>\n'; });
@@ -609,7 +652,7 @@ function main() {
   });
   GEN.forEach(p => {
     let h = injectHreflang(src[p], p);
-    h = setRobots(h, 'index,follow');
+    h = setRobots(h, NOINDEX_PAGES.has(p) ? 'noindex,follow' : 'index,follow');
     h = injectUnpin(injectVT(injectTheme(injectGA(adsAllowed('ja', p) ? injectAdSense(h) : stripAdSense(h)))));
     h = injectSiteFoot(h, 'ja', p);
     fs.writeFileSync(path.join(ROOT, p), h);

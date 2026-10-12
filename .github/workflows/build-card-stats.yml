@@ -108,6 +108,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add catalogue js/cards-data.js cards sitemap.xml
           git add i18n.js tools/i18n-content   # 説明文のカード枚数を台帳にそろえた分（tools/sync-card-count.js）
+          # 「今日の環境のまとめ」の各言語の版と、言語フォルダ（新しく足したページの言語版も入る・2026-10-12）
+          git add tools/static-content js/i18n
+          git add -- $(node -e "console.log(require('./tools/i18n-lib.cjs').TARGETS.join(' '))")
           git add -u -- '*.html'
           if git diff --cached --quiet; then
             echo "カードページに差分なし"

@@ -387,30 +387,28 @@ function loadI18nDict() {
   return sb.__DICT || null;
 }
 function lintI18nCoverage() {
-  console.log('\n[1h] 翻訳の取りこぼし：翻訳の関数に渡している日本語に英語の訳があるか');
-  const dict = loadI18nDict();
-  if (!dict || !dict.en) { fail('i18n.js から訳語の表（DICT）を読めなかった'); return; }
-  const jp = /[぀-ヿ一-鿿]/;
-  const call = /(?:\b_tr|\b_tf|\bTRF|\bTR|\bT|CRI18N\.tr|CRI18N\.t)\(\s*(['"`])((?:(?!\1)[^\\\n]|\\.)*?)\1/g;   // _tf / TRF は文ごと訳す形
-  const files = fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js') && !SKIP_FILES.has(f)).map(f => 'js/' + f).concat(['auth.js']);
-  const missing = new Map();
-  let used = 0;
-  for (const f of files) {
-    let s; try { s = fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { continue; }
-    for (const m of s.matchAll(call)) {
-      const k = m[2];
-      if (!jp.test(k) || k.includes('${')) continue;
-      used++;
-      // 先頭の絵文字は残して残りを訳す決まり（i18n.js の tr）に合わせて、外した文でも探す
-      const rest = k.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '');
-      if (dict.en[k] == null && dict.en[rest] == null && !missing.has(k)) missing.set(k, f);
-    }
-  }
-  for (const [k, f] of missing) fail(f + ' の「' + k.slice(0, 40) + '」に英語の訳が無い → i18n.js の DICT.en に足す');
-  const roles = [...new Set(loadCards().CARDS.map(c => c.role).filter(Boolean))];
-  const noRole = roles.filter(r => dict.en[r] == null);
-  if (noRole.length) console.log('  △ カードの役割 ' + noRole.length + '件に英語の訳が無い（日本語以外のページでは空で出る）: ' + noRole.slice(0, 5).join(' / '));
-  if (!missing.size) ok('翻訳の関数に渡している日本語 ' + used + '件すべてに英語の訳あり／カードの役割 ' + (roles.length - noRole.length) + '/' + roles.length + '件');
+  console.log('\n[1h] 翻訳の取りこぼし：画面の文とページの本文に英語の訳があるか（ほかの言語は数だけ）');
+  // 訳す対象は tools/i18n-lib.cjs が自動で集める（ルートの .html・JS の翻訳関数と印・カードの役割・属性）。2026-10-12 に一本化
+  let I;
+  try { I = require('./i18n-lib.cjs'); } catch (e) { fail('tools/i18n-lib.cjs を読めなかった: ' + e.message); return; }
+  let items, statics, DICT;
+  try { items = I.runtimeItems(); statics = [...I.staticItems().keys()]; DICT = I.loadI18n().DICT; } catch (e) { fail('訳す対象を集められなかった: ' + e.message); return; }
+  const memEn = I.runtimeMemory('en'), conEn = I.contentMemory('en');
+  const noEn = items.filter(it => DICT.en[it.key] == null && memEn[it.key] == null);
+  const noEnStatic = statics.filter(k => conEn[k] == null || conEn[k] === '');
+  noEn.slice(0, 20).forEach(it => fail('画面の文「' + it.ja.slice(0, 40) + '」に英語の訳が無い'));
+  noEnStatic.slice(0, 20).forEach(k => fail('ページの本文「' + k.slice(0, 40) + '」に英語の訳が無い'));
+  if (noEn.length > 20 || noEnStatic.length > 20) fail('ほかにも英語の訳が無い文がある（画面の文 ' + noEn.length + '・本文 ' + noEnStatic.length + '）');
+  if (noEn.length || noEnStatic.length) console.log('  直し方：Mac Studio で node tools/i18n-translate.js --fill --engine gemini-local → node tools/gen-i18n.js（英語が無い文は言語ページで日本語のまま出る）');
+  // ほかの言語：無い分は英語で出る（日本語は出ない）。数だけ出して、毎回の失敗にはしない
+  const rows = I.TARGETS.filter(l => l !== 'en').map(l => {
+    const mem = I.runtimeMemory(l), con = I.contentMemory(l);
+    const rt = items.filter(it => !I.runtimeHas(l, it.key, mem)).length;
+    const st = statics.filter(k => con[k] == null || con[k] === '').length;
+    return l + ' ' + rt + '/' + st;
+  });
+  console.log('  言語ごとの未訳（画面の文/本文・無い分は英語で出る）: ' + rows.join('　'));
+  if (!noEn.length && !noEnStatic.length) ok('画面の文 ' + items.length + '件・ページの本文 ' + statics.length + '件すべてに英語の訳あり（ページ ' + I.genPages().length + '）');
 }
 
 

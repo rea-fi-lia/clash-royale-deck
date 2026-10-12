@@ -101,6 +101,20 @@ function TR(s) { return (!window.CRI18N || CRI18N.lang === 'ja') ? cardDisplayNa
 // カードの役割の文（台帳は日本語だけ）。日本語以外では訳し、訳が英語にも無いときは日本語を出さずに空にする（2026-10-12）
 function roleText(role) { if (!role) return ''; if (!window.CRI18N || CRI18N.lang === 'ja') return role; const t = CRI18N.tr(role); return t === role ? '' : t; }
 function TRF(tpl, vars) { return String(TR(tpl)).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? vars[k] : m)); }
+// ★2026-10-12：アシスト欄を言語ページで日本語のまま出さないための部品
+//   TRJ … 日本語のページか（文のつなぎ方を変える）
+//   TRX … 自由に組み立てた文：訳があれば訳、無ければ日本語以外のページでは出さない（空にする）
+//   LBL … 印だけ（値は日本語のまま返す）。訳の対象を集める道具がこの印の文を拾い、表示する所で TR／TRX を通す
+function TRJ() { return !window.CRI18N || CRI18N.lang === 'ja'; }
+function TRX(s) {
+  if (!s) return '';
+  if (TRJ()) return s;
+  const t = String(CRI18N.tr(s));
+  return (/^zh/.test(CRI18N.lang) ? /[\u3040-\u30ff]/ : /[\u3040-\u30ff\u4e00-\u9fff]/).test(t) ? '' : t;
+}
+function LBL(s) { return s; }
+function TRPLUS() { return TRJ() ? '＋' : ' + '; }
+function TRSEP() { return TRJ() ? '・' : ' · '; }
 // 言語切替時：数値入りの動的表示（平均コストの枚数など）を現在言語で作り直す
 window.addEventListener('crlangchange', () => { try { showDeckStats(deck); updateActionButtons(); updateAssistPanel(); } catch (e) {} });
 
@@ -607,9 +621,9 @@ function assistCardTiming(c) {
 }
 function assistTimingLabel(t) {
   if (!t) return '';
-  if (t.three >= 7.1 && t.three >= t.one + 1.2) return '延長で伸びる';
-  if (t.two >= 7.0 && t.two >= t.one + 0.8) return '2倍から形を作る';
-  if (t.one >= 6.8) return '序盤から動ける';
+  if (t.three >= 7.1 && t.three >= t.one + 1.2) return LBL('延長で伸びる');
+  if (t.two >= 7.0 && t.two >= t.one + 0.8) return LBL('2倍から形を作る');
+  if (t.one >= 6.8) return LBL('序盤から動ける');
   return '';
 }
 function assistDeckTiming(info) {
@@ -648,9 +662,9 @@ function assistCardTolerance(c) {
   return assistClamp10(s);
 }
 function assistToleranceLabel(x) {
-  if (x >= 7.1) return '受けて返す';
-  if (x >= 4.7) return '少し受けて返す';
-  return '被弾を抑える';
+  if (x >= 7.1) return LBL('受けて返す');
+  if (x >= 4.7) return LBL('少し受けて返す');
+  return LBL('被弾を抑える');
 }
 function assistDeckTolerance(info) {
   const cards = (info && info.cards) || [];
@@ -738,7 +752,7 @@ function assistDirectionScore(c, dir, info) {
   return 0;
 }
 function assistDirectionLabel(dir) {
-  return dir === 'attack' ? '攻撃強化' : dir === 'defense' ? '防衛強化' : dir === 'cycle' ? '回転力強化' : '';
+  return dir === 'attack' ? LBL('攻撃強化') : dir === 'defense' ? LBL('防衛強化') : dir === 'cycle' ? LBL('回転力強化') : '';
 }
 const ASSIST_SIEGE_BUILDINGS = new Set(['巨大クロスボウ', '迫撃砲']);
 const ASSIST_ATTACK_BUILDINGS = new Set(['ゴブリンドリル']);
@@ -1101,10 +1115,10 @@ function assistDeckInfo() {
   const mainW = wincons[0] && assistWincon(wincons[0]);
   const mainAxes = (mainW && Array.isArray(mainW.axes)) ? mainW.axes : [];
   const mainAttack = (mainW && mainW.attackType) || '';
-  const style = cards.length === 0 ? 'まだ方向未定'
-    : (wincons.length ? TR(wincons[0].name) + '軸' : '主軸探し中')
-      + '・' + (cycleAvg && cycleAvg <= 2.4 ? '回しやすい' : avg >= 4.2 ? '重め' : '中速')
-      + (spells.length ? '・呪文あり' : '・呪文なし');
+  const style = cards.length === 0 ? TR('まだ方向未定')
+    : (wincons.length ? TRF('{x}軸', { x: TR(wincons[0].name) }) : TR('主軸探し中'))
+      + TRSEP() + (cycleAvg && cycleAvg <= 2.4 ? TR('回しやすい') : avg >= 4.2 ? TR('重め') : TR('中速'))
+      + TRSEP() + (spells.length ? TR('呪文あり') : TR('呪文なし'));
   const personaAxes = (typeof getPersonaAxes === 'function') ? getPersonaAxes() : null;
   // 空きスロットの種類を把握（idx0=進化枠 / idx1=ヒーロー・チャンピオン枠 / idx2=ワイルド枠(進化orヒーロー) / idx3-7=通常）
   // 例：進化枠/ワイルド枠が両方埋まっていると、カードの「進化として強い」価値は出せない＝特別枠ボーナスを乗せない。
@@ -1490,40 +1504,43 @@ function assistReason(c, kind, info) {
     }
   }
   if (bx && (bx.score || 0) >= 18) {
-    const pairName = TR(bx.a) + '＋' + TR(bx.b);
-    if (bx.kind === 'coveragePatch') return pairName + 'で苦しくなりやすい相手を受けやすくします。';
-    if (bx.kind === 'resultLift') return pairName + 'の勝ち筋を太くしやすい1枚です。';
-    return pairName + 'の攻め方や受け方をつなげやすい1枚です。';
+    const pairName = TR(bx.a) + TRPLUS() + TR(bx.b);
+    if (bx.kind === 'coveragePatch') return TRF('{x}で苦しくなりやすい相手を受けやすくします。', { x: pairName });
+    if (bx.kind === 'resultLift') return TRF('{x}の勝ち筋を太くしやすい1枚です。', { x: pairName });
+    return TRF('{x}の攻め方や受け方をつなげやすい1枚です。', { x: pairName });
   }
   if (kind === 'natural') {
     if (!info.wincons.length) {
-      if (w && w.class === '勝ち筋') return 'まず勝ち方の主役を作れます。';
-      if (t === 'wincon') return 'まず勝ち方の主役を作れます。';
+      if (w && w.class === '勝ち筋') return TR('まず勝ち方の主役を作れます。');
+      if (t === 'wincon') return TR('まず勝ち方の主役を作れます。');
     }
-    const mainName = info.wincons.length ? TR(info.wincons[0].name) : '主軸';
-    if (bx && (bx.score || 0) >= 16) return TR(bx.a) + '＋' + TR(bx.b) + 'の形を通しやすくする1枚です。';
-    if (size === 'small') return mainName + 'を通すための小型呪文。道を開けつつ少し圧もかけられます。';
-    if (bp && bp.tier === 'clear') return TR(bp.other) + 'とはっきり噛み合う1枚です。攻め方も受け方もつながります。';
-    if (bp && bp.tier === 'type') return TR(bp.other) + 'と組むと形がきれいにまとまる1枚です。';
-    if (bp && (bp.weighted || 0) >= 12) return TR(bp.other) + 'と合わせると、今の形に自然に足せます。';
-    if (p && p.partner) return '今の構成に組み合わせ先があり、' + mainName + 'を伸ばせます。';
-    if (assistIsTrueAir(c) || assistTagHas(c, 'splash')) return mainName + 'の後ろから守って撃てる支援役です。';
-    return mainName + 'をそのまま伸ばしやすい候補です。';
+    const mainName = info.wincons.length ? TR(info.wincons[0].name) : TR('主軸');
+    if (bx && (bx.score || 0) >= 16) return TRF('{x}の形を通しやすくする1枚です。', { x: TR(bx.a) + TRPLUS() + TR(bx.b) });
+    if (size === 'small') return TRF('{x}を通すための小型呪文。道を開けつつ少し圧もかけられます。', { x: mainName });
+    if (bp && bp.tier === 'clear') return TRF('{x}とはっきり噛み合う1枚です。攻め方も受け方もつながります。', { x: TR(bp.other) });
+    if (bp && bp.tier === 'type') return TRF('{x}と組むと形がきれいにまとまる1枚です。', { x: TR(bp.other) });
+    if (bp && (bp.weighted || 0) >= 12) return TRF('{x}と合わせると、今の形に自然に足せます。', { x: TR(bp.other) });
+    if (p && p.partner) return TRF('今の構成に組み合わせ先があり、{x}を伸ばせます。', { x: mainName });
+    if (assistIsTrueAir(c) || assistTagHas(c, 'splash')) return TRF('{x}の後ろから守って撃てる支援役です。', { x: mainName });
+    return TRF('{x}をそのまま伸ばしやすい候補です。', { x: mainName });
   }
   if (kind === 'stable') {
-    if (info.air.length < 2 && assistIsTrueAir(c)) return '対空が薄いので、空中の攻めへの受けが安定します。';
-    if (assistSpellTarget != null && info.spells.length < assistSpellTarget && assistIsSpell(c)) return '目安に合わせつつ、小物処理や押し込みの選択肢を足せます。';
-    if (!info.splash.length && (assistTagHas(c, 'splash') || assistHas(c, ['範囲','小型処理']))) return '範囲処理を足して、小物で崩されにくくします。';
-    if (!info.dps.length && (assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp'))) return '相手のタンクを溶かす役がいないので、守りが安定します。';
-    if (info.avg >= 4.0 && c.cost <= 2) return '重めなので、回転を少し整える候補です。';
-    return '今の穴を埋めて、事故を減らす候補です。';
+    if (info.air.length < 2 && assistIsTrueAir(c)) return TR('対空が薄いので、空中の攻めへの受けが安定します。');
+    if (assistSpellTarget != null && info.spells.length < assistSpellTarget && assistIsSpell(c)) return TR('目安に合わせつつ、小物処理や押し込みの選択肢を足せます。');
+    if (!info.splash.length && (assistTagHas(c, 'splash') || assistHas(c, ['範囲','小型処理']))) return TR('範囲処理を足して、小物で崩されにくくします。');
+    if (!info.dps.length && (assistTagHas(c, 'tankKiller') || assistTagHas(c, 'ramp'))) return TR('相手のタンクを溶かす役がいないので、守りが安定します。');
+    if (info.avg >= 4.0 && c.cost <= 2) return TR('重めなので、回転を少し整える候補です。');
+    return TR('今の穴を埋めて、事故を減らす候補です。');
   }
-  if (bp && bp.tier === 'discovery') return TR(bp.other) + 'と合わせると勝ち方が良くなりやすい、隠れた相性の1枚です。';
-  if (w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) return 'もう一つの圧を足して、相手の受け方を迷わせます。';
-  if (assistIsSecondary(c)) return 'もう一つの圧を足して、相手の受け方を迷わせます。';
-  return '少し違う攻め方や面白さを足せる候補です。';
+  if (bp && bp.tier === 'discovery') return TRF('{x}と合わせると勝ち方が良くなりやすい、隠れた相性の1枚です。', { x: TR(bp.other) });
+  if (w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) return TR('もう一つの圧を足して、相手の受け方を迷わせます。');
+  if (assistIsSecondary(c)) return TR('もう一つの圧を足して、相手の受け方を迷わせます。');
+  return TR('少し違う攻め方や面白さを足せる候補です。');
 }
 // 「理由を詳しく」用の補足文。役割の穴・噛み合い・倍速適性などを1〜2文で添える。
+// 「理由を詳しく」の勝負所の一文（訳しやすいように文ごと持つ）
+const TJ_SENTENCE = { '延長で伸びる': '延長で伸びる1枚です。', '2倍から形を作る': '2倍から形を作る1枚です。', '序盤から動ける': '序盤から動ける1枚です。' };
+LBL('延長で伸びる1枚です。'); LBL('2倍から形を作る1枚です。'); LBL('序盤から動ける1枚です。');   // 訳の対象を集める道具に見せるための印（値は使わない）
 function assistDetail(c, kind, info) {
   const p = assistPotential(c);
   const w = assistWincon(c);
@@ -1531,27 +1548,28 @@ function assistDetail(c, kind, info) {
   const bp = assistBestPair(c, info);
   const bx = assistBestPairExtension(c, info);
   if (bx && (bx.score || 0) >= 12) {
-    const why = bx.kind === 'coveragePatch' ? 'この形で苦しくなりやすい相手への受けも補えます。'
-      : bx.kind === 'resultLift' ? '攻め切る形や守り切る形を作りやすくなります。'
-      : 'この2枚の形を前に進めやすい候補です。';
-    parts.push(TR(bx.a) + '＋' + TR(bx.b) + 'の形に足すと、攻め方や受け方をつなげやすくなります。' + why);
+    const why = bx.kind === 'coveragePatch' ? TR('この形で苦しくなりやすい相手への受けも補えます。')
+      : bx.kind === 'resultLift' ? TR('攻め切る形や守り切る形を作りやすくなります。')
+      : TR('この2枚の形を前に進めやすい候補です。');
+    parts.push(TRF('{x}の形に足すと、攻め方や受け方をつなげやすくなります。', { x: TR(bx.a) + TRPLUS() + TR(bx.b) }), why);
   }
   if (bp && (assistTierRank(bp.tier) >= assistTierRank('discovery') || (bp.weighted || 0) >= 8)) {
-    const why = bp.tier === 'clear' ? 'いろいろな形ではっきり効きやすい組み合わせです。'
-      : bp.tier === 'type' ? '形がはっきり出やすい組み合わせです。'
-      : bp.tier === 'discovery' ? '合わせると勝ち方が良くなりやすい隠れた相性です。'
-      : '並べると役割がつながりやすい組み合わせです。';
-    parts.push(TR(bp.other) + 'と合わせると、今の形を作りやすくなります。' + why);
+    const why = bp.tier === 'clear' ? TR('いろいろな形ではっきり効きやすい組み合わせです。')
+      : bp.tier === 'type' ? TR('形がはっきり出やすい組み合わせです。')
+      : bp.tier === 'discovery' ? TR('合わせると勝ち方が良くなりやすい隠れた相性です。')
+      : TR('並べると役割がつながりやすい組み合わせです。');
+    parts.push(TRF('{x}と合わせると、今の形を作りやすくなります。', { x: TR(bp.other) }), why);
   }
-  if (p && p.partner) parts.push('組み合わせたい相手: ' + p.partner + '。');
-  if (p && p.scaling) parts.push('伸び方は「' + p.scaling + '」型です。');
+  if (p && p.partner) parts.push(TRF('組み合わせたい相手: {x}。', { x: TRX(p.partner) || p.partner }));
+  if (p && p.scaling) parts.push(TRF('伸び方は「{x}」型です。', { x: TRX(p.scaling) || p.scaling }));
   const timingLabel = assistTimingLabel(assistCardTiming(c));
-  if (timingLabel) parts.push(timingLabel + '1枚です。');
+  if (timingLabel) parts.push(TJ_SENTENCE[timingLabel] ? TR(TJ_SENTENCE[timingLabel]) : timingLabel + '1枚です。');
   // 注意点（穴が残る）を正直に添える＝押し付けない
-  if (kind === 'natural' && info.air.length < 1 && !assistIsTrueAir(c)) parts.push('ただし対空は増えないので、次は空受けを足したいです。');
-  if (kind === 'discovery' && w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) parts.push('単体ではなく、組み合わせるとタワーダメージにつながります。');
-  if (!parts.length) parts.push('今の方向を崩さずに足せる、扱いやすい1枚です。');
-  return parts.join('');
+  if (kind === 'natural' && info.air.length < 1 && !assistIsTrueAir(c)) parts.push(TR('ただし対空は増えないので、次は空受けを足したいです。'));
+  if (kind === 'discovery' && w && (w.class === '第2勝ち筋' || w.class === '補助勝ち筋')) parts.push(TR('単体ではなく、組み合わせるとタワーダメージにつながります。'));
+  if (!parts.length) parts.push(TR('今の方向を崩さずに足せる、扱いやすい1枚です。'));
+  // 日本語のページ以外は、訳の無い文だけ外して空白でつなぐ（日本語を混ぜない）
+  return TRJ() ? parts.join('') : parts.map(TRX).filter(Boolean).join(' ');
 }
 function assistBadges(c, info) {
   const badges = [];
@@ -1559,45 +1577,46 @@ function assistBadges(c, info) {
   const p = assistPotential(c);
   const tags = assistTags(c);
   if (w && w.class) {
-    const label = w.class === '勝ち筋' ? '主役級'
-      : (w.class === '第2勝ち筋' || w.class === '補助勝ち筋') ? '追加の圧'
-      : w.class === 'サイクル札' ? '回転調整'
-      : w.class === '防衛札' ? '守り安定'
-      : w.class === '変数カード' ? 'コンボ札'
+    const label = w.class === '勝ち筋' ? TR('主役級')
+      : (w.class === '第2勝ち筋' || w.class === '補助勝ち筋') ? TR('追加の圧')
+      : w.class === 'サイクル札' ? TR('回転調整')
+      : w.class === '防衛札' ? TR('守り安定')
+      : w.class === '変数カード' ? TR('コンボ札')
       : '';
     if (label) badges.push(label);
   }
-  if (p && p.partner) badges.push('組み合わせ: ' + p.partner);
+  if (p && p.partner) badges.push(TRF('組み合わせ: {x}', { x: TRX(p.partner) || p.partner }));
   if (p && p.scaling) badges.push(p.scaling);
   const timingLabel = assistTimingLabel(assistCardTiming(c));
-  if (timingLabel) badges.push(timingLabel);
+  if (timingLabel) badges.push(TRX(timingLabel));
   const tol = assistCardTolerance(c);
-  if (tol >= 7.2) badges.push('受けて返す');
-  if (p && p.solo === '◎') badges.push('単体でも動ける');
+  if (tol >= 7.2) badges.push(TR('受けて返す'));
+  if (p && p.solo === '◎') badges.push(TR('単体でも動ける'));
   const bp = info ? assistBestPair(c, info) : null;
   const bx = info ? assistBestPairExtension(c, info) : null;
   if (bx && (bx.score || 0) >= 12) {
-    badges.push(bx.kind === 'coveragePatch' ? '苦手を受ける'
-      : bx.kind === 'resultLift' ? '勝ち筋を太く'
-      : '2枚を伸ばす');
+    badges.push(bx.kind === 'coveragePatch' ? TR('苦手を受ける')
+      : bx.kind === 'resultLift' ? TR('勝ち筋を太く')
+      : TR('2枚を伸ばす'));
   }
-  if (bp && bp.tier === 'clear') badges.push('明確: ' + TR(bp.other));
-  else if (bp && bp.tier === 'type') badges.push('型: ' + TR(bp.other));
-  else if (bp && bp.tier === 'discovery') badges.push('隠れ相性: ' + TR(bp.other));
-  else if (bp && (bp.weighted || 0) >= 12) badges.push('合わせやすい: ' + TR(bp.other));
+  if (bp && bp.tier === 'clear') badges.push(TRF('明確: {x}', { x: TR(bp.other) }));
+  else if (bp && bp.tier === 'type') badges.push(TRF('型: {x}', { x: TR(bp.other) }));
+  else if (bp && bp.tier === 'discovery') badges.push(TRF('隠れ相性: {x}', { x: TR(bp.other) }));
+  else if (bp && (bp.weighted || 0) >= 12) badges.push(TRF('合わせやすい: {x}', { x: TR(bp.other) }));
   const nr = info ? assistBestStageNeed(c, info) : null;
   if (nr && nr.fit >= 6.5) badges.push(nr.need.label);
   const dev = info ? assistDevelopmentSummary(info.developmentIntent) : '';
-  if (dev && assistDevelopmentFit(c, info, 'natural') >= 12) badges.push('開発: ' + dev.split(' / ')[0]);
+  if (dev && assistDevelopmentFit(c, info, 'natural') >= 12) badges.push(TRF('開発: {x}', { x: dev.split(' / ')[0] }));
   const v = info ? assistVector(c) : null;
   const sub = v && v.sub ? v.sub : {};
-  if ((+sub.range || 0) >= 7) badges.push('射程で圧');
-  if ((+sub.tempo || 0) >= 7) badges.push('手数あり');
-  if ((+sub.rage || 0) >= 7 && (assistHas(c, ['レイジ','デスレイジ','バフ']) || assistTagHas(c, 'ramp') || c.type === 'building')) badges.push('速度で伸びる');
-  if (tags.has('air')) badges.push('対空');
-  if (tags.has('splash')) badges.push('範囲');
-  if (tags.has('tankKiller')) badges.push('高火力');
-  return [...new Set(badges)].slice(0, 3);
+  if ((+sub.range || 0) >= 7) badges.push(TR('射程で圧'));
+  if ((+sub.tempo || 0) >= 7) badges.push(TR('手数あり'));
+  if ((+sub.rage || 0) >= 7 && (assistHas(c, ['レイジ','デスレイジ','バフ']) || assistTagHas(c, 'ramp') || c.type === 'building')) badges.push(TR('速度で伸びる'));
+  if (tags.has('air')) badges.push(TR('対空'));
+  if (tags.has('splash')) badges.push(TR('範囲'));
+  if (tags.has('tankKiller')) badges.push(TR('高火力'));
+  // 日本語のページ以外は、訳の無い札（データから来る名前など）を外す
+  return [...new Set(TRJ() ? badges : badges.map(TRX).filter(Boolean))].slice(0, 3);
 }
 function assistRotateStep(span, seed) {
   if (span <= 1) return 1;
@@ -1751,7 +1770,7 @@ function assistDirectionBlocks(info) {
   });
 }
 function assistKindLabel(kind) {
-  return kind === 'natural' ? '自然候補' : kind === 'stable' ? '安定候補' : '発見候補';
+  return kind === 'natural' ? LBL('自然候補') : kind === 'stable' ? LBL('安定候補') : LBL('発見候補');
 }
 function assistKindIcon(kind) {
   return kind === 'natural' ? '🌱' : kind === 'stable' ? '🛡' : '✨';
@@ -1870,46 +1889,46 @@ function assistThreatRows(info) {
     if (!ranked.length) return;
     rows.push({ id, title, severity, text, need, responses: ranked });
   }
-  add('airBig', '空中大型が重い', (2 - info.air.length) * 32 + (info.buildings.length ? 0 : 10) + (info.dps.length ? 0 : 8), 'ラヴァやバルーン系を受ける札が少なめです。', '空受け');
-  add('swarmBait', '小物で止まりやすい', (!info.smallSpells.length ? 38 : 0) + (!info.splash.length ? 24 : 0), 'バレルや群れで道をふさがれると攻めが止まりやすいです。', '小物処理');
-  add('tankPush', 'タンク受けが薄い', (!info.dps.length ? 42 : 0) + (!info.buildings.length ? 18 : 0), '大型を前に置かれた時、溶かす役がもう少し欲しい形です。', '高火力');
-  add('fastPressure', '速い攻めに遅れやすい', (info.avg >= 3.8 ? 18 : 0) + (!info.buildings.length ? 20 : 0) + (info.cycles.length < 2 ? 14 : 0), 'ホグや橋前の速い攻めに、受けの初手が重くなりやすいです。', '軽い受け');
-  add('buildingWall', '建物で受けられやすい', (info.wincons.length ? 18 : 0) + (!info.spells.some(c => ['アースクエイク','ライトニング','ファイアボール','ポイズン'].includes(c.name)) ? 20 : 0), '主役を建物で止められた時の押し込みが少し欲しいです。', '道を開ける札');
-  add('siegeLock', '射程勝負で固められやすい', (info.wincons.length ? 12 : 0) + (!info.spells.some(c => ['アースクエイク','ライトニング','ファイアボール','ロケット'].includes(c.name)) ? 18 : 0) + (!info.secondaries.length ? 8 : 0), '遠くから削る形に対して、崩し方をもう少し用意したいです。', '射程処理');
-  add('drillMiner', '足元の削りが重い', (!info.smallSpells.length ? 26 : 0) + (!info.splash.length ? 16 : 0) + (info.cycles.length < 2 ? 12 : 0), 'タワー足元への細かい圧に、受けの手数を作りたい形です。', '軽い受け');
-  add('rangedSupport', '後衛が残りやすい', (!info.spells.some(c => c.cost >= 4) ? 20 : 0) + (!info.splash.length ? 10 : 0) + (!info.secondaries.length ? 8 : 0), '遠距離支援が残ると、攻めも守りも少し窮屈になりやすいです。', '後衛処理');
-  add('resetDemand', '高火力で溶かされやすい', (!info.cards.some(c => assistTagHas(c, 'stun') || assistTagHas(c, 'stop') || assistHas(c, ['気絶','停止'])) ? 24 : 0) + (!info.smallSpells.length ? 14 : 0), '高火力の処理役に対して、止める・ずらす手段を足したい形です。', 'リセット/足止め');
-  add('graveyardControl', 'タワー周りが荒れやすい', (!info.splash.length ? 22 : 0) + (!info.smallSpells.length ? 18 : 0) + (info.avg >= 3.8 ? 8 : 0), 'タワー周りに出る細かい攻めへ、安定した処理を作りたいです。', '面処理');
+  add('airBig', LBL('空中大型が重い'), (2 - info.air.length) * 32 + (info.buildings.length ? 0 : 10) + (info.dps.length ? 0 : 8), LBL('ラヴァやバルーン系を受ける札が少なめです。'), LBL('空受け'));
+  add('swarmBait', LBL('小物で止まりやすい'), (!info.smallSpells.length ? 38 : 0) + (!info.splash.length ? 24 : 0), LBL('バレルや群れで道をふさがれると攻めが止まりやすいです。'), LBL('小物処理'));
+  add('tankPush', LBL('タンク受けが薄い'), (!info.dps.length ? 42 : 0) + (!info.buildings.length ? 18 : 0), LBL('大型を前に置かれた時、溶かす役がもう少し欲しい形です。'), LBL('高火力'));
+  add('fastPressure', LBL('速い攻めに遅れやすい'), (info.avg >= 3.8 ? 18 : 0) + (!info.buildings.length ? 20 : 0) + (info.cycles.length < 2 ? 14 : 0), LBL('ホグや橋前の速い攻めに、受けの初手が重くなりやすいです。'), LBL('軽い受け'));
+  add('buildingWall', LBL('建物で受けられやすい'), (info.wincons.length ? 18 : 0) + (!info.spells.some(c => ['アースクエイク','ライトニング','ファイアボール','ポイズン'].includes(c.name)) ? 20 : 0), LBL('主役を建物で止められた時の押し込みが少し欲しいです。'), LBL('道を開ける札'));
+  add('siegeLock', LBL('射程勝負で固められやすい'), (info.wincons.length ? 12 : 0) + (!info.spells.some(c => ['アースクエイク','ライトニング','ファイアボール','ロケット'].includes(c.name)) ? 18 : 0) + (!info.secondaries.length ? 8 : 0), LBL('遠くから削る形に対して、崩し方をもう少し用意したいです。'), LBL('射程処理'));
+  add('drillMiner', LBL('足元の削りが重い'), (!info.smallSpells.length ? 26 : 0) + (!info.splash.length ? 16 : 0) + (info.cycles.length < 2 ? 12 : 0), LBL('タワー足元への細かい圧に、受けの手数を作りたい形です。'), LBL('軽い受け'));
+  add('rangedSupport', LBL('後衛が残りやすい'), (!info.spells.some(c => c.cost >= 4) ? 20 : 0) + (!info.splash.length ? 10 : 0) + (!info.secondaries.length ? 8 : 0), LBL('遠距離支援が残ると、攻めも守りも少し窮屈になりやすいです。'), LBL('後衛処理'));
+  add('resetDemand', LBL('高火力で溶かされやすい'), (!info.cards.some(c => assistTagHas(c, 'stun') || assistTagHas(c, 'stop') || assistHas(c, ['気絶','停止'])) ? 24 : 0) + (!info.smallSpells.length ? 14 : 0), LBL('高火力の処理役に対して、止める・ずらす手段を足したい形です。'), LBL('リセット/足止め'));
+  add('graveyardControl', LBL('タワー周りが荒れやすい'), (!info.splash.length ? 22 : 0) + (!info.smallSpells.length ? 18 : 0) + (info.avg >= 3.8 ? 8 : 0), LBL('タワー周りに出る細かい攻めへ、安定した処理を作りたいです。'), LBL('面処理'));
   return rows.sort((a, b) => b.severity - a.severity).slice(0, 2);
 }
 function assistThreatHtml(info) {
   const rows = assistThreatRows(info);
-  if (!rows.length) return '<div class="assist-empty">今の形で大きく薄い受けはまだ見えにくいです。もう1〜2枚足すと読みやすくなります。</div>';
+  if (!rows.length) return '<div class="assist-empty">' + esc(TR('今の形で大きく薄い受けはまだ見えにくいです。もう1〜2枚足すと読みやすくなります。')) + '</div>';
   return '<div class="assist-threats">' + rows.map(r => {
     const cards = r.responses.map(x => '<button class="assist-threat-card" type="button" data-threat-card="' + esc(x.card.name) + '">'
       + cardImgTag(x.card.name, 'n', { alt: '' })
-      + '<span><b>' + esc(TR(x.card.name)) + '</b><small>' + esc(r.need) + '</small></span><em>＋</em></button>').join('');
-    return '<div class="assist-threat"><div class="at-head"><span>⚠ ' + esc(r.title) + '</span><small>' + esc(r.need) + '</small></div>'
-      + '<div class="at-text">' + esc(r.text) + '</div><div class="at-cards">' + cards + '</div></div>';
+      + '<span><b>' + esc(TR(x.card.name)) + '</b><small>' + esc(TRX(r.need)) + '</small></span><em>＋</em></button>').join('');
+    return '<div class="assist-threat"><div class="at-head"><span>⚠ ' + esc(TRX(r.title)) + '</span><small>' + esc(TRX(r.need)) + '</small></div>'
+      + '<div class="at-text">' + esc(TRX(r.text)) + '</div><div class="at-cards">' + cards + '</div></div>';
   }).join('') + '</div>';
 }
 function assistChunkTabs(info) {
   const count = assistThreatRows(info).length;
   const active = assistChunk === 'threats' ? 'threats' : 'cards';
-  return '<div class="assist-chunks" role="tablist" aria-label="アシスト表示切替">'
-    + '<button type="button" class="assist-chunk' + (active === 'cards' ? ' active' : '') + '" data-assist-chunk="cards">次の候補</button>'
-    + '<button type="button" class="assist-chunk' + (active === 'threats' ? ' active' : '') + '" data-assist-chunk="threats">苦しい相手' + (count ? '<span>' + count + '</span>' : '') + '</button>'
+  return '<div class="assist-chunks" role="tablist" aria-label="' + esc(TR('アシスト表示切替')) + '">'
+    + '<button type="button" class="assist-chunk' + (active === 'cards' ? ' active' : '') + '" data-assist-chunk="cards">' + esc(TR('次の候補')) + '</button>'
+    + '<button type="button" class="assist-chunk' + (active === 'threats' ? ' active' : '') + '" data-assist-chunk="threats">' + esc(TR('苦しい相手')) + (count ? '<span>' + count + '</span>' : '') + '</button>'
     + '</div>';
 }
 // 4枚目以降の方向チップ「次はどこを伸ばす？」。3枚以上そろってから出す（2枚シナジー/3枚目は既存ロジックに任せる）。
 //  攻撃強化 / 防衛強化 / 回転力強化。選ぶと候補がその方向へ寄る。もう一度押すと解除（自然候補へ戻る）。
 function assistDirectionChipsHtml(info) {
   if (!info || info.cards.length < 3 || info.cards.length >= 8) return '';
-  const opts = [['attack', '攻撃強化'], ['defense', '防衛強化'], ['cycle', '回転力強化']];
+  const opts = [['attack', TR('攻撃強化')], ['defense', TR('防衛強化')], ['cycle', TR('回転力強化')]];
   const chips = opts.map(o => '<button type="button" class="assist-dir-chip' + (assistDirection === o[0] ? ' active' : '') + '" data-assist-dir="' + o[0] + '">' + esc(o[1]) + '</button>').join('');
-  const needs = (info.stageNeeds || []).slice(0, 2).map(n => n.label).join(' / ');
-  const hint = needs ? '<small class="assist-dir-hint">今は ' + esc(needs) + ' も見たい形</small>' : '';
-  return '<div class="assist-dir"><span class="assist-dir-q">次はどこを伸ばす？</span><div class="assist-dir-chips">' + chips + '</div>' + hint + '</div>';
+  const needs = (info.stageNeeds || []).slice(0, 2).map(n => TRX(n.label)).filter(Boolean).join(' / ');
+  const hint = needs ? '<small class="assist-dir-hint">' + esc(TRF('今は {x} も見たい形', { x: needs })) + '</small>' : '';
+  return '<div class="assist-dir"><span class="assist-dir-q">' + esc(TR('次はどこを伸ばす？')) + '</span><div class="assist-dir-chips">' + chips + '</div>' + hint + '</div>';
 }
 // 4枚目以降「伸ばす方向」ブロック（攻撃強化/防衛強化/回転力強化を同時表示）。
 //  各ブロックに独立した「別候補」があり、そのブロックだけ次の候補へローテーションする。
@@ -1919,20 +1938,20 @@ function assistDirectionBlocksHtml(info) {
   const blocks = assistDirectionBlocks(info);
   if (!blocks.some(b => b.card)) return '';
   const cardsHtml = blocks.map(b => {
-    const head = '<div class="adb-head"><span class="adb-title">' + esc(assistDirectionLabel(b.dir)) + '</span>'
-      + (b.total > 1 ? '<button type="button" class="adb-refresh" data-assist-dir-refresh="' + b.dir + '">別候補</button>' : '') + '</div>';
-    if (!b.card) return '<div class="assist-dir-block"><div class="adb-head"><span class="adb-title">' + esc(assistDirectionLabel(b.dir)) + '</span></div><div class="adb-empty">今は無理に足さなくて大丈夫です。</div></div>';
+    const head = '<div class="adb-head"><span class="adb-title">' + esc(TRX(assistDirectionLabel(b.dir))) + '</span>'
+      + (b.total > 1 ? '<button type="button" class="adb-refresh" data-assist-dir-refresh="' + b.dir + '">' + esc(TR('別候補')) + '</button>' : '') + '</div>';
+    if (!b.card) return '<div class="assist-dir-block"><div class="adb-head"><span class="adb-title">' + esc(TRX(assistDirectionLabel(b.dir))) + '</span></div><div class="adb-empty">' + esc(TR('今は無理に足さなくて大丈夫です。')) + '</div></div>';
     const c = b.card;
-    const badges = (b.badges || []).slice(0, 2).map(x => '<span>' + esc(x) + '</span>').join('');
+    const badges = (b.badges || []).slice(0, 2).map(x => TRX(x)).filter(Boolean).map(x => '<span>' + esc(x) + '</span>').join('');
     return '<div class="assist-dir-block">' + head
       + '<div class="assist-dir-card" role="button" tabindex="0" data-assist-card="' + esc(c.name) + '">'
       + (cardImgTag(c.name, 'n', { alt: '' }) || '<span></span>')
       + '<span class="adc-body"><span class="adc-name">' + esc(TR(c.name)) + '</span>'
-      + '<span class="adc-reason">' + esc(b.reason) + '</span>'
+      + '<span class="adc-reason">' + esc(TRX(b.reason)) + '</span>'
       + (badges ? '<span class="adc-badges">' + badges + '</span>' : '') + '</span>'
       + '<span class="adc-add">＋</span></div></div>';
   }).join('');
-  return '<div class="assist-dir-blocks"><div class="assist-dir-blocks-q">' + esc((info.cards.length + 1) + '枚目を伸ばす方向') + '</div>' + cardsHtml + '</div>';
+  return '<div class="assist-dir-blocks"><div class="assist-dir-blocks-q">' + esc(TRF('{n}枚目を伸ばす方向', { n: info.cards.length + 1 })) + '</div>' + cardsHtml + '</div>';
 }
 // =============================================================
 //  6枚目「完成形に寄せる核候補」（5枚見えた時だけ表示）
@@ -1957,13 +1976,13 @@ function assistTemplateCoreRows(info) {
 }
 // 核候補の理由文（プレイヤー向けの自然文。データ臭・テンプレ語は出さない）。
 function assistTemplateCoreReason(c, info, row) {
-  if (assistIsMainWincon(c)) return 'この5枚を勝ち筋としてまとめる核になりやすい1枚です。';
-  if (assistIsSecondary(c)) return 'サブの攻め手として、この5枚に核を足す1枚です。';
-  if (assistIsDefenseBuilding(c) || c.type === 'building') return '守りの軸として、この5枚をまとめやすい1枚です。';
-  if (assistIsSpell(c)) return '呪文枠として、この5枚の形を締める1枚です。';
+  if (assistIsMainWincon(c)) return TR('この5枚を勝ち筋としてまとめる核になりやすい1枚です。');
+  if (assistIsSecondary(c)) return TR('サブの攻め手として、この5枚に核を足す1枚です。');
+  if (assistIsDefenseBuilding(c) || c.type === 'building') return TR('守りの軸として、この5枚をまとめやすい1枚です。');
+  if (assistIsSpell(c)) return TR('呪文枠として、この5枚の形を締める1枚です。');
   return (row && row.variants >= 3)
-    ? '過去の完成形で、この5枚から形をまとめやすい1枚です。'
-    : '近い完成形に寄せる時の核になりやすい1枚です。';
+    ? TR('過去の完成形で、この5枚から形をまとめやすい1枚です。')
+    : TR('近い完成形に寄せる時の核になりやすい1枚です。');
 }
 // 3枠を作る。ランキングを i, i+3, i+6… で3枠に分配（＝所有が排他）し、各枠は自分の所有内だけ回す。
 //  これで「別候補」を押した枠だけ必ず変わり、他の枠は動かない（完全独立）。初期表示は上位3枚。
@@ -1978,25 +1997,25 @@ function assistTemplateCoreHtml(info) {
     const pool = assistSlicePool(owned, ASSIST_TEMPLATE_CORE_POOL);
     const total = pool.length;
     const row = pool[assistAltIndex(assistCoreVariant[i] || 0, total, i)];
-    assistCoreLabelByName[row.card.name] = '6枚目の核候補';
+    assistCoreLabelByName[row.card.name] = LBL('6枚目の核候補');
     return { i, card: row.card, total, reason: assistTemplateCoreReason(row.card, info, row), badges: assistBadges(row.card, info) };
   });
   if (!slots.some(s => s.card)) return '';
   const cardsHtml = slots.map(s => {
     if (!s.card) return '';
-    const head = s.total > 1 ? '<div class="acc-head"><button type="button" class="acc-refresh" data-assist-core-refresh="' + s.i + '">別候補</button></div>' : '';
+    const head = s.total > 1 ? '<div class="acc-head"><button type="button" class="acc-refresh" data-assist-core-refresh="' + s.i + '">' + esc(TR('別候補')) + '</button></div>' : '';
     const c = s.card;
-    const badges = (s.badges || []).slice(0, 2).map(x => '<span>' + esc(x) + '</span>').join('');
+    const badges = (s.badges || []).slice(0, 2).map(x => TRX(x)).filter(Boolean).map(x => '<span>' + esc(x) + '</span>').join('');
     return '<div class="assist-core-block">' + head
       + '<div class="assist-core-card" role="button" tabindex="0" data-assist-card="' + esc(c.name) + '">'
       + (cardImgTag(c.name, 'n', { alt: '' }) || '<span></span>')
       + '<span class="acc-body"><span class="acc-name">' + esc(TR(c.name)) + '</span>'
-      + '<span class="acc-reason">' + esc(s.reason) + '</span>'
+      + '<span class="acc-reason">' + esc(TRX(s.reason)) + '</span>'
       + (badges ? '<span class="acc-badges">' + badges + '</span>' : '') + '</span>'
       + '<span class="acc-add">＋</span></div></div>';
   }).join('');
-  return '<div class="assist-core"><div class="assist-core-q">6枚目：完成形に寄せる核候補</div>'
-    + '<div class="assist-core-note">過去の完成形で、この5枚から形をまとめやすい1枚です。勝ち筋でなくても核になる札を出します。</div>'
+  return '<div class="assist-core"><div class="assist-core-q">' + esc(TR('6枚目：完成形に寄せる核候補')) + '</div>'
+    + '<div class="assist-core-note">' + esc(TR('過去の完成形で、この5枚から形をまとめやすい1枚です。勝ち筋でなくても核になる札を出します。')) + '</div>'
     + '<div class="assist-core-blocks">' + cardsHtml + '</div></div>';
 }
 // 今のデッキ内の「明確／型」な2枚組を見せる（明確シナジーの可視化）。プレイヤー向けの自然文で。
@@ -2007,10 +2026,10 @@ function assistClearSynergyHtml(info) {
   const items = pairs.map(p => {
     const cls = p.tier === 'clear' ? 'clear' : 'type';
     const mark = p.tier === 'clear' ? '◎' : '○';
-    return '<span class="acs-item ' + cls + '">' + mark + ' ' + esc(TR(p.a)) + '＋' + esc(TR(p.b)) + '</span>';
+    return '<span class="acs-item ' + cls + '">' + mark + ' ' + esc(TR(p.a)) + esc(TRPLUS()) + esc(TR(p.b)) + '</span>';
   }).join('');
   const hasClear = pairs.some(p => p.tier === 'clear');
-  const label = hasClear ? '今のデッキではっきり噛み合う組み合わせ' : '今のデッキで形がまとまる組み合わせ';
+  const label = hasClear ? TR('今のデッキではっきり噛み合う組み合わせ') : TR('今のデッキで形がまとまる組み合わせ');
   return '<div class="assist-clear-syn"><span class="acs-q">' + esc(label) + '</span><div class="acs-items">' + items + '</div></div>';
 }
 // 呪文の枚数はプレイヤーの好み。正解ではないので警告や強制はしない（0や4も選べる）。
@@ -2019,16 +2038,18 @@ function assistClearSynergyHtml(info) {
 function assistSpellTargetChipsHtml(info) {
   if (!info || info.cards.length >= 8) return '';
   const cur = info.spells.length;
-  const opts = [['any', '任意'], ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4']];
+  const opts = [['any', TR('任意')], ['0', '0'], ['1', '1'], ['2', '2'], ['3', '3'], ['4', '4']];
   const active = assistSpellTarget == null ? 'any' : String(assistSpellTarget);
   const chips = opts.map(o => '<button type="button" class="assist-spell-chip' + (active === o[0] ? ' active' : '') + '" data-assist-spell-target="' + o[0] + '">' + esc(o[1]) + '</button>').join('');
   const hint = assistSpellTarget == null
-    ? '<small class="assist-spell-hint">正解はなく、好みで選べます</small>'
-    : '<small class="assist-spell-hint">今 呪文' + cur + '枚。目安に寄せて候補を出します</small>';
-  return '<div class="assist-spell"><span class="assist-spell-q">呪文の枚数</span><div class="assist-spell-chips">' + chips + '</div>' + hint + '</div>';
+    ? '<small class="assist-spell-hint">' + esc(TR('正解はなく、好みで選べます')) + '</small>'
+    : '<small class="assist-spell-hint">' + esc(TRF('今 呪文{n}枚。目安に寄せて候補を出します', { n: cur })) + '</small>';
+  return '<div class="assist-spell"><span class="assist-spell-q">' + esc(TR('呪文の枚数')) + '</span><div class="assist-spell-chips">' + chips + '</div>' + hint + '</div>';
 }
 function assistDevelopmentHtml(info) {
   if (!info || info.cards.length >= 8) return '';
+  // 自由入力は日本語の言葉だけを読み取る仕組みなので、日本語のページだけに出す（2026-10-12）
+  if (!TRJ()) return '';
   const intent = info.developmentIntent || assistDevelopmentIntent();
   const summary = assistDevelopmentSummary(intent);
   const chips = summary ? '<div class="assist-dev-chips">' + summary.split(' / ').map(x => '<span>' + esc(x) + '</span>').join('') + '</div>' : '';
@@ -2047,8 +2068,8 @@ function updateAssistTopInfo(info) {
   if (!el) return;
   if (!assistMode || !info) { el.innerHTML = ''; return; }
   const rows = assistThreatRows(info);
-  const threats = rows.length ? rows.map(r => r.title.replace('が重い', '').replace('が薄い', '').replace('に遅れやすい', '')).join(' / ') : TR('大きな穴は少なめ');
-  const needs = (info.stageNeeds || []).slice(0, 2).map(n => n.label).join(' / ');
+  const threats = rows.length ? (TRJ() ? rows.map(r => r.title.replace('が重い', '').replace('が薄い', '').replace('に遅れやすい', '')) : rows.map(r => TRX(r.title)).filter(Boolean)).join(' / ') : TR('大きな穴は少なめ');
+  const needs = (info.stageNeeds || []).slice(0, 2).map(n => TRX(n.label)).filter(Boolean).join(' / ');
   let main = TR('今の読み');
   let sub = '';
   if (info.cards.length >= 8) {
@@ -2059,14 +2080,14 @@ function updateAssistTopInfo(info) {
     sub = TR('1枚選ぶと候補と苦しい相手を読みます');
   } else if (assistChunk === 'threats') {
     main = TR('苦しい相手');
-    sub = rows.length ? rows.map(r => r.title).join(' / ') : TR('もう少し枚数が増えると読みやすいです');
+    sub = rows.length ? rows.map(r => TRX(r.title)).filter(Boolean).join(' / ') : TR('もう少し枚数が増えると読みやすいです');
   } else {
     main = TRF('{n}/8枚', { n: info.cards.length });
     // 勝負所（延長で伸びる等）と被ダメ許容（少し受けて返す等）を軽く添える。カード特性から読む＝既存の1倍/2倍/3倍列は使わない。
     const read = info.cards.length >= 3
-      ? [info.timing && info.timing.label, info.tolerance && info.tolerance.label].filter(Boolean).join('・')
+      ? [info.timing && TRX(info.timing.label), info.tolerance && TRX(info.tolerance.label)].filter(Boolean).join(TRSEP())
       : '';
-    sub = info.style + (read ? '｜' + read : '') + (needs ? '｜次: ' + needs : '') + '｜苦: ' + threats;
+    sub = info.style + (read ? '｜' + read : '') + (needs ? '｜' + TRF('次: {x}', { x: needs }) : '') + '｜' + TRF('苦: {x}', { x: threats });
   }
   const go = assistChunk === 'threats' ? TR('候補へ') : TR('受けへ');
   el.innerHTML = '<span class="ati-main">' + esc(main) + '</span><span class="ati-sub">' + esc(sub) + '</span><span class="ati-go">' + esc(go) + '</span>';
@@ -2102,25 +2123,26 @@ function updateAssistPanel() {
   }
   const cardsHtml = assistSuggestions.length ? '<div class="assist-cards">' + assistSuggestions.map(s => {
     const c = s.card;
-    const badges = (s.badges || []).map(x => '<span>' + esc(x) + '</span>').join('');
-    const detail = s.detail ? '<button class="ac-detail-toggle" type="button" data-detail-for="' + esc(c.name) + '" aria-expanded="false">理由を詳しく</button>'
-      + '<span class="ac-detail" data-detail="' + esc(c.name) + '" hidden>' + esc(s.detail) + '</span>' : '';
+    const badges = (s.badges || []).map(x => TRX(x)).filter(Boolean).map(x => '<span>' + esc(x) + '</span>').join('');
+    const detailText = TRX(s.detail);
+    const detail = detailText ? '<button class="ac-detail-toggle" type="button" data-detail-for="' + esc(c.name) + '" aria-expanded="false">' + esc(TR('理由を詳しく')) + '</button>'
+      + '<span class="ac-detail" data-detail="' + esc(c.name) + '" hidden>' + esc(detailText) + '</span>' : '';
     return '<div class="assist-card ' + s.kind + '" role="button" tabindex="0" data-assist-card="' + esc(c.name) + '">'
       + (cardImgTag(c.name, 'n', { alt: '' }) || '<span></span>')
-      + '<span class="ac-body"><span class="ac-kind">' + assistKindIcon(s.kind) + ' ' + assistKindLabel(s.kind) + '</span>'
+      + '<span class="ac-body"><span class="ac-kind">' + assistKindIcon(s.kind) + ' ' + esc(TR(assistKindLabel(s.kind))) + '</span>'
       + '<span class="ac-name">' + esc(TR(c.name)) + '</span>'
-      + '<span class="ac-reason">' + esc(s.reason) + '</span>'
+      + '<span class="ac-reason">' + esc(TRX(s.reason)) + '</span>'
       + (badges ? '<span class="ac-badges">' + badges + '</span>' : '')
       + detail + '</span>'
       + '<span class="ac-add">＋</span></div>';
-  }).join('') + '</div>' : '<div class="assist-empty">まず使いたいカードを1枚選ぶと、次の候補を出せます。</div>';
+  }).join('') + '</div>' : '<div class="assist-empty">' + esc(TR('まず使いたいカードを1枚選ぶと、次の候補を出せます。')) + '</div>';
   const pAxes = info.personaAxes;
   const pSum = pAxes ? personaSummary(pAxes) : '';
-  const costState = info.cards.length ? '平均' + info.avg.toFixed(1) + ' / 回転' + info.cycleAvg.toFixed(1) : 'コスト未定';
+  const costState = info.cards.length ? TRF('平均{a} / 回転{c}', { a: info.avg.toFixed(1), c: info.cycleAvg.toFixed(1) }) : TR('コスト未定');
   const personaLine = pSum
-    ? '<div class="assist-persona is-set" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">あなた好み：' + esc(pSum) + '</span><span class="ap-edit">変更</span></div>'
-    : '<div class="assist-persona" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">デッキの好みを設定すると、あなた向けに候補が絞れます</span><span class="ap-edit">設定</span></div>';
-  const contextLine = contextLoading ? '<div class="assist-context-loading">読みを整えています…</div>' : '';
+    ? '<div class="assist-persona is-set" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">' + esc(TRF('あなた好み：{x}', { x: TRX(pSum) || TR('設定済み') })) + '</span><span class="ap-edit">' + esc(TR('変更')) + '</span></div>'
+    : '<div class="assist-persona" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">' + esc(TR('デッキの好みを設定すると、あなた向けに候補が絞れます')) + '</span><span class="ap-edit">' + esc(TR('設定')) + '</span></div>';
+  const contextLine = contextLoading ? '<div class="assist-context-loading">' + esc(TR('読みを整えています…')) + '</div>' : '';
   const devLine = assistDevelopmentHtml(info);
   const activeChunk = assistChunk === 'threats' ? 'threats' : 'cards';
   const dir3 = info.cards.length >= 3 ? assistDirectionBlocksHtml(info) : '';
@@ -2130,15 +2152,15 @@ function updateAssistPanel() {
     ? assistThreatHtml(info)
     : (clearSyn + assistSpellTargetChipsHtml(info) + (dir3 ? '' : assistDirectionChipsHtml(info)) + cardsHtml + dir3 + core6);
   const actionMain = activeChunk === 'threats'
-    ? '<button class="assist-mini" id="assistBackCards" type="button">候補へ戻る</button>'
-    : '<button class="assist-mini" id="assistRefresh" type="button">別候補</button>';
-  panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の1枚<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + esc(costState) + '</div></div>'
+    ? '<button class="assist-mini" id="assistBackCards" type="button">' + esc(TR('候補へ戻る')) + '</button>'
+    : '<button class="assist-mini" id="assistRefresh" type="button">' + esc(TR('別候補')) + '</button>';
+  panel.innerHTML = '<div class="assist-head"><div class="assist-title">' + esc(TR('次の1枚')) + '<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + esc(costState) + '</div></div>'
     + personaLine
     + contextLine
     + devLine
     + assistChunkTabs(info)
     + chunkHtml
-    + '<div class="assist-actions">' + actionMain + '<button class="assist-mini" id="assistOff" type="button">通常検索</button></div>'
+    + '<div class="assist-actions">' + actionMain + '<button class="assist-mini" id="assistOff" type="button">' + esc(TR('通常検索')) + '</button></div>'
     + assistExtraHtml(info)
     + '<div class="assist-bottom-pad" aria-hidden="true"></div>';
   // 「理由を詳しく」トグル（カード追加クリックより先に拾い、伝播を止める）
@@ -2149,7 +2171,7 @@ function updateAssistPanel() {
       const d = panel.querySelector('.ac-detail[data-detail="' + (window.CSS && CSS.escape ? CSS.escape(name) : name) + '"]');
       const open = t.getAttribute('aria-expanded') === 'true';
       t.setAttribute('aria-expanded', open ? 'false' : 'true');
-      t.textContent = open ? '理由を詳しく' : '閉じる';
+      t.textContent = open ? TR('理由を詳しく') : TR('閉じる');
       if (d) d.hidden = open;
     });
   });
@@ -2160,8 +2182,8 @@ function updateAssistPanel() {
       if (!c) return;
       addAssistToDeck(c);
       const dirLabel = assistDirLabelByName[c.name] || assistCoreLabelByName[c.name];
-      const label = dirLabel || assistKindLabel((assistSuggestions.find(s => s.card.name === c.name) || {}).kind || 'natural');
-      showToast(label + '：' + TR(c.name));
+      const label = TRX(dirLabel || assistKindLabel((assistSuggestions.find(s => s.card.name === c.name) || {}).kind || 'natural'));
+      showToast((label ? label + (TRJ() ? '：' : ': ') : '') + TR(c.name));
       updateAssistPanel();
     };
     b.addEventListener('touchstart', (e) => {
@@ -2304,12 +2326,12 @@ function setAssistMode(on) {
 // =============================================================
 // 軸の意味（左 -1 ／ 右 +1）
 const PERSONA_AXES = [
-  { key: 'weight',     left: '軽い',   right: '重い',     desc: 'コストの重さ' },
-  { key: 'tempo',      left: 'じっくり', right: '高回転',   desc: '回転率' },
-  { key: 'style',      left: '受け',   right: '攻め',     desc: '攻撃型/防御型' },
-  { key: 'thrill',     left: '堅実',   right: '爽快',     desc: '爽快感' },
-  { key: 'risk',       left: '安定',   right: '一発',     desc: 'リスク許容' },
-  { key: 'complexity', left: 'シンプル', right: 'テクい',   desc: '操作の複雑さ' }
+  { key: 'weight',     left: LBL('軽い'),   right: LBL('重い'),     desc: 'コストの重さ' },
+  { key: 'tempo',      left: LBL('じっくり'), right: LBL('高回転'),   desc: '回転率' },
+  { key: 'style',      left: LBL('受け'),   right: LBL('攻め'),     desc: '攻撃型/防御型' },
+  { key: 'thrill',     left: LBL('堅実'),   right: LBL('爽快'),     desc: '爽快感' },
+  { key: 'risk',       left: LBL('安定'),   right: LBL('一発'),     desc: 'リスク許容' },
+  { key: 'complexity', left: LBL('シンプル'), right: LBL('テクい'),   desc: '操作の複雑さ' }
 ];
 const PERSONA_AXIS_KEYS = PERSONA_AXES.map(a => a.key);
 let personaCache = (() => { try { return JSON.parse(localStorage.getItem('cr_deck_persona') || 'null'); } catch (e) { return null; } })();
@@ -2348,24 +2370,24 @@ function mbtiToAxes(mbti) {
 }
 // 2択質問（クラロワの言葉で。MBTIという語は前面に出さない）。各選択肢が軸へ寄与。
 const PERSONA_QUESTIONS = [
-  { id: 'q_weight', q: 'デッキの主役はどっち？',
-    a: { label: '軽くて手数で押す', d: { weight: -0.7, tempo: 0.5 } },
-    b: { label: '重くて一撃が大きい', d: { weight: 0.7, tempo: -0.4 } } },
-  { id: 'q_style', q: '試合の入り方は？',
-    a: { label: '受けてから返す', d: { style: -0.7, risk: -0.3 } },
-    b: { label: '橋前から圧をかける', d: { style: 0.7, thrill: 0.3 } } },
-  { id: 'q_tempo', q: '回し方の好みは？',
-    a: { label: '細かく速く回す', d: { tempo: 0.7, weight: -0.3 } },
-    b: { label: 'エリクサーを溜めて構える', d: { tempo: -0.6, weight: 0.3 } } },
-  { id: 'q_thrill', q: '勝つときの気持ちよさは？',
-    a: { label: '一気に爽快に削りたい', d: { thrill: 0.7, risk: 0.3 } },
-    b: { label: '堅実に確実に勝ちたい', d: { thrill: -0.6, risk: -0.3 } } },
-  { id: 'q_risk', q: '勝負どころは？',
-    a: { label: '安定択でじわじわ', d: { risk: -0.7, style: -0.2 } },
-    b: { label: 'ハマれば一発逆転', d: { risk: 0.7, thrill: 0.3 } } },
-  { id: 'q_complexity', q: '操作はどっちが好き？',
-    a: { label: 'シンプルで分かりやすい', d: { complexity: -0.7 } },
-    b: { label: '組み合わせて魅せる', d: { complexity: 0.7, thrill: 0.2 } } }
+  { id: 'q_weight', q: LBL('デッキの主役はどっち？'),
+    a: { label: LBL('軽くて手数で押す'), d: { weight: -0.7, tempo: 0.5 } },
+    b: { label: LBL('重くて一撃が大きい'), d: { weight: 0.7, tempo: -0.4 } } },
+  { id: 'q_style', q: LBL('試合の入り方は？'),
+    a: { label: LBL('受けてから返す'), d: { style: -0.7, risk: -0.3 } },
+    b: { label: LBL('橋前から圧をかける'), d: { style: 0.7, thrill: 0.3 } } },
+  { id: 'q_tempo', q: LBL('回し方の好みは？'),
+    a: { label: LBL('細かく速く回す'), d: { tempo: 0.7, weight: -0.3 } },
+    b: { label: LBL('エリクサーを溜めて構える'), d: { tempo: -0.6, weight: 0.3 } } },
+  { id: 'q_thrill', q: LBL('勝つときの気持ちよさは？'),
+    a: { label: LBL('一気に爽快に削りたい'), d: { thrill: 0.7, risk: 0.3 } },
+    b: { label: LBL('堅実に確実に勝ちたい'), d: { thrill: -0.6, risk: -0.3 } } },
+  { id: 'q_risk', q: LBL('勝負どころは？'),
+    a: { label: LBL('安定択でじわじわ'), d: { risk: -0.7, style: -0.2 } },
+    b: { label: LBL('ハマれば一発逆転'), d: { risk: 0.7, thrill: 0.3 } } },
+  { id: 'q_complexity', q: LBL('操作はどっちが好き？'),
+    a: { label: LBL('シンプルで分かりやすい'), d: { complexity: -0.7 } },
+    b: { label: LBL('組み合わせて魅せる'), d: { complexity: 0.7, thrill: 0.2 } } }
 ];
 // MBTI土台 ＋ 2択の答え → 最終軸（-1〜+1にクランプ）
 function computePersonaAxes(persona) {
@@ -2458,7 +2480,7 @@ function personaSummary(axes) {
     if (v >= 0.34) parts.push(a.right);
     else if (v <= -0.34) parts.push(a.left);
   });
-  return parts.slice(0, 3).join('・');
+  return parts.slice(0, 3).map(x => TRX(x)).filter(Boolean).join(TRSEP());
 }
 
 // ===== デッキ嗜好プロフィール 設定ダイアログ（MBTI入力＋2択） =====
@@ -2469,18 +2491,18 @@ function openPersonaDialog() {
   const ov = document.createElement('div');
   ov.className = 'swap-overlay persona-overlay';
   ov.innerHTML = '<div class="swap-box persona-box">'
-    + '<div class="persona-title">デッキの好みを設定</div>'
-    + '<div class="persona-sub">性格タイプ（MBTI）と、いくつかの2択から、あなた向けに候補を絞ります。未入力でもOK。</div>'
+    + '<div class="persona-title">' + esc(TR('デッキの好みを設定')) + '</div>'
+    + '<div class="persona-sub">' + esc(TR('性格タイプ（MBTI）と、いくつかの2択から、あなた向けに候補を絞ります。未入力でもOK。')) + '</div>'
     + '<div class="persona-mbti">'
-    + '<label class="persona-label">MBTI（任意）</label>'
-    + '<input type="text" id="personaMbti" class="persona-input" maxlength="4" placeholder="例：INTJ" autocomplete="off" autocapitalize="characters" spellcheck="false" value="' + esc(_personaDraft.mbti) + '">'
+    + '<label class="persona-label">' + esc(TR('MBTI（任意）')) + '</label>'
+    + '<input type="text" id="personaMbti" class="persona-input" maxlength="4" placeholder="' + esc(TR('例：INTJ')) + '" autocomplete="off" autocapitalize="characters" spellcheck="false" value="' + esc(_personaDraft.mbti) + '">'
     + '<div class="persona-mbti-hint" id="personaMbtiHint"></div>'
     + '</div>'
     + '<div class="persona-qs" id="personaQs"></div>'
     + '<div class="persona-actions">'
-    + '<button class="btn btn-ghost" id="personaClear" type="button">クリア</button>'
-    + '<button class="btn btn-ghost" id="personaCancel" type="button">閉じる</button>'
-    + '<button class="btn" id="personaSave" type="button">保存</button>'
+    + '<button class="btn btn-ghost" id="personaClear" type="button">' + esc(TR('クリア')) + '</button>'
+    + '<button class="btn btn-ghost" id="personaCancel" type="button">' + esc(TR('閉じる')) + '</button>'
+    + '<button class="btn" id="personaSave" type="button">' + esc(TR('保存')) + '</button>'
     + '</div>'
     + '</div>';
   document.body.appendChild(ov);
@@ -2491,10 +2513,10 @@ function openPersonaDialog() {
     wrap.innerHTML = PERSONA_QUESTIONS.map(qn => {
       const sel = _personaDraft.answers[qn.id] || '';
       return '<div class="persona-q">'
-        + '<div class="persona-q-text">' + esc(qn.q) + '</div>'
+        + '<div class="persona-q-text">' + esc(TR(qn.q)) + '</div>'
         + '<div class="persona-q-opts">'
-        + '<button class="persona-opt' + (sel === 'a' ? ' on' : '') + '" type="button" data-q="' + esc(qn.id) + '" data-pick="a">' + esc(qn.a.label) + '</button>'
-        + '<button class="persona-opt' + (sel === 'b' ? ' on' : '') + '" type="button" data-q="' + esc(qn.id) + '" data-pick="b">' + esc(qn.b.label) + '</button>'
+        + '<button class="persona-opt' + (sel === 'a' ? ' on' : '') + '" type="button" data-q="' + esc(qn.id) + '" data-pick="a">' + esc(TR(qn.a.label)) + '</button>'
+        + '<button class="persona-opt' + (sel === 'b' ? ' on' : '') + '" type="button" data-q="' + esc(qn.id) + '" data-pick="b">' + esc(TR(qn.b.label)) + '</button>'
         + '</div></div>';
     }).join('');
     wrap.querySelectorAll('.persona-opt').forEach(b => {
@@ -2511,9 +2533,9 @@ function openPersonaDialog() {
     const hint = ov.querySelector('#personaMbtiHint');
     if (!hint) return;
     const v = normalizeMbti(_personaDraft.mbti);
-    if (!_personaDraft.mbti) hint.textContent = '空欄でも2択だけで設定できます。';
-    else if (v) hint.textContent = '✓ ' + v + ' を反映します。';
-    else hint.textContent = '4文字（E/I・S/N・T/F・J/P）で入力してください。';
+    if (!_personaDraft.mbti) hint.textContent = TR('空欄でも2択だけで設定できます。');
+    else if (v) hint.textContent = '✓ ' + TRF('{v} を反映します。', { v });
+    else hint.textContent = TR('4文字（E/I・S/N・T/F・J/P）で入力してください。');
   }
   const mbtiInput = ov.querySelector('#personaMbti');
   mbtiInput.addEventListener('input', () => {
@@ -2561,7 +2583,7 @@ function render() {
     const imgHtml = cardImgTag(c.name, listForm, { cls: 'card-img', alt: '' });
     div.innerHTML = `
       ${imgHtml}
-      <button class="fav-btn ${faved ? 'active' : ''}${justFaved === c.name ? ' pop' : ''}" title="${faved ? 'お気に入り解除' : 'お気に入り追加'}" onclick="toggleFav('${c.name}', event)">${heartSvg}</button>
+      <button class="fav-btn ${faved ? 'active' : ''}${justFaved === c.name ? ' pop' : ''}" title="${faved ? TR('お気に入り解除') : TR('お気に入り追加')}" onclick="toggleFav('${c.name}', event)">${heartSvg}</button>
       <div class="card-top">
         <div class="cost-pip pip-${Math.min(c.cost,9)}">${c.cost}</div>
         <div class="card-name">${esc(cardName(c))}</div>
@@ -3212,11 +3234,11 @@ function renderDeck() {
       const modeClass = mode === 'evolved' ? ' slot-evolved' : mode === 'hero' ? ' slot-hero' : '';
       div.className = 'slot filled' + modeClass + (isFav(c.name) ? ' fav' : ''); // お気に入りは .fav（¥2,000特典でリムライト）
       if (isFav(c.name)) div.style.setProperty('--favDelay', '-' + (performance.now() / 1000 % 3.6).toFixed(2) + 's'); // 共通時計に同期＝再生成しても途切れない
-      div.title = 'クリックで外す';
+      div.title = TR('クリックで外す');
       div.draggable = true;
       div.dataset.idx = i;
-      const modeBadge = mode === 'evolved' ? '<span class="slot-badge evolved-badge">進化</span>'
-                      : mode === 'hero'    ? '<span class="slot-badge hero-badge">英雄</span>' : '';
+      const modeBadge = mode === 'evolved' ? '<span class="slot-badge evolved-badge">' + esc(TR('進化')) + '</span>'
+                      : mode === 'hero'    ? '<span class="slot-badge hero-badge">' + esc(TR('英雄')) + '</span>' : '';
       const slotImgTag = cardImgTag(c.name, mode, { cls: 'slot-img', alt: '' });
       const slotImg = slotImgTag ? `<div class="slot-img-wrap">${slotImgTag}</div>` : `<div class="slot-img-wrap"></div>`;
       // wildスロット（idx=2）かつ進化・ヒーロー両方対応カード→切り替えボタン
@@ -3234,9 +3256,9 @@ function renderDeck() {
     } else {
       div.className = 'slot' + slotClass;
       div.dataset.idx = i;
-      const emptyContent = st === 'evolved' ? '<span class="slot-empty-icon diamond-evolved" title="進化"></span>'
-                         : st === 'hero'    ? '<span class="slot-empty-icon diamond-hero" title="ヒーロー/チャンピオン"></span>'
-                         : st === 'wild'    ? '<span class="slot-empty-icon diamond-wild" title="進化/ヒーロー"></span>'
+      const emptyContent = st === 'evolved' ? '<span class="slot-empty-icon diamond-evolved" title="' + esc(TR('進化')) + '"></span>'
+                         : st === 'hero'    ? '<span class="slot-empty-icon diamond-hero" title="' + esc(TR('ヒーロー/チャンピオン')) + '"></span>'
+                         : st === 'wild'    ? '<span class="slot-empty-icon diamond-wild" title="' + esc(TR('進化/ヒーロー')) + '"></span>'
                          : '<span class="slot-empty-text">+</span>';
       div.innerHTML = `<div class="slot-empty-center">${emptyContent}</div>`;
       div.addEventListener('dragover',  onDragOver);
@@ -4238,7 +4260,7 @@ window.CRDeckBridge = {
     if(uid!==owner){slots=[];owner=uid;paint();}
     if(!uid)return;
     try {const list=await CRAuth.getSlots();if(revision!==request||uid!==CRAuth.getUser()?.uid)return;slots=list;paint();}
-    catch {if(revision===request)nav.title='保存デッキを取得できません。接続回復後に再試行します。';}
+    catch {if(revision===request)nav.title=TR('保存デッキを取得できません。接続回復後に再試行します。');}
   }
   function preview(button){
     if(!mq.matches)return;clear();const s=slots.find(x=>x.slot===+button.dataset.slot);if(!s?.slots?.length)return;

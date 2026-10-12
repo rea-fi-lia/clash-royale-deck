@@ -669,24 +669,80 @@
   // ★2026-10-12：診断の「自分の帯で見る」の英語訳（各言語の訳が無いときは英語へ戻る）
   addMissing(DICT.en, {"自分の帯で見る": "View for my trophy range", "トロフィーの帯（300ごと）に絞って、このデッキの8枚の使われ方と勝率、その帯でよく使われるカードを見られます。": "Narrow down to a trophy range (every 300 trophies) to see how this deck’s 8 cards are used and how decks with them do there, plus the cards most used in that range.", "この帯は試合数が少ないため、表示できません。": "This range has too few battles to show.", "この帯で少ない": "Rare in this range", "このデッキの8枚（この帯）": "This deck’s 8 cards (this range)", "この帯でよく使われているカード": "Most used cards in this range", "勝率はそのカードを入れたデッキの勝率で、カード単体の強さではありません。形態（進化・ヒーロー）はまとめて数えています。試合数が20未満の数字は出しません。": "Win rate is for decks that include the card, not the card’s own strength. Evolution and Hero forms are counted together. Numbers from fewer than 20 battles are not shown.", "読み込み中…": "Loading…", "帯のデータを読み込めませんでした。": "Could not load the trophy range data.", "プレイヤータグを登録すると、あなたの帯が自動で選ばれます。": "Register your player tag and your range is picked automatically.", "マイページで登録": "Register on My page", "帯を選ぶ": "Choose a range", "トロフィー {lo}〜{hi}": "Trophies {lo}–{hi}", "直近{d}日・{g}試合（トロフィーロード）": "last {d} days, {g} battles (Trophy Road)", "全体 {w}%": "all ranges {w}%", "この帯の使用率 {u}%": "{u}% usage in this range", "あなたのトロフィー {tr}（#{tag}）から帯を選びました。": "Picked from your trophies: {tr} (#{tag})."});
 
-  function pickLang() {
-    // /en/ /pt-br/ 等のパス接頭辞を最優先（言語別静的ページ＝海外SEO用。URL自体が言語を表す）
-    try { const seg = (location.pathname.split('/')[1] || '').toLowerCase(); if (LANGS.includes(seg)) return seg; } catch (e) {}
-    // 次に ?lang=（共有リンクで言語指定）→ 保存済み → ブラウザ言語
+  /* ★2026-10-12：言語の決め方を変えた。
+   *   - 言語ページ（/en/ など）はその言語。来たことをこの訪問の間だけ覚える（カードページなど言語ページの無い所でも同じ言語で出すため）
+   *   - 日本語のページ（ルート・カードページ）は、利用者が選んだ時だけ別の言語にする（?lang= ・言語の選択欄・言語ページから来た）。
+   *     ブラウザの言語だけでは変えず、小さな案内を出す。Google の描画は英語のブラウザとして動くので、
+   *     日本語のページが英語まじりに描かれ、<html lang> も en になっていた（推測を含む・2026-10-12）
+   *   - 選んだ言語のページがあれば、その言語のページへ移る（日本語の本文の上から画面の文だけ訳すと混ざるため）
+   */
+  const HTML_LANG = { ja: 'ja', en: 'en', es: 'es', 'pt-br': 'pt-BR', fr: 'fr', de: 'de', ru: 'ru', ko: 'ko', 'zh-cn': 'zh-CN', ar: 'ar', tr: 'tr', it: 'it', id: 'id', th: 'th', vi: 'vi', 'zh-tw': 'zh-TW', fa: 'fa', nl: 'nl' };
+  // そのページの、その言語の版の場所（ページに書いてある hreflang から引く。無ければ null）
+  function altPath(l) {
+    try {
+      const a = document.querySelector('link[rel="alternate"][hreflang="' + (HTML_LANG[l] || l) + '"]');
+      return a ? new URL(a.getAttribute('href'), location.href).pathname : null;
+    } catch (e) { return null; }
+  }
+  function pathLang() {
+    try { const seg = (location.pathname.split('/')[1] || '').toLowerCase(); if (LANGS.includes(seg) && seg !== 'ja') return seg; } catch (e) {}
+    return null;
+  }
+  function chosenLang() {
     try { const u = (new URLSearchParams(location.search).get('lang') || '').toLowerCase(); if (u && LANGS.includes(u)) return u; } catch (e) {}
     try { const s = localStorage.getItem('cr_lang'); if (s && LANGS.includes(s)) return s; } catch (e) {}
+    try { const s = sessionStorage.getItem('cr_lang_ctx'); if (s && LANGS.includes(s)) return s; } catch (e) {}
+    return null;
+  }
+  function browserLang() {
     const n = (navigator.language || 'ja').toLowerCase(); // 例: 'es-mx','pt-br','ja-jp'
     if (LANGS.includes(n)) return n;
     const base = n.split('-')[0];
-    const map = { pt: 'pt-br', zh: 'zh-cn' }; // 地域コードを既定の用意済みへ寄せる
+    const map = { pt: 'pt-br', zh: n.includes('tw') || n.includes('hk') || n.includes('hant') ? 'zh-tw' : 'zh-cn' }; // 地域コードを既定の用意済みへ寄せる
     const cand = map[base] || base;
     if (LANGS.includes(cand)) return cand;
-    if (base === 'ja') return 'ja';
-    return LANGS.includes('en') ? 'en' : 'ja'; // それ以外は英語
+    return base === 'ja' ? 'ja' : 'en'; // それ以外は英語
+  }
+  function pickLang() {
+    const p = pathLang();
+    if (p) { try { sessionStorage.setItem('cr_lang_ctx', p); } catch (e) {} return p; }
+    return chosenLang() || 'ja';
+  }
+  // 別の言語の版のページへ移る（検索の条件と # はそのまま。?lang= だけ外す）
+  function goToLangPage(l) {
+    const to = altPath(l);
+    if (!to || to === location.pathname) return false;
+    try {
+      const q = new URLSearchParams(location.search); q.delete('lang');
+      const qs = q.toString();
+      location.replace(to + (qs ? '?' + qs : '') + location.hash);
+      return true;
+    } catch (e) { return false; }
   }
 
   let lang = pickLang();
   const origText = new WeakMap();
+  // この i18n.js の版番号（機械訳のファイルを同じ番号で読む＝i18n.js を出し直すと一緒に新しくなる）
+  const SELF_V = (function () { try { return new URL(document.currentScript.src).searchParams.get('v') || ''; } catch (e) { return ''; } })();
+  // 画面の文の機械訳（tools/i18n-translate.js が作る js/i18n/<lang>.js）。人の訳（DICT）が無い所にだけ使う
+  const EXTRA = window.CRDB_I18N_EXTRA || (window.CRDB_I18N_EXTRA = {});
+  const extraDone = {};
+  function mergeExtra(l) {
+    if (extraDone[l]) return true;
+    if (!EXTRA[l]) return false;
+    if (!DICT[l]) DICT[l] = {};
+    for (const k in EXTRA[l]) if (DICT[l][k] == null) DICT[l][k] = EXTRA[l][k];
+    extraDone[l] = true;
+    return true;
+  }
+  function ensureExtra(l, done) {
+    if (l === 'ja' || mergeExtra(l)) { if (done) done(); return; }
+    const sc = document.createElement('script');
+    sc.src = '/js/i18n/' + l + '.js' + (SELF_V ? '?v=' + encodeURIComponent(SELF_V) : '');
+    sc.onload = function () { mergeExtra(l); if (done) done(); };
+    sc.onerror = function () { if (done) done(); };   // 読めなくても英語へ戻るだけ（壊れない）
+    document.head.appendChild(sc);
+  }
 
   function tr(src) {
     if (lang === 'ja') return CARD_JA_DISPLAY[src] || src;
@@ -795,10 +851,36 @@
 
   function setLang(l) {
     if (!LANGS.includes(l)) return;
-    lang = l; try { localStorage.setItem('cr_lang', l); } catch (e) {}
-    walk();
-    // 言語切替を各ページに通知（動的注記などをページ側で再描画してもらう）
-    try { window.dispatchEvent(new CustomEvent('crlangchange', { detail: { lang: l } })); } catch (e) {}
+    try { localStorage.setItem('cr_lang', l); sessionStorage.setItem('cr_lang_ctx', l); } catch (e) {}
+    if (l !== lang && goToLangPage(l)) return;   // その言語のページがあれば移る（本文まで訳してある）
+    lang = l;
+    ensureExtra(l, function () {
+      walk();
+      // 言語切替を各ページに通知（動的注記などをページ側で再描画してもらう）
+      try { window.dispatchEvent(new CustomEvent('crlangchange', { detail: { lang: l } })); } catch (e) {}
+    });
+  }
+  // ブラウザの言語が日本語以外の人に、日本語のページで小さく案内する（勝手に変えない・閉じたらこの訪問の間は出さない）
+  const OFFER_OPEN = { en: 'Open in English', es: 'Abrir en español', 'pt-br': 'Abrir em português', fr: 'Ouvrir en français', de: 'Auf Deutsch öffnen', ru: 'Открыть на русском', ko: '한국어로 보기', 'zh-cn': '查看中文版', ar: 'افتح بالعربية', tr: 'Türkçe aç', it: 'Apri in italiano', id: 'Buka dalam bahasa Indonesia', th: 'เปิดเป็นภาษาไทย', vi: 'Mở bằng tiếng Việt', 'zh-tw': '查看中文版', fa: 'باز کردن به فارسی', nl: 'Openen in het Nederlands' };
+  const OFFER_SHOW = { en: 'Show in English', es: 'Ver en español', 'pt-br': 'Ver em português', fr: 'Afficher en français', de: 'Auf Deutsch anzeigen', ru: 'Показать на русском', ko: '한국어로 표시', 'zh-cn': '以中文显示', ar: 'اعرض بالعربية', tr: 'Türkçe göster', it: 'Mostra in italiano', id: 'Tampilkan dalam bahasa Indonesia', th: 'แสดงเป็นภาษาไทย', vi: 'Hiển thị bằng tiếng Việt', 'zh-tw': '以中文顯示', fa: 'نمایش به فارسی', nl: 'Weergeven in het Nederlands' };
+  function offerLang() {
+    if (lang !== 'ja' || pathLang() || chosenLang()) return;
+    const bl = browserLang();
+    if (bl === 'ja' || !OFFER_OPEN[bl]) return;
+    try { if (sessionStorage.getItem('cr_lang_offer_off')) return; } catch (e) {}
+    if (document.getElementById('crLangOffer')) return;
+    const box = document.createElement('div');
+    box.id = 'crLangOffer'; box.setAttribute('data-no-i18n', ''); box.setAttribute('role', 'note');
+    box.style.cssText = 'position:fixed;top:58px;right:10px;z-index:9998;display:flex;align-items:center;gap:6px;max-width:calc(100vw - 20px);background:var(--surface,#161920);color:var(--text,#e8eaf0);border:1px solid var(--border-hi,rgba(255,255,255,.18));border-radius:10px;padding:6px 6px 6px 12px;font-size:13px;box-shadow:0 6px 18px rgba(0,0,0,.35)';
+    const go = document.createElement('button'); go.type = 'button';
+    go.style.cssText = 'background:none;border:none;color:var(--accent,#f0b429);font-size:13px;font-weight:600;cursor:pointer;padding:2px 0;text-align:left';
+    go.textContent = (altPath(bl) ? OFFER_OPEN[bl] : OFFER_SHOW[bl]) + ' \u203A';
+    go.onclick = function () { box.remove(); setLang(bl); const b = document.getElementById('crLangBtn'); if (b && b.__upd) b.__upd(); };
+    const x = document.createElement('button'); x.type = 'button'; x.setAttribute('aria-label', 'Close'); x.textContent = '\u00D7';
+    x.style.cssText = 'background:none;border:none;color:var(--text-muted,#9aa3b5);font-size:16px;line-height:1;cursor:pointer;padding:2px 6px';
+    x.onclick = function () { box.remove(); try { sessionStorage.setItem('cr_lang_offer_off', '1'); } catch (e) {} };
+    box.appendChild(go); box.appendChild(x);
+    document.body.appendChild(box);
   }
 
   // 動的描画コンテナだけを限定監視（childListのみ＝再描画時だけ。毎フレームではない）
@@ -824,6 +906,7 @@
     btn.id = 'crLangBtn'; btn.type = 'button'; btn.setAttribute('aria-label', 'Language');
     btn.style.cssText = 'display:flex;align-items:center;gap:3px;background:var(--surface2,#1e2230);color:var(--text,#e8eaf0);border:1px solid var(--border-hi,rgba(255,255,255,.15));border-radius:8px;font-size:12px;font-weight:700;padding:5px 7px;cursor:pointer;line-height:1;';
     function updateBtn() { btn.innerHTML = '<span>' + (LANG_CODE[lang] || lang.toUpperCase().slice(0, 2)) + '</span><span style="opacity:.55;font-size:10px">▾</span>'; }
+    btn.__upd = updateBtn;
     updateBtn();
 
     const menu = document.createElement('div');
@@ -879,8 +962,13 @@
 
   function notifyLang() { try { window.dispatchEvent(new CustomEvent('crlangchange', { detail: { lang: lang } })); } catch (e) {} }
   function init() {
+    // 日本語のページで言語を選んでいて、その言語のページがあるなら、そちらへ移る（検索エンジンは選ばないので移らない）
+    if (!pathLang() && lang !== 'ja' && goToLangPage(lang)) return;
+    mergeExtra(lang);         // 言語ページは js/i18n/<lang>.js を先に読んである
     injectSwitcher();
     walk();
+    if (lang !== 'ja' && !extraDone[lang]) ensureExtra(lang, function () { walk(); notifyLang(); });   // カードページなど、読み込んでいないページ
+    offerLang();
     notifyLang();            // ★初回も crlangchange を発火＝各ページの _t() ベース動的テキスト（decks の集計文/タブ説明等）が CRI18N 準備後に再描画され、生キー残りを根絶
     observe('cardList');
     observe('deckSlots');
