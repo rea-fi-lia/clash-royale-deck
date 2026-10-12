@@ -50,7 +50,7 @@ permissions:
 
 jobs:
   collect:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # Allow the complete rolling window to scan/compress after API collection or a maintenance input pass.
     # The API request budget and the hourly schedule are independent of this processing allowance.
     timeout-minutes: 45
