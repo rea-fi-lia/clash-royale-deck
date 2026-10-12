@@ -391,7 +391,7 @@ function lintI18nCoverage() {
   const dict = loadI18nDict();
   if (!dict || !dict.en) { fail('i18n.js から訳語の表（DICT）を読めなかった'); return; }
   const jp = /[぀-ヿ一-鿿]/;
-  const call = /(?:\b_tr|\bTR|\bT|CRI18N\.tr|CRI18N\.t)\(\s*(['"`])((?:(?!\1)[^\\\n]|\\.)*?)\1/g;
+  const call = /(?:\b_tr|\b_tf|\bTRF|\bTR|\bT|CRI18N\.tr|CRI18N\.t)\(\s*(['"`])((?:(?!\1)[^\\\n]|\\.)*?)\1/g;   // _tf / TRF は文ごと訳す形
   const files = fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js') && !SKIP_FILES.has(f)).map(f => 'js/' + f).concat(['auth.js']);
   const missing = new Map();
   let used = 0;

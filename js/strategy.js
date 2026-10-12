@@ -642,6 +642,106 @@ function diagnoseHtml(deck) {
   return h;
 }
 
+// ★2026-10-12 本人「診断の後に何かしらボタンで自分の帯で絞って見れるようになるのはいいな」。
+//   トロフィーロードの47帯（300ごと・直近7日）のカード別の実戦統計（/api/meta の trophyBandIntel）で、
+//   このデッキの8枚が自分の帯でどれだけ使われ、入れたデッキがどれだけ勝っているかと、その帯でよく使われるカードを出す。
+//   帯はプレイヤータグがあれば直近の対戦の開始時トロフィーから選び、無ければ自分で選ぶ（選んだ帯はこの端末に覚える）。
+//   帯の数字は「そのカードが入っていた側」から数えている（tools/collect.js の byBand）。勝率はカード単体の強さではない。
+let _bandIntelP = null, _bandOpen = false, _bandWho = null;
+const BAND_PICK_KEY = 'crdb_band_pick', BAND_MIN_GAMES = 20;
+function _bandEsc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch])); }
+function _bandNum(n) { return Number(n || 0).toLocaleString(_ja() ? 'ja-JP' : 'en-US'); }
+function loadBandIntel() {
+  if (!_bandIntelP) _bandIntelP = fetch('/api/meta', { cache: 'default' }).then(r => r.ok ? r.json() : null).then(j => (j && j.trophyBandIntel) || null).catch(() => null);
+  return _bandIntelP;
+}
+function bandKeys(intel) {
+  return Object.keys((intel && intel.byBand) || {}).filter(k => /^\d+-\d+$/.test(k)).sort((a, b) => parseInt(a, 10) - parseInt(b, 10));
+}
+function bandOfTrophy(keys, tr) {
+  if (typeof tr !== 'number') return null;
+  const hit = keys.find(k => { const p = k.split('-').map(Number); return tr >= p[0] && tr <= p[1]; });
+  return hit || (keys.length && tr > parseInt(keys[keys.length - 1].split('-')[1], 10) ? keys[keys.length - 1] : null);
+}
+async function myBandTrophies() {
+  let tag = '';
+  try { tag = (window.CRAuth && CRAuth.getCrTag && CRAuth.getCrTag()) || localStorage.getItem('cr_my_tag') || ''; } catch (e) {}
+  tag = String(tag || '').replace(/^#/, '').toUpperCase();
+  if (!tag) return null;
+  try {
+    const j = await fetch('/battlelog?tag=' + encodeURIComponent(tag), { cache: 'no-store' }).then(r => r.ok ? r.json() : null);
+    const b = ((j && j.battles) || []).find(x => typeof x.tr === 'number' && x.tr > 0);
+    return { tag: tag, tr: b ? b.tr : null };
+  } catch (e) { return { tag: tag, tr: null }; }
+}
+function bandBoxHtml() {
+  return '<div class="dg-cap dg-band" id="dgBand"><div class="cap-head">' + _tr('自分の帯で見る') + '</div>'
+    + '<div class="dg-detail">' + _tr('トロフィーの帯（300ごと）に絞って、このデッキの8枚の使われ方と勝率、その帯でよく使われるカードを見られます。') + '</div>'
+    + '<button type="button" class="sr-swap dg-band-open" id="dgBandOpen" style="margin-top:8px">' + _tr('自分の帯で見る') + '</button>'
+    + '<div id="dgBandBody"></div></div>';
+}
+function bandRowsHtml(intel, key) {
+  const band = intel.byBand[key];
+  const p = key.split('-').map(Number);
+  if (!band || band.games < BAND_MIN_GAMES) return '<div class="sr-note">' + _tr('この帯は試合数が少ないため、表示できません。') + '</div>';
+  const sides = band.games * 2;
+  const cls = wr => wr >= 55 ? 'mu-good' : wr <= 45 ? 'mu-bad' : 'mu-even';
+  const head = '<div class="dg-detail"><b>' + _tf('トロフィー {lo}〜{hi}', { lo: _bandNum(p[0]), hi: _bandNum(p[1]) }) + '</b>'
+    + _colon() + _tf('直近{d}日・{g}試合（トロフィーロード）', { d: intel.windowDays || 7, g: _bandNum(band.games) }) + '</div>';
+  const mine = DECK.map(function (c) {
+    const r = band.cards && band.cards[c.name], all = intel.byCard && intel.byCard[c.name];
+    if (!r || r.games < BAND_MIN_GAMES) return '<div class="mu-row"><span class="mu-opp">' + cardLabel(c) + '<small>' + _tr('この帯で少ない') + '</small></span><span class="mu-wr mu-even">—</span></div>';
+    const use = Math.round(r.games / sides * 1000) / 10;
+    const allTxt = all && all.games >= BAND_MIN_GAMES ? ' / ' + _tf('全体 {w}%', { w: all.wr }) : '';
+    return '<div class="mu-row"><span class="mu-opp">' + cardLabel(c) + '<small>' + _tf('この帯の使用率 {u}%', { u: use }) + allTxt + '</small></span>'
+      + '<span class="mu-wr ' + cls(r.wr) + '">' + r.wr + '%</span></div>';
+  }).join('');
+  const top = Object.keys(band.cards || {}).map(n => band.cards[n]).filter(r => r.games >= BAND_MIN_GAMES)
+    .sort((a, b) => b.games - a.games).slice(0, 8).map(function (r) {
+      const use = Math.round(r.games / sides * 1000) / 10;
+      return '<div class="mu-row"><span class="mu-opp">' + cardDisplayName(r.name) + '<small>' + _tf('この帯の使用率 {u}%', { u: use }) + '</small></span>'
+        + '<span class="mu-wr ' + cls(r.wr) + '">' + r.wr + '%</span></div>';
+    }).join('');
+  return head
+    + '<div class="dg-detail" style="margin-top:8px"><b>' + _tr('このデッキの8枚（この帯）') + '</b></div>' + mine
+    + '<div class="dg-detail" style="margin-top:10px"><b>' + _tr('この帯でよく使われているカード') + '</b></div>' + top
+    + '<div class="sr-note">' + _tr('勝率はそのカードを入れたデッキの勝率で、カード単体の強さではありません。形態（進化・ヒーロー）はまとめて数えています。試合数が20未満の数字は出しません。') + '</div>';
+}
+async function openBandBox(wrap) {
+  const body = wrap.querySelector('#dgBandBody'), btn = wrap.querySelector('#dgBandOpen');
+  if (!body) return;
+  _bandOpen = true;
+  if (btn) btn.hidden = true;
+  body.innerHTML = '<div class="sr-note">' + _tr('読み込み中…') + '</div>';
+  const intel = await loadBandIntel();
+  if (!body.isConnected) return;
+  const keys = bandKeys(intel);
+  if (!intel || !keys.length) { body.innerHTML = '<div class="sr-note">' + _tr('帯のデータを読み込めませんでした。') + '</div>'; return; }
+  let pick = null;
+  try { pick = localStorage.getItem(BAND_PICK_KEY); } catch (e) {}
+  if (_bandWho === null) _bandWho = (await myBandTrophies()) || false;
+  if (!body.isConnected) return;
+  const auto = _bandWho && bandOfTrophy(keys, _bandWho.tr);
+  let key = (pick && keys.indexOf(pick) >= 0) ? pick : (auto || keys[Math.floor(keys.length / 2)]);
+  const label = k => { const p = k.split('-').map(Number); return _tf('トロフィー {lo}〜{hi}', { lo: _bandNum(p[0]), hi: _bandNum(p[1]) }); };
+  const who = auto
+    ? '<div class="sr-note">' + _tf('あなたのトロフィー {tr}（#{tag}）から帯を選びました。', { tr: _bandNum(_bandWho.tr), tag: _bandEsc(_bandWho.tag) }) + '</div>'
+    : '<div class="sr-note">' + _tr('プレイヤータグを登録すると、あなたの帯が自動で選ばれます。') + ' <a href="/me.html" style="color:#7db4ff">' + _tr('マイページで登録') + '</a></div>';
+  const paint = function () {
+    body.innerHTML = '<label class="dg-detail" style="display:block;margin:8px 0 4px">' + _tr('帯を選ぶ') + ' '
+      + '<select id="dgBandSel" style="font-size:16px;max-width:100%">' + keys.map(k => '<option value="' + k + '"' + (k === key ? ' selected' : '') + '>' + label(k) + '</option>').join('') + '</select></label>'
+      + who + bandRowsHtml(intel, key);
+    const sel = body.querySelector('#dgBandSel');
+    if (sel) sel.addEventListener('change', function () { key = sel.value; try { localStorage.setItem(BAND_PICK_KEY, key); } catch (e) {} paint(); });
+  };
+  paint();
+}
+function wireBandBox(wrap) {
+  const btn = wrap.querySelector('#dgBandOpen');
+  if (btn) btn.addEventListener('click', function () { openBandBox(wrap); });
+  if (_bandOpen) openBandBox(wrap);   // 入れ替えで再診断しても、開いていれば開いたまま
+}
+
 function render() {
   const wrap = document.getElementById('diagResult');
   if (!wrap || !DECK) return;
@@ -679,8 +779,9 @@ function render() {
     + '<button class="dtab' + (_diagTab === 'sim' ? ' active' : '') + '" data-tab="sim">📊 ' + _tr('デッキ調整') + '</button></div>';
   // タブ名は「デッキ強化」→「デッキ調整」に変更（2026-06-24・VISION§4「断定しない/関係性で見せる」に寄せる）
   wrap.innerHTML = deckHtml + tabs
-    + '<div class="diag-panel" data-panel="main"' + (_diagTab === 'main' ? '' : ' hidden') + '>' + html + '</div>'
+    + '<div class="diag-panel" data-panel="main"' + (_diagTab === 'main' ? '' : ' hidden') + '>' + html + bandBoxHtml() + '</div>'
     + '<div class="diag-panel" data-panel="sim"' + (_diagTab === 'sim' ? '' : ' hidden') + '>' + simHtml + '</div>';
+  wireBandBox(wrap);
   wrap.querySelectorAll('.dtab').forEach(function (t) {
     t.addEventListener('click', function () {
       _diagTab = t.dataset.tab;
