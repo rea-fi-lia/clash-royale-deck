@@ -28,6 +28,13 @@ function fetchPublicStrategyJson(name) {
 const SPELL_ZONES = ['ログ圏内', 'ザップ圏内', '矢の雨圏内', 'ファイボ圏内', 'ポイズン圏内', 'ライトニング圏内', 'ロケット圏内'];
 function _t(k, v) { return window.CRI18N ? CRI18N.t(k, v) : k; }
 function _tr(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
+// 文をつなぐ全角の記号（。：「」（））は日本語のページだけ。ほかの言語ではその言語で読める記号にする（2026-10-12）
+function _ja() { return !window.CRI18N || CRI18N.lang === 'ja'; }
+function _colon() { return _ja() ? '：' : ': '; }
+function _paren(s) { return _ja() ? '（' + s + '）' : ' (' + s + ')'; }
+function _sentences(arr) { const a = arr.filter(Boolean); if (!a.length) return ''; return _ja() ? a.join('。') + '。' : a.join('. ') + '.'; }
+// 語順が変わる文は文ごと訳す。{x} などに値を入れる
+function _tf(tpl, vars) { return String(_tr(tpl)).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? vars[k] : m)); }
 const CARD_DISPLAY_NAMES = { 'ローニン': '浪人スサノオ' };
 function cardDisplayName(name) { return window.CRI18N ? CRI18N.tr(name) : (CARD_DISPLAY_NAMES[name] || name); }
 function cardLabel(c) { return cardDisplayName(c && c.name ? c.name : c) + (c && c.name ? mark(c) : ''); }
@@ -193,7 +200,7 @@ function archetypeHtml(deck, ctx) {
   const a = classifyArchetype(deck, ctx);
   const axisHtml = a.axis ? chip(a.axis) : '<span class="dg-detail">' + _tr('明確な主軸なし') + '</span>';
   return '<div class="dg-identity">'
-    + '<details class="id-details"><summary class="id-head">🎯 ' + _tr('これは') + '「<b>' + _tr(a.label) + '</b>」' + _tr('デッキ')
+    + '<details class="id-details"><summary class="id-head">🎯 ' + _tf('これは「{x}」デッキ', { x: '<b>' + _tr(a.label) + '</b>' })
     + '<span class="id-avg">' + _tr('平均') + ' ' + a.avg.toFixed(1) + '</span><span class="id-q">' + _tr('型の説明') + ' ▾</span></summary>'
     + '<div class="id-explain">' + _tr(ARCH_DEFS[a.key].explain) + '</div></details>'
     + '<div class="id-axis"><span class="id-lbl">' + _tr('主軸') + '</span>' + axisHtml + '</div>'
@@ -283,8 +290,8 @@ function capabilityHtml(deck) {
   }).join('');
   const strong = axData.slice().sort((a, b) => b.score - a.score)[0];
   const weak = axData.slice().sort((a, b) => a.score - b.score)[0];
-  const tip = '<div class="cap-tip"><div class="cap-strong">💪 ' + _tr('強み') + '：「' + strong.l + '」' + _tr('が高い。ここを主軸に組み立てよう') + '</div>'
-    + '<div class="cap-weak">🛠 ' + _tr('伸ばすなら') + '：「' + weak.l + '」' + _tr('は控えめ。') + capAdvice(weak.raw) + '</div></div>';
+  const tip = '<div class="cap-tip"><div class="cap-strong">💪 ' + _tf('強み：「{x}」が高い。ここを主軸に組み立てよう', { x: strong.l }) + '</div>'
+    + '<div class="cap-weak">🛠 ' + _tf('伸ばすなら：「{x}」は控えめ。', { x: weak.l }) + capAdvice(weak.raw) + '</div></div>';
   return '<div class="dg-cap"><div class="cap-head">⚙️ ' + _tr('デッキ能力') + '</div>'
     + bars
     + tip + '</div>';
@@ -320,7 +327,7 @@ function matchupHtml(deck) {
     const notes = [];
     if (typeof r.wr === 'number') notes.push(_tr('勝率') + ' ' + r.wr + '%');
     if (typeof r.collapseLossRate === 'number') notes.push(_tr('崩れる負け') + ' ' + r.collapseLossRate + '%');
-    notes.push(_tr('実戦') + (r.games || 0) + _tr('戦'));
+    notes.push(_tf('実戦{n}戦', { n: r.games || 0 }));
     return '<div class="mu-row"><span class="mu-opp">' + _tr(r.opponent || '相手') + '<small>' + text + '</small></span>'
       + '<span class="mu-wr ' + cls + '">' + signedNum(dom * 100, 1) + '</span></div>'
       + '<div class="sr-note">' + notes.join(' / ') + '</div>';
@@ -471,7 +478,7 @@ function similarRankingHtml(deck) {
       + '<button class="sr-swap" data-out="' + enc(r.out.map(c => ({ name: c.name, form: _fnorm(c.f) }))) + '" data-in="' + enc(r.inc) + '" data-rf="' + enc(r.eh || []) + '">' + _tr('入れ替える') + '</button></div>';
   };
   const listOrEmpty = arr => arr.length ? arr.map(rowHtml).join('') : ('<div class="sr-note">' + _tr('まだ十分なデータがありません（蓄積中）') + '</div>');
-  const selfLine = self ? '<div class="sr-self">' + _tr('あなたのデッキの通算勝率') + '：<b>' + self.wr + '%</b>（' + self.g + _tr('戦') + '）</div>' : '';
+  const selfLine = self ? '<div class="sr-self">' + _tf('あなたのデッキの通算勝率：{wr}（{g}戦）', { wr: '<b>' + self.wr + '%</b>', g: self.g }) + '</div>' : '';
   const tabs = '<div class="sr-tabs"><button class="srtab' + (_simSub === 'up' ? ' active' : '') + '" data-sub="up">' + _tr('強化案') + '</button>'
     + '<button class="srtab' + (_simSub === 'down' ? ' active' : '') + '" data-sub="down">' + _tr('苦手対策') + '</button></div>';
   return '<div class="dg-simrank">' + selfLine
@@ -556,7 +563,7 @@ function winClassGroup(sc, cls) {
 }
 function winChipGroup(title, arr) {
   if (!arr.length) return '';
-  return '<div class="dg-detail"><b>' + _tr(title) + '</b>：' + arr.slice(0, 4).map(function (x) { return cardLabel(x.c); }).join(' / ') + '</div>';
+  return '<div class="dg-detail"><b>' + _tr(title) + '</b>' + _colon() + arr.slice(0, 4).map(function (x) { return cardLabel(x.c); }).join(' / ') + '</div>';
 }
 function cycleFitLine(cycles) {
   if (!cycles.length) return '';
@@ -572,7 +579,7 @@ function cycleFitLine(cycles) {
     if (t === 'cycleDefense') return cardDisplayName(x.c.name) + _tr('＝囲み・タゲ取りで受ける');
     return cardDisplayName(x.c.name);
   });
-  return '<div class="dg-detail"><b>' + _tr('サイクル調整枠') + '</b>：' + labels.join(' / ') + '</div>';
+  return '<div class="dg-detail"><b>' + _tr('サイクル調整枠') + '</b>' + _colon() + labels.join(' / ') + '</div>';
 }
 function defenseFitLine(defenses) {
   if (!defenses.length) return '';
@@ -582,7 +589,7 @@ function defenseFitLine(defenses) {
     if (t === 'kiteTank') return cardDisplayName(x.c.name) + _tr('＝逆サイド釣りと時間稼ぎ');
     return cardDisplayName(x.c.name);
   });
-  return '<div class="dg-detail"><b>' + _tr('防衛調整枠') + '</b>：' + labels.join(' / ') + '</div>';
+  return '<div class="dg-detail"><b>' + _tr('防衛調整枠') + '</b>' + _colon() + labels.join(' / ') + '</div>';
 }
 function practicalRead(mains, secs, supports, cycles, defenses, avg) {
   const bits = [];
@@ -594,7 +601,7 @@ function practicalRead(mains, secs, supports, cycles, defenses, avg) {
   if (avg >= 4.0 && cycles.length <= 1) bits.push(_tr('重めなので、序盤は無理に攻めず受けから形を作る必要があります'));
   if (defenses.length) bits.push(_tr('防衛札で受け方を調整し、守ってから攻めへつなげる形です'));
   if (supports.length >= 2) bits.push(_tr('残ったユニットでタワーに触る展開を作りやすいです'));
-  return bits.join('。') + '。';
+  return _sentences(bits);
 }
 function diagnoseHtml(deck) {
   let h = '';
@@ -613,10 +620,10 @@ function diagnoseHtml(deck) {
   let line = mn ? (_tr('主役は') + '<b>' + mn + '</b>') : _tr('タワーを削る明確な主役が見当たりません');
   if (mn && sn) line += _tr('。詰めや別ルートに') + '<b>' + sn + '</b>' + _tr('も使える形');
   else if (mn && supports[0]) line += _tr('。追加ダメージ役に') + '<b>' + cardLabel(supports[0].c) + '</b>' + _tr('を使える形');
-  line += '。' + typ + '（' + _tr('平均コスト') + avg.toFixed(1) + '）。';
+  line = _sentences([line, typ + _paren(_tr('平均コスト') + (_ja() ? '' : ' ') + avg.toFixed(1))]);
   h += '<div class="dg-cap"><div class="cap-head">🃏 ' + _tr('このデッキの特徴') + '</div><div class="dg-detail">' + line + '</div>'
     + winChipGroup('主軸', mains) + winChipGroup('第2勝ち筋', secs) + winChipGroup('補助勝ち筋', supports) + cycleFitLine(cycles) + defenseFitLine(defenses)
-    + '<div class="dg-detail"><b>' + _tr('読み') + '</b>：' + practicalRead(mains, secs, supports, cycles, defenses, avg) + '</div>'
+    + '<div class="dg-detail"><b>' + _tr('読み') + '</b>' + _colon() + practicalRead(mains, secs, supports, cycles, defenses, avg) + '</div>'
     + '<div class="dg-chips">' + mains.concat(secs).concat(supports).slice(0, 4).map(function (x) { return chip(x.c); }).join('') + '</div></div>';
   // 2) 実戦での傾向（同じ構成の戦績があるときだけ）
   const p = polOf(deck);
@@ -625,8 +632,8 @@ function diagnoseHtml(deck) {
     const dw = d >= 0.12 ? _tr('相手より大きく押し込めています') : d <= -0.12 ? _tr('やや押し込まれ気味で、競り負けやすい傾向') : _tr('互角の競り合いになりやすい');
     const ww = p.collapseLossRate >= 22 ? _tr('負けるときは大きく崩れがち') : p.fragileWinRate >= 12 ? _tr('勝ち切れるものの、際どい勝ちも多め') : p.cleanWinRate >= 25 ? _tr('勝つときはきれいに押し切れています') : _tr('堅実に勝てています');
     const lw = p.leakAdvantageAvg >= 0.8 ? _tr('手札は回しやすめ') : p.leakAdvantageAvg <= -0.8 ? _tr('エリクサー管理はシビア') : '';
-    h += '<div class="dg-cap"><div class="cap-head">⚔️ ' + _tr('実戦での傾向') + '<small>（' + _tr('実戦') + p.games + _tr('戦') + '）</small></div>'
-      + '<div class="dg-detail">' + dw + '。' + ww + '。' + (lw ? lw + '。' : '') + '</div></div>';
+    h += '<div class="dg-cap"><div class="cap-head">⚔️ ' + _tr('実戦での傾向') + '<small>' + _paren(_tf('実戦{n}戦', { n: p.games })) + '</small></div>'
+      + '<div class="dg-detail">' + _sentences([dw, ww, lw]) + '</div></div>';
   }
   // 3) 強み・弱み（カード評価ベース） 4) 苦手な相手（相性）＝既存のデータ表示を流用
   try { h += capabilityHtml(deck); } catch (e) {}

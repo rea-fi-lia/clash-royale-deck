@@ -245,7 +245,7 @@ function renderDecks(decks) {
            + gamesTxt + winTxt
            + '<span class="stat-avg">' + avgLbl + ' <b>' + avg + '</b></span>')
         : ('<span class="stat-avg">' + avgLbl + ' <b>' + avg + '</b></span>'
-           + (d.sub ? '<span class="stat-sep">' + d.sub + '</span>' : ''));
+           + (d.sub ? '<span class="stat-sep">' + _tr(d.sub) + '</span>' : ''));
     }
     // forms[]（GASが実データから出す各スロットの形）優先。なければ旧ロジック
     const forms = Array.isArray(d.forms) ? d.forms : null;
@@ -271,7 +271,7 @@ function renderDecks(decks) {
       const href = cardDetailUrl(n);
       const inner = '<span class="pip">'+(info.c!=null?info.c:'')+'</span>'+badge+cardImgTag(n, mode);
       return href
-        ? '<a class="'+cls+'" href="'+href+'" title="'+n+' のカードデータ" onclick="event.stopPropagation()">'+inner+'</a>'
+        ? '<a class="'+cls+'" href="'+href+'" title="'+_tr(n)+_tr(' のカードデータ')+'" onclick="event.stopPropagation()">'+inner+'</a>'
         : '<div class="'+cls+'" title="'+n+'">'+inner+'</div>';
     }).join('');
     const url = 'index.html?deck=' + encodeURIComponent(d.slots.join(','));
@@ -379,8 +379,8 @@ function crownQualityHtml(d) {
   const tri = (cw[0] || 0) + (cw[1] || 0) + (cw[2] || 0);   // 三冠での勝ち
   if (tri < 20) return base;   // 標本不足＝言わない。n=13だと±26ptも振れるので20勝を下限にした
   const pure = cw[0] / tri;                                  // 三冠のうち完封(3:0)だった割合。全体基準は約70%
-  const tip = '三冠の内訳 3:0=' + cw[0] + ' / 3:1=' + cw[1] + ' / 3:2=' + cw[2] +
-    '　（相手にクラウンを渡さず三冠＝押し切っている。渡しているほど押し返されている）';
+  const tip = _tr('三冠の内訳 3:0=') + cw[0] + ' / 3:1=' + cw[1] + ' / 3:2=' + cw[2] +
+    _tr('　（相手にクラウンを渡さず三冠＝押し切っている。渡しているほど押し返されている）');
   if (pure >= 0.85) return base + '<span class="stat-sep cq-crush" title="' + tip + '">' +
     _tr('完封三冠') + ' ' + Math.round(pure * 100) + '%</span>';
   if (pure <= 0.50) return base + '<span class="stat-sep cq-grind" title="' + tip + '">' +
@@ -687,7 +687,7 @@ function renderMetaMap() {
   const ptHtml = (c, rx, ry, lab) => {
     const x = clamp(pad + rx * (100 - 2 * pad));
     const y = clamp((100 - pad) - ry * (100 - 2 * pad));
-    return '<div class="mm-pt" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%" title="' + _tr(c.name) + _fmark(c) + ' 使用' + (c.use || 0) + '% / 勝率' + (c.win || 0) + '%">'
+    return '<div class="mm-pt" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%" title="' + _tr(c.name) + _fmark(c) + _tr(' 使用') + (c.use || 0) + _tr('% / 勝率') + (c.win || 0) + '%">'
       + cardImgTag(c.name, c.f, { alt: _tr(c.name), eager: true })
       + (_fmark(c) ? '<span class="fbadge">' + _fmark(c) + '</span>' : '')
       + (lab ? '<span class="lab">' + _tr(c.name) + (_fmark(c) ? '<i class="fm">' + _fmark(c) + '</i>' : '') + '</span>' : '') + '</div>';

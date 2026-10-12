@@ -1782,5 +1782,5 @@ function cardImgTag(name, form, opt) {
 // A group is not a card: keep real missing images distinct from the Other category.
 function archetypeImgTag(name) {
   if (name !== 'その他') return cardImgTag(name, null);
-  return '<svg class="card-category-icon" viewBox="0 0 48 58" width="48" height="58" style="width:100%;height:100%;object-fit:contain" role="img" aria-label="その他のデッキ"><rect x="5" y="8" width="30" height="39" rx="6" fill="#536880"/><rect x="13" y="14" width="30" height="39" rx="6" fill="#839bb8" stroke="#dae7f5" stroke-width="2"/><path d="M21 25h14M21 33h14M21 41h9" stroke="#f7fbff" stroke-width="3" stroke-linecap="round"/></svg>';
+  return '<svg class="card-category-icon" viewBox="0 0 48 58" width="48" height="58" style="width:100%;height:100%;object-fit:contain" role="img" aria-label="' + (window.CRI18N ? CRI18N.tr('その他のデッキ') : 'その他のデッキ') + '"><rect x="5" y="8" width="30" height="39" rx="6" fill="#536880"/><rect x="13" y="14" width="30" height="39" rx="6" fill="#839bb8" stroke="#dae7f5" stroke-width="2"/><path d="M21 25h14M21 33h14M21 41h9" stroke="#f7fbff" stroke-width="3" stroke-linecap="round"/></svg>';
 }

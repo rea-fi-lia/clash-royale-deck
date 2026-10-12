@@ -367,6 +367,51 @@ function lintJsRootOnlyLinks() {
 }
 
 
+/* ── [1h] 翻訳の取りこぼし ──
+   ★2026-10-12、17言語のページで、翻訳の関数（_tr / T / TR / CRI18N.tr）に渡している日本語169件のうち
+   108件に英語の訳が無く、全言語で日本語のまま出ていた（tr() は各言語の訳 → 英語 → 日本語の順に探す）。
+   渡している日本語の文字列そのものに、英語の訳が i18n.js にあるかを確かめる。
+   カードの役割（台帳の role）は新カードが毎日の更新で入るので、英語が無くても警告に留める
+   （画面では builder.js の roleText が日本語を出さずに空にする）。 */
+function loadI18nDict() {
+  const src = fs.readFileSync(path.join(ROOT, 'i18n.js'), 'utf8').replace(/(const|let|var)\s+DICT\s*=/, '$1 DICT = globalThis.__DICT =');
+  const noop = () => {};
+  const el = { setAttribute: noop, appendChild: noop, addEventListener: noop, style: {}, classList: { add: noop, remove: noop, toggle: noop } };
+  const sb = { console, setTimeout: noop, requestAnimationFrame: noop, URLSearchParams, MutationObserver: function () { this.observe = noop; },
+    NodeFilter: { SHOW_TEXT: 4, FILTER_REJECT: 2, FILTER_ACCEPT: 1 }, navigator: { language: 'en' }, location: { pathname: '/en/', search: '' },
+    localStorage: { getItem: () => null, setItem: noop },
+    document: { readyState: 'loading', documentElement: el, head: el, body: null, addEventListener: noop, querySelector: () => null, querySelectorAll: () => [],
+      getElementById: () => null, createElement: () => Object.assign({}, el), createTreeWalker: () => ({ nextNode: () => null }) } };
+  sb.window = sb;
+  try { vm.runInNewContext(src, sb, { timeout: 5000 }); } catch (e) { /* 画面が無い所で止まっても、DICT は先に作られている */ }
+  return sb.__DICT || null;
+}
+function lintI18nCoverage() {
+  console.log('\n[1h] 翻訳の取りこぼし：翻訳の関数に渡している日本語に英語の訳があるか');
+  const dict = loadI18nDict();
+  if (!dict || !dict.en) { fail('i18n.js から訳語の表（DICT）を読めなかった'); return; }
+  const jp = /[぀-ヿ一-鿿]/;
+  const call = /(?:\b_tr|\bTR|\bT|CRI18N\.tr|CRI18N\.t)\(\s*(['"`])((?:(?!\1)[^\\\n]|\\.)*?)\1/g;
+  const files = fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js') && !SKIP_FILES.has(f)).map(f => 'js/' + f).concat(['auth.js']);
+  const missing = new Map();
+  let used = 0;
+  for (const f of files) {
+    let s; try { s = fs.readFileSync(path.join(ROOT, f), 'utf8'); } catch (e) { continue; }
+    for (const m of s.matchAll(call)) {
+      const k = m[2];
+      if (!jp.test(k) || k.includes('${')) continue;
+      used++;
+      if (dict.en[k] == null && !missing.has(k)) missing.set(k, f);
+    }
+  }
+  for (const [k, f] of missing) fail(f + ' の「' + k.slice(0, 40) + '」に英語の訳が無い → i18n.js の DICT.en に足す');
+  const roles = [...new Set(loadCards().CARDS.map(c => c.role).filter(Boolean))];
+  const noRole = roles.filter(r => dict.en[r] == null);
+  if (noRole.length) console.log('  △ カードの役割 ' + noRole.length + '件に英語の訳が無い（日本語以外のページでは空で出る）: ' + noRole.slice(0, 5).join(' / '));
+  if (!missing.size) ok('翻訳の関数に渡している日本語 ' + used + '件すべてに英語の訳あり／カードの役割 ' + (roles.length - noRole.length) + '/' + roles.length + '件');
+}
+
+
 /* ── [1f] カード名の表が4箇所で一致しているか ──
    ★2026-09-19、新カードを js/cards-data.js（表示層）にだけ足して満足していたら、
    collect.js の slug→日本語名 が欠けたままで
@@ -407,6 +452,7 @@ function lintCardNameTables() {
   lintUxGuard();
   lintInternalLinks();
   lintJsRootOnlyLinks();
+  lintI18nCoverage();
   lintCardNameTables();
   lintDefs(ctx);
   if (!LINT_ONLY) { await checkAgainstApi(ctx); await checkUrls(ctx); }

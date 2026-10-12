@@ -98,6 +98,9 @@ function cardDisplayName(s) { return CARD_DISPLAY_NAMES[s] || s; }
 function cardName(c) { return cardDisplayName(c && c.name ? c.name : c); }
 function T(key, vars, fb) { return window.CRI18N ? CRI18N.t(key, vars) : (fb != null ? fb : key); }
 function TR(s) { return (!window.CRI18N || CRI18N.lang === 'ja') ? cardDisplayName(s) : CRI18N.tr(s); }
+// カードの役割の文（台帳は日本語だけ）。日本語以外では訳し、訳が英語にも無いときは日本語を出さずに空にする（2026-10-12）
+function roleText(role) { if (!role) return ''; if (!window.CRI18N || CRI18N.lang === 'ja') return role; const t = CRI18N.tr(role); return t === role ? '' : t; }
+function TRF(tpl, vars) { return String(TR(tpl)).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? vars[k] : m)); }
 // 言語切替時：数値入りの動的表示（平均コストの枚数など）を現在言語で作り直す
 window.addEventListener('crlangchange', () => { try { showDeckStats(deck); updateActionButtons(); updateAssistPanel(); } catch (e) {} });
 
@@ -200,7 +203,7 @@ function init() {
   const cf = document.getElementById('costFilters');
   [1,2,3,4,5,6,7,8,9].forEach(c => {
     const b = document.createElement('button');
-    b.className = 'cfbtn'; b.dataset.c = c; b.textContent = c; b.title = c + 'コスト';
+    b.className = 'cfbtn'; b.dataset.c = c; b.textContent = c; b.title = TRF('{c}コスト', { c: c });
     b.onclick = () => {
       // コストは単一選択：別のコストを押すと切り替わる。同じものを再度押すと解除
       const wasActive = activeCosts.has(c);
@@ -2044,28 +2047,28 @@ function updateAssistTopInfo(info) {
   if (!el) return;
   if (!assistMode || !info) { el.innerHTML = ''; return; }
   const rows = assistThreatRows(info);
-  const threats = rows.length ? rows.map(r => r.title.replace('が重い', '').replace('が薄い', '').replace('に遅れやすい', '')).join(' / ') : '大きな穴は少なめ';
+  const threats = rows.length ? rows.map(r => r.title.replace('が重い', '').replace('が薄い', '').replace('に遅れやすい', '')).join(' / ') : TR('大きな穴は少なめ');
   const needs = (info.stageNeeds || []).slice(0, 2).map(n => n.label).join(' / ');
-  let main = '今の読み';
+  let main = TR('今の読み');
   let sub = '';
   if (info.cards.length >= 8) {
-    main = '8枚完成';
-    sub = '分析で勝ち方を確認できます';
+    main = TR('8枚完成');
+    sub = TR('分析で勝ち方を確認できます');
   } else if (!info.cards.length) {
-    main = 'アシスト';
-    sub = '1枚選ぶと候補と苦しい相手を読みます';
+    main = TR('アシスト');
+    sub = TR('1枚選ぶと候補と苦しい相手を読みます');
   } else if (assistChunk === 'threats') {
-    main = '苦しい相手';
-    sub = rows.length ? rows.map(r => r.title).join(' / ') : 'もう少し枚数が増えると読みやすいです';
+    main = TR('苦しい相手');
+    sub = rows.length ? rows.map(r => r.title).join(' / ') : TR('もう少し枚数が増えると読みやすいです');
   } else {
-    main = info.cards.length + '/8枚';
+    main = TRF('{n}/8枚', { n: info.cards.length });
     // 勝負所（延長で伸びる等）と被ダメ許容（少し受けて返す等）を軽く添える。カード特性から読む＝既存の1倍/2倍/3倍列は使わない。
     const read = info.cards.length >= 3
       ? [info.timing && info.timing.label, info.tolerance && info.tolerance.label].filter(Boolean).join('・')
       : '';
     sub = info.style + (read ? '｜' + read : '') + (needs ? '｜次: ' + needs : '') + '｜苦: ' + threats;
   }
-  const go = assistChunk === 'threats' ? '候補へ' : '受けへ';
+  const go = assistChunk === 'threats' ? TR('候補へ') : TR('受けへ');
   el.innerHTML = '<span class="ati-main">' + esc(main) + '</span><span class="ati-sub">' + esc(sub) + '</span><span class="ati-go">' + esc(go) + '</span>';
   el.title = sub;
 }
@@ -2082,7 +2085,7 @@ function updateAssistPanel() {
   if (!controls || !btn || !panel) return;
   controls.classList.toggle('assist-active', assistMode);
   btn.setAttribute('aria-pressed', assistMode ? 'true' : 'false');
-  btn.innerHTML = assistMode ? '<span>アシストON</span>' : '<span>アシスト</span>';
+  btn.innerHTML = '<span>' + esc(TR(assistMode ? 'アシストON' : 'アシスト')) + '</span>';
   assistDirLabelByName = {};
   assistCoreLabelByName = {};
   if (!assistMode) { panel.innerHTML = ''; assistSuggestions = []; updateAssistTopInfo(null); refreshAssistHighlights(); return; }
@@ -2091,9 +2094,9 @@ function updateAssistPanel() {
   assistSuggestions = buildAssistSuggestions();
   updateAssistTopInfo(info);
   if (info.cards.length >= 8) {
-    panel.innerHTML = '<div class="assist-head"><div class="assist-title">次の一手<span class="assist-beta">BETA</span></div><div class="assist-state">8枚完成</div></div>'
-      + '<div class="assist-empty">デッキが完成しました。ここからは分析で「どう勝つか」を読みましょう。</div>'
-      + '<div class="assist-actions"><a class="assist-mini" href="strategy.html">デッキ分析へ</a></div>';
+    panel.innerHTML = '<div class="assist-head"><div class="assist-title">' + esc(TR('次の一手')) + '<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(TR('8枚完成')) + '</div></div>'
+      + '<div class="assist-empty">' + esc(TR('デッキが完成しました。ここからは分析で「どう勝つか」を読みましょう。')) + '</div>'
+      + '<div class="assist-actions"><a class="assist-mini" href="strategy.html">' + esc(TR('デッキ分析へ')) + '</a></div>';
     refreshAssistHighlights();
     return;
   }
@@ -2565,7 +2568,7 @@ function render() {
       </div>
       <span class="type-tag ${tagClass}">${tagText}</span>
       <div class="card-bottom">
-        <div class="card-role">${c.role}</div>
+        <div class="card-role">${esc(roleText(c.role))}</div>
       </div>`;
     div.draggable = true;
     div.addEventListener('dragstart', e => {
@@ -3411,7 +3414,7 @@ function showDeckStats(arr, animate) {
       const seg = document.createElement('div');
       seg.className = 'bar-seg'; seg.style.flex = cnt;
       seg.style.background = COST_COLORS[cost] || '#888';
-      seg.title = cost + 'コスト × ' + cnt;
+      seg.title = TRF('{c}コスト × {n}', { c: cost, n: cnt });
       bar.appendChild(seg);
     });
   }
@@ -3602,7 +3605,7 @@ async function openSlotSaveDialog() {
   ov.className = 'slot-pop';
   const chips = [1,2,3,4,5].map(i => {
     const s = slots.find(x => x.slot === i);
-    const sub = s ? T('cards.n', { n: (s.slots||[]).length }) : '空き';
+    const sub = s ? T('cards.n', { n: (s.slots||[]).length }) : TR('空き');
     const isCur = currentSlot === i;
     const isSel = selected === i;
     return `<div class="slot-chip ${s?'':'empty'}${isCur?' current':''}${isSel?' selected':''}" data-slot="${i}">
@@ -3793,7 +3796,7 @@ async function openSlotLoadPicker() {
   ov.className = 'slot-pop';
   const chips = [1,2,3,4,5].map(i => {
     const s = slots.find(x => x.slot === i);
-    const nm = s ? T('cards.n', { n: (s.slots || []).length }) : '空き'; // デッキ名ではなく枚数表示
+    const nm = s ? T('cards.n', { n: (s.slots || []).length }) : TR('空き'); // デッキ名ではなく枚数表示
     const cur = currentSlot === i ? ' current' : '';
     return `<div class="slot-chip ${s?'':'empty'}${cur}" data-slot="${i}" ${s?'':'data-empty="1"'}>
       <span class="num">${i}</span><span class="nm">${nm}</span>
@@ -4215,8 +4218,8 @@ window.CRDeckBridge = {
 (function initDesktopSlotNav() {
   const mq = matchMedia('(min-width: 1024px)'), actions = document.querySelector('.deck-actions');
   if (!actions) return;
-  const nav = document.createElement('div');nav.className = 'dp-slot-nav';nav.setAttribute('role','group');nav.setAttribute('aria-label','保存デッキのスロット');
-  nav.innerHTML = [1,2,3,4,5].map(n=>'<button type="button" data-slot="'+n+'" aria-label="スロット '+n+'">'+n+'</button>').join('');
+  const nav = document.createElement('div');nav.className = 'dp-slot-nav';nav.setAttribute('role','group');nav.setAttribute('aria-label',TR('保存デッキのスロット'));
+  nav.innerHTML = [1,2,3,4,5].map(n=>'<button type="button" data-slot="'+n+'" aria-label="'+esc(TRF('スロット {n}',{n:n}))+'">'+n+'</button>').join('');
   document.getElementById('slotLoadBtn').after(nav);
   let slots=[],owner=null,request=0,previewing=false;
   function clear(){
@@ -4228,7 +4231,7 @@ window.CRDeckBridge = {
   function paint(){nav.querySelectorAll('button').forEach(b=>{
     const n=+b.dataset.slot,s=slots.find(x=>x.slot===n);
     b.classList.toggle('empty',!s?.slots?.length);b.classList.toggle('on',currentSlot===n);
-    b.setAttribute('aria-pressed',String(currentSlot===n));b.title='SLOT '+n+(s?.slots?.length?' · '+s.slots.length+'枚':' · 空き');
+    b.setAttribute('aria-pressed',String(currentSlot===n));b.title=s?.slots?.length?TRF('SLOT {n} · {m}枚',{n:n,m:s.slots.length}):TRF('SLOT {n} · 空き',{n:n});
   });}
   async function refresh(){
     const revision=++request,uid=window.CRAuth?.getUser()?.uid;clear();
