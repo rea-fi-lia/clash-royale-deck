@@ -65,7 +65,6 @@
  "クラロワのデッキ診断は無料ですか？": "Apakah analisis dek gratis?",
  "はい。登録なしで、デッキの作成も診断もすべて無料で使えます。": "Ya. Menyusun dan menganalisis dek sepenuhnya gratis, tanpa perlu mendaftar.",
  "デッキ診断では何がわかりますか？": "Apa yang diberitahu analisis?",
- "平均コスト、攻撃・防衛・対空のバランス、勝ち筋、構成上の弱点、そして環境の人気デッキとの相性（β）がわかります。": "Rata-rata elixir, keseimbangan serangan, pertahanan, dan anti-udara, win condition-mu, kelemahan struktural, serta kecocokan melawan dek populer di meta (beta).",
  "平均コストはどれくらいが良いですか？": "Berapa rata-rata elixir yang bagus?",
  "多くのデッキは2.8〜4.2に収まります。軽い構成は回転が速く、重い構成は一発の制圧力が高くなります。勝ち筋と防衛が噛み合っていれば、幅広い平均コストで戦えます。": "Sebagian besar dek berada di 2,8–4,2. Susunan ringan berputar cepat; susunan berat mendominasi lewat satu serangan besar. Selama win condition dan pertahanan sejalan, rentang yang luas tetap bisa jalan.",
  "作ったデッキをゲームに送れますか？": "Bisakah mengirim dek ke gim?",
@@ -285,5 +284,6 @@
  "Google が広告 Cookie を使用することにより、ユーザーが当サイトや他のサイトにアクセスした際の情報に基づいて、Google やそのパートナーが適切な広告を表示できます。": "Penggunaan cookie iklan oleh Google memungkinkan Google dan mitranya menayangkan iklan kepada pengguna berdasarkan kunjungan mereka ke situs ini dan/atau situs lain di internet.",
  "ユーザーは、Google の広告設定でパーソナライズされた広告を無効にできます。": "Anda dapat menonaktifkan iklan yang dipersonalisasi di Setelan Iklan Google.",
  "また、aboutads.info にアクセスすると、パーソナライズされた広告に使われる第三者配信事業者の Cookie を無効にできます。": "Anda juga dapat menonaktifkan cookie vendor pihak ketiga untuk iklan yang dipersonalisasi dengan mengunjungi aboutads.info.",
- "Google による広告 Cookie の使い方は、次のページで確認できます。": "Anda dapat melihat cara Google menggunakan cookie iklan di halaman berikut."
+ "Google による広告 Cookie の使い方は、次のページで確認できます。": "Anda dapat melihat cara Google menggunakan cookie iklan di halaman berikut.",
+ "平均コスト、攻撃・防衛・対空のバランス、勝ち筋、構成上の弱点、そして環境の人気デッキとの相性がわかります。": "Rata-rata elixir, keseimbangan serangan, pertahanan, dan anti-udara, win condition-mu, kelemahan struktural, serta kecocokan melawan dek populer di meta."
 }

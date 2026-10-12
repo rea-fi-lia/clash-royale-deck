@@ -65,7 +65,6 @@
  "クラロワのデッキ診断は無料ですか？": "A análise de deck é gratuita?",
  "はい。登録なしで、デッキの作成も診断もすべて無料で使えます。": "Sim. Montar e analisar decks é totalmente gratuito, sem precisar se cadastrar.",
  "デッキ診断では何がわかりますか？": "O que a análise me diz?",
- "平均コスト、攻撃・防衛・対空のバランス、勝ち筋、構成上の弱点、そして環境の人気デッキとの相性（β）がわかります。": "Custo médio, equilíbrio entre ataque, defesa e antiaéreo, sua condição de vitória, fraquezas estruturais e confrontos contra decks populares da meta (beta).",
  "平均コストはどれくらいが良いですか？": "Qual custo médio é bom?",
  "多くのデッキは2.8〜4.2に収まります。軽い構成は回転が速く、重い構成は一発の制圧力が高くなります。勝ち筋と防衛が噛み合っていれば、幅広い平均コストで戦えます。": "A maioria dos decks fica entre 2,8 e 4,2. Construções leves ciclam rápido; as pesadas dominam com um único push grande. Enquanto condição de vitória e defesa se encaixarem, uma faixa ampla funciona.",
  "作ったデッキをゲームに送れますか？": "Posso enviar meu deck para o jogo?",
@@ -285,5 +284,6 @@
  "Google が広告 Cookie を使用することにより、ユーザーが当サイトや他のサイトにアクセスした際の情報に基づいて、Google やそのパートナーが適切な広告を表示できます。": "O uso de cookies de publicidade pelo Google permite que ele e seus parceiros exibam anúncios aos usuários com base nas visitas a este site e/ou a outros sites na Internet.",
  "ユーザーは、Google の広告設定でパーソナライズされた広告を無効にできます。": "Você pode desativar a publicidade personalizada nas Configurações de anúncios do Google.",
  "また、aboutads.info にアクセスすると、パーソナライズされた広告に使われる第三者配信事業者の Cookie を無効にできます。": "Você também pode desativar os cookies de fornecedores terceiros usados para publicidade personalizada acessando aboutads.info.",
- "Google による広告 Cookie の使い方は、次のページで確認できます。": "Saiba como o Google usa cookies de publicidade na página a seguir."
+ "Google による広告 Cookie の使い方は、次のページで確認できます。": "Saiba como o Google usa cookies de publicidade na página a seguir.",
+ "平均コスト、攻撃・防衛・対空のバランス、勝ち筋、構成上の弱点、そして環境の人気デッキとの相性がわかります。": "Custo médio, equilíbrio entre ataque, defesa e antiaéreo, sua condição de vitória, fraquezas estruturais e confrontos contra decks populares da meta."
 }

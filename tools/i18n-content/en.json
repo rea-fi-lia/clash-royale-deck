@@ -65,7 +65,6 @@
  "クラロワのデッキ診断は無料ですか？": "Is the deck analysis free?",
  "はい。登録なしで、デッキの作成も診断もすべて無料で使えます。": "Yes. Building and analyzing decks are completely free, no sign-up needed.",
  "デッキ診断では何がわかりますか？": "What does the analysis tell me?",
- "平均コスト、攻撃・防衛・対空のバランス、勝ち筋、構成上の弱点、そして環境の人気デッキとの相性（β）がわかります。": "Average elixir, the balance of offense, defense and anti-air, your win condition, structural weaknesses, and matchups against popular meta decks (beta).",
  "平均コストはどれくらいが良いですか？": "What is a good average elixir?",
  "多くのデッキは2.8〜4.2に収まります。軽い構成は回転が速く、重い構成は一発の制圧力が高くなります。勝ち筋と防衛が噛み合っていれば、幅広い平均コストで戦えます。": "Most decks land between 2.8 and 4.2. Light builds cycle fast; heavy builds dominate with single big pushes. As long as your win condition and defense mesh, a wide range of averages can work.",
  "作ったデッキをゲームに送れますか？": "Can I send my deck to the game?",
@@ -285,5 +284,6 @@
  "Google が広告 Cookie を使用することにより、ユーザーが当サイトや他のサイトにアクセスした際の情報に基づいて、Google やそのパートナーが適切な広告を表示できます。": "Google's use of advertising cookies enables it and its partners to serve ads to users based on their visits to this site and/or other sites on the Internet.",
  "ユーザーは、Google の広告設定でパーソナライズされた広告を無効にできます。": "You can opt out of personalized advertising in Google's Ads Settings.",
  "また、aboutads.info にアクセスすると、パーソナライズされた広告に使われる第三者配信事業者の Cookie を無効にできます。": "You can also opt out of third-party vendors' cookies for personalized advertising by visiting aboutads.info.",
- "Google による広告 Cookie の使い方は、次のページで確認できます。": "You can learn how Google uses advertising cookies on the following page."
+ "Google による広告 Cookie の使い方は、次のページで確認できます。": "You can learn how Google uses advertising cookies on the following page.",
+ "平均コスト、攻撃・防衛・対空のバランス、勝ち筋、構成上の弱点、そして環境の人気デッキとの相性がわかります。": "Average elixir, the balance of offense, defense and anti-air, your win condition, structural weaknesses, and matchups against popular meta decks."
 }

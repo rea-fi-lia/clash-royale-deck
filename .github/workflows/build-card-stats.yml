@@ -92,6 +92,8 @@ jobs:
           R2_PRIVATE_PREFIX: ${{ vars.R2_PRIVATE_PREFIX || 'private/' }}
         run: |
           node tools/build-card-pages.js --from-r2 --stats "$RUNNER_TEMP/card-stats.json" --from-api
+          # 人気デッキの「今日の環境のまとめ」を本番の集計から書き直す（AdSense 対策・2026-10-12）。取れなかった日は前の版のまま
+          node tools/build-static-content.js --from-api || echo "今日の環境のまとめは今回は書き直さない"
           node tools/gen-i18n.js
           node tools/check-card-images.js --lint-only
           node tools/check-private-leak.js

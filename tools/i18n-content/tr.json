@@ -65,7 +65,6 @@
  "クラロワのデッキ診断は無料ですか？": "Deste analizi ücretsiz mi?",
  "はい。登録なしで、デッキの作成も診断もすべて無料で使えます。": "Evet. Deste kurmak ve analiz etmek tamamen ücretsizdir, kayıt gerekmez.",
  "デッキ診断では何がわかりますか？": "Analiz bana ne söyler?",
- "平均コスト、攻撃・防衛・対空のバランス、勝ち筋、構成上の弱点、そして環境の人気デッキとの相性（β）がわかります。": "Ortalama iksir; saldırı, savunma ve hava savunması dengesi; kazanma koşulun; yapısal zayıflıklar ve popüler meta destelerine karşı eşleşmeler (beta).",
  "平均コストはどれくらいが良いですか？": "İyi bir ortalama iksir kaçtır?",
  "多くのデッキは2.8〜4.2に収まります。軽い構成は回転が速く、重い構成は一発の制圧力が高くなります。勝ち筋と防衛が噛み合っていれば、幅広い平均コストで戦えます。": "Çoğu deste 2,8 ile 4,2 arasındadır. Hafif kurulumlar hızlı döner; ağır kurulumlar tek büyük atakla ezer. Kazanma koşulun ile savunman uyumlu olduğu sürece geniş bir aralık işe yarar.",
  "作ったデッキをゲームに送れますか？": "Destemi oyuna gönderebilir miyim?",
@@ -285,5 +284,6 @@
  "Google が広告 Cookie を使用することにより、ユーザーが当サイトや他のサイトにアクセスした際の情報に基づいて、Google やそのパートナーが適切な広告を表示できます。": "Google'ın reklam çerezlerini kullanması, Google'ın ve iş ortaklarının kullanıcılara bu siteye ve/veya internetteki diğer sitelere yaptıkları ziyaretlere göre reklam göstermesini sağlar.",
  "ユーザーは、Google の広告設定でパーソナライズされた広告を無効にできます。": "Kişiselleştirilmiş reklamları Google Reklam Ayarları'ndan kapatabilirsiniz.",
  "また、aboutads.info にアクセスすると、パーソナライズされた広告に使われる第三者配信事業者の Cookie を無効にできます。": "Ayrıca aboutads.info adresini ziyaret ederek kişiselleştirilmiş reklamlar için kullanılan üçüncü taraf sağlayıcı çerezlerini kapatabilirsiniz.",
- "Google による広告 Cookie の使い方は、次のページで確認できます。": "Google'ın reklam çerezlerini nasıl kullandığını aşağıdaki sayfada görebilirsiniz."
+ "Google による広告 Cookie の使い方は、次のページで確認できます。": "Google'ın reklam çerezlerini nasıl kullandığını aşağıdaki sayfada görebilirsiniz.",
+ "平均コスト、攻撃・防衛・対空のバランス、勝ち筋、構成上の弱点、そして環境の人気デッキとの相性がわかります。": "Ortalama iksir; saldırı, savunma ve hava savunması dengesi; kazanma koşulun; yapısal zayıflıklar ve popüler meta destelerine karşı eşleşmeler."
 }

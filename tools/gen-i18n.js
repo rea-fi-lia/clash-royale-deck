@@ -487,6 +487,8 @@ function buildLangPage(srcHtml, lang, page) {
   const seo = (SEO[page] && SEO[page][lang]) || null;
   const shouldIndex = INDEX_LANGS.includes(lang);
   let h = stripHreflang(srcHtml);
+  // 日本語のページだけの欄（例：人気デッキの「今日の環境のまとめ」）は言語ページに入れない（日本語が漏れないように・2026-10-12）
+  h = h.replace(/<!--JA-ONLY-->[\s\S]*?<!--\/JA-ONLY-->\n?/g, '');
   h = h.replace(/<html lang="ja">/, '<html lang="' + HTMLLANG[lang] + '">');
   h = absolutizeAssets(h);
   const url = pageUrl(lang, page);

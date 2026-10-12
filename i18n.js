@@ -228,7 +228,7 @@
       "seo.q1": "Is the Clash Royale deck checker free?",
       "seo.a1": "Yes. Building and analyzing decks is completely free, with no sign-up required.",
       "seo.q2": "What does the deck analysis tell me?",
-      "seo.a2": "Average elixir, attack / defense / anti-air balance, win conditions, structural weaknesses, and matchups versus the popular meta (beta).",
+      "seo.a2": "Average elixir, attack / defense / anti-air balance, win conditions, structural weaknesses, and matchups versus the popular meta.",
       "seo.q3": "What average elixir is good?",
       "seo.a3": "Most decks land between 2.8 and 4.2. Lighter builds cycle faster; heavier builds have more knockout power. As long as your win condition and defense fit together, a wide range of average elixir works.",
       "seo.q4": "Can I send my deck into the game?",

@@ -65,7 +65,6 @@
  "クラロワのデッキ診断は無料ですか？": "Phân tích bộ bài có miễn phí không?",
  "はい。登録なしで、デッキの作成も診断もすべて無料で使えます。": "Có. Xây và phân tích bộ bài hoàn toàn miễn phí, không cần đăng ký.",
  "デッキ診断では何がわかりますか？": "Phân tích cho biết những gì?",
- "平均コスト、攻撃・防衛・対空のバランス、勝ち筋、構成上の弱点、そして環境の人気デッキとの相性（β）がわかります。": "Elixir trung bình, cân bằng giữa tấn công, phòng thủ và phòng không, win condition, điểm yếu cấu trúc, cùng độ tương khắc với các bộ bài phổ biến trong meta (beta).",
  "平均コストはどれくらいが良いですか？": "Elixir trung bình bao nhiêu là tốt?",
  "多くのデッキは2.8〜4.2に収まります。軽い構成は回転が速く、重い構成は一発の制圧力が高くなります。勝ち筋と防衛が噛み合っていれば、幅広い平均コストで戦えます。": "Phần lớn bộ bài nằm trong 2,8–4,2. Cấu trúc nhẹ xoay bài nhanh; cấu trúc nặng áp đảo bằng một đợt lớn. Miễn là win condition và phòng thủ ăn khớp, khoảng elixir khá rộng đều chơi được.",
  "作ったデッキをゲームに送れますか？": "Có thể gửi bộ bài vào game không?",
@@ -285,5 +284,6 @@
  "Google が広告 Cookie を使用することにより、ユーザーが当サイトや他のサイトにアクセスした際の情報に基づいて、Google やそのパートナーが適切な広告を表示できます。": "Việc Google sử dụng cookie quảng cáo cho phép Google và các đối tác phân phát quảng cáo cho người dùng dựa trên lượt truy cập của họ vào trang web này và/hoặc các trang web khác trên Internet.",
  "ユーザーは、Google の広告設定でパーソナライズされた広告を無効にできます。": "Bạn có thể tắt quảng cáo được cá nhân hóa trong phần Cài đặt quảng cáo của Google.",
  "また、aboutads.info にアクセスすると、パーソナライズされた広告に使われる第三者配信事業者の Cookie を無効にできます。": "Bạn cũng có thể tắt cookie của nhà cung cấp bên thứ ba dùng cho quảng cáo được cá nhân hóa bằng cách truy cập aboutads.info.",
- "Google による広告 Cookie の使い方は、次のページで確認できます。": "Bạn có thể xem cách Google sử dụng cookie quảng cáo tại trang sau."
+ "Google による広告 Cookie の使い方は、次のページで確認できます。": "Bạn có thể xem cách Google sử dụng cookie quảng cáo tại trang sau.",
+ "平均コスト、攻撃・防衛・対空のバランス、勝ち筋、構成上の弱点、そして環境の人気デッキとの相性がわかります。": "Elixir trung bình, cân bằng giữa tấn công, phòng thủ và phòng không, win condition, điểm yếu cấu trúc, cùng độ tương khắc với các bộ bài phổ biến trong meta."
 }

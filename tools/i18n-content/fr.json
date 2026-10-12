@@ -65,7 +65,6 @@
  "クラロワのデッキ診断は無料ですか？": "L’analyse de deck est-elle gratuite ?",
  "はい。登録なしで、デッキの作成も診断もすべて無料で使えます。": "Oui. Créer et analyser des decks est entièrement gratuit, sans inscription.",
  "デッキ診断では何がわかりますか？": "Que m’apprend l’analyse ?",
- "平均コスト、攻撃・防衛・対空のバランス、勝ち筋、構成上の弱点、そして環境の人気デッキとの相性（β）がわかります。": "Le coût moyen, l’équilibre entre attaque, défense et anti-aérien, votre condition de victoire, les faiblesses structurelles et les matchups face aux decks populaires de la méta (bêta).",
  "平均コストはどれくらいが良いですか？": "Quel coût moyen viser ?",
  "多くのデッキは2.8〜4.2に収まります。軽い構成は回転が速く、重い構成は一発の制圧力が高くなります。勝ち筋と防衛が噛み合っていれば、幅広い平均コストで戦えます。": "La plupart des decks se situent entre 2,8 et 4,2. Les constructions légères cyclent vite ; les lourdes dominent par un gros push. Tant que condition de victoire et défense s’accordent, une large plage fonctionne.",
  "作ったデッキをゲームに送れますか？": "Puis-je envoyer mon deck au jeu ?",
@@ -285,5 +284,6 @@
  "Google が広告 Cookie を使用することにより、ユーザーが当サイトや他のサイトにアクセスした際の情報に基づいて、Google やそのパートナーが適切な広告を表示できます。": "Grâce aux cookies publicitaires, Google et ses partenaires peuvent diffuser des annonces aux utilisateurs en fonction de leurs visites sur ce site et/ou sur d’autres sites Internet.",
  "ユーザーは、Google の広告設定でパーソナライズされた広告を無効にできます。": "Vous pouvez désactiver la publicité personnalisée dans les Paramètres des annonces de Google.",
  "また、aboutads.info にアクセスすると、パーソナライズされた広告に使われる第三者配信事業者の Cookie を無効にできます。": "Vous pouvez également désactiver les cookies de fournisseurs tiers utilisés pour la publicité personnalisée sur aboutads.info.",
- "Google による広告 Cookie の使い方は、次のページで確認できます。": "Vous pouvez consulter la façon dont Google utilise les cookies publicitaires sur la page suivante."
+ "Google による広告 Cookie の使い方は、次のページで確認できます。": "Vous pouvez consulter la façon dont Google utilise les cookies publicitaires sur la page suivante.",
+ "平均コスト、攻撃・防衛・対空のバランス、勝ち筋、構成上の弱点、そして環境の人気デッキとの相性がわかります。": "Le coût moyen, l’équilibre entre attaque, défense et anti-aérien, votre condition de victoire, les faiblesses structurelles et les matchups face aux decks populaires de la méta."
 }
