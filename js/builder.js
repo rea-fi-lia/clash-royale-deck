@@ -398,11 +398,17 @@ function getFiltered() {
 
 // ===== 参謀モード：次の1枚（v1.5・監修JSONがあれば使い、無ければローカル定義で動く） =====
 function normalizeAssistCards(j) {
-  if (!j) return null;
+  if (!j || typeof j !== 'object') return null;
   if (j.cards && !Array.isArray(j.cards)) return j.cards;
   if (Array.isArray(j.cards)) return Object.fromEntries(j.cards.map(x => [x.name, x]));
   if (Array.isArray(j)) return Object.fromEntries(j.map(x => [x.name, x]));
-  return j.byCard || null;
+  if (j.byCard) return j.byCard;
+  // /api/assist/bootstrap は Worker の側で「カード名→行」の形に直してから返す。その形はそのまま受け取る。
+  //   2026-10-13 まで、ここで null を返していたため、bootstrap の4表（wincon・potential・tags・vectors）が画面で使われていなかった。
+  //   全部の値が行（オブジェクト）のときだけ受ける（schema などの文字の項目を持つ包みは今までどおり null）。
+  const rows = Object.values(j);
+  if (rows.length && rows.every(v => v && typeof v === 'object' && !Array.isArray(v))) return j;
+  return null;
 }
 function loadAssistJson(name) {
   if (!allowAssistPublicJsonFallback()) return Promise.resolve(null);
