@@ -22,7 +22,7 @@
  "デッキ作成の考え方や用語を読む": "Đọc tư duy và thuật ngữ khi xây bộ bài",
  "CR Deck Buildersは、クラロワの8枚デッキを組みながら平均コスト、カードの役割、攻めと守りの偏りを確認できるデッキ作成ツールです。カード名や略称で検索し、タップまたはドラッグでデッキに入れ替えできます。": "CR Deck Builders là công cụ xây bộ bài giúp bạn theo dõi elixir trung bình, vai trò từng lá và độ lệch giữa công và thủ ngay khi ghép bộ bài 8 lá Clash Royale. Tìm lá theo tên hoặc tên tắt, rồi chạm hoặc kéo để thay vào bộ bài.",
  "アシストをオンにすると、いま選んでいるカードに合わせて、攻撃強化・防衛強化・回転力強化の候補を見比べられます。完成したデッキは分析ページで勝ち筋、苦しい相手、補いやすい役割を確認できます。": "Khi bật Trợ lý, bạn có thể so sánh các lá gợi ý để tăng sức tấn công, tăng phòng thủ hoặc tăng tốc độ vòng bài, dựa trên những lá đã chọn. Khi bộ bài hoàn tất, trang phân tích sẽ cho biết win condition, những kèo khó và những vai trò dễ bù đắp.",
- "全カードデータのページでは、122枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。": "Ở trang dữ liệu toàn bộ lá bài, bạn xem được các con số thật của từng lá trong 122 lá — máu, sát thương, sát thương mỗi giây, tầm đánh — cùng với việc lá đó chết bởi phép nào, tỉ lệ dùng và tỉ lệ thắng trong trận xếp hạng. Trang bộ bài phổ biến giúp bạn tìm ý tưởng từ cách chơi thật của những người giỏi nhất thế giới. Một lộ trình tốt: bắt đầu từ bộ bài phổ biến, đọc thuật ngữ và hướng dẫn, rồi chỉnh bộ bài theo lối chơi của mình.",
+ "全カードデータのページでは、123枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。": "Ở trang dữ liệu toàn bộ lá bài, bạn xem được các con số thật của từng lá trong 123 lá — máu, sát thương, sát thương mỗi giây, tầm đánh — cùng với việc lá đó chết bởi phép nào, tỉ lệ dùng và tỉ lệ thắng trong trận xếp hạng. Trang bộ bài phổ biến giúp bạn tìm ý tưởng từ cách chơi thật của những người giỏi nhất thế giới. Một lộ trình tốt: bắt đầu từ bộ bài phổ biến, đọc thuật ngữ và hướng dẫn, rồi chỉnh bộ bài theo lối chơi của mình.",
  "全カードデータ": "Dữ liệu toàn bộ lá bài",
  "デッキ作成ガイド": "Hướng dẫn xây bộ bài",
  "よくある質問": "Câu hỏi thường gặp",
@@ -277,5 +277,13 @@
  "改定": "Sửa đổi",
  "本ポリシーは必要に応じて改定されることがあります。重要な変更がある場合はサイト上でお知らせします。": "Chính sách này có thể được sửa đổi khi cần. Nếu có thay đổi quan trọng, chúng tôi sẽ thông báo trên trang.",
  "画面の使い方をもう一度見る": "Xem lại hướng dẫn giao diện",
- "参考デッキ": "Bộ bài tham khảo"
+ "参考デッキ": "Bộ bài tham khảo",
+ "最終更新：2026年10月12日": "Cập nhật lần cuối: 12 tháng 10, 2026",
+ "広告の配信について": "Về quảng cáo",
+ "当サイトは、第三者配信の広告サービス「Google AdSense」を利用しています。": "Trang web này sử dụng Google AdSense, một dịch vụ quảng cáo của bên thứ ba.",
+ "Google などの第三者配信事業者は Cookie を使用して、ユーザーが当サイトや他のサイトに過去にアクセスした際の情報に基づいて広告を配信します。": "Các nhà cung cấp bên thứ ba, bao gồm Google, sử dụng cookie để phân phát quảng cáo dựa trên các lần truy cập trước đây của người dùng vào trang web này hoặc các trang web khác.",
+ "Google が広告 Cookie を使用することにより、ユーザーが当サイトや他のサイトにアクセスした際の情報に基づいて、Google やそのパートナーが適切な広告を表示できます。": "Việc Google sử dụng cookie quảng cáo cho phép Google và các đối tác phân phát quảng cáo cho người dùng dựa trên lượt truy cập của họ vào trang web này và/hoặc các trang web khác trên Internet.",
+ "ユーザーは、Google の広告設定でパーソナライズされた広告を無効にできます。": "Bạn có thể tắt quảng cáo được cá nhân hóa trong phần Cài đặt quảng cáo của Google.",
+ "また、aboutads.info にアクセスすると、パーソナライズされた広告に使われる第三者配信事業者の Cookie を無効にできます。": "Bạn cũng có thể tắt cookie của nhà cung cấp bên thứ ba dùng cho quảng cáo được cá nhân hóa bằng cách truy cập aboutads.info.",
+ "Google による広告 Cookie の使い方は、次のページで確認できます。": "Bạn có thể xem cách Google sử dụng cookie quảng cáo tại trang sau."
 }

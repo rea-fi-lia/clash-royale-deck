@@ -22,7 +22,7 @@
  "デッキ作成の考え方や用語を読む": "Deste kurma mantığını ve terimleri oku",
  "CR Deck Buildersは、クラロワの8枚デッキを組みながら平均コスト、カードの役割、攻めと守りの偏りを確認できるデッキ作成ツールです。カード名や略称で検索し、タップまたはドラッグでデッキに入れ替えできます。": "CR Deck Builders, Clash Royale’de 8 kartlık desteni kurarken ortalama iksiri, kartların rollerini ve saldırı–savunma dengesini görebildiğin bir deste kurma aracıdır. Kartları adıyla veya kısaltmasıyla ara, dokunarak ya da sürükleyerek desteye al.",
  "アシストをオンにすると、いま選んでいるカードに合わせて、攻撃強化・防衛強化・回転力強化の候補を見比べられます。完成したデッキは分析ページで勝ち筋、苦しい相手、補いやすい役割を確認できます。": "Asistanı açtığında, o ana kadar seçtiğin kartlara göre saldırıyı, savunmayı veya döngü hızını güçlendiren adayları karşılaştırabilirsin. Deste tamamlandığında analiz sayfası kazanma koşulunu, zor eşleşmeleri ve kolayca kapatılabilecek rolleri gösterir.",
- "全カードデータのページでは、122枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。": "Tüm Kart Verileri sayfalarında 122 kartın her biri için can, hasar, saniyelik hasar ve menzil gibi gerçek değerleri, hangi büyülerle öldüğünü ve dereceli maçlardaki kullanım ile kazanma oranlarını bulursun. Popüler Desteler sayfasında ise dünyanın en iyi oyuncularının gerçek oyununa dayanan deste fikirlerini keşfedersin. İyi bir yol: popüler bir desteyle başla, sözlüğü ve rehberi oku, sonra desteyi kendi oyun tarzına göre ayarla.",
+ "全カードデータのページでは、123枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。": "Tüm Kart Verileri sayfalarında 123 kartın her biri için can, hasar, saniyelik hasar ve menzil gibi gerçek değerleri, hangi büyülerle öldüğünü ve dereceli maçlardaki kullanım ile kazanma oranlarını bulursun. Popüler Desteler sayfasında ise dünyanın en iyi oyuncularının gerçek oyununa dayanan deste fikirlerini keşfedersin. İyi bir yol: popüler bir desteyle başla, sözlüğü ve rehberi oku, sonra desteyi kendi oyun tarzına göre ayarla.",
  "全カードデータ": "Tüm Kart Verileri",
  "デッキ作成ガイド": "Deste Kurma Rehberi",
  "よくある質問": "Sık Sorulan Sorular",
@@ -277,5 +277,13 @@
  "改定": "Değişiklikler",
  "本ポリシーは必要に応じて改定されることがあります。重要な変更がある場合はサイト上でお知らせします。": "Bu politika gerektiğinde güncellenebilir. Önemli değişiklikler sitede duyurulur.",
  "画面の使い方をもう一度見る": "Arayüz turunu yeniden izle",
- "参考デッキ": "Örnek desteler"
+ "参考デッキ": "Örnek desteler",
+ "最終更新：2026年10月12日": "Son güncelleme: 12 Ekim 2026",
+ "広告の配信について": "Reklamlar hakkında",
+ "当サイトは、第三者配信の広告サービス「Google AdSense」を利用しています。": "Bu site, üçüncü taraf bir reklam hizmeti olan Google AdSense'i kullanır.",
+ "Google などの第三者配信事業者は Cookie を使用して、ユーザーが当サイトや他のサイトに過去にアクセスした際の情報に基づいて広告を配信します。": "Google dahil üçüncü taraf sağlayıcılar, kullanıcının bu siteye veya diğer web sitelerine önceki ziyaretlerine göre reklam göstermek için çerezler kullanır.",
+ "Google が広告 Cookie を使用することにより、ユーザーが当サイトや他のサイトにアクセスした際の情報に基づいて、Google やそのパートナーが適切な広告を表示できます。": "Google'ın reklam çerezlerini kullanması, Google'ın ve iş ortaklarının kullanıcılara bu siteye ve/veya internetteki diğer sitelere yaptıkları ziyaretlere göre reklam göstermesini sağlar.",
+ "ユーザーは、Google の広告設定でパーソナライズされた広告を無効にできます。": "Kişiselleştirilmiş reklamları Google Reklam Ayarları'ndan kapatabilirsiniz.",
+ "また、aboutads.info にアクセスすると、パーソナライズされた広告に使われる第三者配信事業者の Cookie を無効にできます。": "Ayrıca aboutads.info adresini ziyaret ederek kişiselleştirilmiş reklamlar için kullanılan üçüncü taraf sağlayıcı çerezlerini kapatabilirsiniz.",
+ "Google による広告 Cookie の使い方は、次のページで確認できます。": "Google'ın reklam çerezlerini nasıl kullandığını aşağıdaki sayfada görebilirsiniz."
 }

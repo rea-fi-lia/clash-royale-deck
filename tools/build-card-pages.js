@@ -222,7 +222,7 @@ function cardBody(c, ctx, D) {
     const last = st?.freshness?.lastSuccessAt;
     out.push('<p class="note">出典：コミュニティWiki'+(st?.supplementSource?'・<a href="'+esc(st.supplementSource)+'" target="_blank" rel="noopener">RoyaleAPI</a>':'')+'。公式調整がある項目は変更後の値を優先します。' + (last ? 'Wiki取得確認：' + esc(last.slice(0,10)) + '。' : '') + '</p></section>');
   }
-  if (!st || !Object.keys(s16).length) out.push('<p class="note">詳細データを確認中です。</p>');
+  if (!st || !Object.keys(s16).length) out.push('<p class="note">このカードの詳細データは載せていません。</p>');
   for (const [form,label] of [['e','限界突破'],['h','ヒーロー']]) {
     if (!(form==='e'?c.evolved:c.hero)) continue;
     const data=st?.formStats?.[form];
@@ -231,7 +231,7 @@ function cardBody(c, ctx, D) {
       out.push('<table class="cardpage-stats"><tbody>'+data.officialFields.map(v=>'<tr><th>'+esc(v.label)+(v.level?'（Lv'+v.level+'）':'')+'</th><td>'+esc(v.expected)+'</td></tr>').join('')+'</tbody></table><p class="note">公式発表で確認できた項目です。この形態の全能力値を網羅した表ではありません。</p>');
     } else if (data?.status==='current' && Object.keys(data.combat?.stats || {}).length) {
       out.push('<table class="cardpage-stats"><tbody>'+Object.entries(data.combat.stats).filter(([,v])=>typeof v==='number').map(([k,v])=>'<tr><th>'+esc(k)+'（Lv11）</th><td>'+esc(v)+'</td></tr>').join('')+'</tbody></table>');
-    } else out.push('<p class="note">この形態の詳細データは確認中です。通常形態の数値とは区別しています。</p>');
+    } else out.push('<p class="note">この形態だけの数値は載せていません。通常形態の数値とは分けて扱っています。</p>');
     out.push('</section>');
   }
 

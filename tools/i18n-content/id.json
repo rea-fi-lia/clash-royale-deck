@@ -22,7 +22,7 @@
  "デッキ作成の考え方や用語を読む": "Baca konsep dan istilah dalam menyusun dek",
  "CR Deck Buildersは、クラロワの8枚デッキを組みながら平均コスト、カードの役割、攻めと守りの偏りを確認できるデッキ作成ツールです。カード名や略称で検索し、タップまたはドラッグでデッキに入れ替えできます。": "CR Deck Builders adalah alat penyusun dek yang menampilkan rata-rata elixir, peran tiap kartu, serta ketimpangan antara serangan dan pertahanan sambil kamu menyusun dek 8 kartu Clash Royale. Cari kartu lewat nama atau singkatannya, lalu tukar dengan ketuk atau seret.",
  "アシストをオンにすると、いま選んでいるカードに合わせて、攻撃強化・防衛強化・回転力強化の候補を見比べられます。完成したデッキは分析ページで勝ち筋、苦しい相手、補いやすい役割を確認できます。": "Dengan Asisten aktif, kamu bisa membandingkan kandidat untuk memperkuat serangan, pertahanan, atau kecepatan siklus sesuai kartu yang sudah dipilih. Setelah dek lengkap, halaman analisis menunjukkan win condition-mu, lawan yang berat, dan peran yang mudah ditambal.",
- "全カードデータのページでは、122枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。": "Halaman data kartu memuat angka nyata untuk masing-masing dari 123 kartu — darah, damage, damage per detik, jangkauan — plus mantra apa yang membunuhnya serta tingkat penggunaan dan win rate di pertandingan berperingkat. Halaman dek populer membantu mencari ide dari cara bermain pemain terbaik dunia. Alur yang bagus: mulai dari dek populer, baca glosarium dan panduan, lalu sesuaikan dek dengan gaya bermainmu.",
+ "全カードデータのページでは、123枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。": "Halaman data kartu memuat angka nyata untuk masing-masing dari 123 kartu — darah, damage, damage per detik, jangkauan — plus mantra apa yang membunuhnya serta tingkat penggunaan dan win rate di pertandingan berperingkat. Halaman dek populer membantu mencari ide dari cara bermain pemain terbaik dunia. Alur yang bagus: mulai dari dek populer, baca glosarium dan panduan, lalu sesuaikan dek dengan gaya bermainmu.",
  "全カードデータ": "Data semua kartu",
  "デッキ作成ガイド": "Panduan menyusun dek",
  "よくある質問": "Pertanyaan umum",
@@ -277,5 +277,13 @@
  "改定": "Perubahan",
  "本ポリシーは必要に応じて改定されることがあります。重要な変更がある場合はサイト上でお知らせします。": "Kebijakan ini dapat direvisi bila diperlukan. Perubahan penting akan diumumkan di situs.",
  "画面の使い方をもう一度見る": "Lihat kembali panduan antarmuka",
- "参考デッキ": "Dek referensi"
+ "参考デッキ": "Dek referensi",
+ "最終更新：2026年10月12日": "Terakhir diperbarui: 12 Oktober 2026",
+ "広告の配信について": "Tentang iklan",
+ "当サイトは、第三者配信の広告サービス「Google AdSense」を利用しています。": "Situs ini menggunakan Google AdSense, layanan iklan pihak ketiga.",
+ "Google などの第三者配信事業者は Cookie を使用して、ユーザーが当サイトや他のサイトに過去にアクセスした際の情報に基づいて広告を配信します。": "Vendor pihak ketiga, termasuk Google, menggunakan cookie untuk menayangkan iklan berdasarkan kunjungan pengguna sebelumnya ke situs ini atau situs web lain.",
+ "Google が広告 Cookie を使用することにより、ユーザーが当サイトや他のサイトにアクセスした際の情報に基づいて、Google やそのパートナーが適切な広告を表示できます。": "Penggunaan cookie iklan oleh Google memungkinkan Google dan mitranya menayangkan iklan kepada pengguna berdasarkan kunjungan mereka ke situs ini dan/atau situs lain di internet.",
+ "ユーザーは、Google の広告設定でパーソナライズされた広告を無効にできます。": "Anda dapat menonaktifkan iklan yang dipersonalisasi di Setelan Iklan Google.",
+ "また、aboutads.info にアクセスすると、パーソナライズされた広告に使われる第三者配信事業者の Cookie を無効にできます。": "Anda juga dapat menonaktifkan cookie vendor pihak ketiga untuk iklan yang dipersonalisasi dengan mengunjungi aboutads.info.",
+ "Google による広告 Cookie の使い方は、次のページで確認できます。": "Anda dapat melihat cara Google menggunakan cookie iklan di halaman berikut."
 }

@@ -366,6 +366,49 @@ function injectAdSense(html) {
   if (html.indexOf(ADSENSE_CLIENT) !== -1) return html;
   return html.replace(/<head>/i, '<head>\n' + ADSENSE_SNIPPET);
 }
+
+// ── AdSense の審査のあいだの広告コード（2026-10-12）。8/21 まで「有用性の低いコンテンツ」で不承認だった。
+//    Google の案内（自動生成や中身の薄いページ・案内だけのページには広告コードを置かない）に合わせ、
+//    審査中は「中身のある日本語のページ」だけに置く。審査に通ったら ADS_REVIEW_MODE を false にすると言語ページにも戻る。
+//    ペルシャ語は AdSense の対応言語に無いので、審査後も置かない。
+const ADS_REVIEW_MODE = true;
+const ADS_NEVER_LANGS = ['fa'];
+const ADS_OFF_PAGES = ['support.html', 'contact.html', 'privacy.html'];
+function adsAllowed(lang, page) {
+  if (ADS_OFF_PAGES.includes(page)) return false;
+  if (lang === 'ja') return true;
+  if (ADS_NEVER_LANGS.includes(lang)) return false;
+  return !ADS_REVIEW_MODE;
+}
+
+// ── 全ページ共通の下部（2026-10-12）：プライバシーポリシー・お問い合わせ・このサイトについてへのリンクと、
+//    Supercell のファンコンテンツ方針が求める注意書き（英文）。言語ページには自動翻訳であることも書く。
+//    デッキ作成（トップ）は画面全体を固定する作りなので、下に足さず「サイト案内」の中に入れる。
+//    リンクは相対（言語ページはその言語の版へ、カードページは build-card-pages が ../ を付ける）。
+const FCP_NOTE = 'This content is not affiliated with, endorsed, sponsored, or specifically approved by Supercell and Supercell is not responsible for it. For more information see Supercell’s Fan Content Policy: <a href="https://supercell.com/en/fan-content-policy/" rel="noopener">www.supercell.com/fan-content-policy</a>.';
+const MT_NOTE = {"en": "This page was translated automatically from the Japanese original.", "es": "Esta página se tradujo automáticamente del original en japonés.", "pt-br": "Esta página foi traduzida automaticamente do original em japonês.", "fr": "Cette page a été traduite automatiquement de l’original japonais.", "de": "Diese Seite wurde automatisch aus dem japanischen Original übersetzt.", "ru": "Эта страница автоматически переведена с японского оригинала.", "ko": "이 페이지는 일본어 원문을 자동 번역한 것입니다.", "zh-cn": "本页面由日文原文自动翻译而成。", "zh-tw": "本頁面由日文原文自動翻譯而成。", "ar": "تمت ترجمة هذه الصفحة آليًا من النص الياباني الأصلي.", "tr": "Bu sayfa Japonca orijinalinden otomatik olarak çevrilmiştir.", "it": "Questa pagina è stata tradotta automaticamente dall’originale giapponese.", "id": "Halaman ini diterjemahkan secara otomatis dari versi asli berbahasa Jepang.", "th": "หน้านี้แปลโดยอัตโนมัติจากต้นฉบับภาษาญี่ปุ่น", "vi": "Trang này được dịch tự động từ bản gốc tiếng Nhật.", "fa": "این صفحه به‌طور خودکار از نسخهٔ اصلی ژاپنی ترجمه شده است.", "nl": "Deze pagina is automatisch vertaald vanuit het Japanse origineel."};
+const SITE_FOOT_CSS = '<style>.site-foot{max-width:760px;margin:28px auto 18px;padding:14px 18px 6px;border-top:1px solid var(--border,rgba(255,255,255,.12));font-size:12px;line-height:1.75;color:var(--text-muted,var(--dim,#9aa3b5))}.site-foot-links{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0 0 6px}.site-foot a{color:inherit;text-decoration:underline}.site-foot p{margin:4px 0}.cg-fcp{font-size:11px;line-height:1.6;opacity:.8;margin-top:8px}</style>';
+function siteFootHtml(lang) {
+  const mt = lang !== 'ja' && MT_NOTE[lang] ? '<p class="site-foot-mt">' + MT_NOTE[lang] + '</p>' : '';
+  return '<!--SITE-FOOT-->' + SITE_FOOT_CSS + '<footer class="site-foot"><nav class="site-foot-links">'
+    + '<a href="privacy.html">プライバシーポリシー</a><a href="contact.html">お問い合わせ</a><a href="about.html">このサイトについて</a></nav>'
+    + mt + '<p class="site-foot-fcp">' + FCP_NOTE + '</p></footer><!--/SITE-FOOT-->';
+}
+function cornerFootHtml(lang) {
+  const mt = lang !== 'ja' && MT_NOTE[lang] ? '<p class="cg-fcp">' + MT_NOTE[lang] + '</p>' : '';
+  return '<!--CG-FOOT-->' + SITE_FOOT_CSS + '<div class="cg-links"><a href="privacy.html">プライバシーポリシー</a><a href="contact.html">お問い合わせ</a></div>'
+    + mt + '<p class="cg-fcp">' + FCP_NOTE + '</p><!--/CG-FOOT-->';
+}
+function injectSiteFoot(html, lang, page) {
+  let h = html.replace(/<!--SITE-FOOT-->[\s\S]*?<!--\/SITE-FOOT-->/g, '').replace(/<!--CG-FOOT-->[\s\S]*?<!--\/CG-FOOT-->/g, '');
+  if (page === 'index.html') {
+    const i = h.indexOf('<nav class="cg-panel"'); const j = i < 0 ? -1 : h.indexOf('</nav>', i);
+    if (j > 0) return h.slice(0, j) + cornerFootHtml(lang) + h.slice(j);
+    return h;
+  }
+  return h.replace(/<\/body>/i, siteFootHtml(lang) + '\n</body>');
+}
+
 function stripAdSense(html) {
   return html.replace(new RegExp('\\s*<!-- Google AdSense -->\\n<script async src="https://pagead2\\.googlesyndication\\.com/pagead/js/adsbygoogle\\.js\\?client=' + ADSENSE_CLIENT + '" crossorigin="anonymous"><\\/script>', 'g'), '');
 }
@@ -462,7 +505,8 @@ function buildLangPage(srcHtml, lang, page) {
   h = setCanonical(h, url);
   if (shouldIndex) h = h.replace(/<\/head>/i, hreflangBlock(page) + '\n</head>');
   h = injectUnpin(injectVT(injectTheme(injectGA(h))));
-  h = shouldIndex ? injectAdSense(h) : stripAdSense(h);
+  h = (shouldIndex && adsAllowed(lang, page)) ? injectAdSense(h) : stripAdSense(h);
+  h = injectSiteFoot(h, lang, page);
   const cdict = contentDict(lang);
   if (cdict) {
     const st = (SWAP_STATS[lang] = SWAP_STATS[lang] || { total: 0, done: 0 });
@@ -564,7 +608,8 @@ function main() {
   GEN.forEach(p => {
     let h = injectHreflang(src[p], p);
     h = setRobots(h, 'index,follow');
-    h = injectUnpin(injectVT(injectTheme(injectGA(injectAdSense(h)))));
+    h = injectUnpin(injectVT(injectTheme(injectGA(adsAllowed('ja', p) ? injectAdSense(h) : stripAdSense(h)))));
+    h = injectSiteFoot(h, 'ja', p);
     fs.writeFileSync(path.join(ROOT, p), h);
   });
   const swapped = Object.keys(SWAP_STATS);

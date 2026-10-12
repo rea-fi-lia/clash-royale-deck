@@ -22,7 +22,7 @@
  "デッキ作成の考え方や用語を読む": "Leer los conceptos y términos para crear mazos",
  "CR Deck Buildersは、クラロワの8枚デッキを組みながら平均コスト、カードの役割、攻めと守りの偏りを確認できるデッキ作成ツールです。カード名や略称で検索し、タップまたはドラッグでデッキに入れ替えできます。": "CR Deck Builders es una herramienta de creación de mazos que te permite ver el coste medio, el papel de cada carta y el desequilibrio entre ataque y defensa mientras montas tu mazo de 8 cartas de Clash Royale. Busca cartas por nombre o abreviatura y cámbialas tocando o arrastrando.",
  "アシストをオンにすると、いま選んでいるカードに合わせて、攻撃強化・防衛強化・回転力強化の候補を見比べられます。完成したデッキは分析ページで勝ち筋、苦しい相手、補いやすい役割を確認できます。": "Con el Asistente activado podrás comparar candidatas para reforzar el ataque, la defensa o la velocidad de ciclo, según las cartas que ya has elegido. Cuando el mazo esté completo, la página de análisis te mostrará tu condición de victoria, los enfrentamientos difíciles y los papeles que son fáciles de cubrir.",
- "全カードデータのページでは、122枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。": "En las páginas de datos de cartas encontrarás cifras reales de cada una de las 123 cartas —vida, daño, daño por segundo, alcance—, además de con qué hechizos muere y su uso y winrate en partidas clasificatorias. La página de mazos populares te permite explorar ideas a partir de cómo juegan realmente los mejores del mundo. Un buen camino: empezar con un mazo popular, leer el glosario y la guía, y después ajustar el mazo a tu estilo de juego.",
+ "全カードデータのページでは、123枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。": "En las páginas de datos de cartas encontrarás cifras reales de cada una de las 123 cartas —vida, daño, daño por segundo, alcance—, además de con qué hechizos muere y su uso y winrate en partidas clasificatorias. La página de mazos populares te permite explorar ideas a partir de cómo juegan realmente los mejores del mundo. Un buen camino: empezar con un mazo popular, leer el glosario y la guía, y después ajustar el mazo a tu estilo de juego.",
  "全カードデータ": "Datos de todas las cartas",
  "デッキ作成ガイド": "Guía para crear mazos",
  "よくある質問": "Preguntas frecuentes",
@@ -277,5 +277,13 @@
  "改定": "Modificaciones",
  "本ポリシーは必要に応じて改定されることがあります。重要な変更がある場合はサイト上でお知らせします。": "Esta política puede revisarse cuando sea necesario. Si hay cambios importantes, lo anunciaremos en el sitio.",
  "画面の使い方をもう一度見る": "Volver a ver el recorrido",
- "参考デッキ": "Mazos de referencia"
+ "参考デッキ": "Mazos de referencia",
+ "最終更新：2026年10月12日": "Última actualización: 12 de octubre de 2026",
+ "広告の配信について": "Sobre la publicidad",
+ "当サイトは、第三者配信の広告サービス「Google AdSense」を利用しています。": "Este sitio utiliza Google AdSense, un servicio de publicidad de terceros.",
+ "Google などの第三者配信事業者は Cookie を使用して、ユーザーが当サイトや他のサイトに過去にアクセスした際の情報に基づいて広告を配信します。": "Los proveedores externos, incluido Google, utilizan cookies para mostrar anuncios basados en las visitas anteriores del usuario a este sitio o a otros sitios web.",
+ "Google が広告 Cookie を使用することにより、ユーザーが当サイトや他のサイトにアクセスした際の情報に基づいて、Google やそのパートナーが適切な広告を表示できます。": "El uso de cookies publicitarias por parte de Google les permite a Google y a sus socios mostrar anuncios a los usuarios basados en sus visitas a este sitio y/o a otros sitios de Internet.",
+ "ユーザーは、Google の広告設定でパーソナライズされた広告を無効にできます。": "Puedes desactivar la publicidad personalizada en la Configuración de anuncios de Google.",
+ "また、aboutads.info にアクセスすると、パーソナライズされた広告に使われる第三者配信事業者の Cookie を無効にできます。": "También puedes desactivar las cookies de proveedores externos para publicidad personalizada visitando aboutads.info.",
+ "Google による広告 Cookie の使い方は、次のページで確認できます。": "Puedes consultar cómo utiliza Google las cookies publicitarias en la siguiente página."
 }

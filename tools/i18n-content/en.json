@@ -22,7 +22,7 @@
  "デッキ作成の考え方や用語を読む": "Read deck-building concepts and terms",
  "CR Deck Buildersは、クラロワの8枚デッキを組みながら平均コスト、カードの役割、攻めと守りの偏りを確認できるデッキ作成ツールです。カード名や略称で検索し、タップまたはドラッグでデッキに入れ替えできます。": "CR Deck Builders is a deck-building tool that lets you check average elixir, card roles, and the balance between offense and defense as you assemble your 8-card Clash Royale deck. Search cards by name or nickname, then tap or drag to swap them in.",
  "アシストをオンにすると、いま選んでいるカードに合わせて、攻撃強化・防衛強化・回転力強化の候補を見比べられます。完成したデッキは分析ページで勝ち筋、苦しい相手、補いやすい役割を確認できます。": "Turn on Assist to compare candidates that boost offense, defense, or cycle speed based on the cards you have picked so far. Once your deck is complete, the analysis page shows your win condition, tough matchups, and roles that are easy to shore up.",
- "全カードデータのページでは、122枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。": "The All Card Data pages give real numbers for each of the 122 cards — hit points, damage, damage per second, range — plus which spells take them out and their ranked-battle usage and win rates. The Popular Decks page lets you explore deck ideas drawn from how the world’s top players actually play. A good path is to start from a popular deck, read the glossary and the guide, then tune the deck to fit your own playstyle.",
+ "全カードデータのページでは、123枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。": "The All Card Data pages give real numbers for each of the 123 cards — hit points, damage, damage per second, range — plus which spells take them out and their ranked-battle usage and win rates. The Popular Decks page lets you explore deck ideas drawn from how the world’s top players actually play. A good path is to start from a popular deck, read the glossary and the guide, then tune the deck to fit your own playstyle.",
  "全カードデータ": "All Card Data",
  "デッキ作成ガイド": "Deck Building Guide",
  "よくある質問": "FAQ",
@@ -277,5 +277,13 @@
  "デッキ分析": "Deck Analysis",
  "平均コストはどれくらいがいいですか？": "What is a good average elixir?",
  "画面の使い方をもう一度見る": "Replay the interface tour",
- "参考デッキ": "Reference decks"
+ "参考デッキ": "Reference decks",
+ "最終更新：2026年10月12日": "Last updated: October 12, 2026",
+ "広告の配信について": "About advertising",
+ "当サイトは、第三者配信の広告サービス「Google AdSense」を利用しています。": "This site uses Google AdSense, a third-party advertising service.",
+ "Google などの第三者配信事業者は Cookie を使用して、ユーザーが当サイトや他のサイトに過去にアクセスした際の情報に基づいて広告を配信します。": "Third-party vendors, including Google, use cookies to serve ads based on a user's prior visits to this site or other websites.",
+ "Google が広告 Cookie を使用することにより、ユーザーが当サイトや他のサイトにアクセスした際の情報に基づいて、Google やそのパートナーが適切な広告を表示できます。": "Google's use of advertising cookies enables it and its partners to serve ads to users based on their visits to this site and/or other sites on the Internet.",
+ "ユーザーは、Google の広告設定でパーソナライズされた広告を無効にできます。": "You can opt out of personalized advertising in Google's Ads Settings.",
+ "また、aboutads.info にアクセスすると、パーソナライズされた広告に使われる第三者配信事業者の Cookie を無効にできます。": "You can also opt out of third-party vendors' cookies for personalized advertising by visiting aboutads.info.",
+ "Google による広告 Cookie の使い方は、次のページで確認できます。": "You can learn how Google uses advertising cookies on the following page."
 }

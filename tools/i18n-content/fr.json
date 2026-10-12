@@ -22,7 +22,7 @@
  "デッキ作成の考え方や用語を読む": "Lire les principes et le vocabulaire de la création de decks",
  "CR Deck Buildersは、クラロワの8枚デッキを組みながら平均コスト、カードの役割、攻めと守りの偏りを確認できるデッキ作成ツールです。カード名や略称で検索し、タップまたはドラッグでデッキに入れ替えできます。": "CR Deck Builders est un outil de création de decks qui vous montre le coût moyen, le rôle des cartes et le déséquilibre entre attaque et défense pendant que vous montez votre deck de 8 cartes Clash Royale. Cherchez les cartes par nom ou abréviation, puis échangez-les d’une touche ou par glisser-déposer.",
  "アシストをオンにすると、いま選んでいるカードに合わせて、攻撃強化・防衛強化・回転力強化の候補を見比べられます。完成したデッキは分析ページで勝ち筋、苦しい相手、補いやすい役割を確認できます。": "Avec l’Assistant activé, vous comparez les cartes candidates pour renforcer l’attaque, la défense ou la vitesse de cycle, en fonction des cartes déjà choisies. Une fois le deck complet, la page d’analyse affiche votre condition de victoire, les matchups difficiles et les rôles faciles à combler.",
- "全カードデータのページでは、122枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。": "Les pages de données de cartes donnent des chiffres réels pour chacune des 123 cartes — points de vie, dégâts, dégâts par seconde, portée — ainsi que les sorts qui les tuent et leur taux d’utilisation et de victoire en parties classées. La page des decks populaires permet d’explorer des idées issues du jeu réel des meilleurs joueurs mondiaux. Une bonne approche : partir d’un deck populaire, lire le glossaire et le guide, puis ajuster le deck à votre style de jeu.",
+ "全カードデータのページでは、123枚それぞれの体力・攻撃力・毎秒ダメージ・射程といった実数値と、どの呪文で落ちるか、ランク戦での使用率と勝率をカードごとに読めます。人気デッキページでは、世界上位プレイヤーの対戦傾向からデッキ候補を探せます。最初に人気デッキを参考にしてから、用語集やガイドを読み、自分のプレイスタイルに合わせて調整していく使い方もできます。": "Les pages de données de cartes donnent des chiffres réels pour chacune des 123 cartes — points de vie, dégâts, dégâts par seconde, portée — ainsi que les sorts qui les tuent et leur taux d’utilisation et de victoire en parties classées. La page des decks populaires permet d’explorer des idées issues du jeu réel des meilleurs joueurs mondiaux. Une bonne approche : partir d’un deck populaire, lire le glossaire et le guide, puis ajuster le deck à votre style de jeu.",
  "全カードデータ": "Toutes les données de cartes",
  "デッキ作成ガイド": "Guide de création de decks",
  "よくある質問": "Questions fréquentes",
@@ -277,5 +277,13 @@
  "改定": "Modifications",
  "本ポリシーは必要に応じて改定されることがあります。重要な変更がある場合はサイト上でお知らせします。": "Cette politique peut être révisée si nécessaire. Les changements importants seront annoncés sur le site.",
  "画面の使い方をもう一度見る": "Revoir la visite de l’interface",
- "参考デッキ": "Decks de référence"
+ "参考デッキ": "Decks de référence",
+ "最終更新：2026年10月12日": "Dernière mise à jour : 12 octobre 2026",
+ "広告の配信について": "À propos de la publicité",
+ "当サイトは、第三者配信の広告サービス「Google AdSense」を利用しています。": "Ce site utilise Google AdSense, un service publicitaire tiers.",
+ "Google などの第三者配信事業者は Cookie を使用して、ユーザーが当サイトや他のサイトに過去にアクセスした際の情報に基づいて広告を配信します。": "Des fournisseurs tiers, y compris Google, utilisent des cookies pour diffuser des annonces en fonction des visites antérieures de l’utilisateur sur ce site ou sur d’autres sites web.",
+ "Google が広告 Cookie を使用することにより、ユーザーが当サイトや他のサイトにアクセスした際の情報に基づいて、Google やそのパートナーが適切な広告を表示できます。": "Grâce aux cookies publicitaires, Google et ses partenaires peuvent diffuser des annonces aux utilisateurs en fonction de leurs visites sur ce site et/ou sur d’autres sites Internet.",
+ "ユーザーは、Google の広告設定でパーソナライズされた広告を無効にできます。": "Vous pouvez désactiver la publicité personnalisée dans les Paramètres des annonces de Google.",
+ "また、aboutads.info にアクセスすると、パーソナライズされた広告に使われる第三者配信事業者の Cookie を無効にできます。": "Vous pouvez également désactiver les cookies de fournisseurs tiers utilisés pour la publicité personnalisée sur aboutads.info.",
+ "Google による広告 Cookie の使い方は、次のページで確認できます。": "Vous pouvez consulter la façon dont Google utilise les cookies publicitaires sur la page suivante."
 }
