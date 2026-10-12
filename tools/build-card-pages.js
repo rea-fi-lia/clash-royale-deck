@@ -240,7 +240,8 @@ function cardBody(c, ctx, D) {
   if (allTags.length) {
     out.push('<section class="section"><h2>このカードの役割</h2>');
     out.push('<ul class="cardpage-tags">' + allTags.map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>');
-    out.push('<p>対空・範囲攻撃・体力帯のような性能にもとづく役割と、タンクキラー・呪文枯渇・橋前特攻のような実戦での使われ方にもとづく役割をまとめています。</p></section>');
+    // ★2026-10-12：全ページ同じ説明文は用語集へのリンクだけにする（AdSense「有用性の低いコンテンツ」対策・カードページの本文の31%が全ページ共通の文だった）
+    out.push('<p class="note"><a href="../glossary.html">役割の言葉の意味は用語集へ</a></p></section>');
   }
 
   /* 呪文圏内 ＝ 独自性の高い情報 */
@@ -266,7 +267,8 @@ function cardBody(c, ctx, D) {
       out.push('<p>直近' + (D.windowDays || 3) + '日のランク戦の集計では、' + esc(c.name) + (use.f === 'e' ? '（' + crIcon('bolt') + '進化）' : use.f === 'h' ? '（' + crIcon('crown') + '英雄）' : '') +
         'の使用率は<b>' + use.use + '%</b>、このカードを入れたデッキの勝率は<b>' + use.win + '%</b>です（' + use.games.toLocaleString() + '戦）。' +
         (t ? '使用率では' + t.label + '帯にあたり、' + t.note + 'です。' : '') + '</p>');
-      out.push('<p class="note">勝率はデッキ全体の勝率であって、カード単体の強さではありません。勝てる構築に採用されているという意味で読んでください。</p>');
+      // 注意書きはそのカードの数字と名前で書く（全ページ同じ文にしない・2026-10-12）
+      out.push('<p class="note">勝率' + use.win + '%は、' + esc(c.name) + 'を入れたデッキ全体の勝率です。' + esc(c.name) + '単体の強さではありません。</p>');
     }
     if (opp && opp.games >= 100) {
       out.push('<p>相手のデッキに' + esc(c.name) + 'がいた試合は' + opp.games.toLocaleString() + '戦あり、その相手側の勝率は' + opp.wr + '%でした。対面したときの重さの目安になります。</p>');
