@@ -845,6 +845,8 @@ function assistIntentFromAi(rec) {
     understood: it.understood || '', source: 'ai' };
 }
 function assistDevelopmentIntent() {
+  // 相談（会話）を使える人は、会話で決まった条件だけを使う（デッキ開発の欄は相談に置き換わるため・2026-10-13）
+  if (assistChatOn()) return assistChatCondActive() ? assistIntentFromAi(Object.assign({ note: '' }, assistChat.cond)) : { active: false, note: '', axes: {}, labels: [] };
   const note = assistDevNote || '';
   if (assistAiAllowed && assistAiIntent && assistAiIntent.note === note && assistAiIntent.intent) return assistIntentFromAi(assistAiIntent);
   const s = assistDevNorm(note);
@@ -2214,6 +2216,256 @@ async function assistAiRead(user, note) {
     return { ok: true, rec: { note, intent: j.intent, keepNames, excludeNames, at: Date.now(), remaining: j.remaining, limit: j.limit, cached: !!j.cached } };
   } catch (e) { return { ok: false, code: 'network' }; }
 }
+// =============================================================
+// ★2026-10-13 アシストの相談（会話）— AI を使える人だけ（今は本人だけ・/api/assist/access が ai:true）
+//  本人の依頼：「選択肢も出しつつ　会話型であるべき『なんか足りない役割ってなんだろー』とか　普通にclaudeに聞くようなイメージ」
+//  ・今のエンジンの読み（facts）と候補（pool）をまとめて Worker の /api/assist/chat へ送る。サーバーが上位デッキの共起を足す。
+//  ・AI が返すのは返事・候補（必ず pool の中）・押せる選択肢・条件（intent）。数字とカードの正しさはエンジンと Worker の照合。
+//  ・会話の履歴と、会話で決まった条件は端末の中だけ（localStorage・直近6往復）。サーバーには残さない。
+//  ・会話の条件はチップで見せ、×で1つずつ外せる（決めるのはプレイヤー）。
+//  ・並べ方は試験用。画面の作り直しの3案（2026-10-13）から本人が選んだ形に合わせて置き直す。
+// =============================================================
+const ASSIST_CHAT_KEY = 'cr_assist_chat_v1';
+const ASSIST_CHAT_TURNS = 12;   // 6往復
+let assistChat = (() => {
+  const empty = { turns: [], cond: null, older: false };
+  try {
+    const v = JSON.parse(localStorage.getItem(ASSIST_CHAT_KEY) || 'null');
+    return v && Array.isArray(v.turns) ? { turns: v.turns.slice(-ASSIST_CHAT_TURNS), cond: v.cond || null, older: false } : empty;
+  } catch (e) { return empty; }
+})();
+let assistChatBusy = false, assistChatNote = '';
+function assistChatSave() {
+  try { localStorage.setItem(ASSIST_CHAT_KEY, JSON.stringify({ turns: assistChat.turns.slice(-ASSIST_CHAT_TURNS), cond: assistChat.cond })); } catch (e) {}
+}
+function assistChatOn() { return !!(assistAiAllowed && window.CRAuth && CRAuth.getUser && CRAuth.getUser()); }
+function assistChatCondActive() {
+  const c = assistChat.cond, it = c && c.intent;
+  return !!(it && ((it.want || []).length || (it.avoid || []).length || (c.keepNames || []).length || (c.excludeNames || []).length || it.maxAvg != null || it.minAvg != null || it.spells != null));
+}
+// 会話で出た条件を、今までの条件に重ねる（逆の向きに入っていたものは外す）
+function assistChatMergeIntent(intent, keepNames, excludeNames) {
+  const c = assistChat.cond || { intent: { want: [], avoid: [], maxAvg: null, minAvg: null, spells: null, understood: '' }, keepNames: [], excludeNames: [] };
+  const it = c.intent;
+  (intent.want || []).forEach(l => { if (!it.want.includes(l)) it.want.push(l); it.avoid = it.avoid.filter(x => x !== l); });
+  (intent.avoid || []).forEach(l => { if (!it.avoid.includes(l)) it.avoid.push(l); it.want = it.want.filter(x => x !== l); });
+  keepNames.forEach(n => { if (!c.keepNames.includes(n)) c.keepNames.push(n); c.excludeNames = c.excludeNames.filter(x => x !== n); });
+  excludeNames.forEach(n => { if (!c.excludeNames.includes(n)) c.excludeNames.push(n); c.keepNames = c.keepNames.filter(x => x !== n); });
+  ['maxAvg', 'minAvg', 'spells'].forEach(k => { if (intent[k] != null) it[k] = intent[k]; });
+  if (intent.understood) it.understood = intent.understood;
+  it.want = it.want.slice(-6); it.avoid = it.avoid.slice(-6);
+  c.keepNames = c.keepNames.slice(-8); c.excludeNames = c.excludeNames.slice(-8);
+  assistChat.cond = c;
+}
+// 今のデッキの事実（エンジンの読みをそのまま。数字はここで作る）
+function assistChatFacts(info) {
+  const r1 = n => (Number.isFinite(n) ? Math.round(n * 10) / 10 : null);
+  let threats = [];
+  try {
+    threats = (assistThreatRows(info) || []).slice(0, 3).map(r => ({
+      title: String(r.title || ''), need: String(r.need || ''),
+      answers: (r.responses || []).map(x => x && x.card && x.card.name).filter(Boolean).slice(0, 3)
+    }));
+  } catch (e) {}
+  const it = info.developmentIntent || {};
+  return {
+    count: info.cards.length, avgCost: r1(info.avg), cycleCost: r1(info.cycleAvg), type: String(info.style || ''),
+    roles: { wincon: info.wincons.length, spells: info.spells.length, smallSpell: info.smallSpells.length, air: info.air.length,
+      splash: info.splash.length, dps: info.dps.length, building: info.defenseBuildings.length, light: info.cycles.length },
+    needs: (info.stageNeeds || []).map(n => ({ label: n.label, weight: Math.round(n.severity || 0) })),
+    threats,
+    conditions: { keep: (it.keep || []).slice(0, 8), exclude: (it.exclude || []).slice(0, 8),
+      maxAvg: it.maxAvg != null ? it.maxAvg : null, minAvg: it.minAvg != null ? it.minAvg : null,
+      spells: it.spells != null ? it.spells : (assistSpellTarget != null ? assistSpellTarget : null) }
+  };
+}
+// 候補の束（エンジンの点の上位を種類ごとに6枚ずつ・方向と核も足す・重なりはまとめる）
+function assistChatPool(info) {
+  if (info.cards.length >= 8) return [];
+  const byName = new Map();
+  const add = (c, kind, reasonKind) => {
+    if (!c) return;
+    let row = byName.get(c.name);
+    if (!row) {
+      let reason = '';
+      try { reason = String(assistReason(c, reasonKind || kind, info) || ''); } catch (e) {}
+      const fills = (info.stageNeeds || []).filter(n => { try { return assistNeedCandidateValue(c, n.id, info) >= 6; } catch (e) { return false; } }).map(n => n.label);
+      row = { name: c.name, kinds: [], fills, reason: reason.slice(0, 80), cost: c.cost };
+      byName.set(c.name, row);
+    }
+    if (!row.kinds.includes(kind)) row.kinds.push(kind);
+  };
+  ['natural', 'stable', 'discovery'].forEach(kind => {
+    const ranked = [];
+    CARDS.forEach(c => { if (!assistLegal(c, info)) return; let s = 0; try { s = assistScore(c, kind, info); } catch (e) {} if (s > 0) ranked.push({ c, s }); });
+    ranked.sort((a, b) => b.s - a.s || a.c.cost - b.c.cost);
+    ranked.slice(0, 6).forEach(x => add(x.c, kind));
+  });
+  try { (assistDirectionBlocks(info) || []).forEach(b => { if (b && b.card) add(b.card, b.dir, 'natural'); }); } catch (e) {}
+  try { (assistTemplateCoreRows(info) || []).slice(0, 3).forEach(r => add(r.card, 'core', 'natural')); } catch (e) {}
+  return [...byName.values()].slice(0, 24);
+}
+async function assistChatSend(text) {
+  const user = window.CRAuth && CRAuth.getUser && CRAuth.getUser();
+  const msg = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+  if (!user || !assistAiAllowed || assistChatBusy || !msg) return;
+  const info = assistDeckInfo();
+  const body = {
+    lang: (window.CRI18N && CRI18N.lang) || 'ja', text: msg,
+    history: assistChat.turns.slice(-ASSIST_CHAT_TURNS).map(t => ({ role: t.role, text: String(t.text || '').slice(0, 600) })),
+    deck: info.cards.map(c => c.name), facts: assistChatFacts(info), pool: assistChatPool(info)
+  };
+  assistChat.turns.push({ role: 'user', text: msg, at: Date.now() });
+  assistChat.older = false;
+  assistChatBusy = true; assistChatNote = ''; assistDevDraft = null;
+  const box = document.getElementById('assistDevNote'); if (box) box.value = '';
+  assistChatSave(); updateAssistPanel();
+  try {
+    const token = await user.getIdToken();
+    const r = await fetch('/api/assist/chat', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (!j || !j.ok) {
+      const code = (j && j.code) || '';
+      assistChatUndoSend(msg);
+      if (code === 'not_open') { assistAiAllowed = false; assistAiAccessUid = null; }
+      assistChatNote = code === 'rate' ? TR('続けて送りすぎました。少し待ってからもう一度送れます。')
+        : code === 'busy' ? TR('今は混んでいて答えられませんでした。少し待ってからもう一度送れます。')
+        : code === 'login_required' ? TR('ログインし直すと、相談できます。')
+        : TR('今は答えられませんでした。もう一度送れます。');
+      return;
+    }
+    const poolNames = new Set(body.pool.map(p => p.name));
+    const cards = (Array.isArray(j.cards) ? j.cards : []).filter(x => x && poolNames.has(x.name)).slice(0, 3).map(x => ({ name: x.name, why: String(x.why || '').slice(0, 60) }));
+    const choices = (Array.isArray(j.choices) ? j.choices : []).filter(x => x && x.label && x.message).slice(0, 4).map(x => ({ label: String(x.label).slice(0, 20), message: String(x.message).slice(0, 120) }));
+    let condNote = '';
+    if (j.intent && typeof j.intent === 'object') {
+      const resolve = w => (typeof cardResolveExact === 'function' ? cardResolveExact(w) : null);
+      const keepNames = [...new Set((j.intent.keep || []).map(resolve).filter(Boolean))];
+      const excludeNames = [...new Set((j.intent.exclude || []).map(resolve).filter(Boolean))].filter(n => !keepNames.includes(n));
+      assistChatMergeIntent(j.intent, keepNames, excludeNames);
+      condNote = TR('条件を変えて、候補を出し直しました。×で外せます。');
+      assistVariant = 0; assistDirVariant = { attack: 0, defense: 0, cycle: 0 }; assistCoreVariant = { 0: 0, 1: 0, 2: 0 };
+    }
+    assistChat.turns.push({ role: 'assistant', text: String(j.reply || '').slice(0, 400), cards, choices, kind: j.kind || 'answer',
+      understood: j.intent && j.intent.understood ? String(j.intent.understood).slice(0, 140) : '', condNote, at: Date.now() });
+  } catch (e) {
+    assistChatUndoSend(msg);
+    assistChatNote = TR('通信できませんでした。もう一度送れます。');
+  } finally {
+    assistChatBusy = false; assistChatSave(); updateAssistPanel();
+  }
+}
+// 答えが返らなかったときは、送った文を会話から外して入力欄に戻す（もう一度送れるように）
+function assistChatUndoSend(msg) {
+  const last = assistChat.turns[assistChat.turns.length - 1];
+  if (last && last.role === 'user' && last.text === msg) assistChat.turns.pop();
+  const box = document.getElementById('assistDevNote');
+  if (box && !box.value) box.value = msg;
+  assistDevDraft = box ? box.value : msg;
+}
+function assistChatChipsHtml() {
+  const c = assistChat.cond, it = c && c.intent;
+  if (!it || !assistChatCondActive()) return '';
+  const chip = (kind, val, label) => '<span class="assist-ai-chip assist-chat-chip">' + esc(label) + '<button type="button" class="assist-ai-x" data-chat-cond="' + esc(kind + ':' + val) + '" aria-label="' + esc(TR('この条件を外す')) + '">×</button></span>';
+  const items = [];
+  (it.want || []).forEach(l => items.push(chip('want', l, '＋' + (TRX(l) || l))));
+  (it.avoid || []).forEach(l => items.push(chip('avoid', l, '－' + (TRX(l) || l))));
+  (c.keepNames || []).forEach(n => items.push(chip('keep', n, TRF('使う：{x}', { x: TR(n) }))));
+  (c.excludeNames || []).forEach(n => items.push(chip('exclude', n, TRF('使わない：{x}', { x: TR(n) }))));
+  if (it.maxAvg != null) items.push(chip('maxAvg', '', TRF('平均{x}以下', { x: it.maxAvg })));
+  if (it.minAvg != null) items.push(chip('minAvg', '', TRF('平均{x}以上', { x: it.minAvg })));
+  if (it.spells != null) items.push(chip('spells', '', TRF('呪文{n}枚', { n: it.spells })));
+  return '<div class="assist-chat-conds"><span class="assist-chat-l">' + esc(TR('会話の条件')) + '</span>' + items.join('') + '</div>';
+}
+function assistChatTurnHtml(t, info, live) {
+  if (t.role === 'user') return '<div class="assist-chat-me">' + esc(t.text) + '</div>';
+  const inDeck = new Set(info.cards.map(c => c.name));
+  const full = info.cards.length >= 8;
+  const cards = (t.cards || []).map(x => {
+    const c = CARDS.find(cc => cc.name === x.name);
+    if (!c) return '';
+    const had = inDeck.has(c.name);
+    return '<button type="button" class="assist-chat-card" data-chat-card="' + esc(c.name) + '"' + (had || full || !live ? ' disabled' : '') + '>'
+      + cardImgTag(c.name, 'n', { alt: '' })
+      + '<span class="acc-b"><b>' + esc(TR(c.name)) + '</b>' + (x.why ? '<small>' + esc(x.why) + '</small>' : '') + '</span>'
+      + '<em>' + esc(had ? TR('入れた') : '＋') + '</em></button>';
+  }).join('');
+  const choices = live ? (t.choices || []).map((x, i) => '<button type="button" class="assist-chat-choice" data-chat-choice="' + i + '">' + esc(x.label) + '</button>').join('') : '';
+  return '<div class="assist-chat-ai">'
+    + '<div class="assist-chat-who">' + esc(TR('AI')) + '<span>' + esc(TR('試験中')) + '</span></div>'
+    + (t.understood ? '<div class="assist-chat-read">' + esc(TRF('読んだこと：{x}', { x: t.understood })) + '</div>' : '')
+    + '<p>' + esc(t.text) + '</p>'
+    + (cards ? '<div class="assist-chat-cards">' + cards + '</div>' : '')
+    + (t.condNote ? '<small class="assist-chat-note">' + esc(t.condNote) + '</small>' : '')
+    + (choices ? '<div class="assist-chat-choices">' + choices + '</div>' : '')
+    + '</div>';
+}
+function assistChatHtml(info) {
+  const turns = assistChat.turns;
+  // 最新の1往復（最後の自分の発言から後ろ）だけ見せ、前はたたむ
+  let lastUser = -1;
+  for (let i = turns.length - 1; i >= 0; i--) { if (turns[i].role === 'user') { lastUser = i; break; } }
+  const olderTurns = lastUser > 0 ? turns.slice(0, lastUser) : [];
+  const latest = lastUser >= 0 ? turns.slice(lastUser) : turns.slice();
+  const lastAi = latest.length && latest[latest.length - 1].role === 'assistant' ? latest.length - 1 : -1;
+  const olderCount = olderTurns.filter(t => t.role === 'user').length;
+  const quick = [TR('なんか足りない役割ってなんだろー'), TR('苦しい相手は？'), TR('もう少し軽くしたい')];
+  return '<div class="assist-chat">'
+    + '<div class="assist-chat-head"><span>' + esc(TR('相談')) + '</span><small>' + esc(TR('AI に普通に聞けます（試験中・あなただけ）')) + '</small>'
+    + (turns.length || assistChatCondActive() ? '<button type="button" class="assist-chat-reset" data-chat-reset="1">' + esc(TR('最初から')) + '</button>' : '') + '</div>'
+    + (olderCount ? '<button type="button" class="assist-chat-older" data-chat-older="1" aria-expanded="' + (assistChat.older ? 'true' : 'false') + '">'
+      + esc(assistChat.older ? TR('前のやりとりをたたむ') : TRF('前のやりとり {n}件', { n: olderCount })) + '</button>' : '')
+    + (assistChat.older ? '<div class="assist-chat-log">' + olderTurns.map(t => assistChatTurnHtml(t, info, false)).join('') + '</div>' : '')
+    + (latest.length ? '<div class="assist-chat-log">' + latest.map((t, i) => assistChatTurnHtml(t, info, i === lastAi && !assistChatBusy)).join('') + '</div>' : '')
+    + (assistChatBusy ? '<div class="assist-chat-busy">' + esc(TR('考えています… その間もカードは選べます')) + '</div>' : '')
+    + (assistChatNote ? '<small class="assist-chat-note">' + esc(assistChatNote) + '</small>' : '')
+    + assistChatChipsHtml()
+    + '<div class="assist-chat-row"><textarea id="assistDevNote" class="assist-chat-input" rows="1" maxlength="300" enterkeyhint="send" placeholder="' + esc(TR('例：足りない役割ってなに？')) + '">' + esc(assistDevDraft || '') + '</textarea>'
+    + '<button type="button" class="assist-chat-send" id="assistChatSend"' + (assistChatBusy ? ' disabled' : '') + '>' + esc(TR('送る')) + '</button></div>'
+    + (!turns.length ? '<div class="assist-chat-choices">' + quick.map(q => '<button type="button" class="assist-chat-choice" data-chat-quick="' + esc(q) + '">' + esc(q) + '</button>').join('') + '</div>' : '')
+    + '</div>';
+}
+function assistChatBind(panel) {
+  const input = document.getElementById('assistDevNote');
+  const send = document.getElementById('assistChatSend');
+  if (!input || !send || !input.classList.contains('assist-chat-input')) return;
+  send.onclick = () => assistChatSend(input.value);
+  let composing = false, compEnd = 0;
+  input.oncompositionstart = () => { composing = true; };
+  input.oncompositionend = () => { composing = false; compEnd = Date.now(); };
+  input.onkeydown = (e) => {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    if (e.isComposing || e.keyCode === 229 || composing || Date.now() - compEnd < 120) return;   // 日本語の変換を確定する Enter では送らない
+    e.preventDefault(); assistChatSend(input.value);
+  };
+  panel.querySelectorAll('[data-chat-card]').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const c = CARDS.find(x => x.name === b.getAttribute('data-chat-card'));
+    if (!c) return;
+    if (addAssistToDeck(c)) showToast(TR(c.name));
+  }));
+  const last = assistChat.turns[assistChat.turns.length - 1];
+  panel.querySelectorAll('[data-chat-choice]').forEach(b => b.addEventListener('click', () => {
+    const ch = last && last.role === 'assistant' && (last.choices || [])[Number(b.getAttribute('data-chat-choice'))];
+    if (ch) assistChatSend(ch.message);
+  }));
+  panel.querySelectorAll('[data-chat-quick]').forEach(b => b.addEventListener('click', () => assistChatSend(b.getAttribute('data-chat-quick'))));
+  panel.querySelectorAll('[data-chat-cond]').forEach(b => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const c = assistChat.cond; if (!c) return;
+    const raw = String(b.getAttribute('data-chat-cond') || ''), cut = raw.indexOf(':');
+    const kind = raw.slice(0, cut), val = raw.slice(cut + 1), it = c.intent;
+    if (kind === 'want' || kind === 'avoid') it[kind] = (it[kind] || []).filter(x => x !== val);
+    else if (kind === 'keep') c.keepNames = (c.keepNames || []).filter(x => x !== val);
+    else if (kind === 'exclude') c.excludeNames = (c.excludeNames || []).filter(x => x !== val);
+    else if (kind === 'maxAvg' || kind === 'minAvg' || kind === 'spells') it[kind] = null;
+    assistChatSave(); assistVariant = 0; updateAssistPanel();
+  }));
+  const older = panel.querySelector('[data-chat-older]');
+  if (older) older.onclick = () => { assistChat.older = !assistChat.older; updateAssistPanel(); };
+  const reset = panel.querySelector('[data-chat-reset]');
+  if (reset) reset.onclick = () => { assistChat = { turns: [], cond: null, older: false }; assistChatNote = ''; assistChatSave(); assistVariant = 0; updateAssistPanel(); };
+}
 function updateAssistTopInfo(info) {
   const el = document.getElementById('assistTopInfo');
   if (!el) return;
@@ -2328,7 +2580,7 @@ function updateAssistPanel() {
     ? '<div class="assist-persona is-set" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">' + esc(TRF('あなた好み：{x}', { x: TRX(pSum) || TR('設定済み') })) + '</span><span class="ap-edit">' + esc(TR('変更')) + '</span></div>'
     : '<div class="assist-persona" id="assistPersona"><span class="ap-ico">🎯</span><span class="ap-text">' + esc(TR('デッキの好みを設定すると、あなた向けに候補が絞れます')) + '</span><span class="ap-edit">' + esc(TR('設定')) + '</span></div>';
   const contextLine = contextLoading ? '<div class="assist-context-loading">' + esc(TR('読みを整えています…')) + '</div>' : '';
-  const devLine = assistDevelopmentHtml(info);
+  const devLine = assistChatOn() && info.cards.length < 8 ? assistChatHtml(info) : assistDevelopmentHtml(info);
   const activeChunk = assistChunk === 'threats' ? 'threats' : 'cards';
   // 上から順に出したカードを覚え、下の欄では同じカードを出さない（自然/安定/発見 → 伸ばす方向 → 核候補）
   const shownCards = new Set(assistSuggestions.map(s => s.card.name));
@@ -2444,6 +2696,7 @@ function updateAssistPanel() {
     }
     updateAssistPanel();
   };
+  assistChatBind(panel);   // 相談（会話）の部品（AI を使える人だけ・2026-10-13）
   // AI の読みのチップの×：その条件だけ外す（決めるのはプレイヤー）
   panel.querySelectorAll('[data-ai-remove]').forEach(btn => btn.addEventListener('click', (e) => {
     e.stopPropagation();
