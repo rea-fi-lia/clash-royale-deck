@@ -127,7 +127,8 @@
   .dp-desktop #search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px #e8bf7611; }
   .dp-desktop .assist-toggle { height: 42px; min-width: 118px; border: 1px solid var(--border-hi); border-radius: 8px; color: var(--accent); background: var(--surface2); font-size: 11px; box-shadow: none; }
   .dp-desktop .assist-toggle::before { content: '✦'; margin-right: 7px; }
-  .dp-desktop .assist-toggle[aria-pressed=true] { border-color: var(--accent); background: #e8bf7618; }
+  /* ON/OFF で文字は同じ（幅を変えない）。ON は塗りの色で分かるようにする（2026-10-13） */
+  .dp-desktop .assist-toggle[aria-pressed=true] { border-color: var(--accent); background: var(--accent); color: #16191b; }
   .dp-desktop .type-tabs { display: flex; flex-wrap: wrap; gap: 5px; width: 100%; }
   .dp-desktop .ttab { border: 1px solid transparent; border-radius: 6px; padding: 7px 12px; font-size: 11px; font-weight: 400; color: var(--text-muted); background: transparent; transition: background .16s, color .16s; }
   .dp-desktop .ttab.active { color: var(--text); background: var(--surface2); border-color: var(--border-hi); }
@@ -170,6 +171,11 @@
     text-align: center; overflow-wrap: anywhere;
   }
   .dp-desktop .assist-panel { border-radius: 10px; }
+  /* PC はページ全体がスクロールする。アシスト欄を中でスクロールする箱にしない（2026-10-13）。
+     固定（sticky）のとき、欄の overflow-y:auto と overscroll-behavior-y:contain（index.css）が残り、
+     欄に高さの上限が無いので中は動かず、ページへもスクロールが渡らなかった（欄の上でホイールを回すと 0px）。 */
+  html.dp-desktop .controls.assist-active { overflow: visible; flex: none; }
+  html.dp-desktop .controls.assist-active .assist-panel { overflow: visible; overscroll-behavior-y: auto; }
   .dp-desktop .footer-signature {
     position: fixed !important; inset: auto 0 0; z-index: 100; height: 43px; padding: 0 var(--dp-gutter) !important;
     background: var(--bg); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: center; gap: 5px;
@@ -192,7 +198,10 @@
   .dp-desktop .dp-intro, .dp-desktop .app { animation: dp-enter .45s cubic-bezier(.2,.8,.2,1) both; }
   .dp-desktop .app { animation-delay: .05s; }
   @media (min-width: 1280px) {
-    .dp-desktop .controls:not(.assist-active) { display: grid; grid-template-columns: minmax(360px, .9fr) minmax(620px, 1.3fr); align-items: center; }
+    /* 2列の格子は ON/OFF の両方で同じにする（ON で格子を外すと、1行目が横いっぱいに伸びてアシストのボタンが 788px 右へ動いていた・2026-10-13）。
+       ON のときは種類のタブの行が消え、アシスト欄が次の行を横いっぱいに使う。 */
+    .dp-desktop .controls { display: grid; grid-template-columns: minmax(360px, .9fr) minmax(620px, 1.3fr); align-items: center; }
+    .dp-desktop .controls.assist-active > .assist-panel { grid-column: 1 / -1; }
     .dp-desktop .controls:not(.assist-active) > .controls-row:last-child { grid-column: 1 / -1; }
     .dp-desktop .controls:not(.assist-active) .type-tabs { justify-content: flex-end; }
     .dp-desktop .controls:not(.assist-active) .ttab { padding-inline: 10px; }

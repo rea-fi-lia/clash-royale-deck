@@ -35,6 +35,8 @@ let assistSpellTarget = (() => { try { const v = localStorage.getItem('cr_assist
 // デッキ開発メモ：プレイヤーの自然文を「固定分類」ではなく、軽い意図ベクトルとして候補へ反映する。
 //  将来AI APIを入れる時も、このベクトルを共通の受け皿にする。
 let assistDevNote = (() => { try { return String(localStorage.getItem('cr_assist_dev_note') || '').slice(0, 180); } catch(e) { return ''; } })();
+// 書きかけの文（〔反映〕の前）。入力欄が一度消えて作り直されたとき（OFF→ON・8枚から戻ったとき）に戻す。〔反映〕〔クリア〕で null に戻す（2026-10-13）
+let assistDevDraft = null;
 // ★2026-10-12：AI の読み取り（ログインした人だけ・Worker の /api/assist/intent）。書いた文と組で持ち、文を変えたら使わない。
 //   AI がするのは「言葉 → 条件」だけ。カードを決める（cardResolveExact）・点数を付けるのはこのファイルの今の仕組み
 let assistAiIntent = (() => { try { const v = JSON.parse(localStorage.getItem('cr_assist_ai_intent') || 'null'); return v && v.note === assistDevNote && v.intent ? v : null; } catch(e) { return null; } })();
@@ -1798,15 +1800,17 @@ function assistDirectionCandidates(info, dir) {
 //   ・「別候補」を押したブロックだけが必ず変わり、他の2ブロックは絶対に動かない（完全独立）。
 //   ・所有は排他なので3ブロックのカードは重複しない（＝同じ候補が並ばない）。
 //  所有が空になった方向だけ、自方向の全候補にフォールバックする（稀な退避策）。
-function assistDirectionBlocks(info) {
+//  exclude（任意の Set）：この欄より上にもう出したカード（自然/安定/発見の3枚）。ここでは出さない（2026-10-13：同じカードが2つの欄に重なって出ていた）。
+function assistDirectionBlocks(info, exclude) {
   assistDirLabelByName = {};
   if (!info || info.cards.length < 3 || info.cards.length >= 8) {
     return ASSIST_DIRS.map(dir => ({ dir, card: null, total: 0 }));
   }
+  const skip = exclude instanceof Set ? exclude : new Set();
   // 各方向の候補ランキングと、方向別スコア表を一度だけ作る。
   const rankedByDir = {}, scoreByDir = {};
   ASSIST_DIRS.forEach(dir => {
-    const ranked = assistDirectionCandidates(info, dir);
+    const ranked = assistDirectionCandidates(info, dir).filter(r => !skip.has(r.card.name));
     rankedByDir[dir] = ranked;
     const m = {};
     ranked.forEach(r => { m[r.card.name] = r.score; });
@@ -1826,14 +1830,26 @@ function assistDirectionBlocks(info) {
     if (best) ownerOf[name] = best;
   });
   // 各方向の所有リスト＝その方向が最有効なカードだけ。空の方向だけ全候補で代替。
-  return ASSIST_DIRS.map(dir => {
-    let list = rankedByDir[dir].filter(r => ownerOf[r.card.name] === dir);
-    if (!list.length) list = rankedByDir[dir];
-    if (!list.length) return { dir, card: null, total: 0 };
+  //  代替の方向は、所有で決まったほかの方向のカードを除いてから選ぶ（ブロックどうしでも重ねない）。
+  const owned = {};
+  ASSIST_DIRS.forEach(dir => { owned[dir] = rankedByDir[dir].filter(r => ownerOf[r.card.name] === dir); });
+  const pickFrom = (dir, list) => {
     const pool = assistSlicePool(list, ASSIST_ALT_POOL);
     const total = pool.length;
     const seed = dir === 'attack' ? 0 : dir === 'defense' ? 2 : 4;
-    const pick = pool[assistAltIndex(assistDirVariant[dir] || 0, total, seed)];
+    return { pick: pool[assistAltIndex(assistDirVariant[dir] || 0, total, seed)], total };
+  };
+  const picked = {}, taken = new Set();
+  ASSIST_DIRS.forEach(dir => { if (owned[dir].length) { picked[dir] = pickFrom(dir, owned[dir]); taken.add(picked[dir].pick.card.name); } });
+  ASSIST_DIRS.forEach(dir => {
+    if (picked[dir]) return;
+    const list = rankedByDir[dir].filter(r => !taken.has(r.card.name));
+    if (!list.length) return;
+    picked[dir] = pickFrom(dir, list); taken.add(picked[dir].pick.card.name);
+  });
+  return ASSIST_DIRS.map(dir => {
+    if (!picked[dir]) return { dir, card: null, total: 0 };
+    const { pick, total } = picked[dir];
     assistDirLabelByName[pick.card.name] = assistDirectionLabel(dir);
     return { dir, card: pick.card, total, reason: assistFourthReason(pick.card, dir, info), badges: assistBadges(pick.card, info) };
   });
@@ -2002,9 +2018,11 @@ function assistDirectionChipsHtml(info) {
 // 4枚目以降「伸ばす方向」ブロック（攻撃強化/防衛強化/回転力強化を同時表示）。
 //  各ブロックに独立した「別候補」があり、そのブロックだけ次の候補へローテーションする。
 //  カードはユニット/呪文/建物を問わず、その方向に効く1枚を出す。
-function assistDirectionBlocksHtml(info) {
+//  shown（任意の Set）：上の欄で出したカード。ここでは除き、ここで出したカードを足して返す（下の核候補の欄も同じ Set で重なりを除く）。
+function assistDirectionBlocksHtml(info, shown) {
   if (!info || info.cards.length < 3 || info.cards.length >= 8) return '';
-  const blocks = assistDirectionBlocks(info);
+  const blocks = assistDirectionBlocks(info, shown);
+  if (shown instanceof Set) blocks.forEach(b => { if (b.card) shown.add(b.card.name); });
   if (!blocks.some(b => b.card)) return '';
   const cardsHtml = blocks.map(b => {
     const head = '<div class="adb-head"><span class="adb-title">' + esc(TRX(assistDirectionLabel(b.dir))) + '</span>'
@@ -2029,15 +2047,17 @@ function assistDirectionBlocksHtml(info) {
 //   ・3枠それぞれに独立した「別候補」を持たせ、押した枠だけ次の候補へ回す。
 // =============================================================
 // Workerが返したtemplateCore行を、実カードに解決して並べ替え済みで返す（重複と既採用は除外）。
-function assistTemplateCoreRows(info) {
+//  exclude（任意の Set）：上の欄（自然/安定/発見・伸ばす方向）でもう出したカード。ここでは出さない（2026-10-13）。
+function assistTemplateCoreRows(info, exclude) {
   if (!Array.isArray(assistData.templateCore) || !info || !info.cards || info.cards.length !== 5) return [];
   const seen = new Set();
+  const skip = exclude instanceof Set ? exclude : null;
   const rows = [];
   assistData.templateCore.forEach(r => {
     if (!r || !r.card) return;
     const c = CARDS.find(x => x.name === r.card);
     if (!c || !assistLegal(c, info)) return;
-    if (seen.has(c.name)) return;
+    if (seen.has(c.name) || (skip && skip.has(c.name))) return;
     seen.add(c.name);
     rows.push({ card: c, kind: r.kind || 'templateCore', text: r.text || '', variants: Number(r.variants) || 0 });
   });
@@ -2055,10 +2075,10 @@ function assistTemplateCoreReason(c, info, row) {
 }
 // 3枠を作る。ランキングを i, i+3, i+6… で3枠に分配（＝所有が排他）し、各枠は自分の所有内だけ回す。
 //  これで「別候補」を押した枠だけ必ず変わり、他の枠は動かない（完全独立）。初期表示は上位3枚。
-function assistTemplateCoreHtml(info) {
+function assistTemplateCoreHtml(info, shown) {
   assistCoreLabelByName = {};
   if (!info || info.cards.length !== 5) return '';
-  const rows = assistTemplateCoreRows(info);
+  const rows = assistTemplateCoreRows(info, shown);
   if (!rows.length) return '';
   const slots = [0, 1, 2].map(i => {
     const owned = rows.filter((_, idx) => idx % 3 === i);
@@ -2146,7 +2166,7 @@ function assistDevelopmentHtml(info) {
   const status = assistAiState.note ? '<small class="assist-ai-status">' + esc(assistAiState.note) + '</small>'
     : '';
   return '<div class="assist-dev"><div class="assist-dev-head"><span>' + esc(TR('デッキ開発')) + '</span><small>' + esc(hint) + '</small></div>'
-    + '<textarea id="assistDevNote" maxlength="180" rows="2" placeholder="' + esc(TR('どんな方向で組みたい？')) + '">' + esc(assistDevNote || '') + '</textarea>'
+    + '<textarea id="assistDevNote" maxlength="180" rows="2" placeholder="' + esc(TR('どんな方向で組みたい？')) + '">' + esc(assistDevDraft != null ? assistDevDraft : (assistDevNote || '')) + '</textarea>'
     + read
     + '<div class="assist-dev-actions">' + chips
     + '<button type="button" class="assist-mini" id="assistDevApply"' + (assistAiState.busy ? ' disabled' : '') + '>' + esc(assistAiState.busy ? TR('読み取り中…') : TR('反映')) + '</button>'
@@ -2203,6 +2223,39 @@ function assistExtraHtml(info) {
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 }
+// 欄の中身を入れ替える。デッキ開発の入力欄（#assistDevNote）だけは同じ要素を残す（2026-10-13）。
+//  innerHTML で全部を書き直すと、書きかけの文・カーソルの位置・フォーカス・日本語の変換中の文字が消えていた。
+//  入力欄の外側（.assist-dev の中のほかの部品）と欄のほかの部分は新しい中身に入れ替え、入力欄そのものは一度も外さない
+//  （外すとフォーカスと変換中の文字が消えるため）。入力欄が無い・形が違うときは今までどおり全部を書き直す。
+function assistSetPanelHtml(panel, html) {
+  const keep = panel.querySelector('#assistDevNote');
+  if (!keep) { panel.innerHTML = html; return; }
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const fresh = tmp.querySelector('#assistDevNote');
+  if (!fresh) { panel.innerHTML = html; return; }
+  const oldChain = [], newChain = [];
+  for (let n = keep; n && n !== panel; n = n.parentNode) oldChain.push(n);
+  for (let n = fresh; n && n !== tmp; n = n.parentNode) newChain.push(n);
+  if (oldChain.length !== newChain.length) { panel.innerHTML = html; return; }
+  let oldBox = panel, newBox = tmp;
+  for (let i = oldChain.length - 1; i >= 0; i--) {
+    const o = oldChain[i], n = newChain[i];
+    Array.from(oldBox.childNodes).forEach(c => { if (c !== o) oldBox.removeChild(c); });
+    let before = true;
+    Array.from(newBox.childNodes).forEach(c => {
+      if (c === n) { before = false; return; }
+      if (before) oldBox.insertBefore(c, o); else oldBox.appendChild(c);
+    });
+    if (i > 0 && o.className !== n.className) o.className = n.className;
+    oldBox = o; newBox = n;
+  }
+  // 入力欄は値を変えず、言語で変わる案内の文などの属性だけ新しい方に合わせる
+  ['placeholder', 'maxlength', 'rows'].forEach(a => {
+    const v = fresh.getAttribute(a);
+    if (v == null) keep.removeAttribute(a); else if (keep.getAttribute(a) !== v) keep.setAttribute(a, v);
+  });
+}
 function updateAssistPanel() {
   const controls = document.querySelector('.controls');
   const btn = document.getElementById('assistToggle');
@@ -2210,7 +2263,8 @@ function updateAssistPanel() {
   if (!controls || !btn || !panel) return;
   controls.classList.toggle('assist-active', assistMode);
   btn.setAttribute('aria-pressed', assistMode ? 'true' : 'false');
-  btn.innerHTML = '<span>' + esc(TR(assistMode ? 'アシストON' : 'アシスト')) + '</span>';
+  // 文字は ON/OFF で同じにする（「アシストON」にすると幅が変わり、ボタンが動いていた・2026-10-13）。ON は色と aria-pressed で示す
+  btn.innerHTML = '<span>' + esc(TR('アシスト')) + '</span>';
   assistDirLabelByName = {};
   assistCoreLabelByName = {};
   if (!assistMode) { panel.innerHTML = ''; assistSuggestions = []; updateAssistTopInfo(null); refreshAssistHighlights(); return; }
@@ -2249,8 +2303,10 @@ function updateAssistPanel() {
   const contextLine = contextLoading ? '<div class="assist-context-loading">' + esc(TR('読みを整えています…')) + '</div>' : '';
   const devLine = assistDevelopmentHtml(info);
   const activeChunk = assistChunk === 'threats' ? 'threats' : 'cards';
-  const dir3 = info.cards.length >= 3 ? assistDirectionBlocksHtml(info) : '';
-  const core6 = info.cards.length === 5 ? assistTemplateCoreHtml(info) : '';
+  // 上から順に出したカードを覚え、下の欄では同じカードを出さない（自然/安定/発見 → 伸ばす方向 → 核候補）
+  const shownCards = new Set(assistSuggestions.map(s => s.card.name));
+  const dir3 = info.cards.length >= 3 ? assistDirectionBlocksHtml(info, shownCards) : '';
+  const core6 = info.cards.length === 5 ? assistTemplateCoreHtml(info, shownCards) : '';
   const clearSyn = assistClearSynergyHtml(info);
   const chunkHtml = activeChunk === 'threats'
     ? assistThreatHtml(info)
@@ -2258,7 +2314,7 @@ function updateAssistPanel() {
   const actionMain = activeChunk === 'threats'
     ? '<button class="assist-mini" id="assistBackCards" type="button">' + esc(TR('候補へ戻る')) + '</button>'
     : '<button class="assist-mini" id="assistRefresh" type="button">' + esc(TR('別候補')) + '</button>';
-  panel.innerHTML = '<div class="assist-head"><div class="assist-title">' + esc(TR('次の1枚')) + '<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + esc(costState) + '</div></div>'
+  assistSetPanelHtml(panel, '<div class="assist-head"><div class="assist-title">' + esc(TR('次の1枚')) + '<span class="assist-beta">BETA</span></div><div class="assist-state">' + esc(info.style) + ' / ' + esc(costState) + '</div></div>'
     + personaLine
     + contextLine
     + devLine
@@ -2266,7 +2322,7 @@ function updateAssistPanel() {
     + chunkHtml
     + '<div class="assist-actions">' + actionMain + '<button class="assist-mini" id="assistOff" type="button">' + esc(TR('通常検索')) + '</button></div>'
     + assistExtraHtml(info)
-    + '<div class="assist-bottom-pad" aria-hidden="true"></div>';
+    + '<div class="assist-bottom-pad" aria-hidden="true"></div>');
   // 「理由を詳しく」トグル（カード追加クリックより先に拾い、伝播を止める）
   panel.querySelectorAll('.ac-detail-toggle').forEach(t => {
     t.addEventListener('click', (e) => {
@@ -2284,11 +2340,12 @@ function updateAssistPanel() {
     const addCard = () => {
       const c = CARDS.find(x => x.name === b.getAttribute('data-assist-card'));
       if (!c) return;
-      addAssistToDeck(c);
+      // 名札は足す前に読む（足すと欄が作り直され、名札の表が新しいデッキの分に入れ替わるため）
       const dirLabel = assistDirLabelByName[c.name] || assistCoreLabelByName[c.name];
       const label = TRX(dirLabel || assistKindLabel((assistSuggestions.find(s => s.card.name === c.name) || {}).kind || 'natural'));
+      // 足せたときは renderDeck の中で欄を1回作り直す。ここでもう1回作り直さない（2026-10-13：1枚足すと2回作り直していた）
+      if (!addAssistToDeck(c)) return;
       showToast((label ? label + (TRJ() ? '：' : ': ') : '') + TR(c.name));
-      updateAssistPanel();
     };
     b.addEventListener('touchstart', (e) => {
       const t = e.touches && e.touches[0]; touchY = t ? t.clientY : 0; touchMoved = false;
@@ -2315,10 +2372,9 @@ function updateAssistPanel() {
       e.preventDefault();
       const c = CARDS.find(x => x.name === b.getAttribute('data-threat-card'));
       if (!c) return;
-      addAssistToDeck(c);
+      assistChunk = 'cards';   // 先に戻しておけば、足したときの作り直し1回で候補の画面になる
+      if (!addAssistToDeck(c)) { updateAssistPanel(); return; }
       showToast('受ける1枚：' + TR(c.name));
-      assistChunk = 'cards';
-      updateAssistPanel();
     });
   });
   panel.querySelectorAll('[data-assist-chunk]').forEach(b => {
@@ -2329,8 +2385,11 @@ function updateAssistPanel() {
   });
   const devApply = document.getElementById('assistDevApply');
   const devInput = document.getElementById('assistDevNote');
+  // 書きかけの文を覚える（入力欄が作り直されても戻せるように）。入力欄の要素は作り直しで残るので、oninput の代入で重ならない
+  if (devInput) devInput.oninput = () => { assistDevDraft = String(devInput.value || '').slice(0, 180); };
   if (devApply && devInput) devApply.onclick = async () => {
     assistDevNote = String(devInput.value || '').slice(0, 180);
+    assistDevDraft = null;
     try { localStorage.setItem('cr_assist_dev_note', assistDevNote); } catch(e) {}
     assistVariant = 0;
     assistDirVariant = { attack: 0, defense: 0, cycle: 0 };
@@ -2373,6 +2432,8 @@ function updateAssistPanel() {
   const devClear = document.getElementById('assistDevClear');
   if (devClear) devClear.onclick = () => {
     assistDevNote = '';
+    assistDevDraft = null;
+    if (devInput) devInput.value = '';   // 入力欄の要素は作り直しで残るので、ここで空にする
     try { localStorage.removeItem('cr_assist_dev_note'); } catch(e) {}
     assistAiIntent = null; assistAiSave(); assistAiState = { busy: false, note: '' };
     assistVariant = 0;
@@ -2848,13 +2909,15 @@ function assistPlaceSpecial(card) {
   return false;
 }
 
+// 足せた（または入れ替えの小窓を開いた）ときは true。renderDeck の中でアシスト欄も作り直す
 function addAssistToDeck(card) {
-  if (!card || deck.some(d => d && d.name === card.name)) return;
+  if (!card || deck.some(d => d && d.name === card.name)) return false;
   if (card.evolved || card.hero || card.champion) {
-    if (assistPlaceSpecial(card)) return;
+    if (assistPlaceSpecial(card)) return true;
   }
-  if (!placeAssistNormal(card)) return;
+  if (!placeAssistNormal(card)) return false;
   renderDeck(); refreshInDeck();
+  return true;
 }
 
 function addToDeck(card) {

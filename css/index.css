@@ -154,10 +154,13 @@
   }
   .assist-panel { display: none; }
   .controls.assist-active .search-wrap > svg,
-  .controls.assist-active #search,
   .controls.assist-active #searchClear { display: none; }
+  /* ON でも検索欄の箱は残して見えなくするだけにし、「今の読み」の帯をその上に重ねる。
+     行の高さと幅が ON/OFF で同じになり、ボタンが動かない（2026-10-13：検索欄を消していたので、スマホで行が 40→32px に縮み、ボタンが 4px 上へ動いていた） */
+  .controls.assist-active #search { visibility: hidden; }
   .controls.assist-active .assist-top-info {
-    display: flex; align-items: center; gap: 7px; width: 100%; min-height: 34px;
+    position: absolute; inset: 0;
+    display: flex; align-items: center; gap: 7px; width: 100%; min-height: 0;
     border: 1px solid rgba(232,160,32,0.32); border-radius: 8px; padding: 5px 8px;
     background: rgba(232,160,32,0.08); color: var(--text); text-align: left;
     font-family: CRDBSymbols,var(--font-body); cursor: pointer; -webkit-tap-highlight-color: transparent;
@@ -293,6 +296,8 @@
     background: rgba(255,255,255,0.04); border: 1px solid var(--border);
     color: var(--text-muted); font-size: 11px; line-height: 1.5;
   }
+  /* 上の display:block が hidden を打ち消し、「理由を詳しく」が最初から開いていた（2026-10-13）。閉じているときは出さない */
+  .assist-card .ac-detail[hidden] { display: none; }
   .assist-card.natural { border-color: rgba(38,198,160,0.42); }
   .assist-card.stable { border-color: rgba(58,142,240,0.42); }
   .assist-card.discovery { border-color: rgba(139,92,246,0.42); }
@@ -992,7 +997,7 @@
     .controls { padding: 6px 10px; }
     .controls-row { gap: 6px; }
     .assist-toggle { min-width: 68px; height: 32px; padding: 0 7px; font-size: 10px; }
-    .controls.assist-active .assist-top-info { min-height: 32px; padding: 4px 7px; gap: 5px; }
+    .controls.assist-active .assist-top-info { padding: 4px 7px; gap: 5px; }  /* 高さは検索欄の箱に合わせる（上の inset:0） */
     .assist-top-info .ati-main { font-size: 10px; }
     .assist-top-info .ati-sub { font-size: 10px; }
     .controls.assist-active { gap: 6px; }
