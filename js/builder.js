@@ -3351,7 +3351,7 @@ function renderDeck() {
     if (c) {
       const mode = slotMode(c, i);
       const modeClass = mode === 'evolved' ? ' slot-evolved' : mode === 'hero' ? ' slot-hero' : '';
-      div.className = 'slot filled' + modeClass + (isFav(c.name) ? ' fav' : ''); // お気に入りは .fav（¥2,000特典でリムライト）
+      div.className = 'slot filled' + modeClass + (isFav(c.name) ? ' fav' : ''); // お気に入りは .fav（リムライト・全員に無料。寄付の段階では何も変えない・2026-10-12 本人確認）
       if (isFav(c.name)) div.style.setProperty('--favDelay', '-' + (performance.now() / 1000 % 3.6).toFixed(2) + 's'); // 共通時計に同期＝再生成しても途切れない
       div.title = TR('クリックで外す');
       div.draggable = true;
@@ -3390,7 +3390,7 @@ function renderDeck() {
   updateActionButtons();
   showDeckStats(deck, true); // 実デッキの統計を表示（入れ替え時は平均コストをロール）
   updateDeckGlow(deck.filter(Boolean).length); // ¥500特典：枚数に応じてデッキ枠のグロー（8枚でシャキーン）
-  // ¥2,000特典：お気に入りが「増えた」瞬間だけ、デッキ内のお気に入り同士を一瞬つなぐ
+  // お気に入りの演出（全員に無料）：お気に入りが「増えた」瞬間だけ、デッキ内のお気に入り同士を一瞬つなぐ
   const favNow = deck.filter(c => c && isFav(c.name)).map(c => c.name);
   document.body.classList.toggle('has-fav', favNow.length > 0); // お気に入りがある時だけリム回転（安定化）
   const favAdded = favNow.filter(n => !(window._favPrev || []).includes(n));
@@ -3399,7 +3399,7 @@ function renderDeck() {
   updateAssistPanel();
 }
 
-// ===== ¥500/¥2,000 演出ヘルパー =====
+// ===== お気に入りの演出ヘルパー（全員に無料）=====
 function fxTrailOn() {
   return document.body.classList.contains('perk-drop') && window.CRAuth && (!CRAuth.getFxTrail || CRAuth.getFxTrail());
 }
@@ -3428,7 +3428,7 @@ document.addEventListener('dragover', e => {
   if (dragSrcCard || dragSrcIdx !== null) spangleAt(e.clientX, e.clientY);
 }, true);
 
-// ¥2,000特典：デッキ内のお気に入りカード同士を細い金線で一瞬だけ結ぶ
+// お気に入りの演出（全員に無料）：デッキ内のお気に入りカード同士を細い金線で一瞬だけ結ぶ
 function flashFavLinks() {
   if (!document.body.classList.contains('perk-bottle')) return;
   const favs = Array.from(document.querySelectorAll('#deckSlots .slot.filled.fav'));
@@ -3459,7 +3459,7 @@ function flashFavLinks() {
   setTimeout(() => svg.remove(), 1150);
 }
 
-// ¥2,000特典：お気に入りを入れた瞬間、そのスロットを「ふわん」と一瞬ふくらませる
+// お気に入りの演出（全員に無料）：お気に入りを入れた瞬間、そのスロットを「ふわん」と一瞬ふくらませる
 function popFavSlots(names) {
   if (!document.body.classList.contains('perk-bottle')) return;
   names.forEach(name => {
