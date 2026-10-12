@@ -401,7 +401,9 @@ function lintI18nCoverage() {
       const k = m[2];
       if (!jp.test(k) || k.includes('${')) continue;
       used++;
-      if (dict.en[k] == null && !missing.has(k)) missing.set(k, f);
+      // 先頭の絵文字は残して残りを訳す決まり（i18n.js の tr）に合わせて、外した文でも探す
+      const rest = k.replace(/^\p{Extended_Pictographic}\uFE0F?\s*/u, '');
+      if (dict.en[k] == null && dict.en[rest] == null && !missing.has(k)) missing.set(k, f);
     }
   }
   for (const [k, f] of missing) fail(f + ' の「' + k.slice(0, 40) + '」に英語の訳が無い → i18n.js の DICT.en に足す');
