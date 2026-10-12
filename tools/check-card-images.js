@@ -337,6 +337,36 @@ function lintInternalLinks() {
 }
 
 
+/* ── [1g] JSが実行時に作るリンク ──
+   ★2026-10-12、[1e] はHTMLに書かれたリンクだけを見ていたため、JSが作る「カード詳細」の
+   'cards/' + slug + '.html'（相対）を見逃した。言語ページ（/tr/ 等）では /tr/cards/… の404になり、
+   Search Console に「見つかりませんでした（404）」が21件出ていた（/es/cards/…・/zh-cn/cards/…）。
+   カード個別ページ（cards/）や、言語フォルダに無いページ（me.html 等）は日本語のルートにしか無いので、
+   JSでは先頭の / から作る。 */
+function lintJsRootOnlyLinks() {
+  console.log('\n[1g] JSが作るリンク：ルートにしか無いページを相対で指していないか');
+  const langDir = ['en', 'tr', 'es'].map(d => path.join(ROOT, d)).find(d => fs.existsSync(d));
+  const rootOnlyPages = langDir ? fs.readdirSync(ROOT).filter(f => f.endsWith('.html') && !fs.existsSync(path.join(langDir, f))) : [];
+  const files = fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js') && !SKIP_FILES.has(f)).map(f => 'js/' + f)
+    .concat(['auth.js', 'i18n.js'].filter(f => fs.existsSync(path.join(ROOT, f))));
+  const cardRel = /(['"`])(?:\.\/)?cards\//;                       // 'cards/…'（'/cards/…' は対象外）
+  const pageRel = rootOnlyPages.length
+    ? new RegExp('(?:href\\s*=\\s*\\\\?[\'"]|\\.href\\s*=\\s*[\'"`])(?:\\./)?(?:' + rootOnlyPages.map(p => p.replace(/\./g, '\\.')).join('|') + ')')
+    : null;
+  let bad = 0;
+  for (const f of files) {
+    fs.readFileSync(path.join(ROOT, f), 'utf8').split('\n').forEach((line, i) => {
+      if (/^\s*(\/\/|\*)/.test(line)) return;                       // コメント行は除く
+      if (cardRel.test(line) || (pageRel && pageRel.test(line))) {
+        fail(f + ':' + (i + 1) + ' でルートにしか無いページを相対で指している → 先頭に / を付ける\n      ' + line.trim().slice(0, 120));
+        bad++;
+      }
+    });
+  }
+  if (!bad) ok(files.length + 'ファイル走査・相対の cards/ と ' + (rootOnlyPages.join('/') || '（該当ページなし）') + ' へのリンクは無し');
+}
+
+
 /* ── [1f] カード名の表が4箇所で一致しているか ──
    ★2026-09-19、新カードを js/cards-data.js（表示層）にだけ足して満足していたら、
    collect.js の slug→日本語名 が欠けたままで
@@ -376,6 +406,7 @@ function lintCardNameTables() {
   inventoryImageSites();
   lintUxGuard();
   lintInternalLinks();
+  lintJsRootOnlyLinks();
   lintCardNameTables();
   lintDefs(ctx);
   if (!LINT_ONLY) { await checkAgainstApi(ctx); await checkUrls(ctx); }

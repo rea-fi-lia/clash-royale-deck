@@ -388,9 +388,10 @@ function crownQualityHtml(d) {
   return base;
 }
 // カード個別ページのURL。画像スラッグから作る（cards-data.js の定義が唯一の出所）
+// 個別ページは日本語版（/cards/）だけなので、言語ページ（/tr/ 等）でも404にならないよう先頭の / から作る
 function cardDetailUrl(name) {
   const slug = cardSlug(cardBaseName(name));
-  return slug ? 'cards/' + slug + '.html' : '';
+  return slug ? '/cards/' + slug + '.html' : '';
 }
 function _cardImg(name) { return cardImageSrc(name, 'n'); }
 function _cardCost(name) { const i = CARD_INFO[name]; return i ? i.c : ''; }

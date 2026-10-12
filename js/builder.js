@@ -2604,9 +2604,10 @@ function closeCardPeek() {
   if (a) a.remove();
   _peekEl = null;
 }
+// カード個別ページは日本語版（/cards/）だけ。言語ページ（/tr/ 等）から相対で作ると /tr/cards/… の404になるので、先頭の / から作る
 function cardDetailUrl(c) {
   const slug = ((c && c.img || '').match(/\/([a-z0-9-]+)\.png/i) || [])[1] || '';
-  return slug ? 'cards/' + slug + '.html' : '';
+  return slug ? '/cards/' + slug + '.html' : '';
 }
 function openCardPeek(div, c) {
   if (_peekEl === div) { closeCardPeek(); return; }   // 同じカードをもう一度タップ＝閉じる
