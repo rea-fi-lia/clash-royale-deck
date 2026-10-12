@@ -1076,5 +1076,6 @@
  "デッキ開発メモに合わせて、攻めの圧を伸ばせます。": "Dựa trên ghi chú bộ bài, điều này làm tăng sức ép tấn công.",
  "デッキ開発メモに合わせて、攻城系の勝ち方を作れます。": "Dựa trên ghi chú bộ bài, điều này giúp tạo ra điều kiện chiến thắng kiểu công thành.",
  "デッキ開発メモに合わせて、もう一つの圧を足せます。": "Dựa trên ghi chú bộ bài, điều này bổ sung thêm một tầng sức ép.",
- "デッキ開発メモの方向に寄せやすい候補です。": "Đây là ứng cử viên phù hợp với định hướng trong ghi chú bộ bài của bạn."
+ "デッキ開発メモの方向に寄せやすい候補です。": "Đây là ứng cử viên phù hợp với định hướng trong ghi chú bộ bài của bạn.",
+ "{x}の形のデッキで、よく一緒に入っている1枚です。": "Đây là lá bài thường được sử dụng cùng trong các bộ bài có dạng {x}."
 }

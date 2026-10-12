@@ -86,7 +86,10 @@ function allowAssistPublicJsonFallback() {
     return !prod && new URLSearchParams(location.search || '').get('publicJsonFallback') === '1';
   } catch (e) { return false; }
 }
-const assistData = { wincon: null, potential: null, tags: null, pairs: null, deckPairs: null, pairExt: null, threatResp: null, templateCore: null, vectors: null, eval: null, personaProfiles: null, ready: false, tried: false };
+const assistData = { wincon: null, potential: null, tags: null, pairs: null, deckPairs: null, pairExt: null, threatResp: null, templateCore: null, cooc: null, vectors: null, eval: null, personaProfiles: null, ready: false, tried: false };
+// 上位デッキで今の札と一緒に入る札（Worker の /api/assist/context の cooc・0〜1）を、自然候補の点に足す倍率（2026-10-13）。
+//  逆算の試験（非公開の tools-repo analysis/assist-backtest・600場面）で選んだ値：自然候補の当たり（MRR）0.39→0.58・上位3 43%→66%
+const ASSIST_COOC_POINTS = 400;
 const ASSIST_ALT_POOL = 12;
 const ASSIST_TEMPLATE_CORE_POOL = 9;
 
@@ -438,6 +441,7 @@ function applyAssistContext(key, bundle) {
   assistData.pairExt = bundle && bundle.pairExt ? bundle.pairExt : {};
   assistData.threatResp = bundle && bundle.threatResp ? bundle.threatResp : {};
   assistData.templateCore = bundle && bundle.templateCore ? bundle.templateCore : [];
+  assistData.cooc = bundle && Array.isArray(bundle.cooc) && bundle.cooc.length ? Object.fromEntries(bundle.cooc.filter(r => r && r.card).map(r => [r.card, Math.max(0, Math.min(1, Number(r.score) || 0))])) : null;
   assistContextKey = key || '';
 }
 function clearAssistContext() {
@@ -446,6 +450,7 @@ function clearAssistContext() {
   assistData.pairExt = null;
   assistData.threatResp = null;
   assistData.templateCore = null;
+  assistData.cooc = null;
   assistContextKey = '';
   assistContextPending = '';
 }
@@ -461,6 +466,7 @@ function ensureAssistContext(info) {
   assistData.pairExt = null;
   assistData.threatResp = null;
   assistData.templateCore = null;
+  assistData.cooc = null;
   assistContextKey = '';
   assistContextPending = key;
   loadAssistContextBundle(info).then(bundle => {
@@ -1499,6 +1505,8 @@ function assistScore(c, kind, info) {
   score += assistVectorFit(c, info, kind);
   // 5枚目以降は、薄い役割をもう少し具体的に見る（空受け/小物処理/中型処理/射程/手数/回転など）。
   score += assistStageNeedFit(c, info, kind);
+  // 上位デッキで今の札と一緒に入る札（自然候補だけ・2026-10-13）
+  if (kind === 'natural' && assistData.cooc) score += Math.round(ASSIST_COOC_POINTS * (assistData.cooc[c.name] || 0));
   // デッキ開発メモ：プレイヤーの自然文をゆるい補正として反映。固定しすぎないため上限は関数側で抑える。
   score += assistDevelopmentFit(c, info, kind);
   // AI の読み：使いたいと書いたカードは先に出す。平均コストの上限・下限は、入れたときの平均で寄せる（2026-10-12）
@@ -1586,6 +1594,7 @@ function assistReason(c, kind, info) {
     if (bp && bp.tier === 'clear') return TRF('{x}とはっきり噛み合う1枚です。攻め方も受け方もつながります。', { x: TR(bp.other) });
     if (bp && bp.tier === 'type') return TRF('{x}と組むと形がきれいにまとまる1枚です。', { x: TR(bp.other) });
     if (bp && (bp.weighted || 0) >= 12) return TRF('{x}と合わせると、今の形に自然に足せます。', { x: TR(bp.other) });
+    if (assistData.cooc && (assistData.cooc[c.name] || 0) >= 0.6) return TRF('{x}の形のデッキで、よく一緒に入っている1枚です。', { x: mainName });
     if (p && p.partner) return TRF('今の構成に組み合わせ先があり、{x}を伸ばせます。', { x: mainName });
     if (assistIsTrueAir(c) || assistTagHas(c, 'splash')) return TRF('{x}の後ろから守って撃てる支援役です。', { x: mainName });
     return TRF('{x}をそのまま伸ばしやすい候補です。', { x: mainName });
@@ -1710,14 +1719,20 @@ function assistSlicePool(list, max) {
   return (Array.isArray(list) ? list : []).slice(0, Math.max(1, max || ASSIST_ALT_POOL));
 }
 function pickAssistCandidate(kind, used, info) {
-  const ranked = [];
+  const scored = [];
   CARDS.forEach(c => {
     if (!assistLegal(c, info) || used.has(c.name)) return;
-    const score = assistScore(c, kind, info);
-    if (score > 0) ranked.push({ card: c, score });
+    scored.push({ card: c, score: assistScore(c, kind, info) });
   });
-  ranked.sort((a, b) => b.score - a.score || a.card.cost - b.card.cost);
-  let pool = assistSlicePool(ranked, ASSIST_ALT_POOL);
+  scored.sort((a, b) => b.score - a.score || a.card.cost - b.card.cost);
+  const ranked = scored.filter(x => x.score > 0);
+  // 平均コストの上限・下限（AI の読み）：入れたときの平均が条件に収まる札があれば、収まらない札は出さない（2026-10-13）。
+  //   点を引くだけでは、ほかの項の差に負けて守られなかった（逆算の試験：上限3.0を守れたのは69%、下限4.3は18%）。
+  //   条件に収まる札の点がマイナスでも、条件を先に守る（決めるのはプレイヤー）
+  const avgOk = assistAvgCondition(info);
+  const fit = avgOk ? scored.filter(x => avgOk(x.card)) : null;
+  const usable = fit && fit.length ? fit : ranked;
+  let pool = assistSlicePool(usable, ASSIST_ALT_POOL);
   // 使いたいと書いたカード（AI の読み）は、点数の勝ち負けにせず「自然候補」の先頭に出す。
   //   本人の使いたいカードが主役（6/28 の「次の1枚」仕様・VISION の「利用者の条件を守る」）。別候補を押せば次も見られる（2026-10-12）
   const keepNames = (kind === 'natural' && info.developmentIntent && info.developmentIntent.keep) || [];
@@ -1728,6 +1743,18 @@ function pickAssistCandidate(kind, used, info) {
   if (!pick) return null;
   used.add(pick.card.name);
   return { kind, card: pick.card, score: pick.score, reason: assistReason(pick.card, kind, info), detail: assistDetail(pick.card, kind, info), badges: assistBadges(pick.card, info) };
+}
+// 平均コストの条件の判定（条件が無ければ null）。下限は3枚以上のときだけ（序盤は平均が揺れるため・点を引く側と同じ）
+function assistAvgCondition(info) {
+  const di = info && info.developmentIntent;
+  if (!di || (di.maxAvg == null && di.minAvg == null)) return null;
+  const sum = info.cards.reduce((t, x) => t + (x.cost || 0), 0), n = info.cards.length + 1;
+  return c => {
+    const proj = (sum + (c.cost || 0)) / n;
+    if (di.maxAvg != null && proj > di.maxAvg + 1e-9) return false;
+    if (di.minAvg != null && info.cards.length >= 3 && proj < di.minAvg - 1e-9) return false;
+    return true;
+  };
 }
 function buildAssistSuggestions() {
   const info = assistDeckInfo();

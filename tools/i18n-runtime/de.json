@@ -1078,5 +1078,6 @@
  "デッキ開発メモに合わせて、攻めの圧を伸ばせます。": "Basierend auf deinen Deck-Notizen erhöht dies deinen offensiven Druck.",
  "デッキ開発メモに合わせて、攻城系の勝ち方を作れます。": "Basierend auf deinen Deck-Notizen baut dies eine Belagerungs-Siegbedingung auf.",
  "デッキ開発メモに合わせて、もう一つの圧を足せます。": "Basierend auf deinen Deck-Notizen fügt dies eine weitere Druckebene hinzu.",
- "デッキ開発メモの方向に寄せやすい候補です。": "Dies ist ein Kandidat, der gut zur Ausrichtung deiner Deck-Notizen passt."
+ "デッキ開発メモの方向に寄せやすい候補です。": "Dies ist ein Kandidat, der gut zur Ausrichtung deiner Deck-Notizen passt.",
+ "{x}の形のデッキで、よく一緒に入っている1枚です。": "Das ist eine Karte, die oft zusammen in Decks im Stil von {x} verwendet wird."
 }

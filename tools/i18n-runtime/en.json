@@ -375,5 +375,6 @@
  "デッキ開発メモに合わせて、攻めの圧を伸ばせます。": "Based on your deck notes, this increases your offensive pressure.",
  "デッキ開発メモに合わせて、攻城系の勝ち方を作れます。": "Based on your deck notes, this builds a siege win condition.",
  "デッキ開発メモに合わせて、もう一つの圧を足せます。": "Based on your deck notes, this adds another layer of pressure.",
- "デッキ開発メモの方向に寄せやすい候補です。": "This is a candidate that easily fits the direction of your deck notes."
+ "デッキ開発メモの方向に寄せやすい候補です。": "This is a candidate that easily fits the direction of your deck notes.",
+ "{x}の形のデッキで、よく一緒に入っている1枚です。": "A common pick in {x} decks built like this one."
 }

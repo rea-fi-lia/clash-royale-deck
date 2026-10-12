@@ -1078,5 +1078,6 @@
  "デッキ開発メモに合わせて、攻めの圧を伸ばせます。": "Según tus notas de mazo, esto aumenta tu presión ofensiva.",
  "デッキ開発メモに合わせて、攻城系の勝ち方を作れます。": "Según tus notas de mazo, esto genera una condición de victoria de asedio.",
  "デッキ開発メモに合わせて、もう一つの圧を足せます。": "Según tus notas de mazo, esto añade otra capa de presión.",
- "デッキ開発メモの方向に寄せやすい候補です。": "Esta es una opción que se adapta fácilmente a la dirección de tus notas de mazo."
+ "デッキ開発メモの方向に寄せやすい候補です。": "Esta es una opción que se adapta fácilmente a la dirección de tus notas de mazo.",
+ "{x}の形のデッキで、よく一緒に入っている1枚です。": "Es una carta que suele incluirse en mazos con forma de {x}."
 }

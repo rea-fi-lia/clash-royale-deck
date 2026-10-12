@@ -1077,5 +1077,6 @@
  "デッキ開発メモに合わせて、攻めの圧を伸ばせます。": "Selon vos notes de deck, cela augmente la pression offensive.",
  "デッキ開発メモに合わせて、攻城系の勝ち方を作れます。": "Selon vos notes de deck, cela permet de créer une condition de victoire de type siège.",
  "デッキ開発メモに合わせて、もう一つの圧を足せます。": "Selon vos notes de deck, cela ajoute une couche supplémentaire de pression.",
- "デッキ開発メモの方向に寄せやすい候補です。": "C'est un candidat qui s'adapte facilement à l'orientation de vos notes de deck."
+ "デッキ開発メモの方向に寄せやすい候補です。": "C'est un candidat qui s'adapte facilement à l'orientation de vos notes de deck.",
+ "{x}の形のデッキで、よく一緒に入っている1枚です。": "C'est une carte qui est souvent incluse ensemble dans les decks en forme de {x}."
 }
