@@ -552,13 +552,32 @@ const GICON = { good: '◎', ok: '○', warn: '⚠', bad: '❌', info: 'ℹ️' 
 // ===== 新・デッキ診断（2026-06-26 全面刷新）=====
 //   旧 archetype/verdict/checks/旧実戦読みカード は不使用。採点でなく「どんなデッキで・実戦でどう勝ってて・どこが強い/苦手か」を平易な言葉で。
 //   ★ユーザー向け文言に内部用語（収集元・外部名など裏側がわかる語）は出さない。
-function winOf(c) { if (!WINCON) return null; return WINCON[c.name + mark(c)] || WINCON[c.name] || null; }
+// 勝ち筋台帳(wincon-policy)に無いカードでも、WINCONS（＝cards-data.js の winConditionPriority。
+// 収集側 collect.js の主軸判定とサイト全体のデッキ命名に使っている単一ソース）に入っていれば勝ち筋として扱う。
+// 台帳は123枚中36枚が未登録で、そのままだと主軸があるデッキに「主軸が薄い」と出ていた
+// （2026-10-19 実測：上位100デッキのうち10件＝ガーゴイルジャイアント8・ボスアサシン2）。
+// 点数は台帳にしか無いので0のまま。derived:true で「台帳未登録＝点数なし」を示す。
+function winOf(c) {
+  if (WINCON) {
+    const hit = WINCON[c.name + mark(c)] || WINCON[c.name];
+    if (hit) return hit;
+  }
+  if (WINCONS.indexOf(c.name) >= 0) {
+    return { name: c.name, class: '勝ち筋', mainWinconScore: 0, secondaryWinconScore: 0,
+             finishingScore: 0, attackType: null, axes: [], displayGroup: '主軸', derived: true };
+  }
+  return null;
+}
 function polOf(deck) {
   return STRATEGY_INTEL && STRATEGY_INTEL.pol && STRATEGY_INTEL.pol.data ? STRATEGY_INTEL.pol.data : null;
 }
 function winClassGroup(sc, cls) {
+  // 台帳未登録（derived）は点数が無いので、加算で NaN にならないよう 0 に落として並べる。
+  const winSum = function (w) {
+    return (Number(w.mainWinconScore) || 0) + (Number(w.secondaryWinconScore) || 0) + (Number(w.finishingScore) || 0);
+  };
   return sc.filter(function (x) { return x.w && x.w.class === cls; }).sort(function (a, b) {
-    return (b.w.mainWinconScore + b.w.secondaryWinconScore + b.w.finishingScore) - (a.w.mainWinconScore + a.w.secondaryWinconScore + a.w.finishingScore);
+    return winSum(b.w) - winSum(a.w);
   });
 }
 function winChipGroup(title, arr) {
@@ -591,9 +610,15 @@ function defenseFitLine(defenses) {
   });
   return '<div class="dg-detail"><b>' + _tr('防衛調整枠') + '</b>' + _colon() + labels.join(' / ') + '</div>';
 }
-function practicalRead(mains, secs, supports, cycles, defenses, avg) {
+// archNames = 8枚のうち WINCONS（正本）に入っているカード名。
+// 台帳の分類と正本が食い違う場合（例：ボスアサシンは正本では主軸・台帳では第2勝ち筋）に、
+// デッキ名が「ボスアサシン」なのに「主軸が薄い」と断定する自己矛盾を避けるために使う。
+// ここで分類を上書きはしない（どちらが正しいかは別途決める）。
+function practicalRead(mains, secs, supports, cycles, defenses, avg, archNames) {
   const bits = [];
-  if (!mains.length) bits.push(_tr('主軸が薄いので、相手に守りを固められると削り切る道筋が曖昧です'));
+  const hasArch = !!(archNames && archNames.length);
+  if (!mains.length && hasArch) bits.push(_tf('削りの入口は{x}で、そこを止められた時の別ルートが課題です', { x: archNames[0] }));
+  else if (!mains.length) bits.push(_tr('主軸が薄いので、相手に守りを固められると削り切る道筋が曖昧です'));
   else if (!secs.length && !supports.length) bits.push(_tr('攻めの入口が主軸に寄っています。止められた時の別ルートが課題です'));
   else if (secs.length) bits.push(_tr('主軸が止まっても、第2勝ち筋で削り直す道があります'));
   else bits.push(_tr('第2勝ち筋は薄めですが、補助勝ち筋で追加ダメージを作れます'));
@@ -608,6 +633,8 @@ function diagnoseHtml(deck) {
   // 1) このデッキの特徴（監修済みの勝ち筋スコア）
   const sc = deck.map(function (c) { return { c: c, w: winOf(c) }; });
   const mains = winClassGroup(sc, '勝ち筋');
+  // 正本（cards-data.js の winConditionPriority）側の主軸。台帳と食い違う場合の断定を避けるのに使う。
+  const archNames = deck.map(function (c) { return c.name; }).filter(function (n) { return WINCONS.indexOf(n) >= 0; });
   const secs = winClassGroup(sc, '第2勝ち筋');
   const supports = winClassGroup(sc, '補助勝ち筋');
   const cycles = winClassGroup(sc, 'サイクル札');
@@ -617,13 +644,15 @@ function diagnoseHtml(deck) {
   const typ = avg < 3.1 ? _tr('高速で回すタイプ') : avg < 3.8 ? _tr('バランス型') : avg < 4.4 ? _tr('やや重めの構え') : _tr('重量級（序盤の受けに注意）');
   const mn = mains[0] ? cardLabel(mains[0].c) : null;
   const sn = secs[0] ? cardLabel(secs[0].c) : null;
-  let line = mn ? (_tr('主役は') + '<b>' + mn + '</b>') : _tr('タワーを削る明確な主役が見当たりません');
+  let line = mn ? (_tr('主役は') + '<b>' + mn + '</b>')
+    : (archNames.length ? (_tr('主役は') + '<b>' + archNames[0] + '</b>')
+                        : _tr('タワーを削る明確な主役が見当たりません'));
   if (mn && sn) line += _tr('。詰めや別ルートに') + '<b>' + sn + '</b>' + _tr('も使える形');
   else if (mn && supports[0]) line += _tr('。追加ダメージ役に') + '<b>' + cardLabel(supports[0].c) + '</b>' + _tr('を使える形');
   line = _sentences([line, typ + _paren(_tr('平均コスト') + (_ja() ? '' : ' ') + avg.toFixed(1))]);
   h += '<div class="dg-cap"><div class="cap-head">🃏 ' + _tr('このデッキの特徴') + '</div><div class="dg-detail">' + line + '</div>'
     + winChipGroup('主軸', mains) + winChipGroup('第2勝ち筋', secs) + winChipGroup('補助勝ち筋', supports) + cycleFitLine(cycles) + defenseFitLine(defenses)
-    + '<div class="dg-detail"><b>' + _tr('読み') + '</b>' + _colon() + practicalRead(mains, secs, supports, cycles, defenses, avg) + '</div>'
+    + '<div class="dg-detail"><b>' + _tr('読み') + '</b>' + _colon() + practicalRead(mains, secs, supports, cycles, defenses, avg, archNames) + '</div>'
     + '<div class="dg-chips">' + mains.concat(secs).concat(supports).slice(0, 4).map(function (x) { return chip(x.c); }).join('') + '</div></div>';
   // 2) 実戦での傾向（同じ構成の戦績があるときだけ）
   const p = polOf(deck);

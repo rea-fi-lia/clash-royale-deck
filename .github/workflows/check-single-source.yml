@@ -1,0 +1,32 @@
+name: check single source
+
+# 単一ソース規約の番人（2026-10-19 追加）。
+# 「同じことを決める定義が複数箇所にあって食い違う」事故を止める。
+#
+# いま見ているもの：
+#   勝ち筋（アーキタイプ）の定義 … 正本は js/cards-data.js の winConditionPriority。
+#   収集側（tools/card-catalogue.cjs）と画面側（js/builder.js）がそこから外れたら落とす。
+#   2026-10-19 実測：builder.js に29枚の固定セットがあり正本37枚と8枚食い違い、
+#   上位100デッキのうち10件が主軸を持つのに「主軸が薄い」と誤表示されていた。
+#
+# ⚠️ auto-repair.yml はこのワークフローを監視していない（意図的）。
+#    分類の食い違いはAIに自動で直させるべきものではなく、人が正本を決める種類の問題。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 番人自身が壊れていないか（落ちることを確かめる）
+        run: node tools/check-wincon-sources.js --self-test
+      - name: 勝ち筋の定義が1箇所に揃っているか
+        run: node tools/check-wincon-sources.js
