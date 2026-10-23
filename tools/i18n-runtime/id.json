@@ -1099,5 +1099,6 @@
  "前のやりとり {n}件": "Percakapan sebelumnya ({n})",
  "考えています… その間もカードは選べます": "Sedang berpikir... Anda tetap bisa memilih kartu sambil menunggu",
  "例：足りない役割ってなに？": "Contoh: Peran apa yang kurang?",
- "送る": "Kirim"
+ "送る": "Kirim",
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} adalah cara utama untuk memberikan kerusakan pada menara. Pertimbangkan opsi lain jika dihentikan."
 }

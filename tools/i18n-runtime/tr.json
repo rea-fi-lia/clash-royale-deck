@@ -1100,5 +1100,6 @@
  "前のやりとり {n}件": "Önceki konuşma ({n})",
  "考えています… その間もカードは選べます": "Düşünüyor... Beklerken kart seçmeye devam edebilirsiniz",
  "例：足りない役割ってなに？": "örn., Hangi rol eksik?",
- "送る": "Gönder"
+ "送る": "Gönder",
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x}, kuleye hasar vermenin ana yoludur. Durdurulursa kullanabileceğin başka bir seçeneği düşün."
 }

@@ -1100,5 +1100,6 @@
  "前のやりとり {n}件": "Conversación anterior ({n})",
  "考えています… その間もカードは選べます": "Pensando... Aún puedes seleccionar cartas mientras esperas",
  "例：足りない役割ってなに？": "ej., ¿Qué rol falta?",
- "送る": "Enviar"
+ "送る": "Enviar",
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} es tu principal forma de dañar la torre. Considera otra opción si lo detienen."
 }

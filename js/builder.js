@@ -37,11 +37,11 @@ let assistSpellTarget = (() => { try { const v = localStorage.getItem('cr_assist
 let assistDevNote = (() => { try { return String(localStorage.getItem('cr_assist_dev_note') || '').slice(0, 180); } catch(e) { return ''; } })();
 // 書きかけの文（〔反映〕の前）。入力欄が一度消えて作り直されたとき（OFF→ON・8枚から戻ったとき）に戻す。〔反映〕〔クリア〕で null に戻す（2026-10-13）
 let assistDevDraft = null;
-// ★2026-10-12：AI の読み取り（ログインした人だけ・Worker の /api/assist/intent）。書いた文と組で持ち、文を変えたら使わない。
+// 2026-10-12：AI の読み取り（ログインした人だけ・Worker の /api/assist/intent）。書いた文と組で持ち、文を変えたら使わない。
 //   AI がするのは「言葉 → 条件」だけ。カードを決める（cardResolveExact）・点数を付けるのはこのファイルの今の仕組み
 let assistAiIntent = (() => { try { const v = JSON.parse(localStorage.getItem('cr_assist_ai_intent') || 'null'); return v && v.note === assistDevNote && v.intent ? v : null; } catch(e) { return null; } })();
 let assistAiState = { busy: false, note: '' };   // note：欄の下に出す一言（読み取り中・残りの回数・失敗）
-// ★2026-10-12：AI は本人だけ（Worker の /api/assist/access が ai:true を返した人）。ほかの人には AI の欄も案内も出さない
+// 2026-10-12：AI は本人だけ（Worker の /api/assist/access が ai:true を返した人）。ほかの人には AI の欄も案内も出さない
 let assistAiAllowed = false, assistAiAccessUid = null;
 async function assistAiCheckAccess() {
   const user = window.CRAuth && CRAuth.getUser && CRAuth.getUser();
@@ -124,7 +124,7 @@ function TR(s) { return (!window.CRI18N || CRI18N.lang === 'ja') ? cardDisplayNa
 // カードの役割の文（台帳は日本語だけ）。日本語以外では訳し、訳が英語にも無いときは日本語を出さずに空にする（2026-10-12）
 function roleText(role) { if (!role) return ''; if (!window.CRI18N || CRI18N.lang === 'ja') return role; const t = CRI18N.tr(role); return t === role ? '' : t; }
 function TRF(tpl, vars) { return String(TR(tpl)).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? vars[k] : m)); }
-// ★2026-10-12：アシスト欄を言語ページで日本語のまま出さないための部品
+// 2026-10-12：アシスト欄を言語ページで日本語のまま出さないための部品
 //   TRJ … 日本語のページか（文のつなぎ方を変える）
 //   TRX … 自由に組み立てた文：訳があれば訳、無ければ日本語以外のページでは出さない（空にする）
 //   LBL … 印だけ（値は日本語のまま返す）。訳の対象を集める道具がこの印の文を拾い、表示する所で TR／TRX を通す
@@ -2215,7 +2215,7 @@ async function assistAiRead(user, note) {
   } catch (e) { return { ok: false, code: 'network' }; }
 }
 // =============================================================
-// ★2026-10-13 アシストの相談（会話）— AI を使える人だけ（今は本人だけ・/api/assist/access が ai:true）
+// 2026-10-13 アシストの相談（会話）— AI を使える人だけ（今は本人だけ・/api/assist/access が ai:true）
 //  本人の依頼：「選択肢も出しつつ　会話型であるべき『なんか足りない役割ってなんだろー』とか　普通にclaudeに聞くようなイメージ」
 //  ・今のエンジンの読み（facts）と候補（pool）をまとめて Worker の /api/assist/chat へ送る。サーバーが上位デッキの共起を足す。
 //  ・AI が返すのは返事・候補（必ず pool の中）・押せる選択肢・条件（intent）。数字とカードの正しさはエンジンと Worker の照合。

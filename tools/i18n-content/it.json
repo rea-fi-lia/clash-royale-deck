@@ -307,7 +307,6 @@
  "CR Deck Buildersは、クラロワのデッキ作成・診断・人気デッキ開発を無料で使える非公式ファンツールです。開発方針、できること、アシストの考え方を紹介します。": "CR Deck Builders è uno strumento fan non ufficiale gratuito per creare, analizzare ed esplorare mazzi popolari di Clash Royale. Scopri la nostra filosofia di sviluppo, le funzioni disponibili e i concetti dell'assistente.",
  "CR Deck Buildersのよくある質問。デッキの作り方、アシストの使い方、人気デッキ、デッキ分析、コピー機能、プライバシー、広告について説明します。": "Domande frequenti su CR Deck Builders. Trova risposte su come creare mazzi, usare la funzione assistente, esplorare mazzi popolari, analizzare i mazzi, coprire i link dei mazzi, privacy e annunci.",
  "クラロワのデッキ作成で使う用語集。勝ち筋、シナジー、3枚目候補、対策札、平均コスト、回転、対空、小物処理、建物受けなどをわかりやすく説明します。": "Glossario dei termini di creazione dei mazzi di Clash Royale. Spiegazioni chiare per win condition, sinergie, opzioni per la 3ª carta, carte tech, costo medio in elisir, ciclo, anti-aria, gestione sciami, difese contro edifici e altro ancora.",
- "クラロワ デッキ作成ツールへの支援・寄付のページ。応援していただくと支援者グレードがアップします。": "Pagina di supporto e donazione per CR Deck Builders. Supportarci aumenta il tuo livello di sostenitore.",
  "クラロワ デッキ作成ツールへの機能リクエスト・お問い合わせ・カード追加のご要望はこちらから。": "Invia qui richieste di funzionalità, domande generali o suggerimenti sull'aggiunta di carte per CR Deck Builders.",
  "マイページ｜あなたの戦績と帯のいま | CR Deck Builders": "La mia pagina | Le tue statistiche di battaglia e la tua fascia attuale | CR Deck Builders",
  "マイページ": "La mia pagina",
@@ -326,5 +325,6 @@
  "あなたの対面 · 選択期間": "I tuoi matchup · Periodo selezionato",
  "あなたの帯のいま": "La tua fascia di trofei in questo momento",
  "タグを変更": "Cambia tag",
- "クラロワのプレイヤータグを登録すると、あなたの戦績・使用デッキ別の成績・苦手な相手・あなたのトロフィー帯のいまをまとめて見られるマイページです。": "Inserisci il tuo tag giocatore di Clash Royale per accedere alla tua pagina profilo, dove puoi vedere le tue statistiche di battaglia, le prestazioni per mazzo usato, i matchup difficili e le tendenze attuali nella tua fascia di trofei in un unico posto."
+ "クラロワのプレイヤータグを登録すると、あなたの戦績・使用デッキ別の成績・苦手な相手・あなたのトロフィー帯のいまをまとめて見られるマイページです。": "Inserisci il tuo tag giocatore di Clash Royale per accedere alla tua pagina profilo, dove puoi vedere le tue statistiche di battaglia, le prestazioni per mazzo usato, i matchup difficili e le tendenze attuali nella tua fascia di trofei in un unico posto.",
+ "クラロワ デッキ作成ツールへの支援・寄付のページ。すべての機能は無料で利用できます。": "Pagina di supporto e donazioni per CR Deck Builders. Tutte le funzioni sono gratuite."
 }

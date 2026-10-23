@@ -1100,5 +1100,6 @@
  "前のやりとり {n}件": "Vorig gesprek ({n})",
  "考えています… その間もカードは選べます": "Bezig met denken... Je kunt nog steeds kaarten selecteren terwijl je wacht",
  "例：足りない役割ってなに？": "bijv. Welke rol ontbreekt er?",
- "送る": "Verzenden"
+ "送る": "Verzenden",
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} is je belangrijkste manier om torenschade toe te brengen. Bedenk een alternatief voor wanneer die wordt gestopt."
 }

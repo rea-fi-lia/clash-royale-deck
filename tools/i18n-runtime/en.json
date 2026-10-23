@@ -397,5 +397,6 @@
  "前のやりとり {n}件": "Previous conversation ({n})",
  "考えています… その間もカードは選べます": "Thinking... You can still select cards while waiting",
  "例：足りない役割ってなに？": "e.g., What role is missing?",
- "送る": "Send"
+ "送る": "Send",
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} is your main way to deal tower damage. Consider another option if it gets stopped."
 }
