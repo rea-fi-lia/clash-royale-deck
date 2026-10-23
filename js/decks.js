@@ -101,7 +101,6 @@ function applyDecks() {
 function updateDeckTabDesc() {
   const el = document.getElementById('deckTabDesc');
   if (!el) return;
-  const n = PLAYERS_TOTAL || 0;
   const win = winLabel(CUR_WINDOW);
   let t;
   if (activeTab === 'win') {
@@ -109,7 +108,7 @@ function updateDeckTabDesc() {
   } else if (activeTab === 'trend') {
     t = _t('decks.descTrend', { win: win });
   } else {
-    t = n ? _t('decks.descUsageN', { n: n, win: win }) : _t('decks.descUsage', { win: win });
+    t = _t('decks.descUsage', { win: win });
   }
   el.innerHTML = t;
 }
@@ -945,7 +944,7 @@ async function setCardMode(mode, force) {
 // デッキ/カード表示は data ブランチの公開表示用JSONだけを読む。
 // 取得できなければ内蔵DECKSにフォールバック（核JSONへは戻らない）。
 // 集計テキスト（更新間隔・母数・最終更新など）。動的＝i18nのt()で言語対応。言語切替時に再描画する。
-let _agg = { top: null, sample: null, hrs: 6, cardsReal: false, updated: null };
+let _agg = { top: null, sample: null, hrs: 6, cardsReal: false, updated: null, failed: false };
 function _t(k, v) { return window.CRI18N ? CRI18N.t(k, v) : k; }
 // 固定の日本語文をそのまま辞書で訳す（ja=原文のまま／未訳は英語→原文フォールバック）
 function _tr(s) { return window.CRI18N ? CRI18N.tr(s) : s; }
@@ -969,7 +968,7 @@ function renderAggText() {
       const ts = d.toLocaleString(isJa ? 'ja-JP' : undefined, { year:'numeric', month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
       note.textContent = _t('decks.lastUpdated', { t: ts });
     } else {
-      note.textContent = _t('decks.fetchFail');
+      note.textContent = _agg.failed ? _t('decks.fetchFail') : '';
     }
   }
 }
@@ -1058,7 +1057,7 @@ fetchMetaBundle()
     buildWindowSelector();        // 窓セレクタ（windowsがあれば設置）
     applyWindow(CUR_WINDOW);
   })
-  .catch(() => { ALL_DECKS = DECKS; TREND_DECKS = []; CARDS_DATA = CARDS_SAMPLE; initCardMeta(true); updateDeckTabDesc(); applyDecks(); });
+  .catch(() => { _agg.failed = true; ALL_DECKS = DECKS; TREND_DECKS = []; CARDS_DATA = CARDS_SAMPLE; initCardMeta(true); renderAggText(); updateDeckTabDesc(); applyDecks(); });
 
 fetchMetaBundle()
   .then(m => (m && m.polCardIntel) ? m.polCardIntel : fetchDataJsonAny(['pol-card-intel-public-v1.json']))
