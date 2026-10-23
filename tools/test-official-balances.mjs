@@ -71,3 +71,37 @@ test('spell kill ranges compare equal levels, regardless of older max-level valu
  const fireball=card('fireball',{'Area Damage':'688','Crown Tower Damage':'207'},{Type:'Spell'});fireball.jp='ファイアボール';fireball.s16['Area Damage']=10000;
  const d={cards:[c,fireball]};applyOfficialBalances(d,ledger(),helpers);helpers.retagAll(d.cards);assert.ok(!c.tags.includes('ファイボ圏内'));
 });
+
+test('official duration and first-hit aliases are normalized without changing card forms',()=>{
+ const f=structuredClone(fixture),p=f.props.pageProps;
+ const block=(title,line)=>({title,featureText:{json:{content:[{nodeType:'text',value:line}]}}});
+ p.bodyCollection=[p.bodyCollection[0],
+  block('Elixir Collector','Lifetime: 1m 33s → 1m 50s (+18%)'),
+  block('Electro Dragon','First Hit Time: 0.7s → 0.5s (-29%)'),
+  block('Hero Electro Wizard','Removed Attack Delay after Ability'),
+  block('Lava Hound','Damage 53 → 71 (+33%)'),
+  block('Ram Rider','Damage: 250 → 271 (+8%)'),p.bodyCollection.at(-1)];
+ const r=parseArticle(html(f),'https://supercell.com/example',new Date('2026-10-24'));
+ assert.equal(r.pending.length,0);
+ assert.equal(r.checks.find(c=>c.slug==='elixir-collector').expected,110);
+ assert.equal(r.checks.find(c=>c.slug==='electro-dragon').key,'First Hit Speed');
+ assert.equal(r.checks.find(c=>c.slug==='electro-wizard').form,'h');
+ assert.equal(r.checks.find(c=>c.slug==='electro-wizard').expected,0);
+ assert.equal(r.checks.find(c=>c.slug==='lava-hound').key,'Lava Hound Damage');
+ assert.equal(r.checks.find(c=>c.slug==='ram-rider').key,'Ram Damage');
+ const d={cards:[card('lava-hound',{'Lava Hound Hitpoints':'3581','Lava Hound Damage':'53','Lava Pup Damage':'81'},{Type:'Troop'}),card('ram-rider',{'Hitpoints':'1766','Ram Damage':'250','Rider Damage':'104'},{Type:'Troop'})]};
+ applyOfficialBalances(d,{...r,checkedAt:'2026-10-24',status:'reviewed'},helpers);
+ assert.equal(d.cards[0].combat.stats['Lava Hound Damage'],71);
+ assert.equal(d.cards[0].combat.stats['Lava Pup Damage'],81);
+ assert.equal(d.cards[1].combat.stats['Ram Damage'],271);
+ assert.equal(d.cards[1].combat.stats['Rider Damage'],104);
+});
+test('Void correction updates each pulse and total only for the explicit three-pulse component',()=>{
+ const c=card('void',{'2-4 Targets Damage':'294 x3 (882)','Single Target Damage':'696 x3 (2088)'},{Type:'Spell'});
+ const l={checkedAt:'2026-10-24',status:'reviewed',pending:[],checks:[{slug:'void',form:'n',key:'2-4 Targets Damage',level:11,component:'per',expected:307,effectiveAt:'2026-10-19'}]};
+ applyOfficialBalances({cards:[c]},l,helpers);
+ assert.equal(c.combat.stats['2-4 Targets Damage'].per,307);assert.equal(c.combat.stats['2-4 Targets Damage'].total,921);
+ assert.equal(c.combat.stats['Single Target Damage'].total,2088);
+ const {actualValue}=require('./balance-verification.cjs');assert.equal(actualValue(c,l.checks[0]),307);
+ const wrong=card('void',{'2-4 Targets Damage':'294 x2 (588)'},{Type:'Spell'});applyOfficialBalances({cards:[wrong]},l,helpers);assert.equal(l.status,'review-required');
+});

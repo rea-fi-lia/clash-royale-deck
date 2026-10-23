@@ -30,7 +30,13 @@ let CUR_WINDOW = '3d';     // 表示中の集計窓 '1h' | '1d' | '3d' | '7d'（
 const WIN_KEYS = ['1h', '1d', '3d', '7d'];
 const WIN_LABEL_JA = { '1h': '直近1時間', '1d': '直近1日', '3d': '過去3日', '7d': '統計目安7日' }; // _tr で各言語へ
 function winLabel(k) { return _tr(WIN_LABEL_JA[k] || k); }
-function currentList() { return activeTab === 'win' ? WIN_DECKS : activeTab === 'trend' ? TREND_DECKS : ALL_DECKS; }
+function popularByPlayers(decks) {
+  // 表示する人数と順位を一致させる。人数を持たない旧データは元の順序を保つ。
+  const list = decks.slice();
+  if (list.every(d => Number.isFinite(d.uniq))) list.sort((a, b) => b.uniq - a.uniq || (b.games || 0) - (a.games || 0));
+  return list;
+}
+function currentList() { return activeTab === 'win' ? WIN_DECKS : activeTab === 'trend' ? TREND_DECKS : popularByPlayers(ALL_DECKS); }
 
 // APIがカタカナで返した場合の別名保険（index.html と同じ）
 const OWNED_ALIAS = {

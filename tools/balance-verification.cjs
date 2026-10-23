@@ -39,6 +39,10 @@ function actualValue(card, check) {
   if (raw == null) return null;
   if (typeof check.expected === 'string') return String(raw).trim();
   const text = String(raw).replace(/,/g,'').trim();
+  if(check.component==='per') {
+    const compound=text.match(/^(\d+(?:\.\d+)?)\s*x3\s*\((\d+(?:\.\d+)?)\)$/);
+    return compound && +compound[2]===+compound[1]*3 ? +compound[1] : null;
+  }
   // Do not guess a scalar from a multi-stage/range/object stat.
   if(!/^-?\d+(?:\.\d+)?(?:\s*(?:s|sec|seconds?|tiles))?$/.test(text)) return null;
   return parseFloat(text);

@@ -260,8 +260,11 @@ function deriveTags(card, spells) {
   const n = card.n || {}, isTroop = n.type === 'Troop', isSpell = n.type === 'Spell', out = [];
   const hp=card.combat?.hp, dps=card.combat?.dps;
   if (isTroop && hp != null) {
-    // 圏内 ＝ 同レベルのその呪文の総ダメージでちょうど落ちるか
+    // HPだけでは盾・複数段の処理順を判定できないため、盾持ちは未判定にする。
+    const shield = Object.keys(card.combat?.stats || {}).some(k => /shield.*hitpoints/i.test(k));
+    card.spellZoneAssessment = shield ? 'shield-unverified' : 'hp-comparison';
     Object.keys(SPELL_SOURCE).forEach(k => {
+      if (shield || (k === 'ログ' && n.flying)) return;
       if (spells[k] != null && spells[k] >= hp) out.push(k === 'ログ' ? 'ログ圏内' : k + '圏内');
     });
     if (hp >= 2500) out.push('高HPタンク');

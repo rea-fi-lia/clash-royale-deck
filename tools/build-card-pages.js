@@ -2,13 +2,7 @@
 /*
  * カード個別ページ（/cards/{slug}.html）を静的生成する。
  *
- * 背景（2026-08-11）:
- *   AdSenseに「有用性の低いコンテンツ」でサイト全体が止められた。実測すると
- *   インデックス対象は10ページ・静的テキストの総量は10,451文字しかなく、
- *   サイトの価値の本体（カード180行・人気デッキ100件・47帯の統計）は
- *   すべてJSで描画していて静的HTMLには一切現れていなかった。
- *   カード1枚ごとに「実数値・役割・呪文圏内・実戦での使われ方」を書けば、
- *   1枚あたり1,500〜2,500文字の独自コンテンツが122枚ぶん生まれる。
+ * カードの実数値・役割・観測した使用状況を、出典と条件を添えて表示する。
  *
  * 設計の要点:
  *   - ★ページの外枠（head・ヘッダ・フッタ）は glossary.html から実行時に借りる。
@@ -24,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const crypto = require('crypto');
+const { retagAll } = require('./build-card-stats.js');
 
 const ROOT = path.join(__dirname, '..');
 const OUT_DIR = path.join(ROOT, 'cards');
@@ -140,14 +135,6 @@ const TAG_JP = {
 const SPELL_ZONES = ['ログ圏内', 'ザップ圏内', '矢の雨圏内', 'ファイボ圏内', 'ポイズン圏内', 'ライトニング圏内', 'ロケット圏内'];
 const ZONE_SPELL = { 'ログ圏内': 'ローリングウッド', 'ザップ圏内': 'ザップ', '矢の雨圏内': '矢の雨', 'ファイボ圏内': 'ファイアボール', 'ポイズン圏内': 'ポイズン', 'ライトニング圏内': 'ライトニング', 'ロケット圏内': 'ロケット' };
 
-function tierOf(use) {
-  if (use == null) return null;
-  if (use >= 8) return { label: '最上位', note: '環境の中心にいるカード' };
-  if (use >= 4) return { label: '上位', note: 'よく見かけるカード' };
-  if (use >= 1.5) return { label: '中位', note: '構築次第で採用されるカード' };
-  return { label: '下位', note: '採用は限られた構築のみ' };
-}
-
 /* ---- 1枚ぶんの本文 ---- */
 function cardBody(c, ctx, D) {
   const imgOf = D.imgOf;   // 画像解決は cards-data.js の正本を通す
@@ -194,6 +181,12 @@ function cardBody(c, ctx, D) {
   const area = pickStat(s16, /area damage/i);
   const tower = (() => { const k = Object.keys(s16).find(x => /crown tower/i.test(x)); return k ? num(s16[k]) : null; })();
   const balance = st?.balanceVerification;
+  const pending = (D.pending || []).filter(p => p.slug === c.slug || p.title === c.english);
+  if (pending.length) {
+    out.push('<section class="section"><h2>このカードの確認待ち項目</h2><p>公式調整と計算条件の照合で、' + pending.length + '項目が確認待ちです。このページの数値が、すべての最新変更を反映しているとは限りません。</p>');
+    if (D.balanceSource) out.push('<a href="' + esc(D.balanceSource) + '" target="_blank" rel="noopener">最新の公式発表で変更内容を確認する</a>');
+    out.push('</section>');
+  }
   if (balance?.checks?.length) {
     const labels = {n:'通常',e:'限界突破',h:'ヒーロー'};
     out.push('<section class="section"><h2>バランス調整の反映</h2>');
@@ -220,7 +213,7 @@ function cardBody(c, ctx, D) {
     out.push('<section class="section"><h2>実数値（レベル' + (displayLevel || 11) + '）</h2>');
     out.push('<table class="cardpage-stats"><tbody>' + rows.join('') + '</tbody></table>');
     const last = st?.freshness?.lastSuccessAt;
-    out.push('<p class="note">出典：コミュニティWiki'+(st?.supplementSource?'・<a href="'+esc(st.supplementSource)+'" target="_blank" rel="noopener">RoyaleAPI</a>':'')+'。公式調整がある項目は変更後の値を優先します。' + (last ? 'Wiki取得確認：' + esc(last.slice(0,10)) + '。' : '') + '</p></section>');
+      out.push('<p class="note">出典：'+(st?.freshness?.source ? '<a href="'+esc(st.freshness.source)+'" target="_blank" rel="noopener">コミュニティWiki</a>' : 'コミュニティWiki')+(st?.supplementSource?'・<a href="'+esc(st.supplementSource)+'" target="_blank" rel="noopener">RoyaleAPI</a>':'')+'。公式調整がある項目は変更後の値を優先します。' + (last ? 'Wiki取得確認：' + esc(last.slice(0,10)) + '。' : '') + '</p></section>');
   }
   if (!st || !Object.keys(s16).length) out.push('<p class="note">このカードの詳細データは載せていません。</p>');
   for (const [form,label] of [['e','限界突破'],['h','ヒーロー']]) {
@@ -244,17 +237,17 @@ function cardBody(c, ctx, D) {
     out.push('<p class="note"><a href="../glossary.html">役割の言葉の意味は用語集へ</a></p></section>');
   }
 
-  /* 呪文圏内 ＝ 独自性の高い情報 */
+  /* 通常形態のHP比較。盾など判定できない条件は安全と扱わない。 */
   if (c.type !== 'spell' && hp != null) {
-    out.push('<section class="section"><h2>どの呪文で落ちるか</h2>');
-    if (zones.length) {
-      out.push('<p>同じレベルで比べたとき、' + esc(c.name) + '（体力' + hp.toLocaleString() + '）は次の呪文1発で倒れます。</p>');
+    out.push('<section class="section"><h2>呪文ダメージとの比較</h2>');
+    if (st?.spellZoneAssessment === 'shield-unverified') {
+      out.push('<p>このカードは盾の数値を持つため、体力だけで「呪文1回で倒せる」とは判定していません。盾と本体へのダメージの入り方を、ゲーム内で確認してください。</p>');
+    } else if (zones.length) {
+      out.push('<p>通常形態・同じレベルの体力' + hp.toLocaleString() + 'に対し、次の呪文の合計ダメージが上回るか等しくなります。</p>');
       out.push('<ul class="cardpage-zones">' + zones.map(z => '<li><b>' + esc(ZONE_SPELL[z] || z) + '</b></li>').join('') + '</ul>');
-      const heavy = ['ロケット圏内', 'ライトニング圏内'].filter(z => zones.includes(z)).length === zones.length;
-      out.push('<p>' + (heavy ? '小型・中型の呪文では落ちないので、処理には大きな呪文かユニットが要ります。' :
-        '軽い呪文で処理されるため、まとめて出すと一掃されやすい点に注意します。') + '</p>');
+      out.push('<p class="note">全ダメージが命中する場合の比較です。ポイズンの途中離脱、盾、特殊能力、進化・英雄の追加効果、レベル差は別に確認してください。</p>');
     } else {
-      out.push('<p>体力' + hp.toLocaleString() + 'は主要な攻撃呪文（ログ・ザップ・矢の雨・ファイアボール・ポイズン・ライトニング・ロケット）のいずれの1発でも落ちません。呪文だけで処理するのは難しいカードです。</p>');
+      out.push('<p>現在のデータでは、体力を上回る呪文の判定は掲載していません。呪文に耐えることを保証する表示ではありません。</p>');
     }
     out.push('</section>');
   }
@@ -262,19 +255,18 @@ function cardBody(c, ctx, D) {
   /* 実戦データ */
   if (use || opp || band) {
     out.push('<section class="section"><h2>実戦での使われ方</h2>');
+    if (D.updated) out.push('<p class="note">ランク戦の集計時刻：' + esc(new Date(D.updated).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })) + '（日本時間）' + '。同名カードは最も試合数の多い形態を表示します。<a href="../about.html#data">集計方法と制約</a></p>');
     if (use) {
-      const t = tierOf(use.use);
       out.push('<p>直近' + (D.windowDays || 3) + '日のランク戦の集計では、' + esc(c.name) + (use.f === 'e' ? '（' + crIcon('bolt') + '進化）' : use.f === 'h' ? '（' + crIcon('crown') + '英雄）' : '') +
-        'の使用率は<b>' + use.use + '%</b>、このカードを入れたデッキの勝率は<b>' + use.win + '%</b>です（' + use.games.toLocaleString() + '戦）。' +
-        (t ? '使用率では' + t.label + '帯にあたり、' + t.note + 'です。' : '') + '</p>');
+        'の使用率は<b>' + use.use + '%</b>、このカードを入れたデッキの勝率は<b>' + use.win + '%</b>です（' + use.games.toLocaleString() + '戦）。' + '</p>');
       // 注意書きはそのカードの数字と名前で書く（全ページ同じ文にしない・2026-10-12）
       out.push('<p class="note">勝率' + use.win + '%は、' + esc(c.name) + 'を入れたデッキ全体の勝率です。' + esc(c.name) + '単体の強さではありません。</p>');
     }
     if (opp && opp.games >= 100) {
-      out.push('<p>相手のデッキに' + esc(c.name) + 'がいた試合は' + opp.games.toLocaleString() + '戦あり、その相手側の勝率は' + opp.wr + '%でした。対面したときの重さの目安になります。</p>');
+      out.push('<p>相手のデッキに' + esc(c.name) + 'がいた試合は' + opp.games.toLocaleString() + '戦あり、その相手側の勝率は' + opp.wr + '%でした。あなた自身の対戦成績とは異なります。</p>');
     }
     if (band && band.games >= 100) {
-      out.push('<p>全トロフィー帯（0〜14,000）を通した集計では' + band.games.toLocaleString() + '戦・勝率' + band.wr + '%です。サイト上ではあなたのトロフィー帯に絞った数字も見られます。</p>');
+      out.push('<p>直近' + D.bandDays + '日の全トロフィー帯を通した観測では' + band.games.toLocaleString() + '戦・勝率' + band.wr + '%です。サイト上ではあなたのトロフィー帯に絞った数字も見られます。</p>');
     }
     out.push('</section>');
   }
@@ -285,13 +277,13 @@ function cardBody(c, ctx, D) {
   if (partners.length) {
     const tot = (D.decksOf[c.name] || []).reduce((a, d) => a + (d.uniq || d.count || 1), 0) || 1;
     out.push('<section class="section"><h2>よく一緒に使われるカード</h2>');
-    out.push('<p>よく使われている' + (D.decksOf[c.name] || []).length + 'の型の中では、' + esc(c.name) + 'は次のカードと一緒に採用されることが多くなっています。</p>');
+    out.push('<p>よく使われている' + (D.decksOf[c.name] || []).length + '種類のデッキでは、' + esc(c.name) + 'は次のカードと一緒に採用されることが多くなっています。</p>');
     out.push('<div class="cardpage-rel">');
     partners.forEach(([nm, w]) => {
       const x = D.byName[nm]; if (!x) return;
       out.push('<a class="cpr" href="' + slugOf(x.img) + '.html"><img src="' + imgOf(nm, 'n') + '" alt="' + esc(nm) + '" width="80" height="96" loading="lazy"><span>' + esc(nm) + '</span><small>併用 ' + Math.round(w / tot * 100) + '%</small></a>');
     });
-    out.push('</div></section>');
+    out.push('</div><p class="note">人気・勝率一覧に掲載されたデッキの範囲で、各デッキの使用人数を重みにして算出しています。全試合での併用率や、組み合わせの効果を証明する数字ではありません。</p></section>');
   }
   if (myDecks.length) {
     out.push('<section class="section"><h2>' + esc(c.name) + 'を使う代表的なデッキ</h2>');
@@ -362,7 +354,8 @@ async function main() {
       : JSON.parse(fs.readFileSync(argOne('--meta', '/tmp/meta.json'), 'utf8'));
   } catch (e) { console.log('（メタ未取得: ' + e.message + '）'); }
 
-  const D = { stats: {}, tags: tagsJson.cards || {}, use: {}, opp: {}, band: {}, windowDays: 3,
+  retagAll(stats.cards || []);
+  const D = { pending: stats.balanceLedger?.pending || [], balanceSource: stats.balanceLedger?.source, updated: meta?.decks?.updated || null, bandDays: meta?.trophyBandIntel?.windowDays || 7, stats: {}, tags: tagsJson.cards || {}, use: {}, opp: {}, band: {}, windowDays: 3,
     imgOf: (name, form) => ctx.cardImageSrc(name, form) };   // ★画像解決の正本（cards-data.js）を全セクションで使う
   const nameBySlug = Object.fromEntries(CARDS.map(c=>[c.slug,c.name]));
   (stats.cards || []).forEach(c => D.stats[nameBySlug[c.slug] || c.jp] = {...c,_officialStatus:stats.balanceLedger?.status});
@@ -378,7 +371,7 @@ async function main() {
      カード単体の数値より、どう組まれているかの方が読み手には価値がある。 */
   const allDecks = (meta && meta.decks) ? (meta.decks.decks || []).concat(meta.decks.winDecks || []) : [];
   const seenSig = new Set(), decks = [];
-  allDecks.forEach(d => { if (!d.slots) return; const k = d.slots.slice().sort().join('|'); if (seenSig.has(k)) return; seenSig.add(k); decks.push(d); });
+  allDecks.forEach(d => { if (!d.slots) return; const k = d.slots.map((name,i) => name + ':' + ((d.forms || [])[i] || 'norm')).sort().join('|'); if (seenSig.has(k)) return; seenSig.add(k); decks.push(d); });
   D.partner = {}; D.decksOf = {};
   decks.forEach(d => {
     d.slots.forEach(a => {
@@ -420,6 +413,7 @@ async function main() {
       '@context': 'https://schema.org', '@type': 'Article',
       headline: c.name + '｜クラロワ カードデータ',
       description: desc, inLanguage: 'ja', url: canonical,
+      author: { '@type': 'Organization', name: 'CR Deck Builders', url: SITE + '/about.html' },
       image: c.img, isPartOf: { '@type': 'WebSite', name: 'CR Deck Builders', url: SITE },
       dateModified: (stats.updated || new Date().toISOString()).slice(0, 10)
     };

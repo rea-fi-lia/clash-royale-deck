@@ -6,8 +6,8 @@ const NEWS = 'https://supercell.com/en/games/clashroyale/blog/';
 const text = n => n?.nodeType === 'text' ? n.value : (n?.content || []).map(text).join('');
 const id = c => [c.slug,c.form,c.key,c.level || 0].join('/');
 const normalize = s => s.toLowerCase().replace(/[^a-z0-9]/g,'');
-const ATTRS = new Set(['Hit Speed','First Hit Speed','Range','Sight Range','Freeze Duration','Ability Duration','Slow Duration','Stun Duration','Rage Duration','Knockback','Spear Range','Bomb Bounce Distance','Crown Tower Damage Reduction']);
-const STATS = new Set(['Damage','Area Damage','Hitpoints','Shield Hitpoints','Crown Tower Damage','Death Damage','Spawn Damage','Skeletrooper Landing Damage','Warp Damage','Goblin Brawler Hitpoints']);
+const ATTRS = new Set(['Hit Speed','First Hit Speed','Range','Sight Range','Freeze Duration','Ability Duration','Slow Duration','Stun Duration','Rage Duration','Knockback','Spear Range','Bomb Bounce Distance','Crown Tower Damage Reduction','Mass','Enchantment Linger Duration','Spawn Spread','Lifetime','Production Speed','Ability Cast Time','Dash Range','Spear Attack Sight Range','Attack Delay after Ability']);
+const STATS = new Set(['Damage','Area Damage','Hitpoints','Shield Hitpoints','Crown Tower Damage','Death Damage','Spawn Damage','Skeletrooper Landing Damage','Warp Damage','Goblin Brawler Hitpoints','Freeze Damage','Barrage Damage','Crown Tower Spawn Damage','Lava Hound Damage','Ram Damage','2-4 Targets Damage']);
 function parseArticle(html, source, now = new Date()) {
   const raw = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/)?.[1];
   const page = JSON.parse(raw || '{}').props?.pageProps;
@@ -39,14 +39,21 @@ function parseArticle(html, source, now = new Date()) {
     for(const line of lines) {
       let key,expected,level;
       if(line.trim()==='Now warps back to original position' && card.slug==='mega-minion' && form==='h') {key='Returns to Original Position';expected='Yes';}
+      else if(line.trim()==='Removed Attack Delay after Ability' && card.slug==='electro-wizard' && form==='h') {key='Attack Delay after Ability';expected=0;}
+      else if(line.trim()==='Tighter Spawn Spread' && card.slug==='skeletons' && form==='n') {key='Spawn Spread';expected='Tighter';}
       else {
-        const m=line.match(/^([^:]+):\s*([\d.,]+(?:[–-][\d.]+)?)(?:s|\s*seconds?|\s*tiles|%)?\s*→\s*([\d.,]+(?:[–-][\d.]+)?)(?:\s*(s|seconds?|tiles|%))?(?:\s*\([^)]*\))?\s*$/);
+        // Normalize explicit minute/second durations and the official "Damage 53 → 71" spelling.
+        const normalized=line.replace(/(\d+)m\s+(\d+)s/g,(_,m,s)=>(Number(m)*60+Number(s))+'s').replace(/^Damage\s+(?=\d)/,'Damage: ');
+        const m=normalized.match(/^([^:]+):\s*([\d.,]+(?:[–-][\d.]+)?)(?:s|\s*seconds?|\s*tiles|%)?\s*→\s*([\d.,]+(?:[–-][\d.]+)?)(?:\s*(s|seconds?|tiles|%))?(?:\s*\([^)]*\))?\s*$/);
         if(!m){pending.push({title,line,reason:'Unrecognized change'});continue;}
         key=m[1].trim();
-        if(key==='First Attack') key='First Hit Speed';
+        if(key==='First Attack' || key==='First Hit Time') key='First Hit Speed';
         if(key==='Duration' && card.slug==='freeze') key='Freeze Duration';
         if(key==='Brawler Hitpoints' && card.slug==='goblin-cage') key='Goblin Brawler Hitpoints';
         if(key==='Damage' && ['fire-spirit','bomber'].includes(card.slug)) key='Area Damage';
+        if(key==='Damage' && card.slug==='lava-hound') key='Lava Hound Damage';
+        if(key==='Damage' && card.slug==='ram-rider') key='Ram Damage';
+        if(key==='2–4 Target Damage' && card.slug==='void') key='2-4 Targets Damage';
         if(!ATTRS.has(key) && !STATS.has(key)){pending.push({title,line,reason:'Unmapped stat'});continue;}
         expected=/[–-]/.test(m[3])?m[3].replace(/-/g,'–'):Number(m[3].replace(/,/g,''));
         if(typeof expected==='number' && (!Number.isFinite(expected) || expected<0 || expected>100000 || (key==='Hit Speed' && expected===0))) {pending.push({title,line,reason:'Invalid value'});continue;}
@@ -57,6 +64,7 @@ function parseArticle(html, source, now = new Date()) {
       }
       const known=reviewed.checks.find(c=>c.slug===card.slug && c.form===form && c.key===key);
       const change={slug:card.slug,form,key,expected,label:known?.label || key,effectiveAt,...(level?{level}:{}),source,articleSha256:articleDigest(html)};
+      if(card.slug==='void' && key==='2-4 Targets Damage') {change.component='per';change.label='対象2〜4体への1回あたりのダメージ';}
       if(effectiveAt>now.toISOString().slice(0,10)) scheduled.push(change); else checks.push(change);
     }
   }
@@ -127,7 +135,9 @@ function applyOfficialBalances(data, ledger, helpers) {
     target.attrs ||= {}; target.levels ||= {};
     const table=check.level?(target.levels[String(check.level)] ||= {}):target.attrs;
     const previous=table[check.key] ?? null;
-    if(check.level && numeric(previous) && typeof numeric(previous)==='object') {
+    const compound=numeric(previous);
+    const explicitVoid=check.slug==='void' && check.key==='2-4 Targets Damage' && check.component==='per' && compound?.per>0 && compound.total===compound.per*3;
+    if((check.component==='per' && !explicitVoid) || (check.level && compound && typeof compound==='object' && !explicitVoid)) {
       ledger.pending ||= [];ledger.pending.push({slug:check.slug,key:check.key,reason:'Compound stat needs an explicit component mapping'});ledger.status='review-required';continue;
     }
     const oldRow=target.levels['11'] || {},oldDamage=numeric(oldRow.Damage ?? oldRow['Area Damage']),oldDps=numeric(oldRow['Damage per second']),oldHit=parseFloat(target.attrs['Hit Speed']);
@@ -140,7 +150,7 @@ function applyOfficialBalances(data, ledger, helpers) {
       delete target.s16?.[check.key]; delete target.stats?.[check.key];
       if(check.key===primaryHp) target.hp16=null;
     }
-    table[check.key]=String(check.expected);
+    table[check.key]=explicitVoid ? check.expected+' x3 ('+(check.expected*3)+')' : String(check.expected);
     if(check.key==='Hit Speed' || /^(?:Damage|Area Damage)$/.test(check.key)) {
       const hit=Number.parseFloat(target.attrs['Hit Speed']);
       for(const [lv,row] of Object.entries(target.levels)) {
