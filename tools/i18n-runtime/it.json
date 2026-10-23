@@ -1100,5 +1100,16 @@
  "考えています… その間もカードは選べます": "Sto pensando... Puoi comunque selezionare le carte nel frattempo",
  "例：足りない役割ってなに？": "es., Quale ruolo manca?",
  "送る": "Invia",
- "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} è il modo principale per infliggere danni alla torre. Valuta un’altra opzione nel caso venga fermato."
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} è il modo principale per infliggere danni alla torre. Valuta un’altra opzione nel caso venga fermato.",
+ "三冠の内訳 3:0=": "Dettaglio delle vittorie a tre corone 3:0=",
+ "保存済みの戦績を表示しています。取得結果を確認中です。": "Visualizzazione dei risultati salvati durante la verifica dell'ultimo recupero.",
+ "戦績を取得中です。": "Recupero dei risultati in corso.",
+ "通信に失敗しました。保存済みの戦績を表示しています。": "Connessione non riuscita. Vengono mostrati i risultati salvati.",
+ "戦績を取得できませんでした。接続とタグを確認して再試行してください。": "Impossibile recuperare i risultati. Controlla la connessione e il tag, poi riprova.",
+ "ゲームから最新の戦績を取得できませんでした。保存済みの記録を表示しています。": "Impossibile recuperare le ultime battaglie dal gioco. Vengono mostrati i dati salvati.",
+ "取得できた戦績を表示しています。未取得の試合は含まれません。": "Vengono mostrati i risultati che siamo riusciti a recuperare. Le battaglie non raccolte non sono incluse.",
+ "戦績の最終取得：{at}": "Ultimo recupero dei risultati: {at}",
+ "戦績の取得時刻は確認できません。": "L'ora di recupero delle battaglie non è disponibile.",
+ "取得中…": "Recupero in corso…",
+ "勝率・勝敗は選択期間の取得済み1対1の全モード合算です。勝率は勝ち数 ÷ 試合数で、引き分けも試合数に含みます。トロフィー推移とは対象が異なる場合があります。": "La percentuale di vittorie e i totali di vittorie e sconfitte comprendono tutte le modalità 1 contro 1 raccolte nel periodo selezionato. La percentuale è vittorie ÷ battaglie, includendo i pareggi nel numero di battaglie. Il grafico dei trofei può riguardare un insieme diverso di battaglie."
 }

@@ -1099,5 +1099,17 @@
  "考えています… その間もカードは選べます": "Đang suy nghĩ... Bạn vẫn có thể chọn thẻ trong lúc chờ",
  "例：足りない役割ってなに？": "VD: Thiếu vai trò gì?",
  "送る": "Gửi",
- "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} là cách chính để gây sát thương lên trụ. Hãy cân nhắc phương án khác nếu bị chặn."
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} là cách chính để gây sát thương lên trụ. Hãy cân nhắc phương án khác nếu bị chặn.",
+ "　（相手にクラウンを渡さず三冠＝押し切っている。渡しているほど押し返されている）": " (giành ba vương miện mà không để đối thủ lấy vương miện nào thể hiện thế áp đảo; mất càng nhiều vương miện thì bị phản công càng mạnh)",
+ "三冠の内訳 3:0=": "Chi tiết thắng trọn vương miện 3:0=",
+ "保存済みの戦績を表示しています。取得結果を確認中です。": "Đang hiển thị lịch sử đấu đã lưu trong khi kiểm tra kết quả lấy dữ liệu mới nhất.",
+ "戦績を取得中です。": "Đang lấy lịch sử đấu.",
+ "通信に失敗しました。保存済みの戦績を表示しています。": "Kết nối thất bại. Đang hiển thị lịch sử đấu đã lưu.",
+ "戦績を取得できませんでした。接続とタグを確認して再試行してください。": "Không lấy được lịch sử đấu. Hãy kiểm tra kết nối và tag rồi thử lại.",
+ "ゲームから最新の戦績を取得できませんでした。保存済みの記録を表示しています。": "Không lấy được các trận mới nhất từ game. Đang hiển thị dữ liệu đã lưu.",
+ "取得できた戦績を表示しています。未取得の試合は含まれません。": "Đang hiển thị lịch sử đấu đã lấy được. Các trận chưa thu thập không được tính.",
+ "戦績の最終取得：{at}": "Lần lấy lịch sử đấu gần nhất: {at}",
+ "戦績の取得時刻は確認できません。": "Không xác định được thời gian lấy lịch sử đấu.",
+ "取得中…": "Đang lấy dữ liệu…",
+ "勝率・勝敗は選択期間の取得済み1対1の全モード合算です。勝率は勝ち数 ÷ 試合数で、引き分けも試合数に含みます。トロフィー推移とは対象が異なる場合があります。": "Tỷ lệ thắng và tổng thắng thua gộp mọi chế độ 1 đấu 1 đã thu thập trong khoảng thời gian được chọn. Tỷ lệ thắng bằng số trận thắng ÷ số trận, với trận hòa cũng tính trong số trận. Phạm vi có thể khác biểu đồ cúp."
 }

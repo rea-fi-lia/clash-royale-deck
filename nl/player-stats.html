@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<link rel="stylesheet" href="/css/icons.css?v=260818">
+<script>(function(){try{if(localStorage.getItem('cr_theme')==='light')document.documentElement.classList.add('light');}catch(e){}})();</script>
+<style>html.light{--bg:#f4f5f7;--surface:#ffffff;--surface2:#eef1f5;--border:rgba(0,0,0,.10);--border-hi:rgba(0,0,0,.22);--text:#1a1d24;--text-muted:#5c6270;--text-dim:#aeb4c0;--accent:#d6900f;--accent2:#b67a12;--red:#d83a3a;--evo:#7c4dff;--hero:#d6900f;--dim:#5c6270;--gold:#b67a12}</style>
+<!-- Google Analytics (GA4) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-N19CVY3C3K"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-N19CVY3C3K');</script>
+<meta name="google-adsense-account" content="ca-pub-4930535711396745">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Je eigen Clash Royale-winstpercentage en wedstrijdresultaten bekijken | CR Deck Builders</title>
+<meta name="description" content="Bekijk je eigen Clash Royale-winstpercentage en wedstrijdresultaten met je spelertag. Lees hoe je de site zonder inloggen gebruikt, resultaten per deck en matchup interpreteert, het winstpercentage berekent en de dekking van beschikbare gegevens begrijpt.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://crdeckbuilders.com/nl/player-stats.html">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/content.css?v=260818">
+<link rel="stylesheet" href="/css/guard.css?v=260818">
+<!-- CRVT --><style>@view-transition{navigation:auto}@keyframes cr-ol{to{transform:translateX(-26%);opacity:.5}}@keyframes cr-ir{from{transform:translateX(100%)}}@keyframes cr-or{to{transform:translateX(26%);opacity:.5}}@keyframes cr-il{from{transform:translateX(-100%)}}@media(max-width:768px){html:active-view-transition-type(crf)::view-transition-old(root){animation:cr-ol .26s ease both}html:active-view-transition-type(crf)::view-transition-new(root){animation:cr-ir .26s ease both}html:active-view-transition-type(crb)::view-transition-old(root){animation:cr-or .26s ease both}html:active-view-transition-type(crb)::view-transition-new(root){animation:cr-il .26s ease both}}</style><script>(function(){if(!("startViewTransition"in document)||!window.navigation)return;function ty(a){try{if(!a||!a.from)return null;var f=new URL(a.from.url).pathname,o=new URL(a.entry.url).pathname;var S=function(p){return p.indexOf("strategy.html")>-1};var I=function(p){return p.charAt(p.length-1)==="/"||p.indexOf("index.html")>-1};if(I(f)&&S(o))return"crf";if(S(f)&&I(o))return"crb"}catch(e){}return null}addEventListener("pageswap",function(e){if(e.viewTransition){var t=ty(e.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}});addEventListener("pagereveal",function(e){if(e.viewTransition){var t=ty(navigation.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}})})();</script>
+<link rel="stylesheet" href="/css/desktop.css?v=260818">
+<script defer src="/js/desktop.js?v=260818"></script>
+<!--HREFLANG-->
+<link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/player-stats.html">
+<link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/player-stats.html">
+<link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/player-stats.html">
+<link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/player-stats.html">
+<link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/player-stats.html">
+<link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/player-stats.html">
+<link rel="alternate" hreflang="ru" href="https://crdeckbuilders.com/ru/player-stats.html">
+<link rel="alternate" hreflang="ko" href="https://crdeckbuilders.com/ko/player-stats.html">
+<link rel="alternate" hreflang="zh-CN" href="https://crdeckbuilders.com/zh-cn/player-stats.html">
+<link rel="alternate" hreflang="ar" href="https://crdeckbuilders.com/ar/player-stats.html">
+<link rel="alternate" hreflang="tr" href="https://crdeckbuilders.com/tr/player-stats.html">
+<link rel="alternate" hreflang="it" href="https://crdeckbuilders.com/it/player-stats.html">
+<link rel="alternate" hreflang="id" href="https://crdeckbuilders.com/id/player-stats.html">
+<link rel="alternate" hreflang="th" href="https://crdeckbuilders.com/th/player-stats.html">
+<link rel="alternate" hreflang="vi" href="https://crdeckbuilders.com/vi/player-stats.html">
+<link rel="alternate" hreflang="zh-TW" href="https://crdeckbuilders.com/zh-tw/player-stats.html">
+<link rel="alternate" hreflang="fa" href="https://crdeckbuilders.com/fa/player-stats.html">
+<link rel="alternate" hreflang="nl" href="https://crdeckbuilders.com/nl/player-stats.html">
+<link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/player-stats.html">
+<!--/HREFLANG-->
+<!-- CRPIN -->
+<script>(function(){try{if(localStorage.getItem('cr_pin')==='off')document.documentElement.classList.add('nopin');}catch(e){}})();</script>
+<style>html.nopin .sitebar,html.nopin header,html.nopin .mm-sticky,html.nopin #diagResult.tab-sim .dg-deckbar{position:static!important}html.nopin{height:auto!important;overflow:visible!important}html.nopin body{position:static!important;inset:auto!important;height:auto!important;min-height:100vh;overflow:visible!important;overflow-y:visible!important;display:block!important}html.nopin .app{display:block!important;flex:none!important;height:auto!important;min-height:0!important;overflow:visible!important}html.nopin .left,html.nopin .right{flex:none!important;height:auto!important;max-height:none!important;overflow:visible!important;touch-action:auto!important}html.nopin .card-list,html.nopin .deck-slots{overflow:visible!important;height:auto!important;max-height:none!important;flex:none!important}@media (max-width:720px){html.nopin body.cr-builder{position:fixed!important;inset:0!important;height:auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;overscroll-behavior-y:none!important}html.nopin .app{display:flex!important;flex-direction:column!important;flex:1 1 0%!important;height:auto!important;min-height:0!important;overflow:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior-y:contain!important}html.nopin .right{flex:0 0 auto!important;overflow:visible!important;touch-action:auto!important}html.nopin .left{flex:0 0 auto!important;height:auto!important;overflow:visible!important}html.nopin .card-list,html.nopin .deck-slots{overflow:visible!important;height:auto!important;max-height:none!important;flex:none!important}html.nopin body.cr-builder .footer-signature{flex:0 0 auto!important}}.bar-pin-btn{cursor:pointer}.nav-icon{color:var(--text)!important;border:1px solid var(--border-hi)!important;background:var(--surface2)!important;box-shadow:0 1px 2px rgba(0,0,0,.22)!important;width:36px!important;height:36px!important}.nav-icon .nav-emoji svg{stroke-width:2.1}.nav-icon.active{color:var(--accent)!important;border-color:var(--accent)!important;background:rgba(232,160,32,.16)!important;box-shadow:0 0 0 1px rgba(232,160,32,.35),0 0 10px -2px rgba(232,160,32,.55)!important}@media(hover:hover){.nav-icon:hover{color:var(--accent)!important;border-color:var(--accent)!important;background:var(--surface)!important;transform:translateY(-1px)}}.bar-pin-btn{color:var(--accent)!important;border-color:rgba(232,160,32,.5)!important;background:rgba(232,160,32,.12)!important}.bar-pin-btn.off{opacity:1!important;color:var(--text-muted)!important;border-color:var(--border-hi)!important;background:var(--surface2)!important}@media(max-width:720px){.nav-icon{width:34px!important;height:34px!important}}</style>
+<script>document.addEventListener('DOMContentLoaded',function(){var ja=(document.documentElement.lang||'ja').slice(0,2)==='ja';var P='<span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9A2 2 0 0 1 15 10.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span>';var rows=document.querySelectorAll('.nav-icons');for(var i=0;i<rows.length;i++){(function(row){if(row.querySelector('.bar-pin-btn'))return;var b=document.createElement('button');b.type='button';b.className='nav-icon bar-pin-btn';b.innerHTML=P;function paint(){var off=document.documentElement.classList.contains('nopin');b.classList.toggle('off',off);b.title=off?(ja?'固定する':'Pin layout'):(ja?'固定を解除':'Unpin layout');b.setAttribute('aria-pressed',off?'false':'true');}b.addEventListener('click',function(){var off=!document.documentElement.classList.contains('nopin');document.documentElement.classList.toggle('nopin',off);try{localStorage.setItem('cr_pin',off?'off':'on');}catch(e){}paint();});paint();row.insertBefore(b,row.firstChild);})(rows[i]);}});</script>
+<!-- /CRPIN -->
+</head>
+<body>
+<div class="sitebar">
+  <header>
+    <a class="logo" href="index.html"><img class="logo-icon" src="/icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>Clash Royale deck builder & analyzer</span></div></a>
+    </header><nav class="nav-icons topbar" aria-label="主要ページ"><a class="nav-icon" href="/me.html" title="マイページ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg></span></a>
+      <a class="nav-icon" href="index.html" title="デッキ作成"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 8.5v7M8.5 12h7"/></svg></span></a>
+      <a class="nav-icon" href="decks.html" title="人気デッキ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5a1.5 1.5 0 0 0 0 3H7M17 6h2.5a1.5 1.5 0 0 1 0 3H17M9.5 17h5M10 21h4M12 14v3"/></svg></span></a>
+      <a class="nav-icon active" href="guide.html" title="使い方ガイド"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H7a3 3 0 0 0-3 3V5.5z"/><path d="M8 7h8M8 11h7M8 15h5"/></svg></span></a>
+      <a class="nav-icon" href="support.html" title="支援"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.7S3.5 15.4 3.5 9.3A4.3 4.3 0 0 1 12 6.6 4.3 4.3 0 0 1 20.5 9.3c0 6.1-8.5 11.4-8.5 11.4z"/></svg></span></a>
+      <a class="nav-icon" href="contact.html" title="お問い合わせ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></span></a>
+    </nav>
+</div>
+
+<main class="content-shell">
+  <section class="hero">
+    <div class="eyebrow">Player Stats Guide</div>
+    <h1>Je eigen winstpercentage en wedstrijdresultaten in Clash Royale bekijken</h1>
+    <p class="lead">Gebruik je spelertag om je recente winstpercentage, resultaten per gebruikt deck en lastige matchups te bekijken. Deze gids legt uit hoe je CRDB gebruikt en de cijfers interpreteert om je deck te verbeteren.</p>
+    <div class="hero-actions"><a class="btn primary" href="me.html">Bekijk mijn winstpercentage en wedstrijdresultaten</a><a class="btn" href="#how">Vind je tag en ga aan de slag</a></div>
+    <p class="note">Gratis, zonder inloggen. We tonen de 1-tegen-1-wedstrijden die CRDB heeft kunnen verzamelen en opslaan. Deze functie reconstrueert niet je volledige wedstrijdgeschiedenis sinds het aanmaken van je account.</p>
+    <div class="toc" aria-label="目次"><a href="#how">Aan de slag</a><a href="#rate">Het winstpercentage berekenen</a><a href="#decks">Resultaten per deck begrijpen</a><a href="#matchups">Lastige matchups</a><a href="#limits">Welke gegevens worden gedekt</a><a href="#faq">Veelgestelde vragen</a></div>
+  </section>
+
+  <section id="how" class="section">
+    <h2>1. Open je wedstrijdresultaten met je spelertag</h2>
+    <ol>
+      <li>Zoek de spelertag die met # begint in je Clash Royale-profiel in het spel. Dit is een andere identificatie dan je weergavenaam.</li>
+      <li>Open Mijn pagina in CRDB, vul je tag in en druk op Registreren en bekijken. Je kunt het teken # weglaten.</li>
+      <li>Controleer de spelersnaam en kies een beschikbare periode: 1 dag, 1 week, 1 maand of 1 jaar.</li>
+      <li>Bekijk overwinningen, nederlagen en het aantal wedstrijden onder Jouw resultaten, en de resultaten per deck onder Prestaties per gebruikt deck.</li>
+    </ol>
+    <p>Je hebt alleen een tag nodig om de resultaten te bekijken. Door in te loggen kun je de opgeslagen tag op verschillende apparaten gebruiken. Het invoeren van een tag bewijst niet dat je eigenaar bent van het spelaccount. Verschijnt de verkeerde speler, kies dan Tag wijzigen en voer de tag opnieuw in.</p>
+    <div class="page-links"><a href="me.html">Vul je spelertag in</a><a href="privacy.html">Gegevens en privacy</a></div>
+  </section>
+
+  <section id="rate" class="section">
+    <h2>2. Bekijk het winstpercentage samen met periode, aantal wedstrijden en spelmodi</h2>
+    <p>De persoonlijke statistieken van CRDB omvatten verzamelde 1-tegen-1-wedstrijden die in de gekozen periode zijn gespeeld. Het winstpercentage is overwinningen ÷ verzamelde wedstrijden × 100, waarbij gelijke spelen meetellen in de noemer. De totalen voor winst en verlies combineren meerdere spelmodi en zijn dus niet uitsluitend een Ranked-winstpercentage.</p>
+    <div class="callout"><strong>Rekenvoorbeeld (fictief):</strong>Bij 14 overwinningen, 10 nederlagen en 1 gelijkspel is de berekening 14 ÷ 25 × 100 = 56%. Gelijke spelen uitsluiten of een andere periode kiezen verandert de uitkomst, zelfs voor dezelfde speler.</div>
+    <p>De trofeeëngrafiek geeft voorrang aan Ranked-gegevens. Ook als de grafiek Ranked-waarden toont, zijn de winst- en verliestotalen niet noodzakelijk beperkt tot Ranked. Controleer eerst het aantal wedstrijden en de periode op de pagina.</p>
+    <p>Winstpercentages op basis van weinig wedstrijden kunnen sterk schommelen. Zo zijn 3 overwinningen in 4 wedstrijden 75%, maar daalt dit na nog een nederlaag naar 60%. Beoordeel je vaardigheid of een deck niet alleen op basis van een korte periode. Bekijk de wedstrijdsituaties samen met resultaten uit perioden waarin je dezelfde modus speelde.</p>
+  </section>
+
+  <section id="decks" class="section">
+    <h2>3. Gebruik resultaten per deck om kaartwissels te overwegen</h2>
+    <p>Het deckgedeelte koppelt winst en verlies aan de 8 kaarten die je daadwerkelijk hebt gebruikt. Alleen het deck met het hoogste winstpercentage kiezen kan decks met weinig geregistreerde wedstrijden of toevallig gunstige tegenstanders te positief laten lijken.</p>
+    <ul>
+      <li>Vergelijk dezelfde periode en controleer hoeveel wedstrijden je met elk deck hebt gespeeld.</li>
+      <li>Controleer verschillen in kaartniveaus, Evolutie- en Held-vormen en de gespeelde modi.</li>
+      <li>Bewaar een kopie van de oorspronkelijke 8 kaarten en vervang vervolgens één kaart tegelijk op basis van de rol die ontbreekt.</li>
+      <li>Bekijk naast winst en verlies ook situaties waarin je verloor, zoals te late luchtverdediging of aanvallen die door gebouwen werden gestopt.</li>
+    </ul>
+    <p>Een hoger winstpercentage na het vervangen van een luchtafweerkaart bewijst bijvoorbeeld niet dat die kaart de verbetering heeft veroorzaakt. Ook vijandelijke decks en kaartniveaus veranderen. Controleer met deckanalyse hoe de rollen zijn gewijzigd en zoek vervolgens naar verbeteringen in echte wedstrijden om je volgende aanpassing te bepalen.</p>
+    <div class="page-links"><a href="guide.html#compare">Een voorbeeld van het kiezen van één kaartvervanging</a><a href="strategy.html">Controleer kaartrollen met deckanalyse</a><a href="index.html">Bouw en bewaar een deck</a></div>
+  </section>
+
+  <section id="matchups" class="section">
+    <h2>4. Onderscheid tegenstanders van wie je verloor van populaire tegenstanders in de algemene meta</h2>
+    <p>Jouw battle meta toont de tegenstanders die je daadwerkelijk hebt ontmoet. Resultaten per vijandelijke kaart tellen winst en verlies tegen decks waarin die kaart zit. Ze betekenen niet dat die ene kaart de nederlaag heeft veroorzaakt.</p>
+    <p>Jouw trofeeënbereik nu of Ranked op dit moment toont daarentegen een aparte verzameling gegevens van CRDB. Voor het Trofeënpad wordt het betreffende trofeeënbereik getoond; voor Ranked alle verzamelde Ranked-wedstrijden. Periode, aantal spelers en modi kunnen afwijken van je persoonlijke statistieken.</p>
+    <p>Bekijk eerst lastige matchups die je vaak hebt gespeeld en controleer daarna ontbrekende rollen, zoals luchtverdediging, gebouwen of kleine spreuken. Gebruik populariteit en winstpercentages in de algemene meta om nieuwe kandidaten te vinden om uit te proberen.</p>
+    <div class="page-links"><a href="decks.html">Bekijk populaire decks in de meta</a><a href="about.html#data">Hoe metagegevens worden berekend</a></div>
+  </section>
+
+  <section id="limits" class="section">
+    <h2>5. Als wedstrijden ontbreken of de cijfers niet worden bijgewerkt</h2>
+    <p>We gebruiken recente wedstrijden die bij je eerste bezoek beschikbaar zijn, samen met wedstrijden die al in CRDB zijn opgeslagen. De spel-API biedt niet je volledige eerdere geschiedenis. Het kiezen van 1 jaar betekent dus niet dat alle gegevens van dat jaar beschikbaar zijn.</p>
+    <p>Bij gewone gebruikers start het registreren van een tag niet automatisch een verzameling op uurbasis. Wedstrijden worden vooral opgehaald wanneer je de pagina opent. Gegevens uit perioden waarin je de pagina niet bezocht, kunnen daardoor ontbreken.</p>
+    <p>Controleer de ophaalstatus en het tijdstip van de laatste gegevensophaling op de pagina. Als het ophalen van nieuwe wedstrijden mislukt, worden opgeslagen resultaten getoond. Wacht even en probeer het opnieuw bij aanvraaglimieten of tijdelijke storingen.</p>
+    <p>Zijn er weinig gegevens, kies dan een langere periode en controleer de tag en spelersnaam. Beschouw de cijfers als resultaten van de beschikbare gegevens. Vergelijk ze niet rechtstreeks met levenslange overwinningen in het spel of anders berekende cijfers op andere sites zonder eerst de voorwaarden gelijk te trekken.</p>
+  </section>
+
+  <section id="faq" class="section">
+    <h2>Veelgestelde vragen</h2>
+    <h3>Waar kan ik mijn eigen Clash Royale-winstpercentage bekijken?</h3>
+    <p>Vul je spelertag in op Mijn pagina in CRDB om je winstpercentage per periode uit de verzamelde wedstrijden te bekijken. Kies een beschikbare periode, bijvoorbeeld 1 week, en bekijk het percentage samen met het aantal wedstrijden.</p>
+    <h3>Kan ik het winstpercentage voor elk deck zien?</h3>
+    <p>Prestaties per gebruikt deck toont de resultaten van verzamelde wedstrijden, gegroepeerd per deck. Wanneer je de periode wijzigt, veranderen ook de wedstrijden die meetellen.</p>
+    <h3>Betekent geen wedstrijden een winstpercentage van 0%?</h3>
+    <p>Geen verzamelde wedstrijden hebben is iets anders dan wedstrijden spelen zonder te winnen. Controleer eerst of er gegevens beschikbaar zijn en bekijk de ophaalstatus.</p>
+    <h3>Kan ik alle wedstrijden van vóór mijn registratie bekijken?</h3>
+    <p>We zoeken naar overeenkomende wedstrijden die al in CRDB zijn opgeslagen, maar kunnen geen volledige geschiedenis van vóór registratie garanderen. We schatten ontbrekende wedstrijden niet en tellen ze niet mee in je winstpercentage.</p>
+    <div class="hero-actions"><a class="btn primary" href="me.html">Controleer mijn winstpercentage en wedstrijdresultaten</a><a class="btn" href="contact.html">Meld een weergaveprobleem</a></div>
+  </section>
+  <p class="meta-note">Geschreven en gecontroleerd door de beheerder van CR Deck Builders. Gepubliceerd en bijgewerkt op 2026-10-24. Deze gids is opgesteld na controle van de huidige CRDB-interface en berekeningsvoorwaarden.</p>
+</main>
+
+<div class="footer-signature"><span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span></div>
+<script defer src="/js/i18n/nl.js?v=89beb2ae3b"></script>
+<script defer src="/i18n.js?v=261012g"></script>
+<script defer src="/js/ux-guard.js?v=260818"></script>
+<!--SITE-FOOT--><style>.site-foot{max-width:760px;margin:28px auto 18px;padding:14px 18px 6px;border-top:1px solid var(--border,rgba(255,255,255,.12));font-size:12px;line-height:1.75;color:var(--text-muted,var(--dim,#9aa3b5))}.site-foot-links{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0 0 6px}.site-foot a{color:inherit;text-decoration:underline}.site-foot p{margin:4px 0}.cg-fcp{font-size:11px;line-height:1.6;opacity:.8;margin-top:8px}</style><footer class="site-foot"><nav class="site-foot-links"><a href="privacy.html">Privacybeleid</a><a href="contact.html">Contact</a><a href="about.html">Over deze site</a></nav><p class="site-foot-mt">Deze pagina is automatisch vertaald vanuit het Japanse origineel.</p><p class="site-foot-fcp">This content is not affiliated with, endorsed, sponsored, or specifically approved by Supercell and Supercell is not responsible for it. For more information see Supercell’s Fan Content Policy: <a href="https://supercell.com/en/fan-content-policy/" rel="noopener">www.supercell.com/fan-content-policy</a>.</p></footer><!--/SITE-FOOT-->
+</body>
+</html>

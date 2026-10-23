@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<link rel="stylesheet" href="/css/icons.css?v=260818">
+<script>(function(){try{if(localStorage.getItem('cr_theme')==='light')document.documentElement.classList.add('light');}catch(e){}})();</script>
+<style>html.light{--bg:#f4f5f7;--surface:#ffffff;--surface2:#eef1f5;--border:rgba(0,0,0,.10);--border-hi:rgba(0,0,0,.22);--text:#1a1d24;--text-muted:#5c6270;--text-dim:#aeb4c0;--accent:#d6900f;--accent2:#b67a12;--red:#d83a3a;--evo:#7c4dff;--hero:#d6900f;--dim:#5c6270;--gold:#b67a12}</style>
+<!-- Google Analytics (GA4) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-N19CVY3C3K"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-N19CVY3C3K');</script>
+<meta name="google-adsense-account" content="ca-pub-4930535711396745">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>如何查询自己的皇室战争胜率与战绩｜CR Deck Builders</title>
+<meta name="description" content="使用玩家标签查看自己的皇室战争胜率与战绩。介绍无需登录的操作步骤、各卡组战绩和难以应对的对阵的解读方法、胜率计算方式，以及可获取记录的范围。">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://crdeckbuilders.com/zh-cn/player-stats.html">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/css/content.css?v=260818">
+<link rel="stylesheet" href="/css/guard.css?v=260818">
+<!-- CRVT --><style>@view-transition{navigation:auto}@keyframes cr-ol{to{transform:translateX(-26%);opacity:.5}}@keyframes cr-ir{from{transform:translateX(100%)}}@keyframes cr-or{to{transform:translateX(26%);opacity:.5}}@keyframes cr-il{from{transform:translateX(-100%)}}@media(max-width:768px){html:active-view-transition-type(crf)::view-transition-old(root){animation:cr-ol .26s ease both}html:active-view-transition-type(crf)::view-transition-new(root){animation:cr-ir .26s ease both}html:active-view-transition-type(crb)::view-transition-old(root){animation:cr-or .26s ease both}html:active-view-transition-type(crb)::view-transition-new(root){animation:cr-il .26s ease both}}</style><script>(function(){if(!("startViewTransition"in document)||!window.navigation)return;function ty(a){try{if(!a||!a.from)return null;var f=new URL(a.from.url).pathname,o=new URL(a.entry.url).pathname;var S=function(p){return p.indexOf("strategy.html")>-1};var I=function(p){return p.charAt(p.length-1)==="/"||p.indexOf("index.html")>-1};if(I(f)&&S(o))return"crf";if(S(f)&&I(o))return"crb"}catch(e){}return null}addEventListener("pageswap",function(e){if(e.viewTransition){var t=ty(e.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}});addEventListener("pagereveal",function(e){if(e.viewTransition){var t=ty(navigation.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}})})();</script>
+<link rel="stylesheet" href="/css/desktop.css?v=260818">
+<script defer src="/js/desktop.js?v=260818"></script>
+<!--HREFLANG-->
+<link rel="alternate" hreflang="ja" href="https://crdeckbuilders.com/player-stats.html">
+<link rel="alternate" hreflang="en" href="https://crdeckbuilders.com/en/player-stats.html">
+<link rel="alternate" hreflang="es" href="https://crdeckbuilders.com/es/player-stats.html">
+<link rel="alternate" hreflang="pt-BR" href="https://crdeckbuilders.com/pt-br/player-stats.html">
+<link rel="alternate" hreflang="fr" href="https://crdeckbuilders.com/fr/player-stats.html">
+<link rel="alternate" hreflang="de" href="https://crdeckbuilders.com/de/player-stats.html">
+<link rel="alternate" hreflang="ru" href="https://crdeckbuilders.com/ru/player-stats.html">
+<link rel="alternate" hreflang="ko" href="https://crdeckbuilders.com/ko/player-stats.html">
+<link rel="alternate" hreflang="zh-CN" href="https://crdeckbuilders.com/zh-cn/player-stats.html">
+<link rel="alternate" hreflang="ar" href="https://crdeckbuilders.com/ar/player-stats.html">
+<link rel="alternate" hreflang="tr" href="https://crdeckbuilders.com/tr/player-stats.html">
+<link rel="alternate" hreflang="it" href="https://crdeckbuilders.com/it/player-stats.html">
+<link rel="alternate" hreflang="id" href="https://crdeckbuilders.com/id/player-stats.html">
+<link rel="alternate" hreflang="th" href="https://crdeckbuilders.com/th/player-stats.html">
+<link rel="alternate" hreflang="vi" href="https://crdeckbuilders.com/vi/player-stats.html">
+<link rel="alternate" hreflang="zh-TW" href="https://crdeckbuilders.com/zh-tw/player-stats.html">
+<link rel="alternate" hreflang="fa" href="https://crdeckbuilders.com/fa/player-stats.html">
+<link rel="alternate" hreflang="nl" href="https://crdeckbuilders.com/nl/player-stats.html">
+<link rel="alternate" hreflang="x-default" href="https://crdeckbuilders.com/player-stats.html">
+<!--/HREFLANG-->
+<!-- CRPIN -->
+<script>(function(){try{if(localStorage.getItem('cr_pin')==='off')document.documentElement.classList.add('nopin');}catch(e){}})();</script>
+<style>html.nopin .sitebar,html.nopin header,html.nopin .mm-sticky,html.nopin #diagResult.tab-sim .dg-deckbar{position:static!important}html.nopin{height:auto!important;overflow:visible!important}html.nopin body{position:static!important;inset:auto!important;height:auto!important;min-height:100vh;overflow:visible!important;overflow-y:visible!important;display:block!important}html.nopin .app{display:block!important;flex:none!important;height:auto!important;min-height:0!important;overflow:visible!important}html.nopin .left,html.nopin .right{flex:none!important;height:auto!important;max-height:none!important;overflow:visible!important;touch-action:auto!important}html.nopin .card-list,html.nopin .deck-slots{overflow:visible!important;height:auto!important;max-height:none!important;flex:none!important}@media (max-width:720px){html.nopin body.cr-builder{position:fixed!important;inset:0!important;height:auto!important;min-height:0!important;display:flex!important;flex-direction:column!important;overflow:hidden!important;overscroll-behavior-y:none!important}html.nopin .app{display:flex!important;flex-direction:column!important;flex:1 1 0%!important;height:auto!important;min-height:0!important;overflow:hidden!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior-y:contain!important}html.nopin .right{flex:0 0 auto!important;overflow:visible!important;touch-action:auto!important}html.nopin .left{flex:0 0 auto!important;height:auto!important;overflow:visible!important}html.nopin .card-list,html.nopin .deck-slots{overflow:visible!important;height:auto!important;max-height:none!important;flex:none!important}html.nopin body.cr-builder .footer-signature{flex:0 0 auto!important}}.bar-pin-btn{cursor:pointer}.nav-icon{color:var(--text)!important;border:1px solid var(--border-hi)!important;background:var(--surface2)!important;box-shadow:0 1px 2px rgba(0,0,0,.22)!important;width:36px!important;height:36px!important}.nav-icon .nav-emoji svg{stroke-width:2.1}.nav-icon.active{color:var(--accent)!important;border-color:var(--accent)!important;background:rgba(232,160,32,.16)!important;box-shadow:0 0 0 1px rgba(232,160,32,.35),0 0 10px -2px rgba(232,160,32,.55)!important}@media(hover:hover){.nav-icon:hover{color:var(--accent)!important;border-color:var(--accent)!important;background:var(--surface)!important;transform:translateY(-1px)}}.bar-pin-btn{color:var(--accent)!important;border-color:rgba(232,160,32,.5)!important;background:rgba(232,160,32,.12)!important}.bar-pin-btn.off{opacity:1!important;color:var(--text-muted)!important;border-color:var(--border-hi)!important;background:var(--surface2)!important}@media(max-width:720px){.nav-icon{width:34px!important;height:34px!important}}</style>
+<script>document.addEventListener('DOMContentLoaded',function(){var ja=(document.documentElement.lang||'ja').slice(0,2)==='ja';var P='<span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.8a2 2 0 0 1-1.1 1.8l-1.8.9A2 2 0 0 0 5 15.2V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.8a2 2 0 0 0-1.1-1.8l-1.8-.9A2 2 0 0 1 15 10.8V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></svg></span>';var rows=document.querySelectorAll('.nav-icons');for(var i=0;i<rows.length;i++){(function(row){if(row.querySelector('.bar-pin-btn'))return;var b=document.createElement('button');b.type='button';b.className='nav-icon bar-pin-btn';b.innerHTML=P;function paint(){var off=document.documentElement.classList.contains('nopin');b.classList.toggle('off',off);b.title=off?(ja?'固定する':'Pin layout'):(ja?'固定を解除':'Unpin layout');b.setAttribute('aria-pressed',off?'false':'true');}b.addEventListener('click',function(){var off=!document.documentElement.classList.contains('nopin');document.documentElement.classList.toggle('nopin',off);try{localStorage.setItem('cr_pin',off?'off':'on');}catch(e){}paint();});paint();row.insertBefore(b,row.firstChild);})(rows[i]);}});</script>
+<!-- /CRPIN -->
+</head>
+<body>
+<div class="sitebar">
+  <header>
+    <a class="logo" href="index.html"><img class="logo-icon" src="/icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>皇室战争卡组构建与分析工具</span></div></a>
+    </header><nav class="nav-icons topbar" aria-label="主要ページ"><a class="nav-icon" href="/me.html" title="マイページ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg></span></a>
+      <a class="nav-icon" href="index.html" title="デッキ作成"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 8.5v7M8.5 12h7"/></svg></span></a>
+      <a class="nav-icon" href="decks.html" title="人気デッキ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5a1.5 1.5 0 0 0 0 3H7M17 6h2.5a1.5 1.5 0 0 1 0 3H17M9.5 17h5M10 21h4M12 14v3"/></svg></span></a>
+      <a class="nav-icon active" href="guide.html" title="使い方ガイド"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H7a3 3 0 0 0-3 3V5.5z"/><path d="M8 7h8M8 11h7M8 15h5"/></svg></span></a>
+      <a class="nav-icon" href="support.html" title="支援"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.7S3.5 15.4 3.5 9.3A4.3 4.3 0 0 1 12 6.6 4.3 4.3 0 0 1 20.5 9.3c0 6.1-8.5 11.4-8.5 11.4z"/></svg></span></a>
+      <a class="nav-icon" href="contact.html" title="お問い合わせ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></span></a>
+    </nav>
+</div>
+
+<main class="content-shell">
+  <section class="hero">
+    <div class="eyebrow">Player Stats Guide</div>
+    <h1>如何在皇室战争中查看自己的胜率与战绩</h1>
+    <p class="lead">通过玩家标签，可以查看近期胜率、使用过的各卡组战绩，以及难以应对的对阵。本页介绍 CRDB 的操作步骤，以及如何解读这些数字来改进卡组。</p>
+    <div class="hero-actions"><a class="btn primary" href="me.html">查看自己的胜率与战绩</a><a class="btn" href="#how">查找标签与操作步骤</a></div>
+    <p class="note">免费使用，无需登录。显示的是 CRDB 能够获取并保存的 1对1 对战。本功能无法还原您从开始游戏至今的全部对战历史。</p>
+    <div class="toc" aria-label="目次"><a href="#how">查询方法</a><a href="#rate">胜率的计算</a><a href="#decks">如何解读各卡组的战绩</a><a href="#matchups">难以应对的对阵</a><a href="#limits">记录的范围</a><a href="#faq">常见问题</a></div>
+  </section>
+
+  <section id="how" class="section">
+    <h2>1. 使用玩家标签打开自己的战绩</h2>
+    <ol>
+      <li>在皇室战争的游戏内个人资料中，找到以“#”开头的玩家标签。这是与显示名称不同的 ID。</li>
+      <li>打开 CRDB 的“我的页面”，输入标签后点击“登记并查看”。可以省略“#”。</li>
+      <li>确认玩家名称后，从可选的 1天、1周、1个月、1年中选择显示时段。</li>
+      <li>在“你的战绩”中查看胜负和对战场数，在“按使用的卡组统计的战绩”中查看各卡组的结果。</li>
+    </ol>
+    <p>只需标签即可查看。登录后可在不同设备上沿用保存的标签。输入标签并不证明您拥有该游戏账号。如果显示的玩家不对，请选择“更改标签”并重新输入。</p>
+    <div class="page-links"><a href="me.html">输入玩家标签</a><a href="privacy.html">数据与隐私的处理</a></div>
+  </section>
+
+  <section id="rate" class="section">
+    <h2>2. 将胜率与“时段、对战场数、游戏模式”一起查看</h2>
+    <p>CRDB 的个人战绩统计所选时段内进行且已获取的 1对1 对战。胜率为“获胜场数 ÷ 已获取场数 × 100”，平局也计入分母。胜负统计合并了多个游戏模式，并非仅限天梯的胜率。</p>
+    <div class="callout"><strong>计算示例（虚构）：</strong>如果是 14胜、10负、1平，计算为 14 ÷ 25 × 100 = 56%。排除平局或选择不同的时段，即使是同一位玩家，结果也会变化。</div>
+    <p>奖杯图表优先显示天梯记录。即使图表中显示天梯数值，胜负统计也不一定仅限天梯。请先确认页面上显示的对战场数和时段。</p>
+    <p>只有少量对战时，胜率会大幅波动。例如 4场3胜为 75%，但接下来输1场就会变为 60%。不要仅凭短期数字判断实力或卡组好坏，应结合在相同模式下游玩时段的结果与具体对战情况来看。</p>
+  </section>
+
+  <section id="decks" class="section">
+    <h2>3. 根据各卡组的胜率考虑换牌候选</h2>
+    <p>卡组战绩栏将胜负与您实际使用的 8张卡牌对应起来。如果只按胜率高低选择，容易高估记录场数较少，或恰好连续遇到有利对手的卡组。</p>
+    <ul>
+      <li>在相同的显示时段内比较，并确认每套卡组用了多少场。</li>
+      <li>确认卡牌等级、进化与英雄形态、所玩模式的差异。</li>
+      <li>保留原来的 8张卡牌配置，根据欠缺的功能逐次更换1张。</li>
+      <li>除了胜负，还要回顾“来不及防空”“被建筑挡住”等具体失利场景。</li>
+    </ul>
+    <p>例如，更换防空卡后胜率上升，也不一定是那1张卡带来的。对手的卡组和卡牌等级也会变化。通过卡组分析确认功能变化，并检查实战中是否出现了改善的场景，会更容易决定下一次调整。</p>
+    <div class="page-links"><a href="guide.html#compare">考虑更换1张卡牌的实例</a><a href="strategy.html">通过卡组分析确认功能分工</a><a href="index.html">构筑并保存卡组</a></div>
+  </section>
+
+  <section id="matchups" class="section">
+    <h2>4. 区分“自己输给的对手”与“当前环境中流行的对手”</h2>
+    <p>“你的对阵环境”用于查看您实际遇到的对手。对手卡牌战绩统计的是对含有该卡牌的卡组的胜负，并不意味着仅仅因为那1张卡牌而输掉比赛。</p>
+    <p>而“当前杯段概况”或“当前天梯概况”是 CRDB 收集的另一组统计。奖杯之路显示对应杯段，天梯则显示已收集的全部天梯对战。其时段、人数和模式不一定与个人战绩相同。</p>
+    <p>先查看对战次数较多且难以应对的对手，再检查防空、建筑、小法术等是否不足。将整体环境的热门程度和胜率作为寻找下一步尝试对象的参考。</p>
+    <div class="page-links"><a href="decks.html">查看当前环境的热门卡组</a><a href="about.html#data">环境数据的统计方法</a></div>
+  </section>
+
+  <section id="limits" class="section">
+    <h2>5. 对战记录不足或数字没有更新时</h2>
+    <p>我们使用首次访问时能取得的近期对战，以及 CRDB 已经保存的对战。游戏 API 无法提供过去的全部历史，因此选择“1年”也不意味着能够获得完整的1年记录。</p>
+    <p>对于普通用户，注册标签并不会启动每小时自动收集。主要在打开页面时获取对战，因此未访问页面期间的记录可能会缺失。</p>
+    <p>请查看页面的获取状态和最后获取时间。如果获取新对战失败，会显示已保存的记录。遇到请求限制或临时故障时，请稍后重试。</p>
+    <p>记录较少时，可扩大时段，并确认标签和玩家名称。请将数字视为已获取范围内的结果；与游戏内累计胜场或其他网站的不同统计比较前，应先统一统计条件。</p>
+  </section>
+
+  <section id="faq" class="section">
+    <h2>常见问题</h2>
+    <h3>在哪里可以查看自己的皇室战争胜率？</h3>
+    <p>在 CRDB 的“我的页面”输入玩家标签，即可根据已获取的对战查看各时段胜率。从可选时段中选择例如1周，并将胜率与对战场数一起查看。</p>
+    <h3>也能查看各卡组的胜率吗？</h3>
+    <p>“按使用的卡组统计的战绩”按卡组显示已获取对战的结果。更改时段后，纳入统计的对战也会改变。</p>
+    <h3>没有对战记录就代表胜率为 0% 吗？</h3>
+    <p>未获取到对战与实际参战却没有获胜是两回事。请先确认是否有记录以及获取状态。</p>
+    <h3>能查看注册前的全部战绩吗？</h3>
+    <p>如果 CRDB 中已有保存的对战，我们会进行匹配，但无法保证注册前的完整历史。我们不会推测未获取的对战并将其加入胜率。</p>
+    <div class="hero-actions"><a class="btn primary" href="me.html">查询自己的胜率与战绩</a><a class="btn" href="contact.html">反馈显示问题</a></div>
+  </section>
+  <p class="meta-note">撰写与核查：CR Deck Builders 运营者。发布与更新日期：2026-10-24。本指南根据 CRDB 当前界面与统计条件核查后编写。</p>
+</main>
+
+<div class="footer-signature"><span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span></div>
+<script defer src="/js/i18n/zh-cn.js?v=cb1ac236be"></script>
+<script defer src="/i18n.js?v=261012g"></script>
+<script defer src="/js/ux-guard.js?v=260818"></script>
+<!--SITE-FOOT--><style>.site-foot{max-width:760px;margin:28px auto 18px;padding:14px 18px 6px;border-top:1px solid var(--border,rgba(255,255,255,.12));font-size:12px;line-height:1.75;color:var(--text-muted,var(--dim,#9aa3b5))}.site-foot-links{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0 0 6px}.site-foot a{color:inherit;text-decoration:underline}.site-foot p{margin:4px 0}.cg-fcp{font-size:11px;line-height:1.6;opacity:.8;margin-top:8px}</style><footer class="site-foot"><nav class="site-foot-links"><a href="privacy.html">隐私政策</a><a href="contact.html">联系我们</a><a href="about.html">关于本站</a></nav><p class="site-foot-mt">本页面由日文原文自动翻译而成。</p><p class="site-foot-fcp">This content is not affiliated with, endorsed, sponsored, or specifically approved by Supercell and Supercell is not responsible for it. For more information see Supercell’s Fan Content Policy: <a href="https://supercell.com/en/fan-content-policy/" rel="noopener">www.supercell.com/fan-content-policy</a>.</p></footer><!--/SITE-FOOT-->
+</body>
+</html>

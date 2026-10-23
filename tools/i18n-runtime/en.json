@@ -398,5 +398,15 @@
  "考えています… その間もカードは選べます": "Thinking... You can still select cards while waiting",
  "例：足りない役割ってなに？": "e.g., What role is missing?",
  "送る": "Send",
- "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} is your main way to deal tower damage. Consider another option if it gets stopped."
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} is your main way to deal tower damage. Consider another option if it gets stopped.",
+ "保存済みの戦績を表示しています。取得結果を確認中です。": "Showing saved battle records while checking the latest retrieval.",
+ "戦績を取得中です。": "Fetching battle records.",
+ "通信に失敗しました。保存済みの戦績を表示しています。": "The connection failed. Showing saved battle records.",
+ "戦績を取得できませんでした。接続とタグを確認して再試行してください。": "Could not retrieve battle records. Check your connection and tag, then try again.",
+ "ゲームから最新の戦績を取得できませんでした。保存済みの記録を表示しています。": "Could not fetch the latest battles from the game. Showing saved records.",
+ "取得できた戦績を表示しています。未取得の試合は含まれません。": "Showing the battle records we could retrieve. Uncollected battles are not included.",
+ "戦績の最終取得：{at}": "Battle records last retrieved: {at}",
+ "戦績の取得時刻は確認できません。": "The battle retrieval time is unavailable.",
+ "取得中…": "Fetching…",
+ "勝率・勝敗は選択期間の取得済み1対1の全モード合算です。勝率は勝ち数 ÷ 試合数で、引き分けも試合数に含みます。トロフィー推移とは対象が異なる場合があります。": "Win rate and win/loss totals combine all collected 1v1 game modes for the selected period. Win rate is wins ÷ battles, with draws included in the battle count. The trophy chart may cover a different set of battles."
 }

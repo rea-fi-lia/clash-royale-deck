@@ -27,6 +27,7 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
 
   const CACHE_KEY = t => 'cr_my_cache_' + t;      // 直近の /api/me/sync 結果（即描画用）
   let STATE = { data: null, meta: null, days: 1, requestedDays: null, competition: null };
+  let syncStatus = { tag: null, pending: false, networkError: false };
   let disposeChart = () => {};
   const chartViews = new Map();
 
@@ -35,6 +36,66 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
   function writeCache(t, d) { try { localStorage.setItem(CACHE_KEY(t), JSON.stringify(d)); } catch (e) {} }
   function saveLocalTag(t) { try { localStorage.setItem(TAG_KEY, t); } catch (e) {} }
   const cleanTag = normalizeTag;
+
+  // Keep freshness separate from the result: a saved response is useful, but is not a new API fetch.
+  function renderSyncStatus(data = STATE.data) {
+    let region = $('meSyncStatus');
+    if (!region) {
+      region = document.createElement('section');
+      region.id = 'meSyncStatus'; region.className = 'section section-tight';
+      const message = document.createElement('p');
+      message.id = 'meSyncMessage'; message.className = 'note';
+      message.setAttribute('role', 'status'); message.setAttribute('aria-live', 'polite');
+      const when = document.createElement('p');
+      when.id = 'meSyncWhen'; when.className = 'note';
+      const retry = document.createElement('button');
+      retry.id = 'meSyncRetry'; retry.type = 'button'; retry.className = 'btn';
+      retry.addEventListener('click', () => {
+        if (!syncStatus.pending && syncStatus.tag) return sync(syncStatus.tag, { preserveRange: true });
+      });
+      region.append(message, when, retry);
+      $('meRoot').insertBefore(region, $('meBody'));
+    }
+    region.hidden = !syncStatus.tag;
+    const hasSaved = Array.isArray(data?.battles);
+    const failed = syncStatus.networkError || !!data?.fetchError;
+    let message;
+    if (syncStatus.pending) message = hasSaved
+      ? _tr('保存済みの戦績を表示しています。取得結果を確認中です。')
+      : _tr('戦績を取得中です。');
+    else if (syncStatus.networkError) message = hasSaved
+      ? _tr('通信に失敗しました。保存済みの戦績を表示しています。')
+      : _tr('戦績を取得できませんでした。接続とタグを確認して再試行してください。');
+    else if (data?.fetchError) message = _tr('ゲームから最新の戦績を取得できませんでした。保存済みの記録を表示しています。');
+    else message = _tr('取得できた戦績を表示しています。未取得の試合は含まれません。');
+    $('meSyncMessage').textContent = message;
+    const when = $('meSyncWhen'), timestamp = Number(data?.syncedAt), date = new Date(timestamp);
+    when.hidden = !hasSaved;
+    when.textContent = Number.isFinite(date.getTime()) && timestamp > 0
+      ? _tf('戦績の最終取得：{at}', { at: date.toLocaleString(document.documentElement.lang || 'ja') })
+      : _tr('戦績の取得時刻は確認できません。');
+    const retry = $('meSyncRetry');
+    retry.hidden = !failed && !syncStatus.pending;
+    retry.disabled = syncStatus.pending;
+    retry.textContent = syncStatus.pending ? _tr('取得中…') : _tr('再試行');
+  }
+
+  // Bound both the response and its JSON body so failed requests can be retried.
+  async function meJSON(url, options = {}) {
+    const controller = new AbortController(); let timer;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => { controller.abort(); reject(new Error('me_timeout')); }, 12000);
+    });
+    try {
+      return await Promise.race([timeout, (async () => {
+        const response = await fetch(url, { ...options, signal: controller.signal });
+        if (!response.ok) throw new Error('me_unavailable');
+        const value = await response.json();
+        if (value?.error) throw new Error('me_unavailable');
+        return value;
+      })()]);
+    } finally { clearTimeout(timer); }
+  }
 
   /* 勝ち筋の分類（共通カード台帳の優先順） */
   const WINCONS = CARD_WINCONS;
@@ -67,7 +128,10 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
       button.title = hasData ? '' : _tr('グラフには異なる日時のトロフィー記録が2件以上必要です');
     });
   }
-  function rerender() { if (STATE.data) renderAll(STATE.data, STATE.meta); }
+  function rerender() {
+    if (STATE.data) renderAll(STATE.data, STATE.meta);
+    else if (syncStatus.tag) renderSyncStatus();
+  }
 
   function renderAll(data, meta) {
     const series=selectTrophySeries(data);
@@ -99,6 +163,7 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
       + (tr != null ? '<div class="me-head-band">🏆 ' + tr.toLocaleString() + '<span>'+ (STATE.competition==='ranked' ? _tr('ランク戦トロフィー') : STATE.competition==='trophy' ? _tf('トロフィーロード · 帯 {a}–{b}', { a: band, b: band + 299 }) : _tr('種別別の試合前記録')) + '</span></div>' : '')
       + '</div>' + summary + '</div>'
       + '<div class="me-head-bottom"><p class="me-lead">'+(series.awaitingRanked ? _tr('ランク戦の参加実績はありますが推移は未取得です。取得済みのトロフィーロードを表示しています。') : data.history?.state === 'indexing' ? _tr('保存済みの過去試合を照合中。見つかり次第、自動で反映します。') : data.history?.state === 'error' ? _tr('過去分の照合を再試行しています。取得済みの記録を表示中。') : _tr('登録前も含む、収集できた全履歴。'))+'</p><span class="me-head-total">' + _tf('選択期間 {n}戦 <small>／ 全{m}戦</small>', { n: B.length, m: ALL.length }) + '</span></div>';
+    $('meHeader').innerHTML += '<p class="note">' + _tr('勝率・勝敗は選択期間の取得済み1対1の全モード合算です。勝率は勝ち数 ÷ 試合数で、引き分けも試合数に含みます。トロフィー推移とは対象が異なる場合があります。') + '</p>';
     $('meRecordBody').innerHTML = B.length
       ? '<div class="me-result-line"><span>' + _tf('<b>{n}</b> 戦の記録', { n: B.length }) + '</span><span>' + _tf('{w}勝 · {l}敗', { w, l }) + (draws ? _tf(' · {d}分', { d: draws }) : '') + '</span></div>'
         + '<div class="me-result-bar" role="img" aria-label="' + esc(_tf('勝率 {wr}%', { wr })) + '"><span style="width:' + wr + '%"></span></div>'
@@ -130,6 +195,7 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
 
     /* トロフィー推移（時間軸つき） */
     renderTrend(inRange(chartHistory, STATE.days));
+    renderSyncStatus(data);
 
     if (window.CRI18N) CRI18N.apply();
   }
@@ -232,12 +298,11 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
     try { legacy = JSON.parse(localStorage.getItem('cr_me_' + tag) || 'null'); } catch (e) {}
     if (!Array.isArray(legacy) || !legacy.length) { try { localStorage.setItem(flagKey, '1'); } catch (e) {} return; }
     try {
-      const r = await fetch('/api/me/import', {
+      const j = await meJSON('/api/me/import', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tag, battles: legacy })
       });
-      const j = await r.json();
-      if (r.ok && !j.error) { try { localStorage.setItem(flagKey, '1'); } catch (e) {} }
+      if (!j.error) { try { localStorage.setItem(flagKey, '1'); } catch (e) {} }
       return j;
     } catch (e) { return null; }
   }
@@ -254,24 +319,27 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
       .forEach(id => { const e = $(id); if (e) e.innerHTML = '<div class="me-skel"></div>'; });
   }
   let syncRevision = 0;
-  async function sync(tag) {
+  async function sync(tag, { preserveRange = false } = {}) {
     const revision = ++syncRevision;
-    STATE.data = null; STATE.days = 1; STATE.requestedDays = null; STATE.competition = null; STATE.requestedCompetition = null;
+    clearTimeout(historyTimer);
+    const retained = STATE.data?.tag === tag ? STATE.data : null;
+    if (!preserveRange || !retained) {
+      STATE.days = 1; STATE.requestedDays = null; STATE.competition = null; STATE.requestedCompetition = null;
+    }
+    STATE.data = null;
+    syncStatus = { tag, pending: true, networkError: false };
     const err = $('meTagError');
     err.hidden = true;
-    const cached = readCache(tag);
+    const cached = retained || readCache(tag);
     if (cached && cached.battles) { STATE.data = cached; renderAll(cached, STATE.meta); }   // 即描画
-    else skeleton();
+    else { skeleton(); renderSyncStatus(null); }
 
     // meta は毎回同じなのでセッション内で使い回す（2回目以降はネットワークに行かない）
     const metaP = STATE.meta ? Promise.resolve(STATE.meta)
-      : fetch('/api/meta', { cache: 'default' }).then(x => x.ok ? x.json() : null).catch(() => null);
+      : meJSON('/api/meta', { cache: 'default' }).catch(() => null);
     const syncP = (async () => {
       await importLegacy(tag);
-      const r = await fetch('/api/me/sync?tag=' + encodeURIComponent(tag), { cache: 'no-store' });
-      const j = await r.json();
-      if (!r.ok || j.error) throw new Error(j.error || ('HTTP ' + r.status));
-      return j;
+      return meJSON('/api/me/sync?tag=' + encodeURIComponent(tag), { cache: 'no-store' });
     })();
 
     try {
@@ -279,14 +347,15 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
       if (revision !== syncRevision) return;
       STATE.meta = meta || STATE.meta;
       STATE.data = j;
+      syncStatus.pending = false;
       saveLocalTag(tag); writeCache(tag, j);
       renderAll(j, STATE.meta);
       if(j.history?.state === 'indexing' || j.history?.state === 'error') scheduleHistoryRefresh(tag,revision);
     } catch (e) {
       if (revision !== syncRevision) return;
-      if (cached && cached.battles) return;                  // キャッシュが出ているなら黙って諦める
-      err.textContent = _tf('取得できませんでした：{e}（タグをもう一度確認してください）', { e: (e && e.message || e) });
-      err.hidden = false;
+      syncStatus.pending = false; syncStatus.networkError = true;
+      renderSyncStatus();
+      if (cached && cached.battles) return;                  // 保存済みの結果を残し、取得失敗と再試行を表示
       $('meBody').hidden = true;
       $('meTagSetup').hidden = false;
     }
@@ -298,13 +367,14 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
     historyTimer=setTimeout(async()=>{
       if(revision!==syncRevision || document.hidden){ if(revision===syncRevision)scheduleHistoryRefresh(tag,revision); return; }
       try {
-        const r=await fetch('/api/me/sync?tag='+encodeURIComponent(tag),{cache:'no-store'});
-        if(!r.ok)throw new Error('sync');const j=await r.json();if(revision!==syncRevision)return;
+        const j=await meJSON('/api/me/sync?tag='+encodeURIComponent(tag),{cache:'no-store'});if(revision!==syncRevision)return;
         const changed=JSON.stringify(j.battles)!==JSON.stringify(STATE.data?.battles);
+        syncStatus.networkError=false;
         STATE.data=j;writeCache(tag,j);if(changed)renderAll(j,STATE.meta);
         else if(j.history?.state==='complete')renderAll(j,STATE.meta);
+        else renderSyncStatus(j);
         if(j.history?.state!=='complete')scheduleHistoryRefresh(tag,revision);
-      } catch { if(revision===syncRevision)scheduleHistoryRefresh(tag,revision); }
+      } catch { if(revision===syncRevision){syncStatus.networkError=true;renderSyncStatus();scheduleHistoryRefresh(tag,revision);} }
     },15000);
   }
   /* ---- 初期化 ---- */
@@ -322,6 +392,8 @@ import { showBattle, showDeck, prefetchDeck, cardBuildLink, deckBuildLink } from
     $('meTagChange').addEventListener('click', () => {
       $('meBody').hidden = true; $('meTagSetup').hidden = false; $('meTagInput').value = '';
       curTag = null; syncRevision++; STATE.data = null;
+      clearTimeout(historyTimer); syncStatus = { tag: null, pending: false, networkError: false };
+      if ($('meSyncStatus')) $('meSyncStatus').hidden = true;
       try { localStorage.removeItem(TAG_KEY); } catch (e) {}
       // ログイン中はアカウント側のタグが正なので、その旨を出す（勝手に戻って混乱しないように）
       const p = window.CRAuth && CRAuth.getProfile && CRAuth.getProfile();

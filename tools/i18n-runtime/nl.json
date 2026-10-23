@@ -1101,5 +1101,15 @@
  "考えています… その間もカードは選べます": "Bezig met denken... Je kunt nog steeds kaarten selecteren terwijl je wacht",
  "例：足りない役割ってなに？": "bijv. Welke rol ontbreekt er?",
  "送る": "Verzenden",
- "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} is je belangrijkste manier om torenschade toe te brengen. Bedenk een alternatief voor wanneer die wordt gestopt."
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} is je belangrijkste manier om torenschade toe te brengen. Bedenk een alternatief voor wanneer die wordt gestopt.",
+ "保存済みの戦績を表示しています。取得結果を確認中です。": "Opgeslagen wedstrijdresultaten worden getoond terwijl de nieuwste gegevensophaling wordt gecontroleerd.",
+ "戦績を取得中です。": "Wedstrijdresultaten ophalen.",
+ "通信に失敗しました。保存済みの戦績を表示しています。": "Verbinding mislukt. Opgeslagen wedstrijdresultaten worden getoond.",
+ "戦績を取得できませんでした。接続とタグを確認して再試行してください。": "Wedstrijdresultaten konden niet worden opgehaald. Controleer je verbinding en tag en probeer opnieuw.",
+ "ゲームから最新の戦績を取得できませんでした。保存済みの記録を表示しています。": "De nieuwste wedstrijden konden niet uit het spel worden opgehaald. Opgeslagen gegevens worden getoond.",
+ "取得できた戦績を表示しています。未取得の試合は含まれません。": "De wedstrijdresultaten die we konden ophalen worden getoond. Niet-verzamelde wedstrijden zijn niet inbegrepen.",
+ "戦績の最終取得：{at}": "Wedstrijdresultaten voor het laatst opgehaald: {at}",
+ "戦績の取得時刻は確認できません。": "Het tijdstip waarop de wedstrijden zijn opgehaald is niet beschikbaar.",
+ "取得中…": "Ophalen…",
+ "勝率・勝敗は選択期間の取得済み1対1の全モード合算です。勝率は勝ち数 ÷ 試合数で、引き分けも試合数に含みます。トロフィー推移とは対象が異なる場合があります。": "Het winstpercentage en de winst- en verliestotalen combineren alle verzamelde 1-tegen-1-spelmodi in de gekozen periode. Het winstpercentage is overwinningen ÷ wedstrijden, waarbij gelijke spelen meetellen in het aantal wedstrijden. De trofeeëngrafiek kan een andere reeks wedstrijden omvatten."
 }

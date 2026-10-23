@@ -182,25 +182,6 @@ const SEO = {
     fa: { t: 'واژه‌نامه دک کلش رویال | CR Deck Builders', d: 'توضیح اصطلاحات ساخت دک: شرط برد، هم‌افزایی، کارت سوم، کارت‌های پاسخ، میانگین اکسیر، چرخه، پدافند هوایی و کنترل ازدحام.', k: 'کلش رویال,واژه‌نامه,اصطلاحات' },
     nl: { t: 'Clash Royale Deck-Woordenlijst | CR Deck Builders', d: 'Deckbouwtermen uitgelegd: win condition, synergie, derde kaart, counterkaarten, gemiddelde elixer, cycle, luchtverdediging en swarmcontrole.', k: 'clash royale,woordenlijst,termen,win condition' }
   },
-  'support.html': {
-    en: { t: 'Support & Donations | CR Deck Builders', d: 'Support the development of CR Deck Builders with a donation. Donations help cover data collection and hosting for this free Clash Royale fan tool.', k: 'support,donation,cr deck builders' },
-    es: { t: 'Apoyo y Donaciones | CR Deck Builders', d: 'Apoya el desarrollo de CR Deck Builders con una donación. Las donaciones ayudan a cubrir la recopilación de datos y el alojamiento de esta herramienta fan gratuita.', k: 'apoyo,donación,cr deck builders' },
-    'pt-br': { t: 'Apoio e Doações | CR Deck Builders', d: 'Apoie o desenvolvimento do CR Deck Builders com uma doação. As doações ajudam a cobrir a coleta de dados e a hospedagem desta ferramenta de fã gratuita.', k: 'apoio,doação,cr deck builders' },
-    fr: { t: 'Soutien et Dons | CR Deck Builders', d: 'Soutenez le développement de CR Deck Builders par un don. Les dons couvrent la collecte de données et l’hébergement de cet outil de fan gratuit.', k: 'soutien,don,cr deck builders' },
-    de: { t: 'Unterstützung & Spenden | CR Deck Builders', d: 'Unterstütze die Entwicklung von CR Deck Builders mit einer Spende. Spenden helfen, Datensammlung und Hosting dieses kostenlosen Fan-Tools zu decken.', k: 'unterstützung,spende,cr deck builders' },
-    ru: { t: 'Поддержка и пожертвования | CR Deck Builders', d: 'Поддержите развитие CR Deck Builders пожертвованием. Пожертвования помогают покрывать сбор данных и хостинг этого бесплатного фан-инструмента.', k: 'поддержка,пожертвование,cr deck builders' },
-    ko: { t: '후원 안내 | CR Deck Builders', d: '후원으로 CR Deck Builders의 개발을 응원해 주세요. 후원금은 이 무료 팬 도구의 데이터 수집과 호스팅 비용에 쓰입니다.', k: '후원,기부,cr deck builders' },
-    'zh-cn': { t: '支持与捐助 | CR Deck Builders', d: '通过捐助支持 CR Deck Builders 的开发。捐助将用于这款免费粉丝工具的数据收集与托管费用。', k: '支持,捐助,cr deck builders' },
-    ar: { t: 'الدعم والتبرعات | CR Deck Builders', d: 'ادعم تطوير CR Deck Builders بتبرع. تساعد التبرعات في تغطية تكاليف جمع البيانات والاستضافة لهذه الأداة المجانية.', k: 'دعم,تبرع,cr deck builders' },
-    tr: { t: 'Destek ve Bağış | CR Deck Builders', d: 'Bir bağışla CR Deck Builders’ın geliştirilmesine destek olun. Bağışlar bu ücretsiz hayran aracının veri toplama ve barındırma maliyetlerini karşılar.', k: 'destek,bağış,cr deck builders' },
-    it: { t: 'Sostegno e Donazioni | CR Deck Builders', d: 'Sostieni lo sviluppo di CR Deck Builders con una donazione. Le donazioni coprono la raccolta dati e l’hosting di questo strumento fan gratuito.', k: 'sostegno,donazione,cr deck builders' },
-    id: { t: 'Dukungan & Donasi | CR Deck Builders', d: 'Dukung pengembangan CR Deck Builders dengan donasi. Donasi membantu menutup biaya pengumpulan data dan hosting alat fan gratis ini.', k: 'dukungan,donasi,cr deck builders' },
-    th: { t: 'สนับสนุนและบริจาค | CR Deck Builders', d: 'สนับสนุนการพัฒนา CR Deck Builders ด้วยการบริจาค เงินบริจาคช่วยครอบคลุมค่าเก็บข้อมูลและโฮสติงของเครื่องมือแฟนเมดฟรีนี้', k: 'สนับสนุน,บริจาค,cr deck builders' },
-    vi: { t: 'Ủng Hộ & Quyên Góp | CR Deck Builders', d: 'Ủng hộ việc phát triển CR Deck Builders bằng một khoản quyên góp. Quyên góp giúp trang trải chi phí thu thập dữ liệu và lưu trữ của công cụ fan miễn phí này.', k: 'ủng hộ,quyên góp,cr deck builders' },
-    'zh-tw': { t: '支持與捐助 | CR Deck Builders', d: '透過捐助支持 CR Deck Builders 的開發。捐助將用於這款免費粉絲工具的資料收集與託管費用。', k: '支持,捐助,cr deck builders' },
-    fa: { t: 'حمایت و کمک مالی | CR Deck Builders', d: 'با کمک مالی از توسعه CR Deck Builders حمایت کنید. کمک‌ها هزینه جمع‌آوری داده و میزبانی این ابزار رایگان را پوشش می‌دهد.', k: 'حمایت,کمک مالی,cr deck builders' },
-    nl: { t: 'Steun & Donaties | CR Deck Builders', d: 'Steun de ontwikkeling van CR Deck Builders met een donatie. Donaties dekken de dataverzameling en hosting van deze gratis fantool.', k: 'steun,donatie,cr deck builders' }
-  },
   'contact.html': {
     en: { t: 'Contact & Requests | CR Deck Builders', d: 'Send feature requests, card-addition requests, bug reports and questions about CR Deck Builders here.', k: 'contact,request,cr deck builders' },
     es: { t: 'Contacto y Solicitudes | CR Deck Builders', d: 'Envía aquí solicitudes de funciones, peticiones de cartas nuevas, informes de errores y preguntas sobre CR Deck Builders.', k: 'contacto,solicitud,cr deck builders' },

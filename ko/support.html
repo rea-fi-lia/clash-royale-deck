@@ -2,190 +2,23 @@
 <html lang="ko">
 <head>
 <link rel="stylesheet" href="/css/icons.css?v=260818">
-<meta name="google-adsense-account" content="ca-pub-4930535711396745">
 <script>(function(){try{if(localStorage.getItem('cr_theme')==='light')document.documentElement.classList.add('light');}catch(e){}})();</script>
 <style>html.light{--bg:#f4f5f7;--surface:#ffffff;--surface2:#eef1f5;--border:rgba(0,0,0,.10);--border-hi:rgba(0,0,0,.22);--text:#1a1d24;--text-muted:#5c6270;--text-dim:#aeb4c0;--accent:#d6900f;--accent2:#b67a12;--red:#d83a3a;--evo:#7c4dff;--hero:#d6900f;--dim:#5c6270;--gold:#b67a12}</style>
 <!-- Google Analytics (GA4) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-N19CVY3C3K"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','G-N19CVY3C3K');</script>
+<meta name="google-adsense-account" content="ca-pub-4930535711396745">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>CR Deck Builders 응원하기｜후원 결제 접수 현황</title>
+<meta name="description" content="CR Deck Builders의 후원 결제 접수 현황입니다. 덱 구성·분석·개인 전적은 무료입니다. Stripe 결제 중단과 OFUSE를 통한 후원 방법을 안내합니다.">
 <meta name="robots" content="index,follow">
-<title>후원 안내 | CR Deck Builders</title>
-<meta name="description" content="후원으로 CR Deck Builders의 개발을 응원해 주세요. 후원금은 이 무료 팬 도구의 데이터 수집과 호스팅 비용에 쓰입니다.">
 <link rel="canonical" href="https://crdeckbuilders.com/ko/support.html">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap');
-  :root {
-    --bg: #0d0f14; --surface: #161920; --surface2: #1e2230;
-    --border: rgba(255,255,255,0.07); --border-hi: rgba(255,255,255,0.15);
-    --text: #e8eaf0; --text-muted: #6b7080; --text-dim: #3a3f50;
-    --accent: #e8a020; --accent2: #c0781a; --red: #e05050;
-    --font-head: 'Rajdhani', sans-serif; --font-body: 'Noto Sans JP', sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html { font-size: 14px; }
-  html, body { touch-action: manipulation; } /* ダブルタップ拡大無効（ピンチは可） */
-  * { touch-action: manipulation; }
-  body { background: var(--bg); color: var(--text); font-family: CRDBSymbols,var(--font-body); min-height: 100vh; }
-
-  header {
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 12px 20px; display: flex; align-items: center; gap: 16px;
-    position: sticky; top: 0; z-index: 100;
-  }
-  .logo {
-    font-family: CRDBSymbols,var(--font-head); font-size: 20px; font-weight: 700;
-    letter-spacing: 2px; color: var(--accent); text-transform: uppercase;
-  }
-  .logo span { color: var(--text-muted); font-size: 11px; font-family: CRDBSymbols,var(--font-body); font-weight: 400; letter-spacing: 0; display: block; margin-top: -3px; }
-  header { flex-wrap: wrap; align-items: flex-start; row-gap: 6px; }
-  .nav-icons { display: flex; gap: 4px; order: 2; flex-basis: 100%; justify-content: flex-end; margin-left: 0; }
-  .nav-icon {
-    width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
-    border-radius: 8px; text-decoration: none; border: 1px solid var(--border);
-    background: var(--surface2); transition: all 0.12s;
-  }
-  .nav-icon .nav-emoji { font-size: 17px; line-height: 1; }
-  .nav-icon:hover { border-color: var(--border-hi); background: var(--surface); transform: translateY(-1px); }
-  .nav-icon.active { border-color: var(--accent); background: rgba(232,160,32,0.12); }
-
-  .container { max-width: 760px; margin: 0 auto; padding: 32px 20px 60px; }
-  .page-title { font-family: CRDBSymbols,var(--font-head); font-size: 28px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
-  .page-sub { color: var(--text-muted); font-size: 14px; margin-bottom: 18px; line-height: 1.7; }
-
-  .donate-buttons { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
-  .donate-btn {
-    display: flex; align-items: center; gap: 12px;
-    padding: 16px 20px; border-radius: 10px; text-decoration: none;
-    background: var(--surface); border: 1px solid var(--border);
-    color: var(--text); transition: all 0.12s; font-weight: 500;
-  }
-  .donate-btn:hover { border-color: var(--accent); background: var(--surface2); transform: translateY(-1px); }
-  .donate-btn .emoji { font-size: 24px; }
-  .donate-btn .label { flex: 1; }
-  .donate-btn .label small { display: block; font-size: 11px; color: var(--text-muted); font-weight: 400; margin-top: 2px; }
-
-  .grade-section { margin-top: 20px; }
-  .section-title { font-family: CRDBSymbols,var(--font-head); font-size: 20px; font-weight: 700; letter-spacing: 1px; margin-bottom: 16px; }
-  /* ランク枠：デッキスロット風の光る宝石フレーム。上位ほどグロー強め＝格上感 */
-  /* 横スクロール：ゴールドまで見えて、スクロールでレジェンド＆隠しが現れる */
-  .grade-list { display: flex; flex-wrap: nowrap; gap: 10px; overflow-x: auto; padding: 4px 0 10px;
-    scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
-  .grade-list::-webkit-scrollbar { height: 6px; }
-  .grade-list::-webkit-scrollbar-thumb { background: var(--border-hi, rgba(255,255,255,.15)); border-radius: 3px; }
-  .grade-card {
-    flex: 0 0 31%; min-width: 108px; max-width: 150px; scroll-snap-align: start;
-    display: flex; flex-direction: column; align-items: center; text-align: center;
-    padding: 20px 12px 14px; border-radius: 14px; position: relative; overflow: hidden;
-    background: linear-gradient(160deg, #1b1e2b 0%, #11131b 100%); border: 2px solid var(--border);
-  }
-  .grade-gem {
-    width: 46px; height: 46px; border-radius: 13px; transform: rotate(45deg); margin: 4px 0 18px;
-    box-shadow: inset 0 2px 7px rgba(255,255,255,.5), inset 0 -3px 7px rgba(0,0,0,.4), 0 3px 10px rgba(0,0,0,.45);
-  }
-  .grade-name { font-family: CRDBSymbols,var(--font-head); font-weight: 700; font-size: 17px; letter-spacing: .5px; }
-  .grade-cond { font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
-  .grade-badge { position: absolute; top: 8px; right: 8px; font-size: 9px; font-weight: 700;
-    padding: 2px 7px; border-radius: 999px; background: #e8a020; color: #1a1208; letter-spacing: .5px; }
-  /* クリックできるカード（リンク付き）＝¥500/¥2,000 */
-  a.grade-card { text-decoration: none; color: inherit; cursor: pointer; transition: transform .12s, box-shadow .12s; }
-  a.grade-card:hover { transform: translateY(-3px); }
-  /* 金額が上がるほどグロー強め＝供給量が大きいほど豪華に（9段＋隠し）。色は差が出ればOK・カッコよさ優先 */
-  .g-1 { border-color: #2bb673; box-shadow: 0 0 13px rgba(43,182,115,.32); }
-  .g-1 .grade-gem { background: linear-gradient(135deg, #6fe0ac, #1c8a55); }
-  .g-1 .grade-name { color: #56d199; }
-  .g-2 { border-color: #1fc7c7; box-shadow: 0 0 15px rgba(31,199,199,.38); }
-  .g-2 .grade-gem { background: linear-gradient(135deg, #7fe9e9, #159a9a); }
-  .g-2 .grade-name { color: #4fd6d6; }
-  .g-3 { border-color: #2e8fe0; box-shadow: 0 0 17px rgba(46,143,224,.42); }
-  .g-3 .grade-gem { background: linear-gradient(135deg, #74bdf5, #1f66ad); }
-  .g-3 .grade-name { color: #5db0e8; }
-  .g-4 { border-color: #5a6cf0; box-shadow: 0 0 19px rgba(90,108,240,.46); }
-  .g-4 .grade-gem { background: linear-gradient(135deg, #9aa6ff, #3340c8); }
-  .g-4 .grade-name { color: #8f9bf7; }
-  .g-5 { border-color: #8b5cf6; box-shadow: 0 0 21px rgba(139,92,246,.5); }
-  .g-5 .grade-gem { background: linear-gradient(135deg, #c4b0ff, #6d34d6); }
-  .g-5 .grade-name { color: #b39bf9; }
-  .g-6 { border-color: #c054d4; box-shadow: 0 0 24px rgba(192,84,212,.52); }
-  .g-6 .grade-gem { background: linear-gradient(135deg, #eaa0f2, #9a2db0); }
-  .g-6 .grade-name { color: #df87ee; }
-  .g-7 { border-color: #d4537e; box-shadow: 0 0 27px rgba(212,83,126,.55); }
-  .g-7 .grade-gem { background: linear-gradient(135deg, #f59ab8, #b03360); }
-  .g-7 .grade-name { color: #ee87aa; }
-  .g-8 { border-color: #e8a020; box-shadow: 0 0 30px rgba(232,160,32,.6); }
-  .g-8 .grade-gem { background: linear-gradient(135deg, #ffd76a, #c8851a); }
-  .g-8 .grade-name { color: #f0c54a; }
-  .g-9 { border-color: #ff7a2f; box-shadow: 0 0 36px rgba(255,122,47,.68); }
-  .g-9 .grade-gem { background: linear-gradient(135deg, #ffd06a, #ff5a1f); }
-  .g-9 .grade-name { color: #ff9b54; }
-  .g-hidden { border-color: rgba(255,255,255,.15); opacity: .55; }
-  .g-hidden .grade-gem { background: linear-gradient(135deg, #3a3f50, #20232c); }
-  .g-hidden .grade-name { color: var(--text-dim); }
-  /* メインの大ボタン（¥300・最も目立たせる） */
-  .donate-btn.primary { background: linear-gradient(135deg, #8b5cf6, #d4537e); border-color: transparent; color: #fff; font-weight: 700; box-shadow: 0 4px 18px rgba(139,92,246,.35); }
-  .donate-btn.primary .label small { color: rgba(255,255,255,.85); }
-  .donate-btn.primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
-  /* 特典内容を見る情報アイコン（カード左上） */
-  .grade-info { position: absolute; top: 6px; left: 6px; width: 19px; height: 19px; border-radius: 50%; border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.4); color: #fff; font-size: 11px; font-weight: 700; line-height: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; z-index: 3; font-family: CRDBSymbols,var(--font-head); }
-  .grade-info:hover { background: rgba(0,0,0,.65); }
-  /* 購入タップ時：すぐ飛ばず、ジェム◇が少し回って弾けてから決済へ */
-  .grade-card.purchasing { box-shadow: 0 0 0 2px rgba(255,255,255,.22), 0 0 24px rgba(255,255,255,.22); }
-  .grade-card.purchasing .grade-gem { animation: gemTap .78s cubic-bezier(.4,.1,.25,1) forwards; }
-  /* 立体的に一回転(rotateY)してから、最後に少し上へ浮く */
-  @keyframes gemTap {
-    0%   { transform: perspective(320px) rotate(45deg) rotateY(0deg) translateY(0); }
-    60%  { transform: perspective(320px) rotate(45deg) rotateY(360deg) translateY(0); }
-    100% { transform: perspective(320px) rotate(45deg) rotateY(360deg) translateY(-12px) scale(1.08); }
-  }
-  /* 特典ポップアップ */
-  .perk-pop { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .perk-pop-box { background: var(--surface2); border: 1px solid var(--border-hi); border-radius: 14px; padding: 20px; max-width: 360px; width: 100%; }
-  .perk-pop-box h3 { font-family: CRDBSymbols,var(--font-head); font-size: 18px; margin-bottom: 10px; }
-  .perk-pop-box ul { list-style: none; padding: 0; margin: 0; }
-  .perk-pop-box li { font-size: 13px; color: var(--text); padding: 5px 0 5px 18px; position: relative; line-height: 1.5; }
-  .perk-pop-box li::before { content: '✦'; position: absolute; left: 0; color: var(--accent); }
-  .perk-pop-note { font-size: 11px; color: var(--text-muted); margin-top: 10px; }
-  .perk-pop-close { margin-top: 12px; width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-hi); background: var(--surface); color: var(--text); cursor: pointer; }
-
-  .prep-banner { margin: 4px 0 16px; padding: 12px 16px; border-radius: 10px; font-size: 13px; text-align: center;
-    background: rgba(232,160,32,.12); border: 1px solid rgba(232,160,32,.4); color: #f0c54a; }
-  .donate-btn.is-disabled { opacity: .5; cursor: not-allowed; filter: grayscale(.3); pointer-events: none; }
-
-  .note { margin-top: 32px; padding: 16px; background: var(--surface); border-radius: 8px; font-size: 12px; color: var(--text-muted); line-height: 1.7; }
-
-  .footer-signature {
-    text-align: center; padding: 24px 0;
-    font-family: CRDBSymbols,'Courier New', Courier, monospace; color: #888; letter-spacing: 1px;
-    border-top: 1px solid var(--border); margin-top: 40px;
-  }
-  .footer-signature .by-text { font-size: 11px; opacity: 0.6; margin-right: 4px; }
-  .footer-signature .creator-name { font-size: 13px; font-weight: bold; color: #eaeaea; letter-spacing: 3px; text-shadow: 0 0 8px rgba(255,255,255,0.4); }
-
-  @media (max-width: 720px) {
-    .logo { font-size: 16px; }
-    .nav-icon { width: 30px; height: 30px; }
-    .nav-icon .nav-emoji { font-size: 15px; }
-    .page-title { font-size: 22px; }
-    .container { padding: 24px 16px 40px; }
-  }
-
-  /* ロゴ左のアイコン（縦幅をEN+JPの2行に合わせる。大きさは .logo-icon の height/width で微調整） */
-  .logo{display:flex;align-items:center;gap:10px}
-  .logo-icon{height:2.2em;width:2.2em;flex:0 0 auto;border-radius:50%;display:block;box-shadow:0 2px 8px rgba(0,0,0,.4)}
-  .logo-text{display:flex;flex-direction:column;justify-content:center;line-height:1.18}
-  @media (max-width:600px){.logo-icon{height:1.9em;width:1.9em}}
-  /* 4アイコンをボディ先頭のバーへ（ヘッダーはロゴ＋下線だけ＝Index統一） */
-  .topbar { padding:10px 20px; border-bottom:1px solid var(--border); background:var(--surface); justify-content:flex-end; }
-  /* ヘッダー＋アイコンバーをまとめて画面上部に固定 */
-  .sitebar { position: sticky; top: 0; z-index: 100; }
-  .sitebar header { position: static; }
-</style>
-<!-- CRVT --><style>@view-transition{navigation:auto}@keyframes cr-ol{to{transform:translateX(-26%);opacity:.5}}@keyframes cr-ir{from{transform:translateX(100%)}}@keyframes cr-or{to{transform:translateX(26%);opacity:.5}}@keyframes cr-il{from{transform:translateX(-100%)}}@media(max-width:768px){html:active-view-transition-type(crf)::view-transition-old(root){animation:cr-ol .26s ease both}html:active-view-transition-type(crf)::view-transition-new(root){animation:cr-ir .26s ease both}html:active-view-transition-type(crb)::view-transition-old(root){animation:cr-or .26s ease both}html:active-view-transition-type(crb)::view-transition-new(root){animation:cr-il .26s ease both}}</style><script>(function(){if(!("startViewTransition"in document)||!window.navigation)return;function ty(a){try{if(!a||!a.from)return null;var f=new URL(a.from.url).pathname,o=new URL(a.entry.url).pathname;var S=function(p){return p.indexOf("strategy.html")>-1};var I=function(p){return p.charAt(p.length-1)==="/"||p.indexOf("index.html")>-1};if(I(f)&&S(o))return"crf";if(S(f)&&I(o))return"crb"}catch(e){}return null}addEventListener("pageswap",function(e){if(e.viewTransition){var t=ty(e.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}});addEventListener("pagereveal",function(e){if(e.viewTransition){var t=ty(navigation.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}})})();</script>
+<link rel="stylesheet" href="/css/content.css?v=260818">
 <link rel="stylesheet" href="/css/guard.css?v=260818">
+<!-- CRVT --><style>@view-transition{navigation:auto}@keyframes cr-ol{to{transform:translateX(-26%);opacity:.5}}@keyframes cr-ir{from{transform:translateX(100%)}}@keyframes cr-or{to{transform:translateX(26%);opacity:.5}}@keyframes cr-il{from{transform:translateX(-100%)}}@media(max-width:768px){html:active-view-transition-type(crf)::view-transition-old(root){animation:cr-ol .26s ease both}html:active-view-transition-type(crf)::view-transition-new(root){animation:cr-ir .26s ease both}html:active-view-transition-type(crb)::view-transition-old(root){animation:cr-or .26s ease both}html:active-view-transition-type(crb)::view-transition-new(root){animation:cr-il .26s ease both}}</style><script>(function(){if(!("startViewTransition"in document)||!window.navigation)return;function ty(a){try{if(!a||!a.from)return null;var f=new URL(a.from.url).pathname,o=new URL(a.entry.url).pathname;var S=function(p){return p.indexOf("strategy.html")>-1};var I=function(p){return p.charAt(p.length-1)==="/"||p.indexOf("index.html")>-1};if(I(f)&&S(o))return"crf";if(S(f)&&I(o))return"crb"}catch(e){}return null}addEventListener("pageswap",function(e){if(e.viewTransition){var t=ty(e.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}});addEventListener("pagereveal",function(e){if(e.viewTransition){var t=ty(navigation.activation);if(t)e.viewTransition.types.add(t);else e.viewTransition.skipTransition()}})})();</script>
 <link rel="stylesheet" href="/css/desktop.css?v=260818">
 <script defer src="/js/desktop.js?v=260818"></script>
 <!--HREFLANG-->
@@ -216,183 +49,41 @@
 <!-- /CRPIN -->
 </head>
 <body>
-
 <div class="sitebar">
-<header>
-  <a class="logo" href="index.html"><img class="logo-icon" src="/icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>클래시 로얄 덱 빌더 & 분석기</span></div></a>
-</header>
-<nav class="nav-icons topbar"><a class="nav-icon" href="/me.html" title="マイページ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg></span></a>
-    <a class="nav-icon" href="index.html" title="デッキ作成"><span class="nav-emoji"><svg style="display:block" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 8.5v7M8.5 12h7"/></svg></span></a>
-    <a class="nav-icon" href="decks.html" title="人気デッキ・デッキ開発"><span class="nav-emoji"><svg style="display:block" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5a1.5 1.5 0 0 0 0 3H7M17 6h2.5a1.5 1.5 0 0 1 0 3H17M9.5 17h5M10 21h4M12 14v3"/></svg></span></a>
-    <a class="nav-icon" href="guide.html" title="デッキ作成ガイド"><span class="nav-emoji"><svg style="display:block" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H7a3 3 0 0 0-3 3V5.5z"/><path d="M8 7h8M8 11h7M8 15h5"/></svg></span></a>
-    <a class="nav-icon active" href="support.html" title="支援・寄付"><span class="nav-emoji"><svg style="display:block" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.7S3.5 15.4 3.5 9.3A4.3 4.3 0 0 1 12 6.6 4.3 4.3 0 0 1 20.5 9.3c0 6.1-8.5 11.4-8.5 11.4z"/></svg></span></a>
-    <a class="nav-icon" href="contact.html" title="リクエスト・お問い合わせ"><span class="nav-emoji"><svg style="display:block" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></span></a>
-</nav>
+  <header>
+    <a class="logo" href="index.html"><img class="logo-icon" src="/icon-192.png" alt="CR Deck Builders ロゴ" width="192" height="192"><div class="logo-text">CR Deck Builders<span>클래시 로얄 덱 빌더 & 분석기</span></div></a>
+    </header><nav class="nav-icons topbar" aria-label="主要ページ"><a class="nav-icon" href="/me.html" title="マイページ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a7 7 0 0 1 14 0v1"/></svg></span></a>
+      <a class="nav-icon" href="index.html" title="デッキ作成"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 8.5v7M8.5 12h7"/></svg></span></a>
+      <a class="nav-icon" href="decks.html" title="人気デッキ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5a1.5 1.5 0 0 0 0 3H7M17 6h2.5a1.5 1.5 0 0 1 0 3H17M9.5 17h5M10 21h4M12 14v3"/></svg></span></a>
+      <a class="nav-icon active" href="guide.html" title="使い方ガイド"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H7a3 3 0 0 0-3 3V5.5z"/><path d="M8 7h8M8 11h7M8 15h5"/></svg></span></a>
+      <a class="nav-icon" href="support.html" title="支援"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 20.7S3.5 15.4 3.5 9.3A4.3 4.3 0 0 1 12 6.6 4.3 4.3 0 0 1 20.5 9.3c0 6.1-8.5 11.4-8.5 11.4z"/></svg></span></a>
+      <a class="nav-icon" href="contact.html" title="お問い合わせ"><span class="nav-emoji"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 7 8.5 6 8.5-6"/></svg></span></a>
+    </nav>
 </div>
 
-<div class="container">
-  <h1 class="page-title">후원 · 기부</h1>
-  <p class="page-sub" data-i18n="sup.intro">
-    이 도구는 무료로 운영하고 있습니다. 마음에 드셨다면 개발자에게<b>엘릭서를 공급</b>해 주시면 기쁩니다 💧<br>
-    보내주신 후원은 <b>서버 방어(유지비)</b>· 카드 데이터 갱신 · 새 기능 개발에 사용하겠습니다.
-  </p>
+<main class="content-shell">
+  <section class="hero">
+    <div class="eyebrow">Support CR Deck Builders</div>
+    <h1>CR Deck Builders 응원하기</h1>
+    <p class="lead">CR Deck Builders의 덱 구성·분석·개인 전적 기능은 무료입니다. 후원은 선택 사항입니다. 받은 후원금은 서버 유지, 카드 데이터 업데이트, 기능 개선에 사용합니다.</p>
+  </section>
+  <section class="section">
+    <h2>후원 결제 안내</h2>
+    <div class="callout"><strong>Stripe를 통한 후원 결제 접수가 중단되었습니다.</strong><p>현재 Stripe 후원 링크로 결제할 수 없습니다. 이용할 수 없는 결제 페이지로 이동하지 않도록 링크를 비활성화했습니다.</p></div>
+    <p>응원을 원하시면 OFUSE 프로필에서 후원금을 첨부한 팬레터를 보내실 수 있습니다. 금액·수수료·공개 범위는 보내기 전에 OFUSE 화면에서 확인해 주세요.</p>
+    <div class="hero-actions"><a class="btn primary" href="https://ofuse.me/aa557082" target="_blank" rel="noopener">OFUSE로 응원하기</a></div>
+  </section>
+  <section class="section">
+    <h2>무료로 이용할 수 있는 기능</h2>
+    <p>후원 여부와 관계없이 덱 구성·덱 분석·인기 덱·개인 전적을 이용할 수 있습니다. 사이트를 사용하며 발견한 문제나 개선 의견을 알려 주시는 것도 도움이 됩니다.</p>
+    <div class="page-links"><a href="index.html">덱 만들기</a><a href="player-stats.html">내 승률과 전적을 읽는 방법</a><a href="contact.html">문제 신고 또는 기능 제안</a><a href="about.html">운영자와 데이터 안내</a></div>
+  </section>
+  <p class="meta-note">결제 접수 상태 확인일: 2026-10-24. 후원 접수 방식이 바뀌면 이 페이지에 안내합니다.</p>
+</main>
 
-  <!-- ▼ メイン寄付ボタン（¥300）＋OFUSE。ログイン中はJSで ?client_reference_id=<uid> を付与し、誰の供給かを記録する。
-       Stripe ¥300  : https://donate.stripe.com/5kQ8wQ6Or9iE8QZc0TgYU02
-       Stripe ¥500  : https://donate.stripe.com/eVq6oI5Kn66sd7fgh9gYU00（下のメニューのカード）
-       Stripe ¥2,000: https://donate.stripe.com/4gM6oI1u78eAd7f2qjgYU01（下のメニューのカード）
-       OFUSE        : https://ofuse.me/o?uid=186138 -->
-  <div class="donate-buttons">
-    <a class="donate-btn primary stripe-donate" data-link="https://donate.stripe.com/5kQ8wQ6Or9iE8QZc0TgYU02"
-       href="https://donate.stripe.com/5kQ8wQ6Or9iE8QZc0TgYU02" target="_blank" rel="noopener">
-      <span class="emoji">💧</span>
-      <span class="label">개발자에게 엘릭서 공급하기<small>신용카드 / Google Pay 지원</small></span>
-    </a>
-    <a class="donate-btn" href="https://ofuse.me/o?uid=186138" target="_blank" rel="noopener">
-      <span class="emoji">🛡️</span>
-      <span class="label">OFUSE로 응원하기<small>한마디 메시지를 곁들여 응원할 수 있습니다</small></span>
-    </a>
-  </div>
-
-  <div class="grade-section">
-    <h2 class="section-title">엘릭서 공급 메뉴</h2>
-    <div class="grade-list">
-      <!-- リンクがあるのは ¥500 / ¥2,000 のみ（aタグ＝クリックで決済・ログイン中はuid付与）。
-           他はStripeのPayment Link未作成のため、リンク無しのアイコン表示のまま。 -->
-      <a class="grade-card g-1 stripe-donate" data-link="https://donate.stripe.com/eVq6oI5Kn66sd7fgh9gYU00"
-         href="https://donate.stripe.com/eVq6oI5Kn66sd7fgh9gYU00" target="_blank" rel="noopener">
-        <button class="grade-info" type="button" data-perk="drop" aria-label="開発者からのメッセージ">i</button>
-        <span class="grade-gem"></span>
-        <div class="grade-name">¥500</div>
-        <div class="grade-cond">한 방울 💧</div>
-      </a>
-      <a class="grade-card g-2 stripe-donate" data-link="https://donate.stripe.com/4gM6oI1u78eAd7f2qjgYU01"
-         href="https://donate.stripe.com/4gM6oI1u78eAd7f2qjgYU01" target="_blank" rel="noopener">
-        <button class="grade-info" type="button" data-perk="bottle" aria-label="開発者からのメッセージ">i</button>
-        <span class="grade-gem"></span>
-        <div class="grade-name">¥2,000</div>
-        <div class="grade-cond">보틀</div>
-      </a>
-      <a class="grade-card g-3 stripe-donate" data-link="https://donate.stripe.com/dRm3cw8WzfH22sBaWPgYU04"
-         href="https://donate.stripe.com/dRm3cw8WzfH22sBaWPgYU04" target="_blank" rel="noopener">
-        <span class="grade-gem"></span>
-        <div class="grade-name">¥5,000</div>
-        <div class="grade-cond">펌프</div>
-      </a>
-      <a class="grade-card g-4 stripe-donate" data-link="https://donate.stripe.com/00w14oa0D1QcaZ74yrgYU05"
-         href="https://donate.stripe.com/00w14oa0D1QcaZ74yrgYU05" target="_blank" rel="noopener">
-        <span class="grade-gem"></span>
-        <div class="grade-name">¥7,500</div>
-        <div class="grade-cond">드럼통</div>
-      </a>
-      <a class="grade-card g-5 stripe-donate" data-link="https://donate.stripe.com/3cI28s5KncuQgjrd4XgYU06"
-         href="https://donate.stripe.com/3cI28s5KncuQgjrd4XgYU06" target="_blank" rel="noopener">
-        <span class="grade-gem"></span>
-        <div class="grade-name">¥10,000</div>
-        <div class="grade-cond">탱크</div>
-      </a>
-      <a class="grade-card g-6 stripe-donate" data-link="https://donate.stripe.com/bJe00k7SvcuQffnd4XgYU07"
-         href="https://donate.stripe.com/bJe00k7SvcuQffnd4XgYU07" target="_blank" rel="noopener">
-        <span class="grade-gem"></span>
-        <div class="grade-name">¥15,000</div>
-        <div class="grade-cond">풀</div>
-      </a>
-      <a class="grade-card g-7 stripe-donate" data-link="https://donate.stripe.com/aFaaEYa0DamIebjd4XgYU08"
-         href="https://donate.stripe.com/aFaaEYa0DamIebjd4XgYU08" target="_blank" rel="noopener">
-        <span class="grade-gem"></span>
-        <div class="grade-name">¥30,000</div>
-        <div class="grade-cond">제조소</div>
-      </a>
-      <a class="grade-card g-8 stripe-donate" data-link="https://donate.stripe.com/14A4gA7Sv9iE0kt2qjgYU09"
-         href="https://donate.stripe.com/14A4gA7Sv9iE0kt2qjgYU09" target="_blank" rel="noopener">
-        <span class="grade-gem"></span>
-        <div class="grade-name">¥40,000</div>
-        <div class="grade-cond">댐</div>
-      </a>
-      <a class="grade-card g-9 stripe-donate" data-link="https://donate.stripe.com/9B65kEc8L52offne91gYU0a"
-         href="https://donate.stripe.com/9B65kEc8L52offne91gYU0a" target="_blank" rel="noopener">
-        <span class="grade-gem"></span>
-        <div class="grade-name">¥50,000</div>
-        <div class="grade-cond">엘릭서의 샘</div>
-      </a>
-      <div class="grade-card g-hidden">
-        <span class="grade-gem"></span>
-        <div class="grade-name">？？？</div>
-        <div class="grade-cond">히든</div>
-      </div>
-    </div>
-    <p class="page-sub" style="margin:14px 0 0;" data-i18n="sup.menuNote">
-      항상 응원해 주셔서 감사합니다. 보내주신 공급은 서버 유지 · 카드 데이터 갱신 · 새 기능 개발에 소중히 쓰겠습니다. 공급은 순수한 응원이며, 모든 기능은 누구나 무료로 쓸 수 있습니다.
-    </p>
-  </div>
-
-  <div class="note" data-i18n="sup.notes">
-    ※ <b>로그인 중이신 경우</b>, 보내주신 공급은 <b>누계</b>로 기록하고 있습니다. 언제나 정말 감사합니다.<br>
-    ※ OFUSE를 통한 응원도 누계에 반영할 수 있습니다. 메시지에 <b>이 사이트의 로그인 이메일 주소</b>를 적어 주세요.<br>
-    ※ 금액은 참고용입니다. 결제 화면에서 원하는 금액을 입력할 수 있습니다(월정액이 아닌 1회성).<br>
-    ※ 공급은 순수한 응원입니다. 덱 짜기·분석 등 모든 기능은 누구나 무료로 쓸 수 있습니다.<br>
-    ※ This material is unofficial and is not endorsed by Supercell. For more information see Supercell's <a href='https://supercell.com/en/fan-content-policy/' target='_blank' rel='noopener' style='color:#8a90a0;'>Fan Content Policy</a>.
-  </div>
-</div>
-
-<div class="footer-signature">
-  <span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span>
-  <div style="font-size:10px;color:#6b7080;margin-top:10px;letter-spacing:0;line-height:1.6;font-family:CRDBSymbols,sans-serif;">This material is unofficial and is not endorsed by Supercell.<br>For more information see Supercell's <a href="https://supercell.com/en/fan-content-policy/" target="_blank" rel="noopener" style="color:#8a90a0;">Fan Content Policy</a>.</div>
-</div>
-
-<!-- ログイン（Firebase）。ヘッダーにログインボタンが自動で付きます -->
-<script type="module" src="/auth.js?v=260818"></script>
-<script defer src="/js/i18n/ko.js?v=91b8311577"></script>
+<div class="footer-signature"><span class="by-text">By</span> <span class="creator-name">rea-fi-lia</span></div>
+<script defer src="/js/i18n/ko.js?v=17b7d86911"></script>
 <script defer src="/i18n.js?v=261012g"></script>
-<script>
-// ログイン中はStripeリンクに ?client_reference_id=<uid> を付与＝webhookが「誰の供給か」を記録できる。
-// 未ログインでも支援は可能（その場合は donationsUnclaimed に退避され、後でメール照合/手動反映）。
-(function () {
-  function apply(user) {
-    var uid = (user && user.uid) ? user.uid : '';
-    document.querySelectorAll('a.stripe-donate').forEach(function (a) {
-      var base = a.getAttribute('data-link');
-      a.href = uid ? (base + '?client_reference_id=' + encodeURIComponent(uid)) : base;
-    });
-  }
-  function init() {
-    if (window.CRAuth && window.CRAuth.onChange) {
-      window.CRAuth.onChange(function (user) { apply(user); }); // 状態変化＋初回即時に発火
-    } else { apply(null); setTimeout(init, 300); } // auth.js読み込み待ち
-  }
-  if (document.readyState !== 'loading') init();
-  else document.addEventListener('DOMContentLoaded', init);
-
-  // 特典内容ポップ（情報アイコン）＋ 購入タップ時のジェム演出
-  var PERKS = {
-    drop:   { title: '¥500 ひとしずく 💧', items: ['ひとしずくが、サーバーを守るエリクサーになります。', '供給されたエリクサーは、維持費・データ更新・新機能の開発に直行します。', 'あなたの一滴で、開発が前に進みます。'] },
-    bottle: { title: '¥2,000 ボトル', items: ['ボトル級の供給。開発が一段加速します。', '大型アップデートの背中を押すのは、いつもこのクラスの供給です。', '心強い援軍に感謝を。'] }
-  };
-  function showPerk(key) {
-    var p = PERKS[key]; if (!p) return;
-    var ov = document.createElement('div'); ov.className = 'perk-pop';
-    ov.innerHTML = '<div class="perk-pop-box"><h3>' + p.title + '</h3><ul>' +
-      p.items.map(function (t) { return '<li>' + t + '</li>'; }).join('') +
-      '</ul><div class="perk-pop-note">※ 供給は見返りのない純粋な応援です。</div>' +
-      '<button class="perk-pop-close" type="button">閉じる</button></div>';
-    ov.addEventListener('click', function (e) { if (e.target === ov || e.target.classList.contains('perk-pop-close')) ov.remove(); });
-    document.body.appendChild(ov);
-  }
-  document.querySelectorAll('.grade-info').forEach(function (b) {
-    b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); showPerk(b.getAttribute('data-perk')); });
-  });
-  document.querySelectorAll('a.grade-card.stripe-donate').forEach(function (a) {
-    a.addEventListener('click', function (e) {
-      if (e.target.closest('.grade-info')) return;       // 情報アイコンは別処理
-      e.preventDefault();
-      if (a.classList.contains('purchasing')) return;    // 二重タップ防止
-      a.classList.add('purchasing');
-      var href = a.href;                                  // client_reference_id付きの最新href
-      setTimeout(function () { a.classList.remove('purchasing'); window.location.href = href; }, 800);
-    });
-  });
-})();
-</script>
 <script defer src="/js/ux-guard.js?v=260818"></script>
 <!--SITE-FOOT--><style>.site-foot{max-width:760px;margin:28px auto 18px;padding:14px 18px 6px;border-top:1px solid var(--border,rgba(255,255,255,.12));font-size:12px;line-height:1.75;color:var(--text-muted,var(--dim,#9aa3b5))}.site-foot-links{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0 0 6px}.site-foot a{color:inherit;text-decoration:underline}.site-foot p{margin:4px 0}.cg-fcp{font-size:11px;line-height:1.6;opacity:.8;margin-top:8px}</style><footer class="site-foot"><nav class="site-foot-links"><a href="privacy.html">개인정보 처리방침</a><a href="contact.html">문의</a><a href="about.html">이 사이트 소개</a></nav><p class="site-foot-mt">이 페이지는 일본어 원문을 자동 번역한 것입니다.</p><p class="site-foot-fcp">This content is not affiliated with, endorsed, sponsored, or specifically approved by Supercell and Supercell is not responsible for it. For more information see Supercell’s Fan Content Policy: <a href="https://supercell.com/en/fan-content-policy/" rel="noopener">www.supercell.com/fan-content-policy</a>.</p></footer><!--/SITE-FOOT-->
 </body>

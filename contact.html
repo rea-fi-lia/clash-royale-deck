@@ -69,6 +69,11 @@
     cursor: pointer; transition: all 0.12s; font-family: CRDBSymbols,var(--font-body);
   }
   .submit-btn:hover { background: #f0aa28; transform: translateY(-1px); }
+  .submit-btn:disabled { opacity: .65; cursor: default; transform: none; }
+  .contact-note, .contact-status { font-size: 13px; line-height: 1.7; margin: 12px 0; }
+  .contact-note { color: var(--text-muted); }
+  .contact-status { padding: 12px; border: 1px solid var(--border-hi); border-radius: 8px; }
+  .contact-status p { margin: 0; }
 
   .alt-contact { margin-top: 24px; padding: 18px; background: var(--surface); border-radius: 10px; }
   .alt-contact h3 { font-size: 14px; margin-bottom: 8px; }
@@ -170,7 +175,16 @@
       <label for="message">内容</label>
       <textarea id="message" placeholder="ご要望・ご意見をご記入ください"></textarea>
     </div>
-    <button class="submit-btn" id="submitBtn">送信する</button>
+    <p class="contact-note">このフォームでは受領通知を表示できません。送信後も入力内容を残します。受領確認が必要な場合は、下のXからご連絡ください。</p>
+    <button class="submit-btn" id="submitBtn" type="button">
+      <span id="contactLabelDefault">送信する</span>
+      <span id="contactLabelSending" hidden>送信中…</span>
+      <span id="contactLabelUnconfirmed" hidden>受領は未確認です</span>
+    </button>
+    <div class="contact-status" id="contactStatus" role="status" aria-live="polite" hidden>
+      <p id="contactUnconfirmed" hidden>送信処理は終了しましたが、受領は確認できていません。同じ内容の再送はせず、確認が必要な場合は下のXから送信日時と内容の概要をお知らせください。</p>
+      <p id="contactUnknown" hidden>通信の結果を確認できませんでした。すでに届いている場合もあるため、同じ内容の再送はせず、下のXから送信日時と内容の概要をお知らせください。</p>
+    </div>
   </div>
 
   <div class="alt-contact">
@@ -191,27 +205,50 @@
   const CONTACT_API = "https://script.google.com/macros/s/AKfycbxU_zgbQW7cep4lZXgYGCtnjug3HUTNCm07epnogHL5GJmXpL48U9-vw-dXjMt4xUC1/exec";
 
   const btn = document.getElementById('submitBtn');
+  const typeField = document.getElementById('type');
+  const nameField = document.getElementById('name');
+  const messageField = document.getElementById('message');
+  // この画面内の二重送信を防ぐ。問い合わせ内容はブラウザーの永続保存へ追加しない。
+  const attempts = new Map();
+  let sending = false;
+  function updateContactState() {
+    const result = attempts.get(messageField.value.trim());
+    btn.disabled = sending || !!result;
+    typeField.disabled = nameField.disabled = messageField.disabled = sending;
+    document.getElementById('contactLabelDefault').hidden = sending || !!result;
+    document.getElementById('contactLabelSending').hidden = !sending;
+    document.getElementById('contactLabelUnconfirmed').hidden = sending || !result;
+    document.getElementById('contactStatus').hidden = sending || !result;
+    document.getElementById('contactUnconfirmed').hidden = result !== 'unconfirmed';
+    document.getElementById('contactUnknown').hidden = result !== 'unknown';
+  }
+  messageField.addEventListener('input', updateContactState);
   btn.onclick = async () => {
-    const type = document.getElementById('type').value;
-    const name = document.getElementById('name').value.trim();
-    const message = document.getElementById('message').value.trim();
+    const type = typeField.value;
+    const name = nameField.value.trim();
+    const message = messageField.value.trim();
+    if (sending || attempts.has(message)) return;
     if (!message) { alert('内容をご記入ください'); return; }
     if (!CONTACT_API) { alert('送信先が未設定です。少し待ってから、またはXからお願いします。'); return; }
-    const orig = btn.textContent;
-    btn.disabled = true; btn.textContent = '送信中…';
+    sending = true;
+    attempts.set(message, 'pending');
+    updateContactState();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
     try {
       // GAS(Apps Script)はクロスオリジンのレスポンスを読めない(CORS)ので no-cors で送る。
       // application/x-www-form-urlencoded（プリフライト不要）= doPostのe.parameterに入る。
       const body = new URLSearchParams({ type, name, message, page: 'contact.html' });
-      await fetch(CONTACT_API, { method: 'POST', mode: 'no-cors', body });
-      // no-corsは応答が読めない(opaque)。送信できたら成功扱い（実際の受領はSlack通知で確認）
-      btn.textContent = '✓ 送信しました';
-      document.getElementById('message').value = '';
-      document.getElementById('name').value = '';
-      setTimeout(() => { btn.disabled = false; btn.textContent = orig; }, 4000);
+      await fetch(CONTACT_API, { method: 'POST', mode: 'no-cors', body, signal: controller.signal });
+      // opaque応答では受領を確定できない。本文を残し、自動再送もしない。
+      attempts.set(message, 'unconfirmed');
     } catch (e) {
-      btn.disabled = false; btn.textContent = orig;
-      alert('送信に失敗しました。お手数ですが X（@rea_fi_lia）からもお気軽にどうぞ。');
+      // 通信失敗や時間切れでも、送信先ですでに受領した可能性がある。
+      attempts.set(message, 'unknown');
+    } finally {
+      clearTimeout(timer);
+      sending = false;
+      updateContactState();
     }
   };
 </script>

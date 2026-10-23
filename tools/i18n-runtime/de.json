@@ -1101,5 +1101,15 @@
  "考えています… その間もカードは選べます": "Denkt nach... Du kannst währenddessen weiterhin Karten auswählen",
  "例：足りない役割ってなに？": "z. B., Welche Rolle fehlt?",
  "送る": "Senden",
- "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} ist deine wichtigste Möglichkeit, Turmschaden zu verursachen. Plane eine Alternative ein, falls sie gestoppt wird."
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} ist deine wichtigste Möglichkeit, Turmschaden zu verursachen. Plane eine Alternative ein, falls sie gestoppt wird.",
+ "保存済みの戦績を表示しています。取得結果を確認中です。": "Gespeicherte Kämpfe werden angezeigt, während der neueste Abruf geprüft wird.",
+ "戦績を取得中です。": "Kampfaufzeichnungen werden abgerufen.",
+ "通信に失敗しました。保存済みの戦績を表示しています。": "Die Verbindung ist fehlgeschlagen. Gespeicherte Kämpfe werden angezeigt.",
+ "戦績を取得できませんでした。接続とタグを確認して再試行してください。": "Die Kämpfe konnten nicht abgerufen werden. Prüfe Verbindung und Tag und versuche es erneut.",
+ "ゲームから最新の戦績を取得できませんでした。保存済みの記録を表示しています。": "Die neuesten Kämpfe konnten nicht aus dem Spiel abgerufen werden. Gespeicherte Aufzeichnungen werden angezeigt.",
+ "取得できた戦績を表示しています。未取得の試合は含まれません。": "Die erfolgreich abgerufenen Kämpfe werden angezeigt. Nicht erfasste Kämpfe sind nicht enthalten.",
+ "戦績の最終取得：{at}": "Kämpfe zuletzt abgerufen: {at}",
+ "戦績の取得時刻は確認できません。": "Der Abrufzeitpunkt der Kämpfe ist nicht verfügbar.",
+ "取得中…": "Abruf läuft…",
+ "勝率・勝敗は選択期間の取得済み1対1の全モード合算です。勝率は勝ち数 ÷ 試合数で、引き分けも試合数に含みます。トロフィー推移とは対象が異なる場合があります。": "Siegrate und Bilanz umfassen alle erfassten 1-gegen-1-Modi des gewählten Zeitraums. Die Siegrate ist Siege ÷ Kämpfe; Unentschieden zählen mit. Das Trophäendiagramm kann andere Kämpfe umfassen."
 }

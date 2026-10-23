@@ -193,7 +193,8 @@ function cardBody(c, ctx, D) {
     out.push('<p class="note">'+(balance.status==='matched'?'以下の変更は公式発表の数値を反映済みです。':'未反映または未確認の項目があります。')+'</p>');
     out.push('<table class="cardpage-stats"><thead><tr><th>対象</th><th>調整後</th><th>適用日</th></tr></thead><tbody>'+balance.checks.map(c=>'<tr><th>'+esc(labels[c.form]+'・'+c.label)+(c.level?'（Lv'+c.level+'）':'')+'</th><td>'+esc(c.status==='matched'?c.actual:'確認中')+'</td><td>'+esc(c.effectiveAt)+'</td></tr>').join('')+'</tbody></table>');
     const globalStatus=st._officialStatus;
-    if(globalStatus && globalStatus!=='reviewed') out.push('<p class="note">新しい公式発表の確認が完了していません。最後に確認できた調整を掲載しています。</p>');
+    if(globalStatus === 'unavailable') out.push('<p class="note">最新の公式発表を取得できていません。最後に確認できた調整を掲載しています。</p>');
+    else if(globalStatus === 'review-required' && pending.length) out.push('<p class="note">このカードの一部の数値は確認中です。確認済みの変更を表に掲載しています。</p>');
     out.push('<p class="note"><a href="'+esc(balance.source)+'" target="_blank" rel="noopener">Supercell公式発表</a>を優先。全カードの数値比較はレベル11基準です。</p></section>');
   }
   const rows = [];

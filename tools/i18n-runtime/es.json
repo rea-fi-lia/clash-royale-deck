@@ -1101,5 +1101,15 @@
  "考えています… その間もカードは選べます": "Pensando... Aún puedes seleccionar cartas mientras esperas",
  "例：足りない役割ってなに？": "ej., ¿Qué rol falta?",
  "送る": "Enviar",
- "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} es tu principal forma de dañar la torre. Considera otra opción si lo detienen."
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} es tu principal forma de dañar la torre. Considera otra opción si lo detienen.",
+ "保存済みの戦績を表示しています。取得結果を確認中です。": "Mostrando batallas guardadas mientras se comprueba la última actualización.",
+ "戦績を取得中です。": "Obteniendo batallas.",
+ "通信に失敗しました。保存済みの戦績を表示しています。": "Error de conexión. Mostrando batallas guardadas.",
+ "戦績を取得できませんでした。接続とタグを確認して再試行してください。": "No se pudieron obtener las batallas. Comprueba tu conexión e intenta de nuevo.",
+ "ゲームから最新の戦績を取得できませんでした。保存済みの記録を表示しています。": "No se pudieron obtener las últimas batallas del juego. Mostrando registros guardados.",
+ "取得できた戦績を表示しています。未取得の試合は含まれません。": "Mostrando las batallas que se pudieron obtener. No se incluyen las batallas no recopiladas.",
+ "戦績の最終取得：{at}": "Última obtención de batallas: {at}",
+ "戦績の取得時刻は確認できません。": "La hora de obtención de batallas no está disponible.",
+ "取得中…": "Obteniendo...",
+ "勝率・勝敗は選択期間の取得済み1対1の全モード合算です。勝率は勝ち数 ÷ 試合数で、引き分けも試合数に含みます。トロフィー推移とは対象が異なる場合があります。": "El winrate y el total de victorias y derrotas combinan todos los modos 1v1 recopilados del período seleccionado. El winrate es victorias ÷ batallas, y los empates se incluyen en el recuento de batallas. La tendencia de trofeos puede incluir un conjunto diferente de batallas."
 }

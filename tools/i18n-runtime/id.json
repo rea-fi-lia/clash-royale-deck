@@ -1100,5 +1100,16 @@
  "考えています… その間もカードは選べます": "Sedang berpikir... Anda tetap bisa memilih kartu sambil menunggu",
  "例：足りない役割ってなに？": "Contoh: Peran apa yang kurang?",
  "送る": "Kirim",
- "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} adalah cara utama untuk memberikan kerusakan pada menara. Pertimbangkan opsi lain jika dihentikan."
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} adalah cara utama untuk memberikan kerusakan pada menara. Pertimbangkan opsi lain jika dihentikan.",
+ "保存済みの戦績を表示しています。取得結果を確認中です。": "Menampilkan catatan pertempuran tersimpan sambil memeriksa hasil pengambilan terbaru.",
+ "戦績を取得中です。": "Mengambil catatan pertempuran.",
+ "通信に失敗しました。保存済みの戦績を表示しています。": "Koneksi gagal. Menampilkan catatan pertempuran tersimpan.",
+ "戦績を取得できませんでした。接続とタグを確認して再試行してください。": "Catatan pertempuran tidak dapat diambil. Periksa koneksi dan tag, lalu coba lagi.",
+ "ゲームから最新の戦績を取得できませんでした。保存済みの記録を表示しています。": "Pertempuran terbaru dari game tidak dapat diambil. Menampilkan catatan tersimpan.",
+ "取得できた戦績を表示しています。未取得の試合は含まれません。": "Menampilkan catatan pertempuran yang berhasil diperoleh. Pertempuran yang belum dikumpulkan tidak disertakan.",
+ "戦績の最終取得：{at}": "Catatan pertempuran terakhir diambil: {at}",
+ "戦績の取得時刻は確認できません。": "Waktu pengambilan catatan pertempuran tidak dapat dipastikan.",
+ "取得中…": "Mengambil…",
+ "勝率・勝敗は選択期間の取得済み1対1の全モード合算です。勝率は勝ち数 ÷ 試合数で、引き分けも試合数に含みます。トロフィー推移とは対象が異なる場合があります。": "Tingkat kemenangan serta total menang/kalah menggabungkan semua mode 1 lawan 1 yang diperoleh dalam periode terpilih. Tingkat kemenangan adalah jumlah kemenangan ÷ jumlah pertempuran, dengan hasil seri masuk jumlah pertempuran. Cakupannya dapat berbeda dari grafik perubahan trofi.",
+ "　（相手にクラウンを渡さず三冠＝押し切っている。渡しているほど押し返されている）": " (tiga mahkota tanpa kehilangan mahkota = menang dengan dominan; semakin banyak mahkota yang hilang, semakin besar perlawanan yang diterima)"
 }

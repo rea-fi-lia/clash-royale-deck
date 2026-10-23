@@ -1100,5 +1100,16 @@
  "考えています… その間もカードは選べます": "Pensando... Você ainda pode selecionar cartas enquanto espera",
  "例：足りない役割ってなに？": "ex: O que está faltando?",
  "送る": "Enviar",
- "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} é sua principal forma de causar dano à torre. Considere outra opção caso seja bloqueado."
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x} é sua principal forma de causar dano à torre. Considere outra opção caso seja bloqueado.",
+ "三冠の内訳 3:0=": "Detalhamento de três coroas 3:0=",
+ "保存済みの戦績を表示しています。取得結果を確認中です。": "Exibindo registros salvos enquanto verificamos a obtenção mais recente.",
+ "戦績を取得中です。": "Buscando registros de batalhas.",
+ "通信に失敗しました。保存済みの戦績を表示しています。": "A conexão falhou. Exibindo registros salvos.",
+ "戦績を取得できませんでした。接続とタグを確認して再試行してください。": "Não foi possível obter o histórico. Confira a conexão e a tag e tente novamente.",
+ "ゲームから最新の戦績を取得できませんでした。保存済みの記録を表示しています。": "Não foi possível obter as batalhas mais recentes do jogo. Exibindo registros salvos.",
+ "取得できた戦績を表示しています。未取得の試合は含まれません。": "Exibindo os registros que conseguimos obter. Batalhas não coletadas não estão incluídas.",
+ "戦績の最終取得：{at}": "Última obtenção dos registros: {at}",
+ "戦績の取得時刻は確認できません。": "O horário de obtenção dos registros não está disponível.",
+ "取得中…": "Buscando…",
+ "勝率・勝敗は選択期間の取得済み1対1の全モード合算です。勝率は勝ち数 ÷ 試合数で、引き分けも試合数に含みます。トロフィー推移とは対象が異なる場合があります。": "A taxa de vitórias e os totais combinam todos os modos 1 contra 1 coletados do período selecionado. A taxa é vitórias ÷ batalhas, incluindo empates na quantidade de batalhas. O gráfico de troféus pode abranger outro conjunto de batalhas."
 }

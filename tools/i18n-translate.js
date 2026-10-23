@@ -282,8 +282,10 @@ async function fill() {
   const langsArg = typeof arg('--langs') === 'string' ? arg('--langs').split(',') : null;
   const langs = langsArg ? langsArg.filter(l => L.TARGETS.includes(l)) : ['en'].concat(L.TARGETS.filter(l => l !== 'en'));
   const maxBatches = Number(arg('--max-batches')) || Infinity;
+  // Subscription calls must not be duplicated after a timeout or rate limit.
+  const maxAttempts = engineName.startsWith('fugu') ? 1 : 3;
   const kinds = typeof arg('--only') === 'string' ? [arg('--only')] : ['runtime', 'static'];
-  let calls = 0, added = 0, rejected = 0, failedCalls = 0, limitHits = 0;
+  let calls = 0, added = 0, rejected = 0, failedCalls = 0;
   const gap = Number(arg('--gap')) || engine.gap;   // 処理を2つ同時に回すときは広げる（例 --gap 9000）
   const rejects = [];
   outer:
@@ -297,7 +299,7 @@ async function fill() {
         if (calls >= maxBatches) break outer;
         const prompt = promptFor(lang, kind, group, known);
         let res = null;
-        for (let attempt = 1; attempt <= 3 && !res; attempt++) {
+        for (let attempt = 1; attempt <= maxAttempts && calls < maxBatches && !res; attempt++) {
           calls++;
           // 上位のモデルが混んでいる（503）ときは、最後の1回だけ軽いモデルで頼む
           const useModel = (attempt === 3 && fallbackModel) ? fallbackModel : model;
@@ -307,20 +309,20 @@ async function fill() {
             const msg = String(e.message || e);
             console.log('  ' + lang + ' ' + kind + '：AIの呼び出しに失敗（' + attempt + '回目）' + msg.slice(0, 160));
             // gemini-local の失敗の文には「429は利用上限…」という案内が毎回付くので、状態の番号だけで見分ける。
-            // 429 は1分あたりの上限のことが多いので60秒待って続け、3回続いたら1日の上限とみて止める
+            // A rate limit is not evidence that an immediate retry is safe.
             if (/HTTP 429\b/.test(msg)) {
-              limitHits++;
-              if (limitHits >= 3) { console.log('  利用の上限に3回続けて当たったので、ここで止める（記録は保存済み）'); break outer; }
-              console.log('  利用の上限（1分あたりの可能性）に当たったので60秒待つ');
-              await sleep(60000);
-              continue;
+              console.log('  利用上限に達したため停止（保存済みの訳は保持）。回復を確認してから再開してください。');
+              break outer;
             }
-            await sleep(attempt * 15000);
+            if (engineName.startsWith('fugu')) {
+              console.log('  Subscriptionの呼び出し結果が不明なため停止（自動再試行・次バッチへの移行はしません）。');
+              break outer;
+            }
+            if (attempt < maxAttempts && calls < maxBatches) await sleep(attempt * 15000);
           }
-          await sleep(gap);
+          if (calls < maxBatches) await sleep(gap);
         }
         if (!res) continue;
-        limitHits = 0;
         const file = kind === 'runtime' ? path.join(L.RUNTIME_DIR, lang + '.json') : path.join(L.CONTENT_DIR, lang + '.json');
         const mem = L.readJson(file);
         group.forEach((it, i) => {

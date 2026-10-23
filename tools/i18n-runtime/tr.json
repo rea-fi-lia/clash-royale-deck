@@ -1101,5 +1101,15 @@
  "考えています… その間もカードは選べます": "Düşünüyor... Beklerken kart seçmeye devam edebilirsiniz",
  "例：足りない役割ってなに？": "örn., Hangi rol eksik?",
  "送る": "Gönder",
- "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x}, kuleye hasar vermenin ana yoludur. Durdurulursa kullanabileceğin başka bir seçeneği düşün."
+ "削りの入口は{x}で、そこを止められた時の別ルートが課題です": "{x}, kuleye hasar vermenin ana yoludur. Durdurulursa kullanabileceğin başka bir seçeneği düşün.",
+ "保存済みの戦績を表示しています。取得結果を確認中です。": "Son veri alımı kontrol edilirken kayıtlı savaşlar gösteriliyor.",
+ "戦績を取得中です。": "Savaş kayıtları alınıyor.",
+ "通信に失敗しました。保存済みの戦績を表示しています。": "Bağlantı başarısız oldu. Kayıtlı savaşlar gösteriliyor.",
+ "戦績を取得できませんでした。接続とタグを確認して再試行してください。": "Savaş kayıtları alınamadı. Bağlantıyı ve etiketi kontrol edip yeniden dene.",
+ "ゲームから最新の戦績を取得できませんでした。保存済みの記録を表示しています。": "Oyundan en son savaşlar alınamadı. Kayıtlı veriler gösteriliyor.",
+ "取得できた戦績を表示しています。未取得の試合は含まれません。": "Alınabilen savaş kayıtları gösteriliyor. Toplanmamış savaşlar dahil değildir.",
+ "戦績の最終取得：{at}": "Savaş kayıtlarının son alınma zamanı: {at}",
+ "戦績の取得時刻は確認できません。": "Savaş kayıtlarının alınma zamanı belirlenemiyor.",
+ "取得中…": "Alınıyor…",
+ "勝率・勝敗は選択期間の取得済み1対1の全モード合算です。勝率は勝ち数 ÷ 試合数で、引き分けも試合数に含みます。トロフィー推移とは対象が異なる場合があります。": "Kazanma oranı ve sonuçlar, seçilen dönemdeki toplanmış tüm 1’e 1 modları birleştirir. Oran galibiyet sayısı ÷ savaş sayısıdır; beraberlikler de sayılır. Kupa grafiği farklı savaşları kapsayabilir."
 }
