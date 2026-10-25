@@ -129,6 +129,7 @@ async function probePolRanking_(token) {
       var second = await crGet('/locations/global/pathoflegend/players?limit=1000&after=' + encodeURIComponent(after), token);
       out.pages.push(Object.assign({ page: 2, cursorAfter: second.paging && second.paging.cursors && second.paging.cursors.after }, summarizeRankingItems_(second.items || [])));
     } catch (e) {
+      if (upstream.isUpstreamDown(e)) throw e;
       out.page2Error = (e && e.message) || String(e);
     }
   }
@@ -447,6 +448,7 @@ async function collectPilotTags_(token) {
       }
       console.log('pilot ' + tag + ' 追加・補完' + added + '戦 / 累計' + store.battles.length + '戦');
     } catch (e) {
+      if (upstream.isUpstreamDown(e)) throw e;
       console.log('pilot ' + tag + ' error ' + ((e && e.message) || e));
     }
   }
@@ -1024,7 +1026,7 @@ async function updateDecks() {
       }
       await writePrivateJson_(ghSiblingPath_(GH_PATH, 'pol-ranking-probe-v1.json'), probe, 'chore: update pol-ranking-probe-v1.json');
       console.log('pol-ranking-probe pages=' + probe.pages.length + ' keys=' + (probe.pages[0] && probe.pages[0].keys || []).join(','));
-    } catch (e) { console.log('pol-ranking-probe error ' + ((e && e.message) || e)); }
+    } catch (e) { if (upstream.isUpstreamDown(e)) throw e; console.log('pol-ranking-probe error ' + ((e && e.message) || e)); }
   }
   var players = (ranking.items || []).slice(0, topN);
   var rankedCount = players.length;   // 今シーズンのランキングに実際に載っている人数（補いを足す前）
@@ -1530,7 +1532,7 @@ async function updateDecks() {
       if (cc.cursor === 0) cc.lastFullAt = Date.now();
       var rk;
       try { rk = await crGet('/locations/' + locId + '/rankings/clans?limit=1000', token); }
-      catch (e) { console.log('clan-crawl rankings error loc=' + locId + ' ' + ((e && e.message) || e)); continue; }
+      catch (e) { if (upstream.isUpstreamDown(e)) throw e; console.log('clan-crawl rankings error loc=' + locId + ' ' + ((e && e.message) || e)); continue; }
       var clans = (rk && rk.items) || [];
       if (!clans.length) continue;
       stats.countries++;
@@ -1544,7 +1546,7 @@ async function updateDecks() {
         if (!cl || !cl.tag) continue;
         var mem;
         try { mem = await crGet('/clans/' + encodeURIComponent(cl.tag) + '/members', token); }
-        catch (e) { continue; }
+        catch (e) { if (upstream.isUpstreamDown(e)) throw e; continue; }
         stats.clans++;
         ((mem && mem.items) || []).forEach(function (m) {
           var t = normTag_(m.tag);
@@ -1563,7 +1565,7 @@ async function updateDecks() {
 
   var clanStats = { countries: 0, clans: 0, found: 0 };
   try { clanStats = await discoverViaClans(); }
-  catch (e) { console.log('clan-crawl error ' + ((e && e.message) || e)); }
+  catch (e) { if (upstream.isUpstreamDown(e)) throw e; console.log('clan-crawl error ' + ((e && e.message) || e)); }
   console.log('clan-crawl countries=' + clanStats.countries + ' clans=' + clanStats.clans + ' newPlayers=' + clanStats.found);
 
   // 300刻みで表示帯と収集帯を合わせる。取得件数・速度の予算は別に維持する。

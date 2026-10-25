@@ -209,6 +209,7 @@ test('notify never announces recovery for a cancelled run and thins out alerts o
     assert.match(run('success',2),/--level ok/);
     assert.equal(run('success',0),'','no recovery message when nothing was broken');
     assert.equal(run('failure',0),'','the first failure waits for the streak');
+    assert.match(run('failure',0,'1'),/--level error/,'a collector deadline can report its first failure');
     assert.match(run('failure',1,'2','6'),/--level error/,'the threshold always rings');
     assert.equal(run('failure',2,'2','6'),'','an ongoing upstream outage is thinned out');
     assert.match(run('failure',7,'2','6'),/--level error/,'and rings again six runs later');

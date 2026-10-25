@@ -165,7 +165,7 @@ jobs:
           CR_DEV_PASSWORD: ${{ (github.ref_name == 'main' && (github.event.inputs.target_branch || 'data') == 'data') && secrets.CR_DEV_PASSWORD || '' }}
           CR_UPSTREAM: ${{ github.event.inputs.upstream || 'auto' }}
           UPSTREAM_STATUS_FILE: ${{ runner.temp }}/crdb-upstream.json
-        run: bash tools/run-collector.sh
+        run: bash tools/run-collector-bounded.sh
 
       # 上流停止で降りた回は、cr-upstream が要約をファイルに残す。通知文と鳴らす間隔をそれで切り替える
       - name: 上流の状態を読む
@@ -191,8 +191,9 @@ jobs:
           status: ${{ job.status }}
           workflow: collect.yml
           label: データ収集
-          streak: '2'
-          detail: ${{ steps.upstream.outputs.detail || 'サイトの数字が更新されません。' }}
+          # Timeouts already consume almost an hourly interval; report the first one.
+          streak: ${{ steps.collector.outputs.timed_out == 'true' && '1' || '2' }}
+          detail: ${{ steps.collector.outputs.timed_out == 'true' && '42分以内に収集・保存・集計が完了しませんでした。最終更新時刻を確認してください。' || steps.upstream.outputs.detail || 'サイトの数字が更新されません。' }}
           # 上流が止まっているだけの間は、鳴らし始めた後は6回に1回（≒6時間おき）。復旧の知らせは必ず鳴る
           repeat_every: ${{ steps.upstream.outputs.down == 'true' && '6' || '1' }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
