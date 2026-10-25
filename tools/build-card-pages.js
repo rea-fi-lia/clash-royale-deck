@@ -104,6 +104,19 @@ function pickStat(s16, re) {
   }
   return num(s16[keys[0]]);
 }
+// Flag inconsistent source values without choosing a replacement or changing analysis data.
+// Only compare a plain, single-hit value with the explicitly named base DPS column.
+function hasDpsSourceMismatch(stats, attrs, displayedDps) {
+  if (Object.keys(stats || {}).some(k => /stage|form/i.test(k))) return false;
+  const damage = stats?.Damage ?? stats?.['Area Damage'];
+  const dpsKeys = Object.keys(stats || {}).filter(k => /^damage per second$/i.test(k));
+  const hit = String(attrs?.['Hit Speed'] || '').trim().match(/^(\d+(?:\.\d+)?)\s*(?:sec(?:onds?)?|s)?$/i);
+  if (typeof damage !== 'number' || !Number.isFinite(damage) || damage < 0 || dpsKeys.length !== 1 || !hit || Number(hit[1]) <= 0) return false;
+  const dps = stats[dpsKeys[0]];
+  if (typeof dps !== 'number' || !Number.isFinite(dps) || dps !== displayedDps) return false;
+  return Math.abs(Math.floor(damage / Number(hit[1]) + 1e-9) - dps) > 1;
+}
+const DPS_SOURCE_NOTE = '掲載元の攻撃力・攻撃速度からの単純計算と毎秒ダメージが一致していないため、毎秒ダメージは確認中です。数値を推測して補完していません。';
 const SPEED_JP = { 'Slow': 'おそい', 'Medium': 'ふつう', 'Fast': 'はやい', 'Very Fast': 'とてもはやい' };
 function speedJp(s) { const m = String(s || '').match(/^([A-Za-z ]+?)\s*\((\d+)\)/); return m ? (SPEED_JP[m[1].trim()] || m[1].trim()) + '（' + m[2] + '）' : (s || '—'); }
 function targetJp(t) {
@@ -178,6 +191,7 @@ function cardBody(c, ctx, D) {
 
   /* 実数値 */
   const hp = st?.combat ? st.combat.hp : st?.hp16, dmg = pickStat(s16, /\bdamage$/i), dps = st?.combat ? st.combat.dps : st?.dps16;
+  const dpsMismatch = c.type !== 'spell' && hasDpsSourceMismatch(s16, attrs, dps);
   const area = pickStat(s16, /area damage/i);
   const tower = (() => { const k = Object.keys(s16).find(x => /crown tower/i.test(x)); return k ? num(s16[k]) : null; })();
   const balance = st?.balanceVerification;
@@ -202,7 +216,7 @@ function cardBody(c, ctx, D) {
   row('コスト', attrs.Cost);
   row('体力', hp != null ? hp.toLocaleString() : null);
   row(c.type === 'spell' ? '範囲ダメージ' : '攻撃力', (c.type === 'spell' ? area : dmg) != null ? (c.type === 'spell' ? area : dmg).toLocaleString() : null);
-  row('毎秒ダメージ', c.type === 'spell' ? null : (dps != null ? dps.toLocaleString() : null));
+  row('毎秒ダメージ', c.type === 'spell' ? null : (dpsMismatch ? '確認中' : (dps != null ? dps.toLocaleString() : null)));
   row('タワーへのダメージ', tower != null ? tower.toLocaleString() : null);
   row('攻撃速度', attrs['Hit Speed']);
   row('攻撃対象', targetJp(attrs.Target));
@@ -213,6 +227,7 @@ function cardBody(c, ctx, D) {
   if (rows.length) {
     out.push('<section class="section"><h2>実数値（レベル' + (displayLevel || 11) + '）</h2>');
     out.push('<table class="cardpage-stats"><tbody>' + rows.join('') + '</tbody></table>');
+    if (dpsMismatch) out.push('<p class="note">' + DPS_SOURCE_NOTE + '</p>');
     const last = st?.freshness?.lastSuccessAt;
       out.push('<p class="note">出典：'+(st?.freshness?.source ? '<a href="'+esc(st.freshness.source)+'" target="_blank" rel="noopener">コミュニティWiki</a>' : 'コミュニティWiki')+(st?.supplementSource?'・<a href="'+esc(st.supplementSource)+'" target="_blank" rel="noopener">RoyaleAPI</a>':'')+'。公式調整がある項目は変更後の値を優先します。' + (last ? 'Wiki取得確認：' + esc(last.slice(0,10)) + '。' : '') + '</p></section>');
   }
@@ -441,4 +456,5 @@ async function main() {
   if (thin.length) console.log('★700文字未満: ' + thin.length + '枚 → ' + thin.slice(0, 8).map(w => w.name + '(' + w.chars + ')').join(', '));
   return written;
 }
-main().catch(e => { console.error(e.stack || e.message); process.exit(1); });
+module.exports = { hasDpsSourceMismatch, DPS_SOURCE_NOTE, cardBody };
+if (require.main === module) main().catch(e => { console.error(e.stack || e.message); process.exit(1); });
