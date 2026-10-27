@@ -1749,8 +1749,11 @@ function cardImgTag(name, form, opt) {
   var src = cardImageSrc(name, form);
   if (!src) return '';
   var o = opt || {};
+  var alt = String(o.alt != null ? o.alt : cardBaseName(name));
+  // 初回の属性翻訳より後に作る画像も現在の言語へ合わせる。装飾画像の空altは保つ。
+  if (alt && typeof window !== 'undefined' && window.CRI18N && typeof window.CRI18N.tr === 'function') alt = window.CRI18N.tr(alt);
   return '<img' + (o.cls ? ' class="' + o.cls + '"' : '') + ' src="' + src + '" alt="' +
-    String(o.alt != null ? o.alt : cardBaseName(name)).replace(/"/g, '&quot;') + '"' +
+    String(alt).replace(/"/g, '&quot;') + '"' +
     (o.eager ? '' : ' loading="lazy"') + '>';
 }
 

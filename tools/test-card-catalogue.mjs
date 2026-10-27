@@ -79,6 +79,23 @@ test('unknown-card observations are preserved across disk chunks without a sampl
   const chunks=[];await store.flush(async(part,rows)=>{chunks.push(rows);return true;});
   assert.deepEqual(chunks.map(c=>c.length),[250,250,3]);assert.equal(chunks.flat().at(-1).i,502);assert.equal(store.dir,null);
 });
+
+test('late-rendered card images use the active translation and retain decorative alt and form',()=>{
+  const context={window:{},document:{addEventListener(){}}};
+  vm.runInNewContext(fs.readFileSync(new URL('../js/cards-data.js',import.meta.url),'utf8'),context);
+  const render=expression=>vm.runInNewContext(expression,context);
+  const before=render("cardImgTag('ナイト','e')");
+  assert.match(before,/alt="ナイト"/);
+  context.window.CRI18N={tr:label=>label==='ナイト'?'Knight':label};
+  const after=render("cardImgTag('ナイト','e')");
+  assert.match(after,/alt="Knight"/);
+  assert.equal(after.match(/src="([^"]+)"/)[1],before.match(/src="([^"]+)"/)[1]);
+  assert.match(render("cardImgTag('ナイト','e',{alt:'ナイト'})"),/alt="Knight"/);
+  assert.match(render("cardImgTag('ナイト','e',{alt:''})"),/alt=""/);
+  assert.match(render(`cardImgTag('ナイト','e',{alt:'Card "name"'})`),/alt="Card &quot;name&quot;"/);
+  context.window.CRI18N.tr=label=>label;
+  assert.match(render("cardImgTag('ナイト','e')"),/alt="ナイト"/);
+});
 test('win-condition membership and priority propagate to every catalogue consumer',()=>{
   const next=structuredClone(source),card=structuredClone(next.cards[0]);
   Object.assign(card,{id:999998,slug:'future-wincon',name:'新しい勝ち筋',english:'Future Wincon',winConditionPriority:999});next.cards.push(card);
