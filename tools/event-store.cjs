@@ -1,7 +1,7 @@
 'use strict';
 // Disk-backed event transport/deduplication. No ranking or scoring formulas live here.
 const { DatabaseSync } = require('node:sqlite');
-const { createReadStream, createWriteStream, mkdtempSync, rmSync, statSync, chmodSync, renameSync } = require('node:fs');
+const { createReadStream, createWriteStream, mkdtempSync, rmSync, statSync, statfsSync, chmodSync, renameSync } = require('node:fs');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const { pipeline } = require('node:stream/promises');
@@ -100,15 +100,28 @@ function listXml(xml) {
 }
 async function fileDigest(path) { const hash = createHash('sha256'); for await (const chunk of createReadStream(path)) hash.update(chunk); return hash.digest('hex'); }
 
+// Only numeric storage diagnostics and fixed phase names are logged; never payloads or paths.
+// Diagnostics must not replace the original failure or change cleanup/publication behavior.
+function reportStorageFailure(phase, dir) {
+  const details = { phase, availableBytes: null, databaseBytes: null, walBytes: null, snapshotBytes: null };
+  try { const stats = statfsSync(dir); details.availableBytes = stats.bavail * stats.bsize; } catch {}
+  for (const [key, name] of [['databaseBytes','events.sqlite'], ['walBytes','events.sqlite-wal'], ['snapshotBytes','events.sqlite.gz']]) {
+    try { details[key] = statSync(join(dir, name)).size; } catch {}
+  }
+  try { console.error('event-store failure ' + JSON.stringify(details)); } catch {}
+}
+
 async function openRollingStore({ request, prefix, snapshot, legacy, identity, time, project, cutoff, through, budgetMs = 240000, onProgress = () => {} }) {
   const dir = mkdtempSync(join(tmpdir(), 'crdb-events-')), dbPath = join(dir, 'events.sqlite');
-  let store;
+  let store, phase = 'restore-snapshot';
   try {
     const restored = await request('GET', snapshot);
     if (restored.status === 200) await pipeline(restored.body, createGunzip(), createWriteStream(dbPath, {mode:0o600}));
     else if (restored.status !== 404) throw new Error('event_snapshot_read_' + restored.status);
+    phase = 'open-database';
     store = new EventStore(dbPath, {identity, time, project, cutoff, through});
     if (restored.status === 404 && legacy) {
+      phase = 'import-legacy';
       const prior = await request('GET', legacy);
       if (prior.status === 200) await store.ingest(jsonItems(prior.body));
       else if (prior.status !== 404) throw new Error('event_legacy_read_' + prior.status);
@@ -116,40 +129,49 @@ async function openRollingStore({ request, prefix, snapshot, legacy, identity, t
     return {
       store,
       async backfill() {
-        const all = [], firstDay = new Date(cutoff).toISOString().slice(0,10), lastDay = new Date(through).toISOString().slice(0,10);
-        for (let day = Date.parse(firstDay); day <= Date.parse(lastDay); day += 86400000) {
-          const dayPrefix = prefix + new Date(day).toISOString().slice(0,10) + '/'; let cursor;
-          do {
-            const response = await request('GET', '', null, null, {query:{'list-type':'2',prefix:dayPrefix,'max-keys':'1000',...(cursor?{'continuation-token':cursor}:{})}});
-            if (response.status !== 200) throw new Error('archive_list_' + response.status);
-            const page = listXml(await response.text());
-            all.push(...page.objects.filter(o => o.key.startsWith(dayPrefix) && /\/run-[^/]+\.json$/.test(o.key)));
-            if (page.truncated && !page.cursor) throw new Error('archive_list_cursor_missing');
-            cursor = page.truncated ? page.cursor : null;
-          } while (cursor);
-        }
-        const pending = all.filter(o => !store.hasSource(o)).sort((a,b) => b.key.localeCompare(a.key));
-        const start = Date.now(); let completed = 0, added = 0;
-        for (const source of pending) {
-          if (completed && Date.now() - start >= budgetMs) break;
-          const response = await request('GET', source.key);
-          if (response.status !== 200) throw new Error('archive_read_' + response.status);
-          const result = await store.ingest(jsonItems(response.body), source);
-          added += result.added; completed++;
-          onProgress({completed, pending:pending.length-completed, added, count:store.count()});
-        }
-        return {state:completed===pending.length?'complete':'backfilling', archives:all.length, processed:all.length-pending.length+completed, remaining:pending.length-completed, added, sourceWindowStart:new Date(cutoff).toISOString()};
+        try {
+          const all = [], firstDay = new Date(cutoff).toISOString().slice(0,10), lastDay = new Date(through).toISOString().slice(0,10);
+          for (let day = Date.parse(firstDay); day <= Date.parse(lastDay); day += 86400000) {
+            const dayPrefix = prefix + new Date(day).toISOString().slice(0,10) + '/'; let cursor;
+            do {
+              const response = await request('GET', '', null, null, {query:{'list-type':'2',prefix:dayPrefix,'max-keys':'1000',...(cursor?{'continuation-token':cursor}:{})}});
+              if (response.status !== 200) throw new Error('archive_list_' + response.status);
+              const page = listXml(await response.text());
+              all.push(...page.objects.filter(o => o.key.startsWith(dayPrefix) && /\/run-[^/]+\.json$/.test(o.key)));
+              if (page.truncated && !page.cursor) throw new Error('archive_list_cursor_missing');
+              cursor = page.truncated ? page.cursor : null;
+            } while (cursor);
+          }
+          const pending = all.filter(o => !store.hasSource(o)).sort((a,b) => b.key.localeCompare(a.key));
+          const start = Date.now(); let completed = 0, added = 0;
+          for (const source of pending) {
+            if (completed && Date.now() - start >= budgetMs) break;
+            const response = await request('GET', source.key);
+            if (response.status !== 200) throw new Error('archive_read_' + response.status);
+            const result = await store.ingest(jsonItems(response.body), source);
+            added += result.added; completed++;
+            onProgress({completed, pending:pending.length-completed, added, count:store.count()});
+          }
+          return {state:completed===pending.length?'complete':'backfilling', archives:all.length, processed:all.length-pending.length+completed, remaining:pending.length-completed, added, sourceWindowStart:new Date(cutoff).toISOString()};
+        } catch (err) { reportStorageFailure('backfill', dir); throw err; }
       },
       async save() {
-        store.close(); store = null;
-        const file = join(dir,'events.sqlite.gz');
-        await pipeline(createReadStream(dbPath),createGzip({level:1}),createWriteStream(file,{mode:0o600}));
-        const response = await request('PUT',snapshot,null,'application/gzip',{file,payloadHash:await fileDigest(file),length:statSync(file).size});
-        if (response.status < 200 || response.status >= 300) throw new Error('event_snapshot_write_' + response.status);
-        return statSync(file).size;
+        let phase = 'close-database';
+        try {
+          store.close(); store = null;
+          const file = join(dir,'events.sqlite.gz');
+          phase = 'compress-snapshot';
+          await pipeline(createReadStream(dbPath),createGzip({level:1}),createWriteStream(file,{mode:0o600}));
+          phase = 'hash-snapshot';
+          const payloadHash = await fileDigest(file), length = statSync(file).size;
+          phase = 'upload-snapshot';
+          const response = await request('PUT',snapshot,null,'application/gzip',{file,payloadHash,length});
+          if (response.status < 200 || response.status >= 300) throw new Error('event_snapshot_write_' + response.status);
+          return statSync(file).size;
+        } catch (err) { reportStorageFailure(phase, dir); throw err; }
       },
       cleanup() { if (store) store.close(); store = null; rmSync(dir,{recursive:true,force:true}); }
     };
-  } catch (err) { if (store) store.close(); rmSync(dir,{recursive:true,force:true}); throw err; }
+  } catch (err) { reportStorageFailure(phase, dir); if (store) store.close(); rmSync(dir,{recursive:true,force:true}); throw err; }
 }
 module.exports = { jsonItems, EventStore, listXml, openRollingStore };

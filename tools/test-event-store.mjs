@@ -77,6 +77,54 @@ test('R2 snapshot survives restart, archive pagination and day/window expiry',as
   rolling=await openRollingStore(args);assert.equal((await rolling.backfill()).added,0);assert.equal(rolling.store.count(),3);rolling.cleanup();
   rolling=await openRollingStore({...args,cutoff:now});assert.equal(rolling.store.count(),0);rolling.cleanup();
 });
+test('storage write failures report the phase and sizes without hiding ENOSPC or uploading partial snapshots',()=>{
+  for (const phase of ['restore-snapshot','compress-snapshot']) for (const unavailable of [false,true]) {
+    const code = `
+      const assert=require('node:assert/strict'), fs=require('node:fs');
+      const {Writable}=require('node:stream'), {gzipSync}=require('node:zlib');
+      const phase=${JSON.stringify(phase)}, unavailable=${unavailable}, diagnostics=[];
+      const originalWrite=fs.createWriteStream;
+      const fault=Object.assign(new Error('fixture disk full'),{code:'ENOSPC'});
+      let failedPath, uploads=0;
+      fs.createWriteStream=(path,options)=>{
+        const target=phase==='restore-snapshot'?'events.sqlite':'events.sqlite.gz';
+        if(!path.endsWith('/'+target))return originalWrite(path,options);
+        failedPath=path;
+        return new Writable({write(chunk,encoding,callback){callback(fault);}});
+      };
+      if(unavailable)fs.statfsSync=()=>{throw Error('fixture diagnostic failure');};
+      console.error=message=>{if(String(message).startsWith('event-store failure '))diagnostics.push(message);};
+      const {openRollingStore}=require('./tools/event-store.cjs');
+      (async()=>{
+        let rolling;
+        const request=async(method)=>{
+          if(method==='PUT'){uploads++;return new Response(null,{status:200});}
+          return phase==='restore-snapshot'?new Response(gzipSync(Buffer.from('fixture'))):new Response(null,{status:404});
+        };
+        try {
+          await assert.rejects(async()=>{
+            rolling=await openRollingStore({request,prefix:'fixture/',snapshot:'db.gz',identity:e=>e.id,time:e=>e.t,cutoff:0,through:100});
+            await rolling.store.ingest([{id:'private-player-fixture',t:1}]);
+            await rolling.save();
+          },error=>error===fault);
+          assert.equal(uploads,0);
+          assert.equal(diagnostics.length,1);
+          const info=JSON.parse(diagnostics[0].slice('event-store failure '.length));
+          assert.equal(info.phase,phase);
+          assert.equal(info.availableBytes===null,unavailable);
+          if(!unavailable)assert.ok(info.availableBytes>=0);
+          if(phase==='compress-snapshot')assert.ok(info.databaseBytes>0);
+          for(const [key,value] of Object.entries(info))if(key!=='phase')assert.ok(value===null||typeof value==='number');
+          assert.doesNotMatch(diagnostics[0],/private-player|fixture|crdb-events|\\/tmp|\\/var/);
+        } finally {if(rolling)rolling.cleanup();}
+        assert.ok(failedPath);
+        assert.equal(fs.existsSync(require('node:path').dirname(failedPath)),false);
+      })().catch(e=>{process.stderr.write(String(e.stack));process.exitCode=1;});
+    `;
+    const child=spawnSync(process.execPath,['-e',code],{cwd:new URL('..',import.meta.url),encoding:'utf8'});
+    assert.equal(child.status,0,`${phase} diagnosticUnavailable=${unavailable}\n${child.stderr}\n${child.stdout}`);
+  }
+});
 test('unknown/tagless legacy identities are orientation independent',()=>{
   const a=event(1);delete a.team.tag;delete a.opponent.tag;
   assert.equal(trophyEventIdentity_(a),trophyEventIdentity_({...a,team:a.opponent,opponent:a.team}));
