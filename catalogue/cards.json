@@ -1056,6 +1056,11 @@
           "image": "https://cdn.royaleapi.com/static/img/cards/mirror.png",
           "sha256": "7b3a3b042574ede94cbcdf321e3f963657cd8497a3aaa6fe7c272d4a86e2ee6e",
           "officialIcon": "https://api-assets.clashroyale.com/cards/300/wC6Cm9rKLEOk72zTsukVwxewKIoO4ZcMJun54zCPWvA.png"
+        },
+        "e": {
+          "image": "https://cdn.royaleapi.com/static/img/cards/mirror-ev1.png",
+          "officialIcon": "https://api-assets.clashroyale.com/cardevolutions/300/wC6Cm9rKLEOk72zTsukVwxewKIoO4ZcMJun54zCPWvA.png",
+          "sha256": "8989e37a63ca855fc95bfdbadcf399e9d36a3305823e5fc079a324a380de05bf"
         }
       },
       "english": "Mirror",
