@@ -460,10 +460,14 @@ async function r2ReadJson_(path) {
   for (var attempt = 0; attempt < 3; attempt++) {
     try {
       var res = await r2Request_('GET', path, null, null);
-      if (res.status === 404 || res.status === 0) return null;
+      if (res.status === 404) return null;
       if (res.status >= 500) { lastErr = new Error('R2 read ' + path + ' ' + res.status); await sleep(400 * (attempt + 1)); continue; }
       if (res.status !== 200) throw new Error('R2 read ' + path + ' ' + res.status + ' :: ' + (await res.text()).slice(0, 200));
-      try { return JSON.parse(await res.text()); } catch (e) { return null; }
+      // A truncated body or malformed JSON is a failed read, not a missing object.
+      // Retry it through the same path as transport failures before giving up.
+      var body = await res.text();
+      try { return JSON.parse(body); }
+      catch { throw new Error('R2 invalid JSON ' + path); }
     } catch (e) {
       lastErr = e; await sleep(400 * (attempt + 1));
     }
@@ -491,7 +495,12 @@ async function readPrivateJson_(path) {
     try {
       var r2 = await r2ReadJson_(path);
       if (r2) return r2;
-    } catch (e) { console.log('R2 read fallback ' + path + ' :: ' + ((e && e.message) || e)); }
+    } catch (e) {
+      // Without an enabled GitHub mirror, a failed authoritative read must not
+      // initialize empty accumulators and overwrite the saved R2 history.
+      if (!PRIVATE_GH_MIRROR) throw e;
+      console.log('R2 read fallback ' + path + ' :: ' + ((e && e.message) || e));
+    }
   }
   return ghReadJson_(path);
 }
